@@ -1,0 +1,140 @@
+@import url('https://fonts.googleapis.com/css2?family=Exo+2:wght@400;500;600;700;900&family=Orbitron:wght@600&display=swap');
+
+@import "tailwindcss";
+
+@theme {
+  /* FX27 Color Tokens */
+  --color-fx-primary: #1E66F5;
+  --color-fx-bg: #0B1220;
+  --color-fx-surface: #0F172A;
+  --color-fx-text: #FFFFFF;
+  --color-fx-muted: #94A3B8;
+  
+  /* Spacing Tokens */
+  --spacing-xs: 8px;
+  --spacing-sm: 12px;
+  --spacing-md: 16px;
+  --spacing-lg: 24px;
+  --spacing-xl: 32px;
+  
+  /* Radius Tokens */
+  --radius-md: 12px;
+  --radius-lg: 16px;
+}
+
+:root {
+  /* FX27 Color Tokens */
+  --fx-primary: #1E66F5;
+  --fx-bg: #0B1220;
+  --fx-surface: #0F172A;
+  --fx-text: #FFFFFF;
+  --fx-muted: #94A3B8;
+  
+  /* Spacing Tokens */
+  --spacing-xs: 8px;
+  --spacing-sm: 12px;
+  --spacing-md: 16px;
+  --spacing-lg: 24px;
+  --spacing-xl: 32px;
+  
+  /* Radius Tokens */
+  --radius-md: 12px;
+  --radius-lg: 16px;
+}
+
+body {
+  background-color: var(--fx-bg);
+  color: var(--fx-text);
+  font-family: 'Exo 2', sans-serif;
+}
+
+/* Typography Styles */
+h1 {
+  font-family: 'Exo 2', sans-serif;
+  font-weight: 900;
+  font-size: 40px;
+  line-height: 44px;
+}
+
+h2 {
+  font-family: 'Exo 2', sans-serif;
+  font-weight: 600;
+  font-size: 28px;
+  line-height: 32px;
+}
+
+h3 {
+  font-family: 'Exo 2', sans-serif;
+  font-weight: 500;
+  font-size: 22px;
+  line-height: 28px;
+}
+
+p, body {
+  font-family: 'Exo 2', sans-serif;
+  font-weight: 400;
+  font-size: 16px;
+  line-height: 24px;
+}
+
+.caption {
+  font-family: 'Exo 2', sans-serif;
+  font-weight: 400;
+  font-size: 12px;
+  line-height: 16px;
+}
+
+.tech-label {
+  font-family: 'Orbitron', sans-serif;
+  font-weight: 600;
+  font-size: 16px;
+  line-height: 20px;
+}
+
+.logo-text {
+  font-family: 'EVO', 'Exo 2', sans-serif;
+  font-weight: 700;
+  font-size: 36px;
+  line-height: 40px;
+}
+
+/* SELECT OPTIONS - Alto Contraste */
+select option {
+  background-color: #1E293B !important;
+  color: #FFFFFF !important;
+  padding: 8px !important;
+  font-weight: 600 !important;
+}
+
+select option:hover,
+select option:checked {
+  background-color: #334155 !important;
+  color: #FFFFFF !important;
+}
+
+/* SELECT dropdown mejoras visuales */
+select {
+  cursor: pointer;
+}
+
+select::-webkit-scrollbar {
+  width: 8px;
+}
+
+select::-webkit-scrollbar-track {
+  background: #0F172A;
+}
+
+select::-webkit-scrollbar-thumb {
+  background: #475569;
+  border-radius: 4px;
+}
+
+select::-webkit-scrollbar-thumb:hover {
+  background: #64748B;
+}
+
+/* Eliminar bordes y líneas decorativas */
+* {
+  outline: none !important;
+}

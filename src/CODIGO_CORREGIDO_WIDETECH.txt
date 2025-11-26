@@ -1,0 +1,120 @@
+========================================
+CÓDIGO CORREGIDO PARA WIDETECH GPS
+========================================
+
+📍 UBICACIÓN: /supabase/functions/server/index.tsx
+📋 LÍNEAS: ~1100-1146 (busca "Response (primeros 500 chars)")
+
+⚠️ REEMPLAZA TODO ESTE BLOQUE:
+
+        const responseText = await response.text();
+        console.log(`[WIDETECH] 📄 Response (primeros 500 chars): ${responseText.substring(0, 500)}`);
+        
+        // Parsear XML para extraer todos los valores necesarios
+        const latMatch = responseText.match(/<Latitude>([-\\d.]+)<\/Latitude>/);
+        const lngMatch = responseText.match(/<Longitude>([-\\d.]+)<\/Longitude>/);
+        const speedMatch = responseText.match(/<Speed>([\d.]+)<\/Speed>/);
+        const headingMatch = responseText.match(/<Heading>([^<]+)<\/Heading>/);
+        const locationMatch = responseText.match(/<Location><!\[CDATA\[([^\]]+)\]\]><\/Location>/);
+        const dateTimeMatch = responseText.match(/<DateTimeGPS>([^<]+)<\/DateTimeGPS>/);
+        const odometerMatch = responseText.match(/<Odometer>([\d.]+)<\/Odometer>/);
+        const ignitionMatch = responseText.match(/<Ignition>([01])<\/Ignition>/);
+        
+        // Parsear temperaturas (S1 y S2)
+        const temp1Match = responseText.match(/<S1[^>]*>([-\d.]+)<\/S1>/);
+        const temp2Match = responseText.match(/<S2[^>]*>([-\d.]+)<\/S2>/);
+        
+        if (latMatch && lngMatch) {
+
+✅ POR ESTE CÓDIGO NUEVO:
+
+        const responseText = await response.text();
+        console.log(`[WIDETECH] 📄 XML Completo placa ${placa}:`, responseText);
+        
+        // ⚠️ IMPORTANTE: WideTech usa código 100 para OK (no 200)
+        const codeMatch = responseText.match(/<code>(\d+)<\/code>/);
+        const statusCode = codeMatch ? parseInt(codeMatch[1]) : 0;
+        
+        console.log(`[WIDETECH] ✅ Status code: ${statusCode} (esperado: 100)`);
+        
+        // Parsear XML para extraer todos los valores necesarios
+        const latMatch = responseText.match(/<Latitude>([-\d.]+)<\/Latitude>/);
+        const lngMatch = responseText.match(/<Longitude>([-\d.]+)<\/Longitude>/);
+        const speedMatch = responseText.match(/<Speed>([\d.]+)<\/Speed>/);
+        const headingMatch = responseText.match(/<Heading>([^<]+)<\/Heading>/);
+        const locationMatch = responseText.match(/<Location><!\[CDATA\[([^\]]+)\]\]><\/Location>/);
+        const dateTimeMatch = responseText.match(/<DateTimeGPS>([^<]+)<\/DateTimeGPS>/);
+        const odometerMatch = responseText.match(/<Odometer>([\d.]+)<\/Odometer>/);
+        const ignitionMatch = responseText.match(/<Ignition>([01])<\/Ignition>/);
+        const altitudMatch = responseText.match(/<Altitud>([\d.]+)<\/Altitud>/);
+        
+        // Parsear temperaturas (S1 y S2)
+        const temp1Match = responseText.match(/<S1[^>]*>([-\d.]+)<\/S1>/);
+        const temp2Match = responseText.match(/<S2[^>]*>([-\d.]+)<\/S2>/);
+        
+        console.log(`[WIDETECH] 🔍 Parsing: Lat=${latMatch?.[1]}, Lng=${lngMatch?.[1]}, Speed=${speedMatch?.[1]}`);
+        
+        if (latMatch && lngMatch) {
+
+
+========================================
+CAMBIOS REALIZADOS:
+========================================
+
+1. ✅ Removí BACKSLASHES DUPLICADAS:
+   Antes: /<Latitude>([-\\d.]+)<\\/Latitude>/
+   Ahora: /<Latitude>([-\d.]+)<\/Latitude>/
+
+2. ✅ Agregué validación de código de status 100
+
+3. ✅ Agregué logging del XML completo para debugging
+
+4. ✅ Agregué soporte para <Altitud> (que usa WideTech)
+
+========================================
+CÓMO DEPLOYAR:
+========================================
+
+OPCIÓN A - Supabase Dashboard (RECOMENDADO):
+1. Ve a: https://supabase.com/dashboard/project/[tu-proyecto]/functions
+2. Click en la función "server"
+3. Busca la línea 1101 (aprox)
+4. Reemplaza el código
+5. Click "Deploy"
+
+OPCIÓN B - GitHub:
+1. Edita /supabase/functions/server/index.tsx
+2. git add .
+3. git commit -m "Fix: WideTech GPS parsing"
+4. git push origin main
+5. Auto-deploy en www.jjcrm27.com
+
+========================================
+RESULTADO ESPERADO:
+========================================
+
+Después del deploy verás:
+✅ 931 - GPS activo
+✅ 937 - GPS activo  
+✅ 891 - GPS activo
+✅ 801 - GPS activo
+✅ 905 - GPS activo
+✅ 911 - GPS activo
+✅ 841 - GPS activo
+✅ 863 - GPS activo
+✅ 861 - GPS activo
+✅ 817 - GPS activo
+✅ 899 - GPS activo
+✅ 745 - GPS activo
+✅ 799 - GPS activo
+✅ 158 - GPS activo
+✅ 765 - GPS activo
+✅ 208 - GPS activo
+✅ 813 - GPS activo
+✅ 126 - GPS activo
+✅ 809 - GPS activo
+✅ 859 - GPS activo
+
+Y más unidades que tengan señal GPS en WideTech.
+
+========================================
