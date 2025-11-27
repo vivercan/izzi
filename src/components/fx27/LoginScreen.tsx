@@ -9,12 +9,18 @@ export const LoginScreen = ({
   onLogin,
   loginError,
 }: LoginScreenProps) => {
-  // ✅ PRE-LLENADO SOLO EN DESARROLLO (Figma Make)
-  // En producción (jjcrm27.com), estos campos estarán vacíos
-  const isDevelopment = window.location.hostname === 'localhost' || window.location.hostname.includes('figma');
-  
+  // ✅ PRE-LLENADO SOLO EN DESARROLLO (localhost / Figma / FX27 Mail)
+  // En producción (jjcrm27.com) estos campos estarán vacíos
+  const isDevelopment =
+    typeof window !== 'undefined' &&
+    (
+      window.location.hostname === 'localhost' ||
+      window.location.hostname.includes('figma') ||
+      window.location.hostname.includes('fx27-mail')
+    );
+
   const [email, setEmail] = useState(
-    isDevelopment ? "juan.viveros@trob.com.mx" : "",
+    isDevelopment ? "juan.viveros@trob.com.mx" : ""
   );
   const [password, setPassword] = useState(
     isDevelopment ? "Mexico86" : ""
@@ -114,7 +120,11 @@ export const LoginScreen = ({
             {/* Email Input */}
             <input
               type="email"
-              placeholder="juan.viveros@trob.com.mx"
+              placeholder={
+                isDevelopment
+                  ? "juan.viveros@trob.com.mx"
+                  : "Correo electrónico"
+              }
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
@@ -128,7 +138,7 @@ export const LoginScreen = ({
             {/* Password Input */}
             <input
               type={showPassword ? "text" : "password"}
-              placeholder="Password"
+              placeholder={isDevelopment ? "Mexico86" : "Password"}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
