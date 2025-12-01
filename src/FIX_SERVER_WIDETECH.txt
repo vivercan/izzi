@@ -1,0 +1,37 @@
+========================================
+FIX PARA WIDETE CH GPS - PARSING XML
+========================================
+
+BUSCAR EN /supabase/functions/server/index.tsx alrededor de la línea 1100:
+
+REEMPLAZAR ESTE BLOQUE:
+------------------------
+        const responseText = await response.text();
+        console.log(`[WIDETECH] 📄 Response (primeros 500 chars): ${responseText.substring(0, 500)}`);
+        
+        // Parsear XML para extraer todos los valores necesarios
+        const latMatch = responseText.match(/<Latitude>([-\\d.]+)<\\/Latitude>/);
+        const lngMatch = responseText.match(/<Longitude>([-\\d.]+)<\\/Longitude>/);
+
+
+POR ESTE NUEVO BLOQUE:
+----------------------
+        const responseText = await response.text();
+        console.log(`[WIDETECH] 📄 XML completo:`, responseText);
+        
+        // Verificar código de status (100 = OK en WideTech)
+        const codeMatch = responseText.match(/<code>(\d+)<\/code>/);
+        const statusCode = codeMatch ? parseInt(codeMatch[1]) : 0;
+        console.log(`[WIDETECH] Status: ${statusCode} (esperado 100)`);
+        
+        // Parsear XML para extraer todos los valores necesarios
+        const latMatch = responseText.match(/<Latitude>([-\d.]+)<\/Latitude>/);
+        const lngMatch = responseText.match(/<Longitude>([-\d.]+)<\/Longitude>/);
+
+
+EXPLICACIÓN:
+- El código de éxito en WideTech es 100 (no 200)
+- Removí las backslashes duplicadas (\\d -> \d)
+- Agregué logging del código de status
+
+Una vez hagas este cambio en Supabase Dashboard, el GPS debería funcionar.

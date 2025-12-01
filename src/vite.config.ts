@@ -1,0 +1,37 @@
+import { defineConfig } from 'vite'
+import react from '@vitejs/plugin-react'
+import path from 'path'
+
+// https://vitejs.dev/config/
+export default defineConfig({
+  plugins: [react()],
+  resolve: {
+    alias: {
+      '@': path.resolve(__dirname, './src'),
+      '@/components': path.resolve(__dirname, './src/components'),
+      '@/utils': path.resolve(__dirname, './src/utils'),
+      '@/assets': path.resolve(__dirname, './src/assets'),
+      '@/styles': path.resolve(__dirname, './src/styles'),
+    },
+  },
+  css: {
+    postcss: './postcss.config.js',
+  },
+  build: {
+    outDir: 'dist',
+    sourcemap: false,
+    assetsDir: 'assets',
+    rollupOptions: {
+      output: {
+        manualChunks: undefined,
+      },
+    },
+  },
+  server: {
+    port: 5173,
+    strictPort: false,
+  },
+  preview: {
+    port: 4173,
+  },
+})

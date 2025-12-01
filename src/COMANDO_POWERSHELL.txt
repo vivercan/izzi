@@ -1,0 +1,68 @@
+========================================
+🚀 COMANDOS PARA POWERSHELL
+========================================
+
+📋 PASO 1: ABRIR POWERSHELL
+
+Windows + X → PowerShell
+
+
+📋 PASO 2: NAVEGAR A TU CARPETA
+
+cd C:\ruta\donde\tienes\el\proyecto
+
+
+📋 PASO 3: CLONAR EL REPO (si no lo tienes)
+
+git clone https://github.com/vivercan/Chabelita.git
+cd Chabelita
+
+
+📋 PASO 4: COPIAR Y PEGAR ESTOS COMANDOS
+
+# Ver status
+git status
+
+# Agregar todos los cambios
+git add .
+
+# Hacer commit
+git commit -m "Fix: WideTech GPS parsing - corregir backslashes y validar codigo 100"
+
+# Subir a GitHub
+git push origin main
+
+
+========================================
+📱 ¿QUÉ VA A PASAR?
+========================================
+
+1. Los cambios se suben a GitHub (vivercan/Chabelita)
+2. GitHub hace auto-deploy a www.jjcrm27.com
+3. En 5-10 minutos el servidor estará actualizado
+4. Refrescas tu app y verás las 20+ unidades con GPS
+
+========================================
+⚠️ SI TE PIDE USUARIO/PASSWORD DE GIT:
+========================================
+
+Usuario: vivercan
+Password: [tu GitHub Personal Access Token]
+
+Si no tienes token, genera uno aquí:
+https://github.com/settings/tokens
+(Selecciona permisos: repo)
+
+========================================
+✅ RESULTADO ESPERADO:
+========================================
+
+Antes:  6 rastreadas
+Después: 20+ rastreadas
+
+Unidades que aparecerán:
+✅ 931, 937, 891, 801, 905, 911, 841, 863, 861
+✅ 817, 899, 745, 799, 158, 765, 208, 813, 126
+✅ 809, 859 + otras con GPS activo
+
+========================================

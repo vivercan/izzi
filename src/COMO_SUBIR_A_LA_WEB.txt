@@ -1,0 +1,70 @@
+========================================
+🚀 CÓMO SUBIR TODO A LA WEB (www.jjcrm27.com)
+========================================
+
+✅ TODO EL CÓDIGO EN FIGMA MAKE YA ESTÁ CORRECTO
+
+Ahora solo necesitas:
+
+1️⃣ DESCARGAR ESTE SCRIPT:
+   - Archivo: SUBIR_TODO_A_GITHUB.ps1
+   - Descárgalo desde Figma Make
+   - Guárdalo en: C:\Users\timon\Documents\Chabelita\
+
+2️⃣ EJECUTAR EL SCRIPT:
+   Abre PowerShell y ejecuta:
+   
+   cd C:\Users\timon\Documents\Chabelita
+   .\SUBIR_TODO_A_GITHUB.ps1
+
+3️⃣ CONFIRMAR:
+   - Revisa los cambios que aparecen
+   - Presiona ENTER para confirmar
+   - Espera 2-3 minutos
+
+4️⃣ VERIFICAR:
+   - Abre: www.jjcrm27.com
+   - Login: juan.viveros@trob.com.mx / Mexico86
+   - Verifica que TODO se vea bien
+
+========================================
+⚠️ SI HAY ERROR
+========================================
+
+1. Toma captura del mensaje de error
+2. Ve a: https://github.com/vivercan/Chabelita/actions
+3. Haz clic en el deployment con error
+4. Mándame captura de los logs completos
+5. Yo te ayudo a arreglarlo
+
+========================================
+✅ QUÉ SE MANTIENE (en base de datos)
+========================================
+
+✅ Leads guardados
+✅ Tractocamiones Carroll (31 unidades)
+✅ Geocercas configuradas
+✅ Usuarios creados
+✅ Toda la data
+
+========================================
+🔄 QUÉ SE ACTUALIZA (código)
+========================================
+
+🔄 Diseño mejorado del dashboard
+🔄 Header con W48 y tipo de cambio
+🔄 Componentes actualizados
+🔄 Estilos globales
+
+========================================
+📞 AYUDA
+========================================
+
+Si algo sale mal, mándame:
+1. Captura del error completo
+2. Link del deployment fallido
+3. Qué comando ejecutaste
+
+¡Y lo arreglamos! 🚀
+
+========================================
