@@ -5,22 +5,34 @@ import { Search, Download, TrendingUp, X, BarChart3, Building2, User, Calendar, 
 import { projectId, publicAnonKey } from '../../utils/supabase/info';
 
 interface PanelOportunidadesModuleProps { onBack: () => void; }
-interface RutaViajes { ruta: string; viajes: number; tarifa: number; moneda: string; }
-interface Cotizacion { nombre: string; url: string; fecha: string; analisis?: any; eliminado?: boolean; rutasViajes?: RutaViajes[]; potencialMensual?: number; }
+interface LineaCotizacion { ruta: string; tarifa: number; moneda: string; viajes: number; tipoViaje: string; subtotalMXN: number; }
+interface Cotizacion { nombre: string; url: string; fecha: string; analisis?: any; eliminado?: boolean; lineas?: LineaCotizacion[]; potencialMXN?: number; }
 interface Lead { id: string; nombreEmpresa: string; paginaWeb: string; nombreContacto: string; telefonoContacto?: string; correoElectronico: string; tipoServicio: string[]; tipoViaje: string[]; principalesRutas: string; viajesPorMes: string; tarifa: string; proyectadoVentaMensual?: string; proximosPasos: string; etapaLead?: string; altaCliente?: boolean; generacionSOP?: boolean; juntaArranque?: boolean; facturado?: boolean; vendedor: string; fechaCaptura?: string; fechaActualizacion?: string; cotizaciones?: Cotizacion[]; eliminado?: boolean; fechaEliminado?: string; }
 type SortField = 'nombreEmpresa' | 'vendedor' | 'fechaCaptura' | 'viajesPorMes';
 type SortDirection = 'asc' | 'desc';
 
 const formatDate = (dateStr: string | undefined): string => {
   if (!dateStr) return '-';
-  try {
-    const date = new Date(dateStr);
-    if (isNaN(date.getTime())) return '-';
-    return date.toLocaleDateString('es-MX', { day: '2-digit', month: '2-digit', year: 'numeric' });
-  } catch { return '-'; }
+  try { const date = new Date(dateStr); if (isNaN(date.getTime())) return '-'; return date.toLocaleDateString('es-MX', { day: '2-digit', month: '2-digit', year: 'numeric' }); } catch { return '-'; }
 };
 
 const TC_USD_MXN = 20.50;
+
+const detectarTipoViaje = (ruta: string): string => {
+  const rutaLower = ruta.toLowerCase();
+  const ciudadesUSA = ['laredo', 'nuevo laredo', 'nvo laredo', 'dallas', 'houston', 'san antonio', 'el paso', 'mcallen', 'brownsville', 'eagle pass', 'texas', 'california', 'arizona', 'chicago', 'los angeles', 'phoenix'];
+  const esOrigenUSA = ciudadesUSA.some(c => rutaLower.startsWith(c) || rutaLower.includes(c + ' -') || rutaLower.includes(c + ' a '));
+  const esDestinoUSA = ciudadesUSA.some(c => rutaLower.endsWith(c) || rutaLower.includes('- ' + c) || rutaLower.includes(' a ' + c));
+  const tieneUSA = ciudadesUSA.some(c => rutaLower.includes(c));
+  if (rutaLower.includes('laredo') || rutaLower.includes('nvo laredo') || rutaLower.includes('nuevo laredo')) {
+    if (esOrigenUSA && !esDestinoUSA) return 'Impo';
+    if (!esOrigenUSA && esDestinoUSA) return 'Expo';
+  }
+  if (tieneUSA && !rutaLower.includes('laredo')) return 'DTD';
+  if (esOrigenUSA) return 'Impo';
+  if (esDestinoUSA) return 'Expo';
+  return 'Nacional';
+};
 
 export const PanelOportunidadesModule = ({ onBack }: PanelOportunidadesModuleProps) => {
   const [leads, setLeads] = useState<Lead[]>([]);
@@ -43,14 +55,10 @@ export const PanelOportunidadesModule = ({ onBack }: PanelOportunidadesModulePro
   const [statusMsg, setStatusMsg] = useState('');
   const [pdfPreview, setPdfPreview] = useState<string | null>(null);
   const [tipoCambio] = useState(TC_USD_MXN);
-  const [viajesModal, setViajesModal] = useState<{cotizacion: Cotizacion, lead: Lead, index: number} | null>(null);
-  const [rutasViajes, setRutasViajes] = useState<RutaViajes[]>([]);
-
-  const handleInputChange = (field: keyof Lead, value: any) => {
-    if (field === 'nombreContacto') { setFormData({ ...formData, [field]: value.toLowerCase().split(' ').map((p: string) => p.charAt(0).toUpperCase() + p.slice(1)).join(' ') }); }
-    else if (field === 'correoElectronico') { setFormData({ ...formData, [field]: value.toLowerCase() }); }
-    else { setFormData({ ...formData, [field]: value }); }
-  };
+  
+  // Modal para capturar líneas de cotización
+  const [lineasModal, setLineasModal] = useState<{cotizacion: Cotizacion, lead: Lead, index: number} | null>(null);
+  const [lineasCotizacion, setLineasCotizacion] = useState<LineaCotizacion[]>([]);
 
   useEffect(() => { if (editLead) setFormData(editLead); }, [editLead]);
 
@@ -92,7 +100,7 @@ export const PanelOportunidadesModule = ({ onBack }: PanelOportunidadesModulePro
   }, [leads, searchTerm, filterVendedor, filterFecha, sortField, sortDirection, showDeleted]);
 
   const handleSort = (field: SortField) => { if (sortField === field) setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc'); else { setSortField(field); setSortDirection('asc'); } };
-  const handleExportExcel = () => { const headers = ['Empresa', 'Contacto', 'Email', 'Servicio', 'Viaje', 'Rutas', 'Viajes/Mes', 'Tarifa', 'Potencial', 'Vendedor', 'Fecha']; const rows = filteredLeads.map(lead => [lead.nombreEmpresa, lead.nombreContacto, lead.correoElectronico, (lead.tipoServicio||[]).join(', '), (lead.tipoViaje||[]).join(', '), lead.principalesRutas, lead.viajesPorMes, lead.tarifa, lead.proyectadoVentaMensual || '', lead.vendedor, formatDate(lead.fechaCaptura)]); const csvContent = [headers.join(','), ...rows.map(row => row.map(cell => `"${cell}"`).join(','))].join('\n'); const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' }); const link = document.createElement('a'); link.href = URL.createObjectURL(blob); link.download = `leads_fx27_${new Date().toISOString().split('T')[0]}.csv`; link.click(); };
+  const handleExportExcel = () => { const headers = ['Empresa', 'Contacto', 'Email', 'Servicio', 'Viaje', 'Rutas', 'Viajes/Mes', 'Potencial MXN', 'Vendedor', 'Fecha']; const rows = filteredLeads.map(lead => [lead.nombreEmpresa, lead.nombreContacto, lead.correoElectronico, (lead.tipoServicio||[]).join(', '), (lead.tipoViaje||[]).join(', '), lead.principalesRutas, lead.viajesPorMes, lead.proyectadoVentaMensual || '', lead.vendedor, formatDate(lead.fechaCaptura)]); const csvContent = [headers.join(','), ...rows.map(row => row.map(cell => `"${cell}"`).join(','))].join('\n'); const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' }); const link = document.createElement('a'); link.href = URL.createObjectURL(blob); link.download = `leads_fx27_${new Date().toISOString().split('T')[0]}.csv`; link.click(); };
   const getVendedoresUnicos = () => Array.from(new Set(leads.map(lead => lead.vendedor)));
 
   const analizarCotizacion = async (pdfText: string, fileName: string): Promise<any> => {
@@ -121,72 +129,113 @@ export const PanelOportunidadesModule = ({ onBack }: PanelOportunidadesModulePro
     setStatusMsg('Leyendo archivos...');
     const archivos = Array.from(files).filter(f => f.type === 'application/pdf');
     if (archivos.length === 0) { alert('Solo PDFs'); setAnalizando(false); setStatusMsg(''); return; }
-    let nuevasCotizaciones = [...(lead.cotizaciones || [])];
+    
     for (let i = 0; i < archivos.length; i++) {
       const file = archivos[i];
-      setStatusMsg(`Procesando ${i + 1}/${archivos.length}: ${file.name}`);
+      setStatusMsg(`Analizando ${file.name}...`);
       try {
         const base64 = await new Promise<string>((resolve, reject) => { const reader = new FileReader(); reader.onload = () => resolve(reader.result as string); reader.onerror = () => reject('Error'); reader.readAsDataURL(file); });
-        setStatusMsg(`Analizando ${file.name}...`);
         const analisis = await analizarCotizacion(file.name, file.name);
         const nuevaCot: Cotizacion = { nombre: file.name, url: base64, fecha: new Date().toISOString(), analisis, eliminado: false };
-        nuevasCotizaciones.push(nuevaCot);
+        
+        // Preparar líneas de cotización
+        let lineas: LineaCotizacion[] = [];
         if (analisis && !analisis.error) {
-          const leadTemp = { ...lead, cotizaciones: nuevasCotizaciones };
-          setLeads(leads.map(l => l.id === lead.id ? leadTemp : l));
-          setCotizacionesModal(leadTemp);
           const rutasStr = analisis.rutas || '';
           const rutasArray = rutasStr.split(',').map((r: string) => r.trim()).filter((r: string) => r);
-          const rutasIniciales: RutaViajes[] = rutasArray.length > 0 
-            ? rutasArray.map((r: string) => ({ ruta: r, viajes: 1, tarifa: analisis.tarifaMXN || analisis.tarifaTotal || 0, moneda: analisis.moneda || 'MXN' }))
-            : [{ ruta: rutasStr || 'Ruta Principal', viajes: 1, tarifa: analisis.tarifaMXN || analisis.tarifaTotal || 0, moneda: analisis.moneda || 'MXN' }];
-          setRutasViajes(rutasIniciales);
-          setViajesModal({ cotizacion: nuevaCot, lead: leadTemp, index: nuevasCotizaciones.length - 1 });
-          setAnalizando(false);
-          setStatusMsg('');
-          return;
+          const tarifaBase = analisis.tarifaMXN || analisis.tarifaTotal || 0;
+          const monedaBase = analisis.moneda || 'MXN';
+          
+          if (rutasArray.length > 0) {
+            lineas = rutasArray.map((ruta: string) => ({
+              ruta,
+              tarifa: tarifaBase,
+              moneda: monedaBase,
+              viajes: 0,
+              tipoViaje: detectarTipoViaje(ruta),
+              subtotalMXN: 0
+            }));
+          } else {
+            lineas = [{ ruta: rutasStr || 'Ruta Principal', tarifa: tarifaBase, moneda: monedaBase, viajes: 0, tipoViaje: 'Nacional', subtotalMXN: 0 }];
+          }
+        } else {
+          lineas = [{ ruta: 'Ruta 1', tarifa: 0, moneda: 'MXN', viajes: 0, tipoViaje: 'Nacional', subtotalMXN: 0 }];
         }
+        
+        const leadTemp = { ...lead, cotizaciones: [...(lead.cotizaciones || []), nuevaCot] };
+        setLeads(leads.map(l => l.id === lead.id ? leadTemp : l));
+        setCotizacionesModal(leadTemp);
+        setLineasCotizacion(lineas);
+        setLineasModal({ cotizacion: nuevaCot, lead: leadTemp, index: (lead.cotizaciones || []).length });
+        setAnalizando(false);
+        setStatusMsg('');
+        return;
       } catch (e) {
-        nuevasCotizaciones.push({ nombre: file.name, url: '', fecha: new Date().toISOString(), analisis: { error: String(e) }, eliminado: false });
+        console.error('Error:', e);
       }
     }
-    await guardarCotizaciones(lead, nuevasCotizaciones);
-  };
-
-  const guardarCotizaciones = async (lead: Lead, cotizaciones: Cotizacion[], potencialTotal?: number) => {
-    setStatusMsg('Guardando...');
-    let tiposServicio = [...(lead.tipoServicio || [])], tiposViaje = [...(lead.tipoViaje || [])];
-    let rutas = lead.principalesRutas || '', tarifa = lead.tarifa || '', viajes = lead.viajesPorMes || '';
-    let potencial = potencialTotal || 0;
-    cotizaciones.forEach(cot => {
-      if (cot.analisis && !cot.analisis.error) {
-        if (Array.isArray(cot.analisis.tipoServicio)) cot.analisis.tipoServicio.forEach((s: string) => { if (s && !tiposServicio.includes(s)) tiposServicio.push(s); });
-        if (Array.isArray(cot.analisis.tipoViaje)) cot.analisis.tipoViaje.forEach((v: string) => { if (v && !tiposViaje.includes(v)) tiposViaje.push(v); });
-        if (cot.analisis.rutas && !rutas.includes(cot.analisis.rutas)) rutas = rutas ? `${rutas}, ${cot.analisis.rutas}` : cot.analisis.rutas;
-        if (cot.rutasViajes) { const totalViajes = cot.rutasViajes.reduce((sum, r) => sum + r.viajes, 0); viajes = String(parseInt(viajes || '0') + totalViajes); }
-        if (cot.potencialMensual) potencial += cot.potencialMensual;
-      }
-    });
-    const leadActualizado = { ...lead, cotizaciones, tipoServicio: tiposServicio.length > 0 ? tiposServicio : lead.tipoServicio, tipoViaje: tiposViaje.length > 0 ? tiposViaje : lead.tipoViaje, principalesRutas: rutas || lead.principalesRutas, tarifa: tarifa || lead.tarifa, viajesPorMes: viajes || lead.viajesPorMes, proyectadoVentaMensual: potencial > 0 ? `$${potencial.toLocaleString()} MXN` : lead.proyectadoVentaMensual, etapaLead: 'Cotizado', fechaActualizacion: new Date().toISOString() };
-    try {
-      await fetch(`https://${projectId}.supabase.co/functions/v1/make-server-d84b50bb/leads/${lead.id}`, { method: 'PUT', headers: { 'Authorization': `Bearer ${publicAnonKey}`, 'Content-Type': 'application/json' }, body: JSON.stringify(leadActualizado) });
-      setLeads(leads.map(l => l.id === lead.id ? leadActualizado : l));
-      setCotizacionesModal(leadActualizado);
-      alert('Cotización guardada');
-    } catch { alert('Error guardando'); }
     setAnalizando(false);
     setStatusMsg('');
   };
 
-  const handleGuardarViajes = async () => {
-    if (!viajesModal) return;
-    const { lead, index } = viajesModal;
+  const calcularSubtotal = (linea: LineaCotizacion): number => {
+    const tarifaMXN = linea.moneda === 'USD' ? linea.tarifa * tipoCambio : linea.tarifa;
+    return linea.viajes * tarifaMXN;
+  };
+
+  const calcularTotalMXN = (): number => {
+    return lineasCotizacion.reduce((sum, linea) => sum + calcularSubtotal(linea), 0);
+  };
+
+  const todosViajesCapturados = (): boolean => {
+    return lineasCotizacion.every(l => l.viajes > 0);
+  };
+
+  const handleGuardarCotizacion = async () => {
+    if (!lineasModal || !todosViajesCapturados()) return;
+    
+    const { lead, index } = lineasModal;
     const cotizaciones = [...(lead.cotizaciones || [])];
-    let potencialMensual = 0;
-    rutasViajes.forEach(rv => { const tarifaMXN = rv.moneda === 'USD' ? rv.tarifa * tipoCambio : rv.tarifa; potencialMensual += rv.viajes * tarifaMXN; });
-    cotizaciones[index] = { ...cotizaciones[index], rutasViajes, potencialMensual };
-    setViajesModal(null);
-    await guardarCotizaciones(lead, cotizaciones, potencialMensual);
+    const lineasConSubtotal = lineasCotizacion.map(l => ({ ...l, subtotalMXN: calcularSubtotal(l) }));
+    const potencialMXN = calcularTotalMXN();
+    
+    cotizaciones[index] = { ...cotizaciones[index], lineas: lineasConSubtotal, potencialMXN };
+    
+    // Actualizar datos del lead
+    const tiposServicio = [...(lead.tipoServicio || [])];
+    const tiposViaje = [...(lead.tipoViaje || [])];
+    let rutas = lead.principalesRutas || '';
+    let totalViajes = parseInt(lead.viajesPorMes || '0');
+    
+    lineasConSubtotal.forEach(l => {
+      if (l.tipoViaje && !tiposViaje.includes(l.tipoViaje)) tiposViaje.push(l.tipoViaje);
+      if (l.ruta && !rutas.includes(l.ruta)) rutas = rutas ? `${rutas}, ${l.ruta}` : l.ruta;
+      totalViajes += l.viajes;
+    });
+    
+    // Calcular potencial total del lead
+    let potencialTotal = 0;
+    cotizaciones.forEach(cot => { if (cot.potencialMXN) potencialTotal += cot.potencialMXN; });
+    
+    const leadActualizado = {
+      ...lead,
+      cotizaciones,
+      tipoViaje: tiposViaje,
+      principalesRutas: rutas,
+      viajesPorMes: String(totalViajes),
+      proyectadoVentaMensual: `$${potencialTotal.toLocaleString('es-MX')} MXN`,
+      etapaLead: 'Cotizado',
+      fechaActualizacion: new Date().toISOString()
+    };
+    
+    try {
+      await fetch(`https://${projectId}.supabase.co/functions/v1/make-server-d84b50bb/leads/${lead.id}`, { method: 'PUT', headers: { 'Authorization': `Bearer ${publicAnonKey}`, 'Content-Type': 'application/json' }, body: JSON.stringify(leadActualizado) });
+      setLeads(leads.map(l => l.id === lead.id ? leadActualizado : l));
+      setCotizacionesModal(leadActualizado);
+      setLineasModal(null);
+      setLineasCotizacion([]);
+      alert('Cotización guardada correctamente');
+    } catch { alert('Error guardando'); }
   };
 
   const handleEliminarCotizacion = async (lead: Lead, index: number) => {
@@ -228,10 +277,15 @@ export const PanelOportunidadesModule = ({ onBack }: PanelOportunidadesModulePro
     } catch { alert('Error'); }
   };
 
+  const handleInputChange = (field: keyof Lead, value: any) => {
+    if (field === 'nombreContacto') { setFormData({ ...formData, [field]: value.toLowerCase().split(' ').map((p: string) => p.charAt(0).toUpperCase() + p.slice(1)).join(' ') }); }
+    else if (field === 'correoElectronico') { setFormData({ ...formData, [field]: value.toLowerCase() }); }
+    else { setFormData({ ...formData, [field]: value }); }
+  };
+
   const handleToggleServicio = (s: string) => { const arr = formData.tipoServicio || []; setFormData({ ...formData, tipoServicio: arr.includes(s) ? arr.filter(x => x !== s) : [...arr, s] }); };
   const handleToggleViaje = (v: string) => { const arr = formData.tipoViaje || []; setFormData({ ...formData, tipoViaje: arr.includes(v) ? arr.filter(x => x !== v) : [...arr, v] }); };
   const SortIcon = ({ field }: { field: SortField }) => sortField !== field ? <SortAsc className="w-4 h-4 opacity-30" /> : sortDirection === 'asc' ? <SortAsc className="w-4 h-4" /> : <SortDesc className="w-4 h-4" />;
-  const calcularPotencialTotal = () => rutasViajes.reduce((total, rv) => { const tarifaMXN = rv.moneda === 'USD' ? rv.tarifa * tipoCambio : rv.tarifa; return total + (rv.viajes * tarifaMXN); }, 0);
 
   return (
     <ModuleTemplate title="Panel de Oportunidades" onBack={onBack} headerImage={MODULE_IMAGES.PANEL_OPORTUNIDADES}>
@@ -258,7 +312,7 @@ export const PanelOportunidadesModule = ({ onBack }: PanelOportunidadesModulePro
               <div className="p-3 rounded-lg bg-blue-500/10 border border-blue-500/30"><div className="text-blue-400 mb-1" style={{ fontSize: '12px' }}>Total</div><div className="text-white" style={{ fontFamily: "'Orbitron', sans-serif", fontSize: '28px', fontWeight: 700 }}>{leads.filter(l => !l.eliminado).length}</div></div>
               <div className="p-3 rounded-lg bg-yellow-500/10 border border-yellow-500/30"><div className="text-yellow-400 mb-1" style={{ fontSize: '12px' }}>Cotizados</div><div className="text-white" style={{ fontFamily: "'Orbitron', sans-serif", fontSize: '28px', fontWeight: 700 }}>{leads.filter(l => !l.eliminado && l.etapaLead === 'Cotizado').length}</div></div>
               <div className="p-3 rounded-lg bg-green-500/10 border border-green-500/30"><div className="text-green-400 mb-1" style={{ fontSize: '12px' }}>Cerrados</div><div className="text-white" style={{ fontFamily: "'Orbitron', sans-serif", fontSize: '28px', fontWeight: 700 }}>{leads.filter(l => !l.eliminado && l.etapaLead === 'Cerrado').length}</div></div>
-              <div className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/30"><div className="text-emerald-400 mb-1" style={{ fontSize: '12px' }}>Potencial Total</div><div className="text-emerald-400" style={{ fontFamily: "'Orbitron', sans-serif", fontSize: '20px', fontWeight: 700 }}>${leads.filter(l => !l.eliminado && l.proyectadoVentaMensual).reduce((sum, l) => sum + (parseInt(l.proyectadoVentaMensual?.replace(/[^0-9]/g, '') || '0') || 0), 0).toLocaleString()}</div></div>
+              <div className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/30"><div className="text-emerald-400 mb-1" style={{ fontSize: '12px' }}>$ Potencial Total</div><div className="text-emerald-400" style={{ fontFamily: "'Orbitron', sans-serif", fontSize: '18px', fontWeight: 700 }}>${leads.filter(l => !l.eliminado && l.proyectadoVentaMensual).reduce((sum, l) => sum + (parseInt(l.proyectadoVentaMensual?.replace(/[^0-9]/g, '') || '0') || 0), 0).toLocaleString('es-MX')} MXN</div></div>
               <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/30"><div className="text-red-400 mb-1" style={{ fontSize: '12px' }}>Eliminados</div><div className="text-white" style={{ fontFamily: "'Orbitron', sans-serif", fontSize: '28px', fontWeight: 700 }}>{leads.filter(l => l.eliminado).length}</div></div>
             </div>
           </div>
@@ -268,14 +322,13 @@ export const PanelOportunidadesModule = ({ onBack }: PanelOportunidadesModulePro
           <div className="flex-shrink-0 border-b border-white/10 bg-[var(--fx-surface)]">
             <table className="w-full"><thead><tr>
               <th className="px-2 py-2 text-center text-[var(--fx-muted)]" style={{ fontSize: '11px', fontWeight: 600, width: '3%' }}>#</th>
-              <th onClick={() => handleSort('nombreEmpresa')} className="px-2 py-2 text-left text-[var(--fx-muted)] cursor-pointer hover:text-white" style={{ fontSize: '11px', fontWeight: 600, width: '12%' }}><div className="flex items-center gap-1"><Building2 className="w-3 h-3" />EMPRESA<SortIcon field="nombreEmpresa" /></div></th>
-              <th className="px-1.5 py-2 text-left text-[var(--fx-muted)]" style={{ fontSize: '11px', fontWeight: 600, width: '6%' }}>ETAPA</th>
-              <th className="px-2 py-2 text-left text-[var(--fx-muted)]" style={{ fontSize: '11px', fontWeight: 600, width: '12%' }}>CONTACTO</th>
-              <th className="px-2 py-2 text-left text-[var(--fx-muted)]" style={{ fontSize: '11px', fontWeight: 600, width: '8%' }}>SERVICIO</th>
-              <th className="px-1.5 py-2 text-left text-[var(--fx-muted)]" style={{ fontSize: '11px', fontWeight: 600, width: '8%' }}>VIAJE</th>
-              <th className="px-1.5 py-2 text-left text-[var(--fx-muted)]" style={{ fontSize: '11px', fontWeight: 600, width: '8%' }}>TARIFA</th>
-              <th className="px-1.5 py-2 text-left text-[var(--fx-muted)]" style={{ fontSize: '11px', fontWeight: 600, width: '10%' }}><div className="flex items-center gap-1"><DollarSign className="w-3 h-3" />POTENCIAL</div></th>
-              <th onClick={() => handleSort('vendedor')} className="px-2 py-2 text-left text-[var(--fx-muted)] cursor-pointer hover:text-white" style={{ fontSize: '11px', fontWeight: 600, width: '9%' }}><div className="flex items-center gap-1"><User className="w-3 h-3" />VENDEDOR<SortIcon field="vendedor" /></div></th>
+              <th onClick={() => handleSort('nombreEmpresa')} className="px-2 py-2 text-left text-[var(--fx-muted)] cursor-pointer hover:text-white" style={{ fontSize: '11px', fontWeight: 600, width: '14%' }}><div className="flex items-center gap-1"><Building2 className="w-3 h-3" />EMPRESA<SortIcon field="nombreEmpresa" /></div></th>
+              <th className="px-1.5 py-2 text-left text-[var(--fx-muted)]" style={{ fontSize: '11px', fontWeight: 600, width: '7%' }}>ETAPA</th>
+              <th className="px-2 py-2 text-left text-[var(--fx-muted)]" style={{ fontSize: '11px', fontWeight: 600, width: '14%' }}>CONTACTO</th>
+              <th className="px-2 py-2 text-left text-[var(--fx-muted)]" style={{ fontSize: '11px', fontWeight: 600, width: '10%' }}>SERVICIO</th>
+              <th className="px-1.5 py-2 text-left text-[var(--fx-muted)]" style={{ fontSize: '11px', fontWeight: 600, width: '10%' }}>VIAJE</th>
+              <th className="px-1.5 py-2 text-left text-[var(--fx-muted)]" style={{ fontSize: '11px', fontWeight: 600, width: '12%' }}><div className="flex items-center gap-1"><DollarSign className="w-3 h-3" />$ POTENCIAL</div></th>
+              <th onClick={() => handleSort('vendedor')} className="px-2 py-2 text-left text-[var(--fx-muted)] cursor-pointer hover:text-white" style={{ fontSize: '11px', fontWeight: 600, width: '10%' }}><div className="flex items-center gap-1"><User className="w-3 h-3" />VENDEDOR<SortIcon field="vendedor" /></div></th>
               <th onClick={() => handleSort('fechaCaptura')} className="px-2 py-2 text-left text-[var(--fx-muted)] cursor-pointer hover:text-white" style={{ fontSize: '11px', fontWeight: 600, width: '8%' }}><div className="flex items-center gap-1"><Calendar className="w-3 h-3" />CREADO<SortIcon field="fechaCaptura" /></div></th>
               <th className="px-2 py-2 text-center text-[var(--fx-muted)]" style={{ fontSize: '11px', fontWeight: 600, width: '10%' }}>ACCIONES</th>
             </tr></thead></table>
@@ -284,29 +337,28 @@ export const PanelOportunidadesModule = ({ onBack }: PanelOportunidadesModulePro
           <div className="flex-1 overflow-y-auto">
             <table className="w-full"><tbody>
               {filteredLeads.length === 0 ? (
-                <tr><td colSpan={11} className="px-6 py-12 text-center text-[var(--fx-muted)]">No se encontraron leads.</td></tr>
+                <tr><td colSpan={10} className="px-6 py-12 text-center text-[var(--fx-muted)]">No se encontraron leads.</td></tr>
               ) : (
                 filteredLeads.map((lead, index) => (
                   <tr key={lead.id} className={`border-b border-white/5 hover:bg-white/5 ${lead.eliminado ? 'opacity-50 bg-red-500/5' : ''}`} style={{ height: '48px' }}>
                     <td className="px-2 py-2 text-center" style={{ fontFamily: "'Orbitron', monospace", fontSize: '11px', fontWeight: 600, color: lead.eliminado ? '#ef4444' : 'var(--fx-primary)', width: '3%' }}>{index + 1}</td>
-                    <td className="px-2 py-2 text-white" style={{ fontSize: '11px', fontWeight: 700, width: '12%' }}>{lead.nombreEmpresa}</td>
-                    <td className="px-1.5 py-2" style={{ width: '6%' }}><span className={`px-2 py-0.5 rounded text-xs font-semibold ${lead.etapaLead === 'Cotizado' ? 'bg-yellow-500/20 text-yellow-400' : lead.etapaLead === 'Negociación' ? 'bg-orange-500/20 text-orange-400' : lead.etapaLead === 'Cerrado' ? 'bg-green-500/20 text-green-400' : 'bg-purple-500/20 text-purple-400'}`} style={{ fontSize: '10px' }}>{lead.etapaLead || 'Prospecto'}</span></td>
-                    <td className="px-2 py-2" style={{ width: '12%' }}><div style={{ fontSize: '11px' }}><div className="text-white font-semibold truncate">{lead.nombreContacto}</div><div className="text-[var(--fx-muted)] truncate" style={{ fontSize: '10px' }}>{lead.correoElectronico}</div></div></td>
-                    <td className="px-2 py-2" style={{ width: '8%' }}><div className="flex flex-wrap gap-0.5">{(lead.tipoServicio || []).slice(0,2).map((t, i) => <span key={i} className="px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-400" style={{ fontSize: '9px', fontWeight: 600 }}>{t}</span>)}</div></td>
-                    <td className="px-1.5 py-2" style={{ width: '8%' }}><div className="flex flex-wrap gap-0.5">{(lead.tipoViaje || []).slice(0,2).map((t, i) => <span key={i} className="px-1.5 py-0.5 rounded bg-green-500/20 text-green-400" style={{ fontSize: '9px', fontWeight: 600 }}>{t}</span>)}</div></td>
-                    <td className="px-1.5 py-2" style={{ width: '8%' }}>{lead.tarifa ? <span className="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400" style={{ fontFamily: "'Orbitron', monospace", fontSize: '10px', fontWeight: 600 }}>{lead.tarifa}</span> : <span className="text-[var(--fx-muted)]" style={{ fontSize: '10px' }}>N/A</span>}</td>
-                    <td className="px-1.5 py-2" style={{ width: '10%' }}>{lead.proyectadoVentaMensual ? <span className="px-2 py-0.5 rounded bg-amber-500/20 text-amber-400" style={{ fontFamily: "'Orbitron', monospace", fontSize: '10px', fontWeight: 600 }}>{lead.proyectadoVentaMensual}</span> : <span className="text-[var(--fx-muted)]" style={{ fontSize: '10px' }}>-</span>}</td>
-                    <td className="px-2 py-2 text-[var(--fx-muted)]" style={{ fontSize: '11px', width: '9%' }}>{lead.vendedor}</td>
+                    <td className="px-2 py-2 text-white" style={{ fontSize: '11px', fontWeight: 700, width: '14%' }}>{lead.nombreEmpresa}</td>
+                    <td className="px-1.5 py-2" style={{ width: '7%' }}><span className={`px-2 py-0.5 rounded text-xs font-semibold ${lead.etapaLead === 'Cotizado' ? 'bg-yellow-500/20 text-yellow-400' : lead.etapaLead === 'Negociación' ? 'bg-orange-500/20 text-orange-400' : lead.etapaLead === 'Cerrado' ? 'bg-green-500/20 text-green-400' : 'bg-purple-500/20 text-purple-400'}`} style={{ fontSize: '10px' }}>{lead.etapaLead || 'Prospecto'}</span></td>
+                    <td className="px-2 py-2" style={{ width: '14%' }}><div style={{ fontSize: '11px' }}><div className="text-white font-semibold truncate">{lead.nombreContacto}</div><div className="text-[var(--fx-muted)] truncate" style={{ fontSize: '10px' }}>{lead.correoElectronico}</div></div></td>
+                    <td className="px-2 py-2" style={{ width: '10%' }}><div className="flex flex-wrap gap-0.5">{(lead.tipoServicio || []).slice(0,2).map((t, i) => <span key={i} className="px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-400" style={{ fontSize: '9px', fontWeight: 600 }}>{t}</span>)}</div></td>
+                    <td className="px-1.5 py-2" style={{ width: '10%' }}><div className="flex flex-wrap gap-0.5">{(lead.tipoViaje || []).slice(0,2).map((t, i) => <span key={i} className="px-1.5 py-0.5 rounded bg-green-500/20 text-green-400" style={{ fontSize: '9px', fontWeight: 600 }}>{t}</span>)}</div></td>
+                    <td className="px-1.5 py-2" style={{ width: '12%' }}>{lead.proyectadoVentaMensual ? <span className="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400" style={{ fontFamily: "'Orbitron', monospace", fontSize: '10px', fontWeight: 600 }}>{lead.proyectadoVentaMensual}</span> : <span className="text-[var(--fx-muted)]" style={{ fontSize: '10px' }}>-</span>}</td>
+                    <td className="px-2 py-2 text-[var(--fx-muted)]" style={{ fontSize: '11px', width: '10%' }}>{lead.vendedor}</td>
                     <td className="px-2 py-2" style={{ width: '8%' }}><span className="text-white" style={{ fontSize: '10px' }}>{formatDate(lead.fechaCaptura)}</span></td>
                     <td className="px-2 py-2" style={{ width: '10%' }}>
                       <div className="flex items-center justify-center gap-1">
-                        <button onClick={() => setSelectedLead(lead)} className="p-1.5 rounded-lg bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 border border-blue-500/30"><Eye className="w-3.5 h-3.5" /></button>
-                        <button onClick={() => setEditLead(lead)} className="p-1.5 rounded-lg bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-400 border border-yellow-500/30" disabled={lead.eliminado}><Pencil className="w-3.5 h-3.5" /></button>
+                        <button onClick={() => setSelectedLead(lead)} className="p-1.5 rounded-lg bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 border border-blue-500/30" title="Ver detalle"><Eye className="w-3.5 h-3.5" /></button>
+                        <button onClick={() => setEditLead(lead)} className="p-1.5 rounded-lg bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-400 border border-yellow-500/30" disabled={lead.eliminado} title="Editar lead"><Pencil className="w-3.5 h-3.5" /></button>
                         <div className="relative">
-                          <button onClick={() => setCotizacionesModal(lead)} className="p-1.5 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 border border-emerald-500/30"><FileText className="w-3.5 h-3.5" /></button>
+                          <button onClick={() => setCotizacionesModal(lead)} className="p-1.5 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 border border-emerald-500/30" title="Cotizaciones"><FileText className="w-3.5 h-3.5" /></button>
                           {lead.cotizaciones?.filter(c => !c.eliminado).length ? <div className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-emerald-500 flex items-center justify-center text-white" style={{ fontSize: '9px', fontWeight: 700 }}>{lead.cotizaciones.filter(c => !c.eliminado).length}</div> : null}
                         </div>
-                        {lead.eliminado && isAdmin ? <button onClick={() => handleRestaurarLead(lead)} className="p-1.5 rounded-lg bg-green-500/20 hover:bg-green-500/30 text-green-400 border border-green-500/30"><TrendingUp className="w-3.5 h-3.5" /></button> : <button onClick={() => setDeleteModal(lead)} className="p-1.5 rounded-lg bg-red-500/20 hover:bg-red-500/30 text-red-400 border border-red-500/30" disabled={lead.eliminado}><Trash2 className="w-3.5 h-3.5" /></button>}
+                        {lead.eliminado && isAdmin ? <button onClick={() => handleRestaurarLead(lead)} className="p-1.5 rounded-lg bg-green-500/20 hover:bg-green-500/30 text-green-400 border border-green-500/30" title="Restaurar"><TrendingUp className="w-3.5 h-3.5" /></button> : <button onClick={() => setDeleteModal(lead)} className="p-1.5 rounded-lg bg-red-500/20 hover:bg-red-500/30 text-red-400 border border-red-500/30" disabled={lead.eliminado} title="Eliminar lead"><Trash2 className="w-3.5 h-3.5" /></button>}
                       </div>
                     </td>
                   </tr>
@@ -321,24 +373,25 @@ export const PanelOportunidadesModule = ({ onBack }: PanelOportunidadesModulePro
         </div>
       </div>
 
+      {/* Modal Ver Lead */}
       {selectedLead && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setSelectedLead(null)}>
-          <div className="bg-[var(--fx-surface)] rounded-2xl border border-white/20 w-[95vw] max-w-[1200px] max-h-[90vh] overflow-y-auto p-6" onClick={(e) => e.stopPropagation()}>
+          <div className="bg-[var(--fx-surface)] rounded-2xl border border-white/20 w-[95vw] max-w-[1000px] max-h-[90vh] overflow-y-auto p-6" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-4"><h3 className="text-white text-xl font-bold flex items-center gap-2"><Building2 className="w-6 h-6 text-blue-400" />{selectedLead.nombreEmpresa}</h3><button onClick={() => setSelectedLead(null)} className="p-2 rounded-lg hover:bg-white/10"><X className="w-5 h-5 text-white" /></button></div>
             <div className="grid grid-cols-3 gap-4 text-sm">
               <div className="p-3 rounded-lg bg-white/5"><div className="text-blue-400 text-xs mb-1">Contacto</div><div className="text-white font-semibold">{selectedLead.nombreContacto}</div><div className="text-gray-400">{selectedLead.correoElectronico}</div></div>
               <div className="p-3 rounded-lg bg-white/5"><div className="text-blue-400 text-xs mb-1">Servicio</div><div className="flex flex-wrap gap-1">{(selectedLead.tipoServicio||[]).map((t,i)=><span key={i} className="px-2 py-0.5 rounded bg-blue-500/20 text-blue-400 text-xs">{t}</span>)}</div></div>
-              <div className="p-3 rounded-lg bg-white/5"><div className="text-green-400 text-xs mb-1">Viaje</div><div className="flex flex-wrap gap-1">{(selectedLead.tipoViaje||[]).map((t,i)=><span key={i} className="px-2 py-0.5 rounded bg-green-500/20 text-green-400 text-xs">{t}</span>)}</div></div>
-              <div className="p-3 rounded-lg bg-white/5"><div className="text-purple-400 text-xs mb-1">Rutas</div><div className="text-white">{selectedLead.principalesRutas || '-'}</div></div>
+              <div className="p-3 rounded-lg bg-white/5"><div className="text-green-400 text-xs mb-1">Tipo de Viaje</div><div className="flex flex-wrap gap-1">{(selectedLead.tipoViaje||[]).map((t,i)=><span key={i} className="px-2 py-0.5 rounded bg-green-500/20 text-green-400 text-xs">{t}</span>)}</div></div>
+              <div className="p-3 rounded-lg bg-white/5 col-span-2"><div className="text-purple-400 text-xs mb-1">Rutas</div><div className="text-white text-sm">{selectedLead.principalesRutas || '-'}</div></div>
               <div className="p-3 rounded-lg bg-white/5"><div className="text-orange-400 text-xs mb-1">Viajes/Mes</div><div className="text-white font-bold text-lg">{selectedLead.viajesPorMes || '-'}</div></div>
-              <div className="p-3 rounded-lg bg-emerald-500/10"><div className="text-emerald-400 text-xs mb-1">Tarifa</div><div className="text-emerald-400 font-bold text-lg">{selectedLead.tarifa || 'N/A'}</div></div>
-              <div className="col-span-3 p-3 rounded-lg bg-amber-500/10"><div className="text-amber-400 text-xs mb-1">Potencial Mensual</div><div className="text-amber-400 font-bold text-2xl">{selectedLead.proyectadoVentaMensual || 'Sin calcular'}</div></div>
+              <div className="col-span-3 p-4 rounded-lg bg-emerald-500/10 border border-emerald-500/30"><div className="text-emerald-400 text-xs mb-1">$ Potencial Mensual</div><div className="text-emerald-400 font-bold text-3xl">{selectedLead.proyectadoVentaMensual || 'Sin calcular'}</div></div>
             </div>
             <div className="mt-4 flex justify-between items-center text-sm text-gray-400"><span>Vendedor: {selectedLead.vendedor}</span><span>Creado: {formatDate(selectedLead.fechaCaptura)}</span></div>
           </div>
         </div>
       )}
 
+      {/* Modal Eliminar */}
       {deleteModal && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => { setDeleteModal(null); setDeleteConfirmText(''); }}>
           <div className="bg-[var(--fx-surface)] rounded-2xl border border-red-500/30 w-[400px] p-6" onClick={(e) => e.stopPropagation()}>
@@ -351,11 +404,12 @@ export const PanelOportunidadesModule = ({ onBack }: PanelOportunidadesModulePro
         </div>
       )}
 
+      {/* Modal Cotizaciones */}
       {cotizacionesModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setCotizacionesModal(null)}>
           <div className="bg-[var(--fx-surface)] rounded-2xl border border-white/20 w-[900px] max-h-[85vh] overflow-y-auto p-6" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-4"><h3 className="text-white text-xl font-bold flex items-center gap-2"><FileText className="w-5 h-5 text-emerald-400" />Cotizaciones - {cotizacionesModal.nombreEmpresa}</h3><button onClick={() => setCotizacionesModal(null)} className="p-2 rounded-lg hover:bg-white/10"><X className="w-5 h-5 text-white" /></button></div>
-            <div className="mb-4"><label className={`flex items-center justify-center gap-2 px-4 py-3 rounded-xl ${analizando ? 'bg-blue-600/50' : 'bg-blue-600 hover:bg-blue-700'} text-white cursor-pointer`}>{analizando ? <><Loader2 className="w-5 h-5 animate-spin" /><span>{statusMsg}</span></> : <><Upload className="w-5 h-5" /><span className="font-semibold">Subir Cotizaciones (PDFs)</span></>}<input type="file" accept="application/pdf" multiple className="hidden" disabled={analizando} onChange={(e) => { if (e.target.files?.length) handleSubirCotizaciones(e.target.files, cotizacionesModal); e.target.value = ''; }} /></label></div>
+            <div className="mb-4"><label className={`flex items-center justify-center gap-2 px-4 py-3 rounded-xl ${analizando ? 'bg-blue-600/50' : 'bg-blue-600 hover:bg-blue-700'} text-white cursor-pointer`}>{analizando ? <><Loader2 className="w-5 h-5 animate-spin" /><span>{statusMsg}</span></> : <><Upload className="w-5 h-5" /><span className="font-semibold">Subir Cotización (PDF)</span></>}<input type="file" accept="application/pdf" className="hidden" disabled={analizando} onChange={(e) => { if (e.target.files?.length) handleSubirCotizaciones(e.target.files, cotizacionesModal); e.target.value = ''; }} /></label></div>
             <div className="space-y-3">
               {(!cotizacionesModal.cotizaciones || !cotizacionesModal.cotizaciones.filter(c => !c.eliminado).length) ? (
                 <div className="text-center py-6 text-gray-400">No hay cotizaciones adjuntas.</div>
@@ -365,30 +419,30 @@ export const PanelOportunidadesModule = ({ onBack }: PanelOportunidadesModulePro
                     <div className="flex items-center justify-between mb-2">
                       <div className="flex items-center gap-2"><FileText className="w-4 h-4 text-emerald-400" /><span className="text-white font-semibold">{cot.nombre}</span><span className="text-gray-500 text-xs">{formatDate(cot.fecha)}</span></div>
                       <div className="flex gap-2">
-                        {cot.url && <button onClick={() => setPdfPreview(cot.url)} className="px-2 py-1 rounded bg-purple-500/20 text-purple-400 text-xs flex items-center gap-1"><Eye className="w-3 h-3" />Ver</button>}
-                        {cot.url && <a href={cot.url} download={cot.nombre} className="px-2 py-1 rounded bg-blue-500/20 text-blue-400 text-xs flex items-center gap-1"><Download className="w-3 h-3" /></a>}
-                        <button onClick={() => handleEliminarCotizacion(cotizacionesModal, cotizacionesModal.cotizaciones?.indexOf(cot) || i)} className="px-2 py-1 rounded bg-red-500/20 text-red-400 text-xs"><Trash2 className="w-3 h-3" /></button>
+                        {cot.url && <button onClick={() => setPdfPreview(cot.url)} className="px-2 py-1 rounded bg-purple-500/20 text-purple-400 text-xs flex items-center gap-1" title="Ver PDF"><Eye className="w-3 h-3" />Ver</button>}
+                        {cot.url && <a href={cot.url} download={cot.nombre} className="px-2 py-1 rounded bg-blue-500/20 text-blue-400 text-xs flex items-center gap-1" title="Descargar"><Download className="w-3 h-3" /></a>}
+                        <button onClick={() => handleEliminarCotizacion(cotizacionesModal, cotizacionesModal.cotizaciones?.indexOf(cot) || i)} className="px-2 py-1 rounded bg-red-500/20 text-red-400 text-xs" title="Eliminar"><Trash2 className="w-3 h-3" /></button>
                       </div>
                     </div>
-                    {cot.analisis && !cot.analisis.error && (
-                      <div className="p-3 rounded bg-emerald-500/10 border border-emerald-500/20">
-                        <div className="flex items-center gap-1 mb-2"><CheckCircle className="w-3 h-3 text-emerald-400" /><span className="text-emerald-400 text-xs font-semibold">Análisis IA</span></div>
-                        <div className="grid grid-cols-4 gap-3 text-xs mb-3">
-                          <div><span className="text-gray-400">Servicio:</span> <span className="text-white">{cot.analisis.tipoServicio?.join(', ') || '-'}</span></div>
-                          <div><span className="text-gray-400">Viaje:</span> <span className="text-white">{cot.analisis.tipoViaje?.join(', ') || '-'}</span></div>
-                          <div><span className="text-gray-400">Rutas:</span> <span className="text-white">{cot.analisis.rutas || '-'}</span></div>
-                          <div><span className="text-gray-400">Tarifa:</span> <span className="text-emerald-400 font-semibold">{cot.analisis.tarifaMXN ? `$${Number(cot.analisis.tarifaMXN).toLocaleString()} MXN` : '-'}</span></div>
+                    {cot.lineas && cot.lineas.length > 0 && (
+                      <div className="mt-3 p-3 rounded bg-emerald-500/10 border border-emerald-500/20">
+                        <div className="flex items-center gap-1 mb-2"><CheckCircle className="w-3 h-3 text-emerald-400" /><span className="text-emerald-400 text-xs font-semibold">Líneas Cotizadas</span></div>
+                        <div className="space-y-2">
+                          {cot.lineas.map((linea, idx) => (
+                            <div key={idx} className="flex justify-between items-center text-xs p-2 rounded bg-black/20">
+                              <div className="flex-1">
+                                <span className="text-white font-medium">{linea.ruta}</span>
+                                <span className={`ml-2 px-1.5 py-0.5 rounded text-xs ${linea.tipoViaje === 'Impo' ? 'bg-blue-500/20 text-blue-400' : linea.tipoViaje === 'Expo' ? 'bg-green-500/20 text-green-400' : linea.tipoViaje === 'DTD' ? 'bg-purple-500/20 text-purple-400' : 'bg-gray-500/20 text-gray-400'}`}>{linea.tipoViaje}</span>
+                              </div>
+                              <div className="text-gray-400">{linea.viajes} viajes × ${linea.tarifa.toLocaleString('es-MX')} {linea.moneda}</div>
+                              <div className="text-emerald-400 font-semibold ml-4">${linea.subtotalMXN.toLocaleString('es-MX')} MXN</div>
+                            </div>
+                          ))}
                         </div>
-                        {cot.rutasViajes && cot.rutasViajes.length > 0 && (
-                          <div className="mt-2 p-2 rounded bg-amber-500/10 border border-amber-500/20">
-                            <div className="text-amber-400 text-xs font-semibold mb-2">Viajes por Ruta</div>
-                            <div className="space-y-1">{cot.rutasViajes.map((rv, idx) => (<div key={idx} className="flex justify-between text-xs"><span className="text-white">{rv.ruta}</span><span className="text-gray-400">{rv.viajes} viajes × ${rv.tarifa.toLocaleString()} {rv.moneda} = <span className="text-amber-400 font-semibold">${(rv.viajes * (rv.moneda === 'USD' ? rv.tarifa * tipoCambio : rv.tarifa)).toLocaleString()} MXN</span></span></div>))}</div>
-                            <div className="mt-2 pt-2 border-t border-amber-500/20 flex justify-between"><span className="text-amber-400 font-semibold">Potencial Mensual:</span><span className="text-amber-400 font-bold text-lg">${cot.potencialMensual?.toLocaleString() || 0} MXN</span></div>
-                          </div>
-                        )}
-                        {!cot.rutasViajes && (
-                          <button onClick={() => { const rutasStr = cot.analisis.rutas || ''; const rutasArray = rutasStr.split(',').map((r: string) => r.trim()).filter((r: string) => r); const rutasIniciales: RutaViajes[] = rutasArray.length > 0 ? rutasArray.map((r: string) => ({ ruta: r, viajes: 1, tarifa: cot.analisis.tarifaMXN || cot.analisis.tarifaTotal || 0, moneda: cot.analisis.moneda || 'MXN' })) : [{ ruta: rutasStr || 'Ruta Principal', viajes: 1, tarifa: cot.analisis.tarifaMXN || cot.analisis.tarifaTotal || 0, moneda: cot.analisis.moneda || 'MXN' }]; setRutasViajes(rutasIniciales); setViajesModal({ cotizacion: cot, lead: cotizacionesModal, index: cotizacionesModal.cotizaciones?.indexOf(cot) || i }); }} className="mt-2 w-full px-3 py-2 rounded bg-amber-500/20 hover:bg-amber-500/30 text-amber-400 text-sm font-semibold flex items-center justify-center gap-2"><DollarSign className="w-4 h-4" /> Calcular Potencial</button>
-                        )}
+                        <div className="mt-3 pt-3 border-t border-emerald-500/30 flex justify-between items-center">
+                          <span className="text-emerald-400 font-semibold">TOTAL POTENCIAL:</span>
+                          <span className="text-emerald-400 font-bold text-xl">${cot.potencialMXN?.toLocaleString('es-MX')} MXN</span>
+                        </div>
                       </div>
                     )}
                   </div>
@@ -400,31 +454,82 @@ export const PanelOportunidadesModule = ({ onBack }: PanelOportunidadesModulePro
         </div>
       )}
 
-      {viajesModal && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-[60] p-4" onClick={() => setViajesModal(null)}>
-          <div className="bg-[var(--fx-surface)] rounded-2xl border border-amber-500/30 w-[600px] p-6" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between mb-4"><h3 className="text-white text-lg font-bold flex items-center gap-2"><DollarSign className="w-5 h-5 text-amber-400" />Calcular Potencial Mensual</h3><button onClick={() => setViajesModal(null)} className="p-2 rounded-lg hover:bg-white/10"><X className="w-5 h-5 text-white" /></button></div>
-            <div className="mb-4 p-3 rounded-lg bg-blue-500/10 border border-blue-500/20"><div className="text-blue-400 text-xs mb-1">Tipo de Cambio USD/MXN</div><div className="text-white font-bold">${tipoCambio.toFixed(2)}</div></div>
+      {/* Modal Captura de Líneas */}
+      {lineasModal && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
+          <div className="bg-[var(--fx-surface)] rounded-2xl border border-emerald-500/30 w-[800px] max-h-[90vh] overflow-y-auto p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-white text-lg font-bold flex items-center gap-2"><DollarSign className="w-5 h-5 text-emerald-400" />Capturar Viajes por Ruta</h3>
+              <div className="text-blue-400 text-sm">TC: $1 USD = ${tipoCambio} MXN</div>
+            </div>
+            
+            <div className="mb-4 p-3 rounded-lg bg-blue-500/10 border border-blue-500/20">
+              <p className="text-blue-400 text-sm">Captura el número de viajes potenciales por cada línea/ruta. El sistema calculará automáticamente el potencial mensual.</p>
+            </div>
+            
             <div className="space-y-3 mb-4">
-              {rutasViajes.map((rv, idx) => (
-                <div key={idx} className="p-3 rounded-lg bg-white/5 border border-white/10">
-                  <div className="flex items-center gap-3 mb-2"><input type="text" value={rv.ruta} onChange={(e) => { const arr = [...rutasViajes]; arr[idx].ruta = e.target.value; setRutasViajes(arr); }} className="flex-1 px-3 py-2 rounded bg-black/30 border border-white/20 text-white text-sm" placeholder="Nombre de la ruta" /><button onClick={() => setRutasViajes(rutasViajes.filter((_, i) => i !== idx))} className="p-2 rounded bg-red-500/20 text-red-400"><Trash2 className="w-4 h-4" /></button></div>
-                  <div className="grid grid-cols-3 gap-2">
-                    <div><label className="text-gray-400 text-xs">Viajes/Mes</label><input type="number" min="1" value={rv.viajes} onChange={(e) => { const arr = [...rutasViajes]; arr[idx].viajes = parseInt(e.target.value) || 1; setRutasViajes(arr); }} className="w-full mt-1 px-3 py-2 rounded bg-black/30 border border-white/20 text-white text-sm" /></div>
-                    <div><label className="text-gray-400 text-xs">Tarifa</label><input type="number" min="0" value={rv.tarifa} onChange={(e) => { const arr = [...rutasViajes]; arr[idx].tarifa = parseFloat(e.target.value) || 0; setRutasViajes(arr); }} className="w-full mt-1 px-3 py-2 rounded bg-black/30 border border-white/20 text-white text-sm" /></div>
-                    <div><label className="text-gray-400 text-xs">Moneda</label><select value={rv.moneda} onChange={(e) => { const arr = [...rutasViajes]; arr[idx].moneda = e.target.value; setRutasViajes(arr); }} className="w-full mt-1 px-3 py-2 rounded bg-black/30 border border-white/20 text-white text-sm"><option value="MXN">MXN</option><option value="USD">USD</option></select></div>
+              {lineasCotizacion.map((linea, idx) => (
+                <div key={idx} className="p-4 rounded-lg bg-white/5 border border-white/10">
+                  <div className="grid grid-cols-12 gap-3 items-center">
+                    <div className="col-span-4">
+                      <label className="text-gray-400 text-xs">Ruta</label>
+                      <input type="text" value={linea.ruta} onChange={(e) => { const arr = [...lineasCotizacion]; arr[idx].ruta = e.target.value; arr[idx].tipoViaje = detectarTipoViaje(e.target.value); setLineasCotizacion(arr); }} className="w-full mt-1 px-3 py-2 rounded bg-black/30 border border-white/20 text-white text-sm" />
+                    </div>
+                    <div className="col-span-2">
+                      <label className="text-gray-400 text-xs">Tipo</label>
+                      <select value={linea.tipoViaje} onChange={(e) => { const arr = [...lineasCotizacion]; arr[idx].tipoViaje = e.target.value; setLineasCotizacion(arr); }} className="w-full mt-1 px-2 py-2 rounded bg-black/30 border border-white/20 text-white text-sm">
+                        <option value="Impo">Impo</option>
+                        <option value="Expo">Expo</option>
+                        <option value="Nacional">Nacional</option>
+                        <option value="DTD">DTD</option>
+                      </select>
+                    </div>
+                    <div className="col-span-2">
+                      <label className="text-gray-400 text-xs">Tarifa</label>
+                      <div className="flex gap-1 mt-1">
+                        <input type="number" min="0" value={linea.tarifa} onChange={(e) => { const arr = [...lineasCotizacion]; arr[idx].tarifa = parseFloat(e.target.value) || 0; setLineasCotizacion(arr); }} className="w-full px-2 py-2 rounded bg-black/30 border border-white/20 text-white text-sm" />
+                        <select value={linea.moneda} onChange={(e) => { const arr = [...lineasCotizacion]; arr[idx].moneda = e.target.value; setLineasCotizacion(arr); }} className="px-2 py-2 rounded bg-black/30 border border-white/20 text-white text-sm">
+                          <option value="MXN">MXN</option>
+                          <option value="USD">USD</option>
+                        </select>
+                      </div>
+                    </div>
+                    <div className="col-span-2">
+                      <label className="text-gray-400 text-xs">Viajes/Mes *</label>
+                      <input type="number" min="0" value={linea.viajes || ''} onChange={(e) => { const arr = [...lineasCotizacion]; arr[idx].viajes = parseInt(e.target.value) || 0; setLineasCotizacion(arr); }} className={`w-full mt-1 px-3 py-2 rounded border text-white text-sm ${linea.viajes > 0 ? 'bg-emerald-500/10 border-emerald-500/30' : 'bg-red-500/10 border-red-500/30'}`} placeholder="0" />
+                    </div>
+                    <div className="col-span-2 text-right">
+                      <label className="text-gray-400 text-xs">Subtotal</label>
+                      <div className="mt-1 text-emerald-400 font-bold">${calcularSubtotal(linea).toLocaleString('es-MX')} MXN</div>
+                    </div>
                   </div>
-                  <div className="mt-2 text-right text-sm"><span className="text-gray-400">Subtotal: </span><span className="text-amber-400 font-semibold">${(rv.viajes * (rv.moneda === 'USD' ? rv.tarifa * tipoCambio : rv.tarifa)).toLocaleString()} MXN</span></div>
+                  {idx > 0 && (
+                    <button onClick={() => setLineasCotizacion(lineasCotizacion.filter((_, i) => i !== idx))} className="mt-2 text-red-400 text-xs hover:text-red-300">Eliminar línea</button>
+                  )}
                 </div>
               ))}
             </div>
-            <button onClick={() => setRutasViajes([...rutasViajes, { ruta: '', viajes: 1, tarifa: 0, moneda: 'MXN' }])} className="w-full mb-4 px-4 py-2 rounded-lg bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 border border-blue-500/30 text-sm">+ Agregar Ruta</button>
-            <div className="p-4 rounded-lg bg-amber-500/10 border border-amber-500/30 mb-4"><div className="flex justify-between items-center"><span className="text-amber-400 font-semibold text-lg">POTENCIAL MENSUAL TOTAL:</span><span className="text-amber-400 font-bold text-2xl" style={{ fontFamily: "'Orbitron', monospace" }}>${calcularPotencialTotal().toLocaleString()} MXN</span></div></div>
-            <div className="flex gap-3"><button onClick={() => setViajesModal(null)} className="flex-1 px-4 py-2 rounded-lg bg-gray-600 text-white">Cancelar</button><button onClick={handleGuardarViajes} className="flex-1 px-4 py-2 rounded-lg bg-amber-500 text-black font-semibold">Guardar Potencial</button></div>
+            
+            <button onClick={() => setLineasCotizacion([...lineasCotizacion, { ruta: '', tarifa: 0, moneda: 'MXN', viajes: 0, tipoViaje: 'Nacional', subtotalMXN: 0 }])} className="w-full mb-4 px-4 py-2 rounded-lg bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 border border-blue-500/30 text-sm">+ Agregar Línea</button>
+            
+            <div className="p-4 rounded-lg bg-emerald-500/10 border border-emerald-500/30 mb-4">
+              <div className="flex justify-between items-center">
+                <span className="text-emerald-400 font-semibold text-lg">POTENCIAL MENSUAL TOTAL:</span>
+                <span className="text-emerald-400 font-bold text-3xl" style={{ fontFamily: "'Orbitron', monospace" }}>${calcularTotalMXN().toLocaleString('es-MX')} MXN</span>
+              </div>
+            </div>
+            
+            <div className="flex gap-3">
+              <button onClick={() => { setLineasModal(null); setLineasCotizacion([]); }} className="flex-1 px-4 py-2 rounded-lg bg-gray-600 text-white">Cancelar</button>
+              <button onClick={handleGuardarCotizacion} disabled={!todosViajesCapturados()} className={`flex-1 px-4 py-3 rounded-lg font-semibold ${todosViajesCapturados() ? 'bg-emerald-500 text-black' : 'bg-gray-500/30 text-gray-500 cursor-not-allowed'}`}>
+                {todosViajesCapturados() ? 'Guardar Cotización' : 'Completa todos los viajes'}
+              </button>
+            </div>
           </div>
         </div>
       )}
 
+      {/* Modal Preview PDF */}
       {pdfPreview && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-[60] p-4" onClick={() => setPdfPreview(null)}>
           <div className="bg-white rounded-2xl w-[90vw] h-[90vh] overflow-hidden flex flex-col" onClick={(e) => e.stopPropagation()}>
@@ -434,6 +539,7 @@ export const PanelOportunidadesModule = ({ onBack }: PanelOportunidadesModulePro
         </div>
       )}
 
+      {/* Modal Editar */}
       {editLead && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setEditLead(null)}>
           <div className="bg-[var(--fx-surface)] rounded-2xl border border-white/20 w-[700px] max-h-[80vh] overflow-y-auto p-6" onClick={(e) => e.stopPropagation()}>
@@ -444,14 +550,11 @@ export const PanelOportunidadesModule = ({ onBack }: PanelOportunidadesModulePro
               <div><label className="text-gray-400 text-xs">Contacto</label><input type="text" value={formData.nombreContacto || ''} onChange={(e) => handleInputChange('nombreContacto', e.target.value)} className="w-full mt-1 px-3 py-2 rounded-lg bg-black/30 border border-white/20 text-white" /></div>
               <div><label className="text-gray-400 text-xs">Email</label><input type="email" value={formData.correoElectronico || ''} onChange={(e) => handleInputChange('correoElectronico', e.target.value)} className="w-full mt-1 px-3 py-2 rounded-lg bg-black/30 border border-white/20 text-white" /></div>
               <div className="col-span-2"><label className="text-gray-400 text-xs">Servicio</label><div className="flex flex-wrap gap-2 mt-1">{['Seco', 'Refrigerado', 'Seco Hazmat', 'Refrigerado Hazmat'].map(s => <button key={s} onClick={() => handleToggleServicio(s)} className={`px-3 py-1 rounded text-xs ${formData.tipoServicio?.includes(s) ? 'bg-blue-500/30 text-blue-400 border border-blue-500' : 'bg-black/30 border border-white/20 text-white'}`}>{s}</button>)}</div></div>
-              <div className="col-span-2"><label className="text-gray-400 text-xs">Viaje</label><div className="flex flex-wrap gap-2 mt-1">{['Impo', 'Expo', 'Nacional', 'Dedicado'].map(v => <button key={v} onClick={() => handleToggleViaje(v)} className={`px-3 py-1 rounded text-xs ${formData.tipoViaje?.includes(v) ? 'bg-green-500/30 text-green-400 border border-green-500' : 'bg-black/30 border border-white/20 text-white'}`}>{v}</button>)}</div></div>
-              <div><label className="text-gray-400 text-xs">Rutas</label><input type="text" value={formData.principalesRutas || ''} onChange={(e) => setFormData({ ...formData, principalesRutas: e.target.value })} className="w-full mt-1 px-3 py-2 rounded-lg bg-black/30 border border-white/20 text-white" /></div>
-              <div className="grid grid-cols-2 gap-2">
-                <div><label className="text-gray-400 text-xs">Viajes/Mes</label><input type="number" value={formData.viajesPorMes || ''} onChange={(e) => setFormData({ ...formData, viajesPorMes: e.target.value })} className="w-full mt-1 px-3 py-2 rounded-lg bg-black/30 border border-white/20 text-white" /></div>
-                <div><label className="text-gray-400 text-xs">Tarifa</label><input type="text" value={formData.tarifa || ''} onChange={(e) => setFormData({ ...formData, tarifa: e.target.value })} className="w-full mt-1 px-3 py-2 rounded-lg bg-black/30 border border-white/20 text-white" /></div>
-              </div>
+              <div className="col-span-2"><label className="text-gray-400 text-xs">Viaje</label><div className="flex flex-wrap gap-2 mt-1">{['Impo', 'Expo', 'Nacional', 'DTD', 'Dedicado'].map(v => <button key={v} onClick={() => handleToggleViaje(v)} className={`px-3 py-1 rounded text-xs ${formData.tipoViaje?.includes(v) ? 'bg-green-500/30 text-green-400 border border-green-500' : 'bg-black/30 border border-white/20 text-white'}`}>{v}</button>)}</div></div>
+              <div className="col-span-2"><label className="text-gray-400 text-xs">Rutas</label><input type="text" value={formData.principalesRutas || ''} onChange={(e) => setFormData({ ...formData, principalesRutas: e.target.value })} className="w-full mt-1 px-3 py-2 rounded-lg bg-black/30 border border-white/20 text-white" /></div>
+              <div><label className="text-gray-400 text-xs">Viajes/Mes</label><input type="number" value={formData.viajesPorMes || ''} onChange={(e) => setFormData({ ...formData, viajesPorMes: e.target.value })} className="w-full mt-1 px-3 py-2 rounded-lg bg-black/30 border border-white/20 text-white" /></div>
               <div><label className="text-gray-400 text-xs">Etapa</label><select value={formData.etapaLead || 'Prospecto'} onChange={(e) => setFormData({ ...formData, etapaLead: e.target.value })} className="w-full mt-1 px-3 py-2 rounded-lg bg-black/30 border border-white/20 text-white"><option>Prospecto</option><option>Cotizado</option><option>Negociación</option><option>Cerrado</option></select></div>
-              <div><label className="text-gray-400 text-xs">Próximos Pasos</label><input type="text" value={formData.proximosPasos || ''} onChange={(e) => setFormData({ ...formData, proximosPasos: e.target.value })} className="w-full mt-1 px-3 py-2 rounded-lg bg-black/30 border border-white/20 text-white" /></div>
+              <div className="col-span-2"><label className="text-gray-400 text-xs">Próximos Pasos</label><input type="text" value={formData.proximosPasos || ''} onChange={(e) => setFormData({ ...formData, proximosPasos: e.target.value })} className="w-full mt-1 px-3 py-2 rounded-lg bg-black/30 border border-white/20 text-white" /></div>
             </div>
             <div className="flex gap-3 mt-4"><button onClick={() => setEditLead(null)} className="flex-1 px-4 py-2 rounded-lg bg-gray-600 text-white">Cancelar</button><button onClick={handleGuardarEdicion} className="flex-1 px-4 py-2 rounded-lg bg-yellow-500 text-black font-semibold">Guardar</button></div>
           </div>
