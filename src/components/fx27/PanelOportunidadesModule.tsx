@@ -1,14 +1,14 @@
 import { ModuleTemplate } from './ModuleTemplate';
 import { useState, useEffect } from 'react';
 import { MODULE_IMAGES } from '../../assets/module-images';
-import { Search, Download, TrendingUp, X, BarChart3, Building2, User, Calendar, Eye, Trash2, SortAsc, SortDesc, FileText, Upload, Pencil, AlertTriangle, Loader2, CheckCircle, DollarSign, Clock, Zap, Flame, Skull } from 'lucide-react';
+import { Search, Download, TrendingUp, X, BarChart3, Building2, User, Calendar, Eye, Trash2, SortAsc, SortDesc, FileText, Upload, Pencil, AlertTriangle, Loader2, CheckCircle, DollarSign, Clock, Zap, Flame, Skull, MapPin, ArrowRight, Truck, Plus } from 'lucide-react';
 import { projectId, publicAnonKey } from '../../utils/supabase/info';
 import * as pdfjsLib from 'pdfjs-dist';
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
 interface PanelOportunidadesModuleProps { onBack: () => void; }
-interface LineaCotizacion { ruta: string; tarifa: number; moneda: string; viajes: number; tipoViaje: string; subtotalMXN: number; }
+interface LineaCotizacion { origen: string; destino: string; servicio: string; tarifa: number; moneda: string; viajes: number; tipoViaje: string; subtotalMXN: number; }
 interface Cotizacion { nombre: string; url: string; fecha: string; analisis?: any; eliminado?: boolean; lineas?: LineaCotizacion[]; potencialMXN?: number; }
 interface HistorialCambio { fecha: string; campo: string; valorAnterior: string; valorNuevo: string; usuario: string; }
 interface Lead { id: string; nombreEmpresa: string; paginaWeb: string; nombreContacto: string; telefonoContacto?: string; correoElectronico: string; tipoServicio: string[]; tipoViaje: string[]; principalesRutas: string; viajesPorMes: string; tarifa: string; proyectadoVentaMensual?: string; proximosPasos: string; etapaLead?: string; altaCliente?: boolean; generacionSOP?: boolean; juntaArranque?: boolean; facturado?: boolean; vendedor: string; fechaCaptura?: string; fechaActualizacion?: string; cotizaciones?: Cotizacion[]; eliminado?: boolean; fechaEliminado?: string; historial?: HistorialCambio[]; fechaLiberacion?: string; }
@@ -22,26 +22,98 @@ const formatDateTime = (dateStr: string | undefined): string => { if (!dateStr) 
 const diasSinMovimiento = (fechaActualizacion: string | undefined, fechaCaptura: string | undefined): number => { const fecha = fechaActualizacion || fechaCaptura; if (!fecha) return 0; return Math.floor((Date.now() - new Date(fecha).getTime()) / (1000 * 60 * 60 * 24)); };
 const diasDesdeCreacion = (fechaCaptura: string | undefined): number => { if (!fechaCaptura) return 0; return Math.floor((Date.now() - new Date(fechaCaptura).getTime()) / (1000 * 60 * 60 * 24)); };
 
-const detectarTipoViaje = (ruta: string): string => {
-  const rutaLower = ruta.toLowerCase();
-  const ciudadesUSA = ['laredo', 'nuevo laredo', 'nvo laredo', 'dallas', 'houston', 'san antonio', 'el paso', 'mcallen', 'brownsville', 'eagle pass', 'texas', 'tx', 'california', 'ca', 'arizona', 'az', 'chicago', 'los angeles', 'phoenix'];
-  const tieneUSA = ciudadesUSA.some(c => rutaLower.includes(c));
-  const tieneLaredo = rutaLower.includes('laredo') || rutaLower.includes('lrd');
-  if (tieneLaredo) { const partes = rutaLower.split(/[-–—>a]/); if (partes.length >= 2) { const origen = partes[0].trim(); const destino = partes[partes.length - 1].trim(); const origenUSA = ciudadesUSA.some(c => origen.includes(c)); const destinoUSA = ciudadesUSA.some(c => destino.includes(c)); if (origenUSA && !destinoUSA) return 'Impo'; if (!origenUSA && destinoUSA) return 'Expo'; } }
-  if (tieneUSA && !tieneLaredo) return 'DTD';
+const esUbicacionUSA = (ubicacion: string): boolean => {
+  const lower = ubicacion.toLowerCase();
+  const estadosUSA = ['tx', 'texas', 'ca', 'california', 'az', 'arizona', 'nm', 'new mexico', 'illinois', 'il', 'ohio', 'oh', 'michigan', 'mi'];
+  const ciudadesUSA = ['laredo', 'dallas', 'houston', 'san antonio', 'mcallen', 'brownsville', 'eagle pass', 'el paso', 'austin', 'chicago', 'los angeles', 'phoenix', 'tucson', 'tyler', 'edinburg'];
+  const tieneZipUSA = /\b\d{5}\b/.test(ubicacion);
+  return estadosUSA.some(e => lower.includes(e)) || ciudadesUSA.some(c => lower.includes(c)) || tieneZipUSA;
+};
+
+const esFronteraMX = (ubicacion: string): boolean => {
+  const lower = ubicacion.toLowerCase();
+  return lower.includes('nuevo laredo') || lower.includes('nvo laredo') || lower.includes('reynosa') || 
+         lower.includes('matamoros') || lower.includes('nogales') && !lower.includes('az') || 
+         lower.includes('tijuana') || lower.includes('mexicali') || lower.includes('ciudad juarez') || 
+         lower.includes('piedras negras') || lower.includes('colombia') && lower.includes('nl');
+};
+
+const detectarTipoViaje = (origen: string, destino: string, servicio: string): string => {
+  const origenUSA = esUbicacionUSA(origen);
+  const destinoUSA = esUbicacionUSA(destino);
+  const destinoFronteraMX = esFronteraMX(destino);
+  const servicioLower = servicio.toLowerCase();
+  
+  if (servicioLower.includes('parte americana') || servicioLower.includes('americana')) return 'DTD';
+  if (origenUSA && destinoUSA) return 'DTD';
+  if (origenUSA && !destinoUSA) return 'Impo';
+  if (!origenUSA && destinoUSA) return 'Expo';
+  if (!origenUSA && destinoFronteraMX) return 'Expo';
   return 'Nacional';
 };
 
-const detectarMoneda = (texto: string): string => { if (texto.includes('USD') || texto.includes('usd') || texto.includes('dlls') || texto.includes('dólares') || texto.includes('dolares')) return 'USD'; return 'MXN'; };
+const normalizarServicio = (servicio: string): string => {
+  const lower = servicio.toLowerCase();
+  if (lower.includes('refrigerado') || lower.includes('thermo') || lower.includes('reefer')) return 'Refrigerado';
+  if (lower.includes('hazmat')) return lower.includes('refri') ? 'Refrigerado Hazmat' : 'Seco Hazmat';
+  return 'Seco';
+};
 
-const buscarDuplicados = (nombre: string, leadsExistentes: Lead[]): { duplicadoExacto: boolean; similares: string[] } => {
-  const nombreNorm = nombre.toUpperCase().trim();
-  const duplicadoExacto = CLIENTES_EXISTENTES.some(c => c.toUpperCase() === nombreNorm) || leadsExistentes.some(l => l.nombreEmpresa.toUpperCase() === nombreNorm);
-  const similares: string[] = [];
-  const palabras = nombreNorm.split(' ').filter(p => p.length > 3);
-  CLIENTES_EXISTENTES.forEach(c => { const cNorm = c.toUpperCase(); if (cNorm !== nombreNorm && palabras.some(p => cNorm.includes(p))) similares.push(c); });
-  leadsExistentes.forEach(l => { const lNorm = l.nombreEmpresa.toUpperCase(); if (lNorm !== nombreNorm && palabras.some(p => lNorm.includes(p)) && !similares.includes(l.nombreEmpresa)) similares.push(l.nombreEmpresa); });
-  return { duplicadoExacto, similares: similares.slice(0, 5) };
+const parsearCotizacionPDF = (texto: string): LineaCotizacion[] => {
+  const lineas: LineaCotizacion[] = [];
+  const lines = texto.split('\n').map(l => l.trim()).filter(l => l);
+  
+  let i = 0;
+  while (i < lines.length) {
+    const line = lines[i];
+    
+    if (line.toLowerCase().includes('origen') && line.toLowerCase().includes('destino') && line.toLowerCase().includes('importe')) {
+      i++;
+      let origen = '', destino = '', servicio = '', importe = 0, moneda = 'MXN';
+      
+      while (i < lines.length && !lines[i].toLowerCase().startsWith('total') && 
+             !(lines[i].toLowerCase().includes('origen') && lines[i].toLowerCase().includes('destino') && lines[i].toLowerCase().includes('importe'))) {
+        const dataLine = lines[i].trim();
+        
+        const importeMatch = dataLine.match(/([\d,]+\.?\d*)\s*(USD|MXN|\$MX)/i);
+        if (importeMatch) {
+          importe = parseFloat(importeMatch[1].replace(/,/g, ''));
+          moneda = importeMatch[2].toUpperCase().includes('USD') ? 'USD' : 'MXN';
+        }
+        
+        const servicioMatch = dataLine.match(/(Refrigerado|Seco|Parte Americana|Cruce|Hazmat)/i);
+        if (servicioMatch) servicio = servicioMatch[1];
+        
+        if (!origen && !importeMatch && dataLine.length > 3) {
+          if (/[A-Za-z]+.*[,.]/.test(dataLine) || /\b(TX|CA|AZ|NL|Jal|Ags|Coah|Tamps|Gto|Qro)\b/i.test(dataLine)) {
+            origen = dataLine.replace(/-$/, '').trim();
+          }
+        } else if (origen && !destino && !importeMatch && !servicioMatch && dataLine.length > 3) {
+          if (/[A-Za-z]+.*[,.]/.test(dataLine) || /\b(TX|CA|AZ|NL|Jal|Ags|Coah|Tamps|Gto|Qro)\b/i.test(dataLine)) {
+            destino = dataLine.replace(/-$/, '').trim();
+          }
+        }
+        i++;
+      }
+      
+      if (origen && destino && importe > 0) {
+        lineas.push({
+          origen: origen.replace(/\s+/g, ' ').trim(),
+          destino: destino.replace(/\s+/g, ' ').trim(),
+          servicio: normalizarServicio(servicio) || 'Seco',
+          tarifa: importe,
+          moneda,
+          viajes: 0,
+          tipoViaje: detectarTipoViaje(origen, destino, servicio),
+          subtotalMXN: 0
+        });
+      }
+    } else {
+      i++;
+    }
+  }
+  
+  return lineas;
 };
 
 const extraerTextoPDF = async (base64: string): Promise<string> => {
@@ -52,21 +124,16 @@ const extraerTextoPDF = async (base64: string): Promise<string> => {
     for (let i = 0; i < binaryString.length; i++) bytes[i] = binaryString.charCodeAt(i);
     const pdf = await pdfjsLib.getDocument({ data: bytes }).promise;
     let fullText = '';
-    for (let i = 1; i <= pdf.numPages; i++) { const page = await pdf.getPage(i); const textContent = await page.getTextContent(); fullText += textContent.items.map((item: any) => item.str).join(' ') + '\n'; }
+    for (let i = 1; i <= pdf.numPages; i++) { 
+      const page = await pdf.getPage(i); 
+      const textContent = await page.getTextContent(); 
+      fullText += textContent.items.map((item: any) => item.str).join(' ') + '\n'; 
+    }
     return fullText;
-  } catch (error) { console.error('Error extrayendo texto del PDF:', error); return ''; }
-};
-
-const parsearCotizacion = (texto: string): { rutas: LineaCotizacion[], moneda: string } => {
-  const lineas: LineaCotizacion[] = [];
-  const monedaGlobal = detectarMoneda(texto);
-  const patronesRuta = [/([A-ZÁÉÍÓÚÑ][A-ZÁÉÍÓÚÑa-záéíóúñ\s,\.]+)\s*[-–—>a]+\s*([A-ZÁÉÍÓÚÑ][A-ZÁÉÍÓÚÑa-záéíóúñ\s,\.]+)[\s:]*\$?\s*([\d,\.]+)/gi, /ruta[:\s]*([^$\n]+)\$?\s*([\d,\.]+)/gi, /([A-Z]{3,})\s*[-–—>]+\s*([A-Z]{3,})[\s:]*\$?\s*([\d,\.]+)/gi];
-  const tarifaMatch = texto.match(/(?:tarifa|precio|costo|rate|flete)[:\s]*\$?\s*([\d,\.]+)/i);
-  const tarifaBase = tarifaMatch ? parseFloat(tarifaMatch[1].replace(/,/g, '')) : 0;
-  for (const patron of patronesRuta) { let match; while ((match = patron.exec(texto)) !== null) { const origen = match[1]?.trim() || ''; const destino = match[2]?.trim() || ''; const tarifa = match[3] ? parseFloat(match[3].replace(/,/g, '')) : tarifaBase; if (origen && destino && origen.length > 2 && destino.length > 2) { const rutaCompleta = `${origen} - ${destino}`; if (!lineas.some(l => l.ruta.toLowerCase() === rutaCompleta.toLowerCase())) { lineas.push({ ruta: rutaCompleta, tarifa: tarifa || 0, moneda: monedaGlobal, viajes: 0, tipoViaje: detectarTipoViaje(rutaCompleta), subtotalMXN: 0 }); } } } }
-  if (lineas.length === 0) { const ciudades = texto.match(/(?:monterrey|guadalajara|cdmx|ciudad de mexico|queretaro|aguascalientes|leon|saltillo|torreon|chihuahua|tijuana|laredo|nuevo laredo|dallas|houston|san antonio|mcallen)/gi); if (ciudades && ciudades.length >= 2) { const rutaCompleta = `${ciudades[0]} - ${ciudades[1]}`; lineas.push({ ruta: rutaCompleta, tarifa: tarifaBase, moneda: monedaGlobal, viajes: 0, tipoViaje: detectarTipoViaje(rutaCompleta), subtotalMXN: 0 }); } }
-  if (lineas.length === 0) lineas.push({ ruta: 'Ruta por definir', tarifa: tarifaBase, moneda: monedaGlobal, viajes: 0, tipoViaje: 'Nacional', subtotalMXN: 0 });
-  return { rutas: lineas, moneda: monedaGlobal };
+  } catch (error) { 
+    console.error('Error extrayendo texto del PDF:', error); 
+    return ''; 
+  }
 };
 
 const obtenerTipoCambio = async (): Promise<number> => {
@@ -79,10 +146,28 @@ const obtenerTipoCambio = async (): Promise<number> => {
   } catch { return 18.5; }
 };
 
-// Función para calcular potencial solo desde cotizaciones
 const calcularPotencialDesdeCotizaciones = (lead: Lead): number => {
   if (!lead.cotizaciones) return 0;
   return lead.cotizaciones.filter(c => !c.eliminado && c.potencialMXN).reduce((sum, c) => sum + (c.potencialMXN || 0), 0);
+};
+
+const buscarDuplicados = (nombre: string, leadsExistentes: Lead[]): { duplicadoExacto: boolean; similares: string[] } => {
+  const nombreNorm = nombre.toUpperCase().trim();
+  const duplicadoExacto = CLIENTES_EXISTENTES.some(c => c.toUpperCase() === nombreNorm) || leadsExistentes.some(l => l.nombreEmpresa.toUpperCase() === nombreNorm);
+  const similares: string[] = [];
+  const palabras = nombreNorm.split(' ').filter(p => p.length > 3);
+  CLIENTES_EXISTENTES.forEach(c => { const cNorm = c.toUpperCase(); if (cNorm !== nombreNorm && palabras.some(p => cNorm.includes(p))) similares.push(c); });
+  leadsExistentes.forEach(l => { const lNorm = l.nombreEmpresa.toUpperCase(); if (lNorm !== nombreNorm && palabras.some(p => lNorm.includes(p)) && !similares.includes(l.nombreEmpresa)) similares.push(l.nombreEmpresa); });
+  return { duplicadoExacto, similares: similares.slice(0, 5) };
+};
+
+const getTipoViajeColor = (tipo: string) => {
+  switch(tipo) {
+    case 'Impo': return 'bg-blue-500/20 text-blue-400 border-blue-500/30';
+    case 'Expo': return 'bg-green-500/20 text-green-400 border-green-500/30';
+    case 'DTD': return 'bg-purple-500/20 text-purple-400 border-purple-500/30';
+    default: return 'bg-gray-500/20 text-gray-400 border-gray-500/30';
+  }
 };
 
 export const PanelOportunidadesModule = ({ onBack }: PanelOportunidadesModuleProps) => {
@@ -161,7 +246,15 @@ export const PanelOportunidadesModule = ({ onBack }: PanelOportunidadesModulePro
         const base64 = await new Promise<string>((resolve, reject) => { const reader = new FileReader(); reader.onload = () => resolve(reader.result as string); reader.onerror = () => reject('Error'); reader.readAsDataURL(file); });
         setStatusMsg('Analizando rutas y tarifas...');
         const textoPDF = await extraerTextoPDF(base64);
-        const { rutas } = parsearCotizacion(textoPDF);
+        console.log('Texto extraído:', textoPDF.substring(0, 1500));
+        
+        const rutas = parsearCotizacionPDF(textoPDF);
+        console.log('Rutas encontradas:', rutas);
+        
+        if (rutas.length === 0) {
+          rutas.push({ origen: '', destino: '', servicio: 'Seco', tarifa: 0, moneda: 'USD', viajes: 0, tipoViaje: 'Nacional', subtotalMXN: 0 });
+        }
+        
         const nuevaCot: Cotizacion = { nombre: file.name, url: base64, fecha: new Date().toISOString(), eliminado: false };
         const leadTemp = { ...lead, cotizaciones: [...(lead.cotizaciones || []), nuevaCot] };
         setLeads(leads.map(l => l.id === lead.id ? leadTemp : l));
@@ -175,9 +268,27 @@ export const PanelOportunidadesModule = ({ onBack }: PanelOportunidadesModulePro
     setAnalizando(false); setStatusMsg('');
   };
 
-  const calcularSubtotal = (linea: LineaCotizacion): number => { const tarifaMXN = linea.moneda === 'USD' ? linea.tarifa * tipoCambio : linea.tarifa; return linea.viajes * tarifaMXN; };
+  const calcularSubtotal = (linea: LineaCotizacion): number => { 
+    const tarifaMXN = linea.moneda === 'USD' ? linea.tarifa * tipoCambio : linea.tarifa; 
+    return linea.viajes * tarifaMXN; 
+  };
   const calcularTotalMXN = (): number => lineasCotizacion.reduce((sum, linea) => sum + calcularSubtotal(linea), 0);
-  const todosViajesCapturados = (): boolean => lineasCotizacion.every(l => l.viajes > 0);
+  const todosViajesCapturados = (): boolean => lineasCotizacion.every(l => l.viajes > 0 && l.origen && l.destino && l.tarifa > 0);
+
+  const handleAgregarLinea = () => {
+    setLineasCotizacion([...lineasCotizacion, { origen: '', destino: '', servicio: 'Seco', tarifa: 0, moneda: 'USD', viajes: 0, tipoViaje: 'Nacional', subtotalMXN: 0 }]);
+  };
+
+  const handleEliminarLinea = (idx: number) => {
+    if (lineasCotizacion.length > 1) setLineasCotizacion(lineasCotizacion.filter((_, i) => i !== idx));
+  };
+
+  const handleCambioLinea = (idx: number, campo: keyof LineaCotizacion, valor: any) => {
+    const arr = [...lineasCotizacion];
+    (arr[idx] as any)[campo] = valor;
+    if (campo === 'origen' || campo === 'destino') arr[idx].tipoViaje = detectarTipoViaje(arr[idx].origen, arr[idx].destino, arr[idx].servicio);
+    setLineasCotizacion(arr);
+  };
 
   const handleGuardarCotizacion = async () => {
     if (!lineasModal || !todosViajesCapturados()) return;
@@ -186,13 +297,26 @@ export const PanelOportunidadesModule = ({ onBack }: PanelOportunidadesModulePro
     const lineasConSubtotal = lineasCotizacion.map(l => ({ ...l, subtotalMXN: calcularSubtotal(l) }));
     const potencialMXN = calcularTotalMXN();
     cotizaciones[index] = { ...cotizaciones[index], lineas: lineasConSubtotal, potencialMXN };
-    const tiposViaje = [...(lead.tipoViaje || [])]; let rutas = lead.principalesRutas || ''; let totalViajes = parseInt(lead.viajesPorMes || '0');
-    lineasConSubtotal.forEach(l => { if (l.tipoViaje && !tiposViaje.includes(l.tipoViaje)) tiposViaje.push(l.tipoViaje); if (l.ruta && !rutas.includes(l.ruta)) rutas = rutas ? `${rutas}, ${l.ruta}` : l.ruta; totalViajes += l.viajes; });
-    // Calcular potencial total solo desde cotizaciones
-    let potencialTotal = 0; cotizaciones.forEach(cot => { if (!cot.eliminado && cot.potencialMXN) potencialTotal += cot.potencialMXN; });
+    
+    const tiposViaje = [...(lead.tipoViaje || [])]; 
+    const tiposServicio = [...(lead.tipoServicio || [])];
+    let rutas = lead.principalesRutas || ''; 
+    let totalViajes = parseInt(lead.viajesPorMes || '0');
+    
+    lineasConSubtotal.forEach(l => { 
+      if (l.tipoViaje && !tiposViaje.includes(l.tipoViaje)) tiposViaje.push(l.tipoViaje); 
+      if (l.servicio && !tiposServicio.includes(l.servicio)) tiposServicio.push(l.servicio);
+      const rutaStr = `${l.origen} → ${l.destino}`;
+      if (!rutas.includes(rutaStr)) rutas = rutas ? `${rutas}, ${rutaStr}` : rutaStr; 
+      totalViajes += l.viajes; 
+    });
+    
+    let potencialTotal = 0; 
+    cotizaciones.forEach(cot => { if (!cot.eliminado && cot.potencialMXN) potencialTotal += cot.potencialMXN; });
+    
     const historialNuevo: HistorialCambio = { fecha: new Date().toISOString(), campo: 'cotizaciones', valorAnterior: '', valorNuevo: `Nueva cotización: ${cotizaciones[index].nombre}`, usuario: lead.vendedor };
-    // Solo guardar proyectadoVentaMensual si hay cotizaciones con potencial
-    const leadActualizado = { ...lead, cotizaciones, tipoViaje: tiposViaje, principalesRutas: rutas, viajesPorMes: String(totalViajes), proyectadoVentaMensual: potencialTotal > 0 ? `$${potencialTotal.toLocaleString('es-MX')} MXN` : '', etapaLead: 'Cotizado', fechaActualizacion: new Date().toISOString(), historial: [...(lead.historial || []), historialNuevo] };
+    const leadActualizado = { ...lead, cotizaciones, tipoViaje: tiposViaje, tipoServicio: tiposServicio, principalesRutas: rutas, viajesPorMes: String(totalViajes), proyectadoVentaMensual: potencialTotal > 0 ? `$${potencialTotal.toLocaleString('es-MX')} MXN` : '', etapaLead: 'Cotizado', fechaActualizacion: new Date().toISOString(), historial: [...(lead.historial || []), historialNuevo] };
+    
     try {
       await fetch(`https://${projectId}.supabase.co/functions/v1/make-server-d84b50bb/leads/${lead.id}`, { method: 'PUT', headers: { 'Authorization': `Bearer ${publicAnonKey}`, 'Content-Type': 'application/json' }, body: JSON.stringify(leadActualizado) });
       setLeads(leads.map(l => l.id === lead.id ? leadActualizado : l));
@@ -201,7 +325,17 @@ export const PanelOportunidadesModule = ({ onBack }: PanelOportunidadesModulePro
     } catch { alert('Error guardando'); }
   };
 
-  const handleEliminarCotizacion = async (lead: Lead, index: number) => { const cotizaciones = lead.cotizaciones?.map((c, i) => i === index ? { ...c, eliminado: true } : c) || []; const potencialTotal = cotizaciones.filter(c => !c.eliminado && c.potencialMXN).reduce((sum, c) => sum + (c.potencialMXN || 0), 0); const leadActualizado = { ...lead, cotizaciones, proyectadoVentaMensual: potencialTotal > 0 ? `$${potencialTotal.toLocaleString('es-MX')} MXN` : '', fechaActualizacion: new Date().toISOString() }; try { await fetch(`https://${projectId}.supabase.co/functions/v1/make-server-d84b50bb/leads/${lead.id}`, { method: 'PUT', headers: { 'Authorization': `Bearer ${publicAnonKey}`, 'Content-Type': 'application/json' }, body: JSON.stringify(leadActualizado) }); setLeads(leads.map(l => l.id === lead.id ? leadActualizado : l)); setCotizacionesModal(leadActualizado); } catch { alert('Error'); } };
+  const handleEliminarCotizacion = async (lead: Lead, index: number) => { 
+    const cotizaciones = lead.cotizaciones?.map((c, i) => i === index ? { ...c, eliminado: true } : c) || []; 
+    const potencialTotal = cotizaciones.filter(c => !c.eliminado && c.potencialMXN).reduce((sum, c) => sum + (c.potencialMXN || 0), 0); 
+    const leadActualizado = { ...lead, cotizaciones, proyectadoVentaMensual: potencialTotal > 0 ? `$${potencialTotal.toLocaleString('es-MX')} MXN` : '', fechaActualizacion: new Date().toISOString() }; 
+    try { 
+      await fetch(`https://${projectId}.supabase.co/functions/v1/make-server-d84b50bb/leads/${lead.id}`, { method: 'PUT', headers: { 'Authorization': `Bearer ${publicAnonKey}`, 'Content-Type': 'application/json' }, body: JSON.stringify(leadActualizado) }); 
+      setLeads(leads.map(l => l.id === lead.id ? leadActualizado : l)); 
+      setCotizacionesModal(leadActualizado); 
+    } catch { alert('Error'); } 
+  };
+  
   const handleConfirmarEliminacion = async () => { if (!deleteModal || deleteConfirmText !== 'DELETE') return; try { const leadActualizado = { ...deleteModal, eliminado: true, fechaEliminado: new Date().toISOString() }; await fetch(`https://${projectId}.supabase.co/functions/v1/make-server-d84b50bb/leads/${deleteModal.id}`, { method: 'PUT', headers: { 'Authorization': `Bearer ${publicAnonKey}`, 'Content-Type': 'application/json' }, body: JSON.stringify(leadActualizado) }); setLeads(leads.map(l => l.id === deleteModal.id ? leadActualizado : l)); setDeleteModal(null); setDeleteConfirmText(''); } catch { alert('Error'); } };
   const handleRestaurarLead = async (lead: Lead) => { if (!isAdmin) return; try { const leadActualizado = { ...lead, eliminado: false, fechaEliminado: null }; await fetch(`https://${projectId}.supabase.co/functions/v1/make-server-d84b50bb/leads/${lead.id}`, { method: 'PUT', headers: { 'Authorization': `Bearer ${publicAnonKey}`, 'Content-Type': 'application/json' }, body: JSON.stringify(leadActualizado) }); setLeads(leads.map(l => l.id === lead.id ? leadActualizado : l)); } catch {} };
 
@@ -306,13 +440,64 @@ export const PanelOportunidadesModule = ({ onBack }: PanelOportunidadesModulePro
         </div>
       </div>
 
-      {selectedLead && (<div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setSelectedLead(null)}><div className="bg-[var(--fx-surface)] rounded-2xl border border-white/20 w-[95vw] max-w-[1100px] max-h-[90vh] overflow-y-auto p-6" onClick={(e) => e.stopPropagation()}><div className="flex items-center justify-between mb-4"><h3 className="text-white text-xl font-bold flex items-center gap-2"><Building2 className="w-6 h-6 text-blue-400" />{selectedLead.nombreEmpresa}</h3><button onClick={() => setSelectedLead(null)} className="p-2 rounded-lg hover:bg-white/10"><X className="w-5 h-5 text-white" /></button></div><div className="grid grid-cols-2 gap-4 mb-4"><div className="p-3 rounded-lg bg-blue-500/10 border border-blue-500/30"><div className="flex items-center gap-2 text-blue-400 text-xs mb-1"><Calendar className="w-3 h-3" />Creación</div><div className="text-white font-semibold">{formatDateTime(selectedLead.fechaCaptura)}</div></div><div className="p-3 rounded-lg bg-orange-500/10 border border-orange-500/30"><div className="flex items-center gap-2 text-orange-400 text-xs mb-1"><Clock className="w-3 h-3" />Última Modificación</div><div className="text-white font-semibold">{formatDateTime(selectedLead.fechaActualizacion) || formatDateTime(selectedLead.fechaCaptura)}</div></div></div><div className="grid grid-cols-3 gap-4 text-sm mb-4"><div className="p-3 rounded-lg bg-white/5"><div className="text-blue-400 text-xs mb-1">Contacto</div><div className="text-white font-semibold">{selectedLead.nombreContacto}</div><div className="text-gray-400">{selectedLead.correoElectronico}</div></div><div className="p-3 rounded-lg bg-white/5"><div className="text-blue-400 text-xs mb-1">Servicio</div><div className="flex flex-wrap gap-1">{(selectedLead.tipoServicio||[]).map((t,i)=><span key={i} className="px-2 py-0.5 rounded bg-blue-500/20 text-blue-400 text-xs">{t}</span>)}</div></div><div className="p-3 rounded-lg bg-white/5"><div className="text-green-400 text-xs mb-1">Viaje</div><div className="flex flex-wrap gap-1">{(selectedLead.tipoViaje||[]).map((t,i)=><span key={i} className="px-2 py-0.5 rounded bg-green-500/20 text-green-400 text-xs">{t}</span>)}</div></div><div className="p-3 rounded-lg bg-white/5 col-span-2"><div className="text-purple-400 text-xs mb-1">Rutas</div><div className="text-white text-sm">{selectedLead.principalesRutas || '-'}</div></div><div className="p-3 rounded-lg bg-white/5"><div className="text-orange-400 text-xs mb-1">Viajes/Mes</div><div className="text-white font-bold text-lg">{selectedLead.viajesPorMes || '-'}</div></div></div>{(() => { const pot = calcularPotencialDesdeCotizaciones(selectedLead); return pot > 0 ? <div className="p-4 rounded-lg bg-emerald-500/10 border border-emerald-500/30 mb-4"><div className="text-emerald-400 text-xs mb-1">$ Potencial Mensual</div><div className="text-emerald-400 font-bold text-3xl">${pot.toLocaleString('es-MX')} MXN</div></div> : null; })()}{selectedLead.cotizaciones && selectedLead.cotizaciones.filter(c => !c.eliminado).length > 0 && (<div className="mb-4"><h4 className="text-white font-semibold mb-2 flex items-center gap-2"><FileText className="w-4 h-4 text-emerald-400" />Cotizaciones</h4><div className="space-y-2">{selectedLead.cotizaciones.filter(c => !c.eliminado).map((cot, i) => (<div key={i} className="p-3 rounded-lg bg-white/5 border border-white/10"><div className="flex justify-between items-center mb-2"><span className="text-white font-medium">{cot.nombre}</span><span className="text-gray-400 text-xs">{formatDate(cot.fecha)}</span></div>{cot.lineas && cot.lineas.length > 0 && (<div className="space-y-1">{cot.lineas.map((linea, idx) => (<div key={idx} className="flex justify-between text-xs text-gray-400"><span>{linea.ruta} ({linea.tipoViaje})</span><span>{linea.viajes} × ${linea.tarifa.toLocaleString('es-MX')} = <span className="text-emerald-400">${linea.subtotalMXN.toLocaleString('es-MX')}</span></span></div>))}<div className="pt-2 border-t border-white/10 flex justify-between text-sm"><span className="text-emerald-400">Total:</span><span className="text-emerald-400 font-bold">${cot.potencialMXN?.toLocaleString('es-MX')}</span></div></div>)}</div>))}</div></div>)}{selectedLead.historial && selectedLead.historial.length > 0 && (<div className="mb-4"><h4 className="text-white font-semibold mb-2 flex items-center gap-2"><Clock className="w-4 h-4 text-orange-400" />Historial</h4><div className="max-h-40 overflow-y-auto space-y-1">{selectedLead.historial.slice().reverse().map((h, i) => (<div key={i} className="flex items-center gap-3 text-xs p-2 rounded bg-white/5"><span className="text-gray-500">{formatDateTime(h.fecha)}</span><span className="text-blue-400">{h.campo}</span><span className="text-gray-400">{h.valorNuevo}</span><span className="text-gray-500 ml-auto">{h.usuario}</span></div>))}</div></div>)}<div className="flex justify-between items-center text-sm text-gray-400"><span>Vendedor: {selectedLead.vendedor}</span><span>Etapa: {selectedLead.etapaLead || 'Prospecto'}</span></div></div></div>)}
+      {selectedLead && (<div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setSelectedLead(null)}><div className="bg-[var(--fx-surface)] rounded-2xl border border-white/20 w-[95vw] max-w-[1100px] max-h-[90vh] overflow-y-auto p-6" onClick={(e) => e.stopPropagation()}><div className="flex items-center justify-between mb-4"><h3 className="text-white text-xl font-bold flex items-center gap-2"><Building2 className="w-6 h-6 text-blue-400" />{selectedLead.nombreEmpresa}</h3><button onClick={() => setSelectedLead(null)} className="p-2 rounded-lg hover:bg-white/10"><X className="w-5 h-5 text-white" /></button></div><div className="grid grid-cols-2 gap-4 mb-4"><div className="p-3 rounded-lg bg-blue-500/10 border border-blue-500/30"><div className="flex items-center gap-2 text-blue-400 text-xs mb-1"><Calendar className="w-3 h-3" />Creación</div><div className="text-white font-semibold">{formatDateTime(selectedLead.fechaCaptura)}</div></div><div className="p-3 rounded-lg bg-orange-500/10 border border-orange-500/30"><div className="flex items-center gap-2 text-orange-400 text-xs mb-1"><Clock className="w-3 h-3" />Última Modificación</div><div className="text-white font-semibold">{formatDateTime(selectedLead.fechaActualizacion) || formatDateTime(selectedLead.fechaCaptura)}</div></div></div><div className="grid grid-cols-3 gap-4 text-sm mb-4"><div className="p-3 rounded-lg bg-white/5"><div className="text-blue-400 text-xs mb-1">Contacto</div><div className="text-white font-semibold">{selectedLead.nombreContacto}</div><div className="text-gray-400">{selectedLead.correoElectronico}</div></div><div className="p-3 rounded-lg bg-white/5"><div className="text-blue-400 text-xs mb-1">Servicio</div><div className="flex flex-wrap gap-1">{(selectedLead.tipoServicio||[]).map((t,i)=><span key={i} className="px-2 py-0.5 rounded bg-blue-500/20 text-blue-400 text-xs">{t}</span>)}</div></div><div className="p-3 rounded-lg bg-white/5"><div className="text-green-400 text-xs mb-1">Viaje</div><div className="flex flex-wrap gap-1">{(selectedLead.tipoViaje||[]).map((t,i)=><span key={i} className="px-2 py-0.5 rounded bg-green-500/20 text-green-400 text-xs">{t}</span>)}</div></div><div className="p-3 rounded-lg bg-white/5 col-span-2"><div className="text-purple-400 text-xs mb-1">Rutas</div><div className="text-white text-sm">{selectedLead.principalesRutas || '-'}</div></div><div className="p-3 rounded-lg bg-white/5"><div className="text-orange-400 text-xs mb-1">Viajes/Mes</div><div className="text-white font-bold text-lg">{selectedLead.viajesPorMes || '-'}</div></div></div>{(() => { const pot = calcularPotencialDesdeCotizaciones(selectedLead); return pot > 0 ? <div className="p-4 rounded-lg bg-emerald-500/10 border border-emerald-500/30 mb-4"><div className="text-emerald-400 text-xs mb-1">$ Potencial Mensual</div><div className="text-emerald-400 font-bold text-3xl">${pot.toLocaleString('es-MX')} MXN</div></div> : null; })()}{selectedLead.cotizaciones && selectedLead.cotizaciones.filter(c => !c.eliminado).length > 0 && (<div className="mb-4"><h4 className="text-white font-semibold mb-2 flex items-center gap-2"><FileText className="w-4 h-4 text-emerald-400" />Cotizaciones</h4><div className="space-y-2">{selectedLead.cotizaciones.filter(c => !c.eliminado).map((cot, i) => (<div key={i} className="p-3 rounded-lg bg-white/5 border border-white/10"><div className="flex justify-between items-center mb-2"><span className="text-white font-medium">{cot.nombre}</span><span className="text-gray-400 text-xs">{formatDate(cot.fecha)}</span></div>{cot.lineas && cot.lineas.length > 0 && (<div className="space-y-1">{cot.lineas.map((linea, idx) => (<div key={idx} className="flex justify-between text-xs text-gray-400"><span>{linea.origen} → {linea.destino} ({linea.tipoViaje})</span><span>{linea.viajes} × ${linea.tarifa.toLocaleString('es-MX')} {linea.moneda} = <span className="text-emerald-400">${linea.subtotalMXN.toLocaleString('es-MX')}</span></span></div>))}<div className="pt-2 border-t border-white/10 flex justify-between text-sm"><span className="text-emerald-400">Total:</span><span className="text-emerald-400 font-bold">${cot.potencialMXN?.toLocaleString('es-MX')}</span></div></div>)}</div>))}</div></div>)}{selectedLead.historial && selectedLead.historial.length > 0 && (<div className="mb-4"><h4 className="text-white font-semibold mb-2 flex items-center gap-2"><Clock className="w-4 h-4 text-orange-400" />Historial</h4><div className="max-h-40 overflow-y-auto space-y-1">{selectedLead.historial.slice().reverse().map((h, i) => (<div key={i} className="flex items-center gap-3 text-xs p-2 rounded bg-white/5"><span className="text-gray-500">{formatDateTime(h.fecha)}</span><span className="text-blue-400">{h.campo}</span><span className="text-gray-400">{h.valorNuevo}</span><span className="text-gray-500 ml-auto">{h.usuario}</span></div>))}</div></div>)}<div className="flex justify-between items-center text-sm text-gray-400"><span>Vendedor: {selectedLead.vendedor}</span><span>Etapa: {selectedLead.etapaLead || 'Prospecto'}</span></div></div></div>)}
 
       {deleteModal && (<div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => { setDeleteModal(null); setDeleteConfirmText(''); }}><div className="bg-[var(--fx-surface)] rounded-2xl border border-red-500/30 w-[400px] p-6" onClick={(e) => e.stopPropagation()}><div className="flex items-center gap-3 mb-4"><AlertTriangle className="w-8 h-8 text-red-400" /><h3 className="text-white text-lg font-bold">Eliminar Lead</h3></div><p className="text-white mb-2">¿Eliminar <strong>{deleteModal.nombreEmpresa}</strong>?</p><p className="text-gray-400 text-sm mb-4">Escribe DELETE:</p><input type="text" value={deleteConfirmText} onChange={(e) => setDeleteConfirmText(e.target.value.toUpperCase())} className="w-full px-4 py-2 rounded-lg bg-black/30 border border-red-500/40 text-white text-center mb-4" /><div className="flex gap-3"><button onClick={() => { setDeleteModal(null); setDeleteConfirmText(''); }} className="flex-1 px-4 py-2 rounded-lg bg-gray-600 text-white">Cancelar</button><button onClick={handleConfirmarEliminacion} disabled={deleteConfirmText !== 'DELETE'} className={`flex-1 px-4 py-2 rounded-lg ${deleteConfirmText === 'DELETE' ? 'bg-red-500 text-white' : 'bg-red-500/20 text-red-400/50'}`}>Eliminar</button></div></div></div>)}
 
-      {cotizacionesModal && (<div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setCotizacionesModal(null)}><div className="bg-[var(--fx-surface)] rounded-2xl border border-white/20 w-[900px] max-h-[85vh] overflow-y-auto p-6" onClick={(e) => e.stopPropagation()}><div className="flex items-center justify-between mb-4"><h3 className="text-white text-xl font-bold flex items-center gap-2"><FileText className="w-5 h-5 text-emerald-400" />Cotizaciones - {cotizacionesModal.nombreEmpresa}</h3><button onClick={() => setCotizacionesModal(null)} className="p-2 rounded-lg hover:bg-white/10"><X className="w-5 h-5 text-white" /></button></div><div className="mb-4"><label className={`flex items-center justify-center gap-2 px-4 py-3 rounded-xl ${analizando ? 'bg-blue-600/50' : 'bg-blue-600 hover:bg-blue-700'} text-white cursor-pointer`}>{analizando ? <><Loader2 className="w-5 h-5 animate-spin" /><span>{statusMsg}</span></> : <><Upload className="w-5 h-5" /><span className="font-semibold">Subir Cotización (PDF)</span></>}<input type="file" accept="application/pdf" className="hidden" disabled={analizando} onChange={(e) => { if (e.target.files?.length) handleSubirCotizaciones(e.target.files, cotizacionesModal); e.target.value = ''; }} /></label></div><div className="space-y-3">{(!cotizacionesModal.cotizaciones || !cotizacionesModal.cotizaciones.filter(c => !c.eliminado).length) ? (<div className="text-center py-6 text-gray-400">No hay cotizaciones.</div>) : (cotizacionesModal.cotizaciones.filter(c => !c.eliminado).map((cot, i) => (<div key={i} className="p-4 rounded-lg bg-white/5 border border-white/10"><div className="flex items-center justify-between mb-2"><div className="flex items-center gap-2"><FileText className="w-4 h-4 text-emerald-400" /><span className="text-white font-semibold">{cot.nombre}</span><span className="text-gray-500 text-xs">{formatDate(cot.fecha)}</span></div><div className="flex gap-2">{cot.url && <button onClick={() => setPdfPreview(cot.url)} className="px-2 py-1 rounded bg-purple-500/20 text-purple-400 text-xs flex items-center gap-1"><Eye className="w-3 h-3" />Ver</button>}{cot.url && <a href={cot.url} download={cot.nombre} className="px-2 py-1 rounded bg-blue-500/20 text-blue-400 text-xs flex items-center gap-1"><Download className="w-3 h-3" /></a>}<button onClick={() => handleEliminarCotizacion(cotizacionesModal, cotizacionesModal.cotizaciones?.indexOf(cot) || i)} className="px-2 py-1 rounded bg-red-500/20 text-red-400 text-xs"><Trash2 className="w-3 h-3" /></button></div></div>{cot.lineas && cot.lineas.length > 0 && (<div className="mt-3 p-3 rounded bg-emerald-500/10 border border-emerald-500/20"><div className="flex items-center gap-1 mb-2"><CheckCircle className="w-3 h-3 text-emerald-400" /><span className="text-emerald-400 text-xs font-semibold">Líneas Cotizadas</span></div><div className="space-y-2">{cot.lineas.map((linea, idx) => (<div key={idx} className="flex justify-between items-center text-xs p-2 rounded bg-black/20"><div className="flex-1"><span className="text-white font-medium">{linea.ruta}</span><span className={`ml-2 px-1.5 py-0.5 rounded text-xs ${linea.tipoViaje === 'Impo' ? 'bg-blue-500/20 text-blue-400' : linea.tipoViaje === 'Expo' ? 'bg-green-500/20 text-green-400' : linea.tipoViaje === 'DTD' ? 'bg-purple-500/20 text-purple-400' : 'bg-gray-500/20 text-gray-400'}`}>{linea.tipoViaje}</span></div><div className="text-gray-400">{linea.viajes} × ${linea.tarifa.toLocaleString('es-MX')} {linea.moneda}</div><div className="text-emerald-400 font-semibold ml-4">${linea.subtotalMXN.toLocaleString('es-MX')}</div></div>))}</div><div className="mt-3 pt-3 border-t border-emerald-500/30 flex justify-between items-center"><span className="text-emerald-400 font-semibold">TOTAL:</span><span className="text-emerald-400 font-bold text-xl">${cot.potencialMXN?.toLocaleString('es-MX')}</span></div></div>)}</div>)))}</div><button onClick={() => setCotizacionesModal(null)} className="mt-4 w-full px-4 py-2 rounded-lg bg-gray-600 hover:bg-gray-700 text-white">Cerrar</button></div></div>)}
+      {cotizacionesModal && (<div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setCotizacionesModal(null)}><div className="bg-[var(--fx-surface)] rounded-2xl border border-white/20 w-[900px] max-h-[85vh] overflow-y-auto p-6" onClick={(e) => e.stopPropagation()}><div className="flex items-center justify-between mb-4"><h3 className="text-white text-xl font-bold flex items-center gap-2"><FileText className="w-5 h-5 text-emerald-400" />Cotizaciones - {cotizacionesModal.nombreEmpresa}</h3><button onClick={() => setCotizacionesModal(null)} className="p-2 rounded-lg hover:bg-white/10"><X className="w-5 h-5 text-white" /></button></div><div className="mb-4"><label className={`flex items-center justify-center gap-2 px-4 py-3 rounded-xl ${analizando ? 'bg-blue-600/50' : 'bg-blue-600 hover:bg-blue-700'} text-white cursor-pointer`}>{analizando ? <><Loader2 className="w-5 h-5 animate-spin" /><span>{statusMsg}</span></> : <><Upload className="w-5 h-5" /><span className="font-semibold">Subir Cotización (PDF)</span></>}<input type="file" accept="application/pdf" className="hidden" disabled={analizando} onChange={(e) => { if (e.target.files?.length) handleSubirCotizaciones(e.target.files, cotizacionesModal); e.target.value = ''; }} /></label></div><div className="space-y-3">{(!cotizacionesModal.cotizaciones || !cotizacionesModal.cotizaciones.filter(c => !c.eliminado).length) ? (<div className="text-center py-6 text-gray-400">No hay cotizaciones.</div>) : (cotizacionesModal.cotizaciones.filter(c => !c.eliminado).map((cot, i) => (<div key={i} className="p-4 rounded-lg bg-white/5 border border-white/10"><div className="flex items-center justify-between mb-2"><div className="flex items-center gap-2"><FileText className="w-4 h-4 text-emerald-400" /><span className="text-white font-semibold">{cot.nombre}</span><span className="text-gray-500 text-xs">{formatDate(cot.fecha)}</span></div><div className="flex gap-2">{cot.url && <button onClick={() => setPdfPreview(cot.url)} className="px-2 py-1 rounded bg-purple-500/20 text-purple-400 text-xs flex items-center gap-1"><Eye className="w-3 h-3" />Ver</button>}{cot.url && <a href={cot.url} download={cot.nombre} className="px-2 py-1 rounded bg-blue-500/20 text-blue-400 text-xs flex items-center gap-1"><Download className="w-3 h-3" /></a>}<button onClick={() => handleEliminarCotizacion(cotizacionesModal, cotizacionesModal.cotizaciones?.indexOf(cot) || i)} className="px-2 py-1 rounded bg-red-500/20 text-red-400 text-xs"><Trash2 className="w-3 h-3" /></button></div></div>{cot.lineas && cot.lineas.length > 0 && (<div className="mt-3 p-3 rounded bg-emerald-500/10 border border-emerald-500/20"><div className="flex items-center gap-1 mb-2"><CheckCircle className="w-3 h-3 text-emerald-400" /><span className="text-emerald-400 text-xs font-semibold">Líneas Cotizadas</span></div><div className="space-y-2">{cot.lineas.map((linea, idx) => (<div key={idx} className="flex justify-between items-center text-xs p-2 rounded bg-black/20"><div className="flex-1 flex items-center gap-2"><MapPin className="w-3 h-3 text-gray-500" /><span className="text-white">{linea.origen}</span><ArrowRight className="w-3 h-3 text-gray-500" /><span className="text-white">{linea.destino}</span><span className={`ml-2 px-1.5 py-0.5 rounded border ${getTipoViajeColor(linea.tipoViaje)}`}>{linea.tipoViaje}</span></div><div className="text-gray-400">{linea.viajes} × ${linea.tarifa.toLocaleString('es-MX')} {linea.moneda}</div><div className="text-emerald-400 font-semibold ml-4">${linea.subtotalMXN.toLocaleString('es-MX')}</div></div>))}</div><div className="mt-3 pt-3 border-t border-emerald-500/30 flex justify-between items-center"><span className="text-emerald-400 font-semibold">TOTAL:</span><span className="text-emerald-400 font-bold text-xl">${cot.potencialMXN?.toLocaleString('es-MX')}</span></div></div>)}</div>)))}</div><button onClick={() => setCotizacionesModal(null)} className="mt-4 w-full px-4 py-2 rounded-lg bg-gray-600 hover:bg-gray-700 text-white">Cerrar</button></div></div>)}
 
-      {lineasModal && (<div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-[60] p-4"><div className="bg-[var(--fx-surface)] rounded-2xl border border-emerald-500/30 w-[900px] max-h-[90vh] overflow-y-auto p-6"><div className="flex items-center justify-between mb-4"><h3 className="text-white text-lg font-bold flex items-center gap-2"><DollarSign className="w-5 h-5 text-emerald-400" />Capturar Viajes por Ruta</h3></div><div className="mb-4 p-3 rounded-lg bg-blue-500/10 border border-blue-500/20"><p className="text-blue-400 text-sm">Captura el número de <strong>viajes potenciales por mes</strong> para cada ruta. TC: <strong>${tipoCambio.toFixed(2)} MXN/USD</strong></p></div><div className="grid grid-cols-12 gap-2 px-3 py-2 bg-white/5 rounded-t-lg text-xs text-gray-400 font-semibold"><div className="col-span-4">RUTA</div><div className="col-span-2">TIPO</div><div className="col-span-2">TARIFA</div><div className="col-span-2 text-center">VIAJES/MES</div><div className="col-span-2 text-right">SUBTOTAL</div></div><div className="space-y-1 mb-4">{lineasCotizacion.map((linea, idx) => (<div key={idx} className="grid grid-cols-12 gap-2 p-3 rounded-lg bg-white/5 border border-white/10 items-center"><div className="col-span-4 text-white text-sm font-medium">{linea.ruta}</div><div className="col-span-2"><span className={`px-2 py-1 rounded text-xs font-semibold ${linea.tipoViaje === 'Impo' ? 'bg-blue-500/20 text-blue-400' : linea.tipoViaje === 'Expo' ? 'bg-green-500/20 text-green-400' : linea.tipoViaje === 'DTD' ? 'bg-purple-500/20 text-purple-400' : 'bg-gray-500/20 text-gray-400'}`}>{linea.tipoViaje}</span></div><div className="col-span-2 text-gray-300 text-sm">${linea.tarifa.toLocaleString('es-MX')} {linea.moneda}</div><div className="col-span-2"><input type="number" min="0" value={linea.viajes || ''} onChange={(e) => { const arr = [...lineasCotizacion]; arr[idx].viajes = parseInt(e.target.value) || 0; setLineasCotizacion(arr); }} className={`w-full px-3 py-2 rounded border text-white text-center text-sm font-bold ${linea.viajes > 0 ? 'bg-emerald-500/20 border-emerald-500/50' : 'bg-red-500/10 border-red-500/30'}`} placeholder="0" /></div><div className="col-span-2 text-right text-emerald-400 font-bold">${calcularSubtotal(linea).toLocaleString('es-MX')}</div></div>))}</div><div className="p-4 rounded-lg bg-emerald-500/10 border border-emerald-500/30 mb-4"><div className="flex justify-between items-center"><span className="text-emerald-400 font-semibold text-lg">POTENCIAL MENSUAL:</span><span className="text-emerald-400 font-bold text-3xl" style={{ fontFamily: "'Orbitron', monospace" }}>${calcularTotalMXN().toLocaleString('es-MX')} MXN</span></div></div><div className="flex gap-3"><button onClick={() => { setLineasModal(null); setLineasCotizacion([]); }} className="flex-1 px-4 py-2 rounded-lg bg-gray-600 text-white">Cancelar</button><button onClick={handleGuardarCotizacion} disabled={!todosViajesCapturados()} className={`flex-1 px-4 py-3 rounded-lg font-semibold ${todosViajesCapturados() ? 'bg-emerald-500 text-black' : 'bg-gray-500/30 text-gray-500 cursor-not-allowed'}`}>{todosViajesCapturados() ? 'Guardar Cotización' : 'Completa todos los viajes'}</button></div></div></div>)}
+      {lineasModal && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
+          <div className="bg-[var(--fx-surface)] rounded-2xl border border-emerald-500/30 w-[1200px] max-h-[90vh] overflow-y-auto p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-white text-lg font-bold flex items-center gap-2"><DollarSign className="w-5 h-5 text-emerald-400" />Capturar Viajes por Ruta</h3>
+              <button onClick={() => { setLineasModal(null); setLineasCotizacion([]); }} className="p-2 rounded-lg hover:bg-white/10"><X className="w-5 h-5 text-white" /></button>
+            </div>
+            
+            <div className="mb-4 p-3 rounded-lg bg-blue-500/10 border border-blue-500/20">
+              <p className="text-blue-400 text-sm">Verifica la información y captura los <strong>viajes potenciales por mes</strong> para cada ruta.</p>
+            </div>
+
+            <div className="grid grid-cols-12 gap-2 px-3 py-2 bg-white/5 rounded-t-lg text-xs text-gray-400 font-semibold">
+              <div className="col-span-3 flex items-center gap-1"><MapPin className="w-3 h-3" />ORIGEN</div>
+              <div className="col-span-3 flex items-center gap-1"><MapPin className="w-3 h-3" />DESTINO</div>
+              <div className="col-span-1"><Truck className="w-3 h-3" /></div>
+              <div className="col-span-1 text-center">TIPO</div>
+              <div className="col-span-2">TARIFA</div>
+              <div className="col-span-1 text-center">VIAJES</div>
+              <div className="col-span-1 text-right">X</div>
+            </div>
+
+            <div className="space-y-1 mb-4">
+              {lineasCotizacion.map((linea, idx) => (
+                <div key={idx} className="grid grid-cols-12 gap-2 p-2 rounded-lg bg-white/5 border border-white/10 items-center">
+                  <div className="col-span-3"><input type="text" value={linea.origen} onChange={(e) => handleCambioLinea(idx, 'origen', e.target.value)} placeholder="Ciudad, Estado" className={`w-full px-2 py-1.5 rounded text-sm bg-black/30 border ${linea.origen ? 'border-white/20 text-white' : 'border-red-500/30 text-gray-400'}`} /></div>
+                  <div className="col-span-3"><input type="text" value={linea.destino} onChange={(e) => handleCambioLinea(idx, 'destino', e.target.value)} placeholder="Ciudad, Estado" className={`w-full px-2 py-1.5 rounded text-sm bg-black/30 border ${linea.destino ? 'border-white/20 text-white' : 'border-red-500/30 text-gray-400'}`} /></div>
+                  <div className="col-span-1"><select value={linea.servicio} onChange={(e) => handleCambioLinea(idx, 'servicio', e.target.value)} className="w-full px-1 py-1.5 rounded text-xs bg-black/30 border border-white/20 text-white"><option value="Seco">Seco</option><option value="Refrigerado">Refri</option><option value="Seco Hazmat">Hazmat</option></select></div>
+                  <div className="col-span-1 text-center"><span className={`px-2 py-1 rounded text-xs font-semibold border ${getTipoViajeColor(linea.tipoViaje)}`}>{linea.tipoViaje}</span></div>
+                  <div className="col-span-2 flex gap-1"><input type="number" min="0" value={linea.tarifa || ''} onChange={(e) => handleCambioLinea(idx, 'tarifa', parseFloat(e.target.value) || 0)} placeholder="0" className={`flex-1 px-2 py-1.5 rounded text-sm bg-black/30 border ${linea.tarifa > 0 ? 'border-white/20 text-white' : 'border-red-500/30 text-gray-400'}`} /><select value={linea.moneda} onChange={(e) => handleCambioLinea(idx, 'moneda', e.target.value)} className="w-14 px-1 py-1.5 rounded text-xs bg-black/30 border border-white/20 text-white"><option value="USD">USD</option><option value="MXN">MXN</option></select></div>
+                  <div className="col-span-1"><input type="number" min="0" value={linea.viajes || ''} onChange={(e) => handleCambioLinea(idx, 'viajes', parseInt(e.target.value) || 0)} placeholder="0" className={`w-full px-2 py-1.5 rounded text-sm text-center font-bold ${linea.viajes > 0 ? 'bg-emerald-500/20 border-emerald-500/50 text-white' : 'bg-red-500/10 border-red-500/30 text-gray-400'} border`} /></div>
+                  <div className="col-span-1 text-right"><button onClick={() => handleEliminarLinea(idx)} disabled={lineasCotizacion.length <= 1} className={`p-1.5 rounded ${lineasCotizacion.length > 1 ? 'bg-red-500/20 text-red-400 hover:bg-red-500/30' : 'bg-gray-500/10 text-gray-600 cursor-not-allowed'}`}><Trash2 className="w-3.5 h-3.5" /></button></div>
+                </div>
+              ))}
+            </div>
+
+            <button onClick={handleAgregarLinea} className="w-full mb-4 px-4 py-2 rounded-lg border border-dashed border-white/20 text-gray-400 hover:text-white hover:border-white/40 flex items-center justify-center gap-2"><Plus className="w-4 h-4" />Agregar otra ruta</button>
+
+            <div className="p-4 rounded-lg bg-emerald-500/10 border border-emerald-500/30 mb-4">
+              <div className="flex justify-between items-center">
+                <span className="text-emerald-400 font-semibold text-lg">POTENCIAL MENSUAL:</span>
+                <span className="text-emerald-400 font-bold text-3xl" style={{ fontFamily: "'Orbitron', monospace" }}>${calcularTotalMXN().toLocaleString('es-MX')} MXN</span>
+              </div>
+            </div>
+
+            <div className="flex gap-3">
+              <button onClick={() => { setLineasModal(null); setLineasCotizacion([]); }} className="flex-1 px-4 py-2 rounded-lg bg-gray-600 text-white">Cancelar</button>
+              <button onClick={handleGuardarCotizacion} disabled={!todosViajesCapturados()} className={`flex-1 px-4 py-3 rounded-lg font-semibold ${todosViajesCapturados() ? 'bg-emerald-500 text-black' : 'bg-gray-500/30 text-gray-500 cursor-not-allowed'}`}>{todosViajesCapturados() ? 'Guardar Cotización' : 'Completa todos los campos'}</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {pdfPreview && (<div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-[60] p-4" onClick={() => setPdfPreview(null)}><div className="bg-white rounded-2xl w-[90vw] h-[90vh] overflow-hidden flex flex-col" onClick={(e) => e.stopPropagation()}><div className="flex items-center justify-between p-3 bg-gray-100 border-b"><span className="text-gray-700 font-semibold">Vista previa</span><button onClick={() => setPdfPreview(null)} className="p-2 rounded-lg hover:bg-gray-200"><X className="w-5 h-5 text-gray-600" /></button></div><iframe src={pdfPreview} className="flex-1 w-full" title="PDF" /></div></div>)}
 
