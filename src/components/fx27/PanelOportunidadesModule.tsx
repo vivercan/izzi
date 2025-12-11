@@ -3,6 +3,10 @@ import { useState, useEffect } from 'react';
 import { MODULE_IMAGES } from '../../assets/module-images';
 import { Search, Download, TrendingUp, X, BarChart3, Building2, User, Calendar, Eye, Trash2, SortAsc, SortDesc, FileText, Upload, Pencil, AlertTriangle, Loader2, CheckCircle, DollarSign, Clock, Zap, Flame, Skull } from 'lucide-react';
 import { projectId, publicAnonKey } from '../../utils/supabase/info';
+import * as pdfjsLib from 'pdfjs-dist';
+
+// Configurar worker de PDF.js
+pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
 interface PanelOportunidadesModuleProps { onBack: () => void; }
 interface LineaCotizacion { ruta: string; tarifa: number; moneda: string; viajes: number; tipoViaje: string; subtotalMXN: number; }
@@ -12,7 +16,7 @@ interface Lead { id: string; nombreEmpresa: string; paginaWeb: string; nombreCon
 type SortField = 'nombreEmpresa' | 'vendedor' | 'fechaCaptura' | 'viajesPorMes';
 type SortDirection = 'asc' | 'desc';
 
-const CLIENTES_EXISTENTES = ['ABASTECEDORA DE MATERIAS PRIMAS','AGROINDUSTRIAL AGRILEG DE TEHUACAN','AGROPECUARIA MARLEE','AGROS','ALIANZA CARNICA','ALIMENTOS FINOS DE OCCIDENTE','ALIMENTOS Y SAZONADORES REGIOS','ALL CARRIERS, INC.','ANA PAULA ALONSO ZARAZUA','ARCBEST II INC','ARCH MEAT','ATLAS EXPEDITORS','AVICOLA PILGRIM\'S PRIDE DE MEXICO','AYVI','BAK - HERCA','BAKERY MACHINERY AND ENGINEERING LLC','BARCEL','BARRY CALLEBAUT MEXICO','BARRY CALLEBAUT MEXICO DISTRIBUTORS','BBA LOGISTCS LLC','BERRIES PARADISE','BIMBO','BIO-ORGANICOS SALUDABLES','BISON TRANSPORT INC','C H ROBINSON DE MEXICO','CADENA COMERCIAL OXXO','CARNES SELECTAS TANGAMANGA','CAROLINA LOGISTICS INC','CFI LOGISTICA','CH ROBINSON WORLDWIDE, INC','COMERCIALIZADORA DE LACTEOS Y DERIVADOS','COMERCIALIZADORA GAB','COMERCIALIZADORA KEES','DEACERO','DISTRIBUCION Y EMBARQUES FRESH','DISTRIBUIDORA Y COMERCIALIZADORA INTERNACIONAL DEL NORTE','EA LOGISTICA','EBI TRANSFERS','EDMUNDO BARRAGAN PERALES','EMPACADORA DE CARNES UNIDAD GANADERA','ENLACES TERRESTRES DEL BOSQUE','FORJAS Y MAQUINAS','FP GRUPO LOGISTICO EMPRESARIAL','FRIGORIFICO Y EMPACADORA DE AGUASCALIENTES','FWD LOGISTICA','GANADEROS PRODUCTORES DE LECHE PURA','GRANJAS CARROLL DE MEXICO','GRANJERO FELIZ','GRUPO MELANGE DE MEXICO','GUILLERMO ACEVES CASILLAS','HEXPOL COMPOUNDING','HEXPOL COMPOUNDING QUERETARO','HIGH - TECH GARDENS','HIGH TECH FARMS','HONDA TRADING DE MEXICO','HORTIFRUT','IMPORTADORA DE PRODUCTOS CARNICOS APODACA','INDUSTRIALIZADORA DE CARNICOS STRATTEGA','INDUSTRIAS ACROS WHIRLPOOL','INFINITY TRADING IMPORTS AND EXPORTS','INTERCARNES','INTERLAND TRANSPORT','INTERLAND USA','INVERNADERO ISER','JD AGRO KAPITAL','JOHNSON CONTROLS ENTERPRISES MEXICO','KGL INTERNATIONAL NETWORK MEXICO','KONEKT INTERSERVICE','KRONUS LOGISTICS LLC','L\'ORTICELLO','LA PRADERA MIXTECA','LILA LISSETH GOVEA DUEÑAS','LOADED AND ROLLING CARRIER SOLUTIONS','LOGISTEED MEXICO','LONGHORN WAREHOUSES, INC','LTD INTERNATIONAL','MAR BRAN','MARBRAN USA, LTD','MARIA DE LOURDES HERNANDEZ CABRERA','MARTICO MEX','MCALLEN MEAT PURVEYORS, LLC','MCCAIN MEXICO','MGB INTERNATIONAL LLC','MI PUEBLITO TIERRA BUENA','NATURESWEET COMERCIALIZADORA','NATURESWEET INVERNADEROS','NS BRANDS, LTD','NUVOCARGO','ONE SOLUTION GROUP, INC','ONTARIO LIMITED DBA TRAFFIX','ONUS COMERCIAL','P.A.C. INTERNATIONAL','PERFORMER LOGISTICS','PILGRIM\'S PRIDE','PIPER TRADING LLC','POLLO Y HUEVO TRIUNFO','PRODUCTORA AGRICOLA DE AGUASCALIENTES','PRODUCTORA DE BOCADOS CARNICOS','PRODUCTORA DE HUEVO GIGANTES','PRODUCTOS CAREY','PRODUCTOS FRUGO','PROMOTORA DE MERCADOS','RA QUINTANA ELIZONDO CORPORATIVO ADUANAL','R.H. SHIPPING & CHARTERING','R.H. SHIPPING AND CHARTERING','RANCHO ACUICOLA ELIXIR','RED ROAD LOGISTICS INC','REGULO BARAJAS MEDINA','SCHENKER INTERNATIONAL','SERVI CARNES DE OCCIDENTE','SIGMA ALIMENTOS CENTRO','SIGMA ALIMENTOS COMERCIAL','SKYWHALE','SPEEDYHAUL INTERNATIONAL','STEERINGMEX','SUMMIT PLASTICS GUANAJUATO','SUMMIT PLASTICS SILAO','SUN CHEMICAL','TEU LOGISTICA','TITAN MEATS LLC','TRANSPLACE MEXICO LLC','TRAXION TECHNOLOGIES','TROB TRANSPORTES','TROB USA, LLC','UNITED FC DE MEXICO','UNIVERSAL WIPES','VALLE REDONDO','VDT LOGISTICA','VEGGIE PRIME','VICTUX','VISCERAS SELECTAS DEL BAJIO','WEXPRESS','WHIRLPOOL INTERNACIONAL','ZEBRA LOGISTICS','ZEBRA LOGISTICS, INC'];
+const CLIENTES_EXISTENTES = ['ABASTECEDORA DE MATERIAS PRIMAS','AGROINDUSTRIAL AGRILEG DE TEHUACAN','AGROPECUARIA MARLEE','AGROS','ALIANZA CARNICA','ALIMENTOS FINOS DE OCCIDENTE','ALIMENTOS Y SAZONADORES REGIOS','ALL CARRIERS, INC.','ARCBEST II INC','ARCH MEAT','ATLAS EXPEDITORS','AVICOLA PILGRIM\'S PRIDE DE MEXICO','BAKERY MACHINERY AND ENGINEERING LLC','BARCEL','BARRY CALLEBAUT MEXICO','BBA LOGISTCS LLC','BERRIES PARADISE','BIMBO','BISON TRANSPORT INC','C H ROBINSON DE MEXICO','CADENA COMERCIAL OXXO','CARNES SELECTAS TANGAMANGA','CAROLINA LOGISTICS INC','CFI LOGISTICA','CH ROBINSON WORLDWIDE, INC','COMERCIALIZADORA DE LACTEOS Y DERIVADOS','COMERCIALIZADORA GAB','COMERCIALIZADORA KEES','DEACERO','DISTRIBUCION Y EMBARQUES FRESH','EA LOGISTICA','EMPACADORA DE CARNES UNIDAD GANADERA','ENLACES TERRESTRES DEL BOSQUE','FRIGORIFICO Y EMPACADORA DE AGUASCALIENTES','FWD LOGISTICA','GANADEROS PRODUCTORES DE LECHE PURA','GRANJAS CARROLL DE MEXICO','GRANJERO FELIZ','GRUPO MELANGE DE MEXICO','HEXPOL COMPOUNDING','HIGH TECH FARMS','HONDA TRADING DE MEXICO','HORTIFRUT','IMPORTADORA DE PRODUCTOS CARNICOS APODACA','INDUSTRIALIZADORA DE CARNICOS STRATTEGA','INDUSTRIAS ACROS WHIRLPOOL','INTERCARNES','INTERLAND TRANSPORT','INTERLAND USA','JOHNSON CONTROLS ENTERPRISES MEXICO','KGL INTERNATIONAL NETWORK MEXICO','KONEKT INTERSERVICE','KRONUS LOGISTICS LLC','LOGISTEED MEXICO','LONGHORN WAREHOUSES, INC','MAR BRAN','MARBRAN USA, LTD','MARTICO MEX','MCALLEN MEAT PURVEYORS, LLC','MCCAIN MEXICO','NATURESWEET COMERCIALIZADORA','NATURESWEET INVERNADEROS','NS BRANDS, LTD','NUVOCARGO','ONE SOLUTION GROUP, INC','P.A.C. INTERNATIONAL','PERFORMER LOGISTICS','PILGRIM\'S PRIDE','PIPER TRADING LLC','POLLO Y HUEVO TRIUNFO','PRODUCTORA AGRICOLA DE AGUASCALIENTES','PRODUCTORA DE BOCADOS CARNICOS','PRODUCTOS CAREY','PRODUCTOS FRUGO','PROMOTORA DE MERCADOS','R.H. SHIPPING & CHARTERING','RANCHO ACUICOLA ELIXIR','RED ROAD LOGISTICS INC','SCHENKER INTERNATIONAL','SERVI CARNES DE OCCIDENTE','SIGMA ALIMENTOS CENTRO','SIGMA ALIMENTOS COMERCIAL','SPEEDYHAUL INTERNATIONAL','STEERINGMEX','SUMMIT PLASTICS GUANAJUATO','SUN CHEMICAL','TEU LOGISTICA','TITAN MEATS LLC','TRANSPLACE MEXICO LLC','TRAXION TECHNOLOGIES','TROB TRANSPORTES','TROB USA, LLC','UNITED FC DE MEXICO','VALLE REDONDO','VDT LOGISTICA','VEGGIE PRIME','VICTUX','VISCERAS SELECTAS DEL BAJIO','WEXPRESS','WHIRLPOOL INTERNACIONAL','ZEBRA LOGISTICS','ZEBRA LOGISTICS, INC'];
 
 const formatDate = (dateStr: string | undefined): string => {
   if (!dateStr) return '-';
@@ -41,18 +45,28 @@ const TC_USD_MXN = 20.50;
 
 const detectarTipoViaje = (ruta: string): string => {
   const rutaLower = ruta.toLowerCase();
-  const ciudadesUSA = ['laredo', 'nuevo laredo', 'nvo laredo', 'dallas', 'houston', 'san antonio', 'el paso', 'mcallen', 'brownsville', 'eagle pass', 'texas', 'california', 'arizona', 'chicago', 'los angeles', 'phoenix'];
-  const esOrigenUSA = ciudadesUSA.some(c => rutaLower.startsWith(c) || rutaLower.includes(c + ' -') || rutaLower.includes(c + ' a '));
-  const esDestinoUSA = ciudadesUSA.some(c => rutaLower.endsWith(c) || rutaLower.includes('- ' + c) || rutaLower.includes(' a ' + c));
+  const ciudadesUSA = ['laredo', 'nuevo laredo', 'nvo laredo', 'dallas', 'houston', 'san antonio', 'el paso', 'mcallen', 'brownsville', 'eagle pass', 'texas', 'tx', 'california', 'ca', 'arizona', 'az', 'chicago', 'los angeles', 'phoenix'];
   const tieneUSA = ciudadesUSA.some(c => rutaLower.includes(c));
-  if (rutaLower.includes('laredo') || rutaLower.includes('nvo laredo') || rutaLower.includes('nuevo laredo')) {
-    if (esOrigenUSA && !esDestinoUSA) return 'Impo';
-    if (!esOrigenUSA && esDestinoUSA) return 'Expo';
+  const tieneLaredo = rutaLower.includes('laredo') || rutaLower.includes('lrd');
+  
+  if (tieneLaredo) {
+    const partes = rutaLower.split(/[-–—>a]/);
+    if (partes.length >= 2) {
+      const origen = partes[0].trim();
+      const destino = partes[partes.length - 1].trim();
+      const origenUSA = ciudadesUSA.some(c => origen.includes(c));
+      const destinoUSA = ciudadesUSA.some(c => destino.includes(c));
+      if (origenUSA && !destinoUSA) return 'Impo';
+      if (!origenUSA && destinoUSA) return 'Expo';
+    }
   }
-  if (tieneUSA && !rutaLower.includes('laredo')) return 'DTD';
-  if (esOrigenUSA) return 'Impo';
-  if (esDestinoUSA) return 'Expo';
+  if (tieneUSA && !tieneLaredo) return 'DTD';
   return 'Nacional';
+};
+
+const detectarMoneda = (texto: string): string => {
+  if (texto.includes('USD') || texto.includes('usd') || texto.includes('dlls') || texto.includes('dólares') || texto.includes('dolares')) return 'USD';
+  return 'MXN';
 };
 
 const buscarDuplicados = (nombre: string, leadsExistentes: Lead[]): { duplicadoExacto: boolean; similares: string[] } => {
@@ -63,6 +77,105 @@ const buscarDuplicados = (nombre: string, leadsExistentes: Lead[]): { duplicadoE
   CLIENTES_EXISTENTES.forEach(c => { const cNorm = c.toUpperCase(); if (cNorm !== nombreNorm && palabras.some(p => cNorm.includes(p))) similares.push(c); });
   leadsExistentes.forEach(l => { const lNorm = l.nombreEmpresa.toUpperCase(); if (lNorm !== nombreNorm && palabras.some(p => lNorm.includes(p)) && !similares.includes(l.nombreEmpresa)) similares.push(l.nombreEmpresa); });
   return { duplicadoExacto, similares: similares.slice(0, 5) };
+};
+
+// Función para extraer texto del PDF
+const extraerTextoPDF = async (base64: string): Promise<string> => {
+  try {
+    const base64Data = base64.split(',')[1] || base64;
+    const binaryString = atob(base64Data);
+    const bytes = new Uint8Array(binaryString.length);
+    for (let i = 0; i < binaryString.length; i++) {
+      bytes[i] = binaryString.charCodeAt(i);
+    }
+    
+    const pdf = await pdfjsLib.getDocument({ data: bytes }).promise;
+    let fullText = '';
+    
+    for (let i = 1; i <= pdf.numPages; i++) {
+      const page = await pdf.getPage(i);
+      const textContent = await page.getTextContent();
+      const pageText = textContent.items.map((item: any) => item.str).join(' ');
+      fullText += pageText + '\n';
+    }
+    
+    return fullText;
+  } catch (error) {
+    console.error('Error extrayendo texto del PDF:', error);
+    return '';
+  }
+};
+
+// Función para parsear cotización del texto
+const parsearCotizacion = (texto: string): { rutas: LineaCotizacion[], moneda: string } => {
+  const lineas: LineaCotizacion[] = [];
+  const monedaGlobal = detectarMoneda(texto);
+  
+  // Patrones comunes de rutas en cotizaciones
+  const patronesRuta = [
+    /([A-ZÁÉÍÓÚÑ][A-ZÁÉÍÓÚÑa-záéíóúñ\s,\.]+)\s*[-–—>a]+\s*([A-ZÁÉÍÓÚÑ][A-ZÁÉÍÓÚÑa-záéíóúñ\s,\.]+)[\s:]*\$?\s*([\d,\.]+)/gi,
+    /ruta[:\s]*([^$\n]+)\$?\s*([\d,\.]+)/gi,
+    /origen[:\s]*([^\n]+).*destino[:\s]*([^\n]+).*(?:tarifa|precio|costo)[:\s]*\$?\s*([\d,\.]+)/gi,
+    /([A-Z]{3,})\s*[-–—>]+\s*([A-Z]{3,})[\s:]*\$?\s*([\d,\.]+)/gi,
+  ];
+  
+  // Buscar tarifas en el texto
+  const tarifaMatch = texto.match(/(?:tarifa|precio|costo|rate|flete)[:\s]*\$?\s*([\d,\.]+)/i);
+  const tarifaBase = tarifaMatch ? parseFloat(tarifaMatch[1].replace(/,/g, '')) : 0;
+  
+  // Buscar rutas
+  for (const patron of patronesRuta) {
+    let match;
+    while ((match = patron.exec(texto)) !== null) {
+      const origen = match[1]?.trim() || '';
+      const destino = match[2]?.trim() || '';
+      const tarifa = match[3] ? parseFloat(match[3].replace(/,/g, '')) : tarifaBase;
+      
+      if (origen && destino && origen.length > 2 && destino.length > 2) {
+        const rutaCompleta = `${origen} - ${destino}`;
+        if (!lineas.some(l => l.ruta.toLowerCase() === rutaCompleta.toLowerCase())) {
+          lineas.push({
+            ruta: rutaCompleta,
+            tarifa: tarifa || 0,
+            moneda: monedaGlobal,
+            viajes: 0,
+            tipoViaje: detectarTipoViaje(rutaCompleta),
+            subtotalMXN: 0
+          });
+        }
+      }
+    }
+  }
+  
+  // Si no encontró rutas, buscar ciudades mencionadas
+  if (lineas.length === 0) {
+    const ciudades = texto.match(/(?:monterrey|guadalajara|cdmx|ciudad de mexico|mexico city|queretaro|aguascalientes|leon|saltillo|torreon|chihuahua|tijuana|laredo|nuevo laredo|dallas|houston|san antonio|mcallen)/gi);
+    if (ciudades && ciudades.length >= 2) {
+      const rutaCompleta = `${ciudades[0]} - ${ciudades[1]}`;
+      lineas.push({
+        ruta: rutaCompleta,
+        tarifa: tarifaBase,
+        moneda: monedaGlobal,
+        viajes: 0,
+        tipoViaje: detectarTipoViaje(rutaCompleta),
+        subtotalMXN: 0
+      });
+    }
+  }
+  
+  // Si aún no hay rutas, crear una genérica con la tarifa encontrada
+  if (lineas.length === 0) {
+    lineas.push({
+      ruta: 'Ruta por definir',
+      tarifa: tarifaBase,
+      moneda: monedaGlobal,
+      viajes: 0,
+      tipoViaje: 'Nacional',
+      subtotalMXN: 0
+    });
+  }
+  
+  return { rutas: lineas, moneda: monedaGlobal };
 };
 
 export const PanelOportunidadesModule = ({ onBack }: PanelOportunidadesModuleProps) => {
@@ -145,65 +258,52 @@ export const PanelOportunidadesModule = ({ onBack }: PanelOportunidadesModulePro
   const handleExportExcel = () => { const headers = ['Empresa', 'Contacto', 'Email', 'Servicio', 'Viaje', 'Rutas', 'Viajes/Mes', 'Potencial MXN', 'Vendedor', 'Fecha']; const rows = filteredLeads.map(lead => [lead.nombreEmpresa, lead.nombreContacto, lead.correoElectronico, (lead.tipoServicio||[]).join(', '), (lead.tipoViaje||[]).join(', '), lead.principalesRutas, lead.viajesPorMes, lead.proyectadoVentaMensual || '', lead.vendedor, formatDate(lead.fechaCaptura)]); const csvContent = [headers.join(','), ...rows.map(row => row.map(cell => `"${cell}"`).join(','))].join('\n'); const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' }); const link = document.createElement('a'); link.href = URL.createObjectURL(blob); link.download = `leads_fx27_${new Date().toISOString().split('T')[0]}.csv`; link.click(); };
   const getVendedoresUnicos = () => Array.from(new Set(leads.map(lead => lead.vendedor)));
 
-  const analizarCotizacion = async (pdfText: string, fileName: string): Promise<any> => {
-    try {
-      const url = `https://${projectId}.supabase.co/functions/v1/analyze-cotizacion`;
-      const textoParaEnviar = pdfText.length > 100 ? pdfText.substring(0, 8000) : `Cotización de transporte: ${fileName}. Analiza y extrae información típica.`;
-      const response = await fetch(url, { method: 'POST', headers: { 'Authorization': `Bearer ${publicAnonKey}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ pdfText: textoParaEnviar, tipoCambio }) });
-      const text = await response.text();
-      try {
-        const result = JSON.parse(text);
-        if (result.success && result.analisis) {
-          let analisis = result.analisis;
-          if (analisis.raw && typeof analisis.raw === 'string') {
-            const jsonMatch = analisis.raw.match(/\{[\s\S]*\}/);
-            if (jsonMatch) { try { analisis = JSON.parse(jsonMatch[0]); } catch {} }
-          }
-          return analisis;
-        }
-        return null;
-      } catch { return null; }
-    } catch { return null; }
-  };
-
   const handleSubirCotizaciones = async (files: FileList, lead: Lead) => {
     setAnalizando(true);
-    setStatusMsg('Analizando PDF...');
+    setStatusMsg('Leyendo PDF...');
     const archivos = Array.from(files).filter(f => f.type === 'application/pdf');
     if (archivos.length === 0) { alert('Solo PDFs'); setAnalizando(false); setStatusMsg(''); return; }
     
     for (let i = 0; i < archivos.length; i++) {
       const file = archivos[i];
       try {
-        const base64 = await new Promise<string>((resolve, reject) => { const reader = new FileReader(); reader.onload = () => resolve(reader.result as string); reader.onerror = () => reject('Error'); reader.readAsDataURL(file); });
-        const analisis = await analizarCotizacion(file.name, file.name);
-        const nuevaCot: Cotizacion = { nombre: file.name, url: base64, fecha: new Date().toISOString(), analisis, eliminado: false };
+        setStatusMsg('Extrayendo contenido...');
+        const base64 = await new Promise<string>((resolve, reject) => { 
+          const reader = new FileReader(); 
+          reader.onload = () => resolve(reader.result as string); 
+          reader.onerror = () => reject('Error'); 
+          reader.readAsDataURL(file); 
+        });
         
-        let lineas: LineaCotizacion[] = [];
-        if (analisis && !analisis.error) {
-          const rutasStr = analisis.rutas || '';
-          const rutasArray = rutasStr.split(/[,;|\n]/).map((r: string) => r.trim()).filter((r: string) => r);
-          const tarifaBase = analisis.tarifaMXN || analisis.tarifaTotal || 0;
-          const monedaBase = analisis.moneda || 'MXN';
-          
-          if (rutasArray.length > 0) {
-            lineas = rutasArray.map((ruta: string) => ({ ruta, tarifa: tarifaBase, moneda: monedaBase, viajes: 0, tipoViaje: detectarTipoViaje(ruta), subtotalMXN: 0 }));
-          } else {
-            lineas = [{ ruta: rutasStr || 'Ruta Principal', tarifa: tarifaBase, moneda: monedaBase, viajes: 0, tipoViaje: 'Nacional', subtotalMXN: 0 }];
-          }
-        } else {
-          lineas = [{ ruta: 'Ruta 1', tarifa: 0, moneda: 'MXN', viajes: 0, tipoViaje: 'Nacional', subtotalMXN: 0 }];
-        }
+        // Extraer texto del PDF
+        setStatusMsg('Analizando rutas y tarifas...');
+        const textoPDF = await extraerTextoPDF(base64);
+        console.log('Texto extraído del PDF:', textoPDF.substring(0, 500));
+        
+        // Parsear la cotización
+        const { rutas, moneda } = parsearCotizacion(textoPDF);
+        console.log('Rutas encontradas:', rutas);
+        
+        const nuevaCot: Cotizacion = { 
+          nombre: file.name, 
+          url: base64, 
+          fecha: new Date().toISOString(), 
+          analisis: { textoPDF: textoPDF.substring(0, 1000), moneda },
+          eliminado: false 
+        };
         
         const leadTemp = { ...lead, cotizaciones: [...(lead.cotizaciones || []), nuevaCot] };
         setLeads(leads.map(l => l.id === lead.id ? leadTemp : l));
         setCotizacionesModal(leadTemp);
-        setLineasCotizacion(lineas);
+        setLineasCotizacion(rutas);
         setLineasModal({ cotizacion: nuevaCot, lead: leadTemp, index: (lead.cotizaciones || []).length });
         setAnalizando(false);
         setStatusMsg('');
         return;
-      } catch (e) { console.error('Error:', e); }
+      } catch (e) { 
+        console.error('Error:', e); 
+        alert('Error al procesar el PDF');
+      }
     }
     setAnalizando(false);
     setStatusMsg('');
@@ -306,38 +406,12 @@ export const PanelOportunidadesModule = ({ onBack }: PanelOportunidadesModulePro
   const handleToggleViaje = (v: string) => { const arr = formData.tipoViaje || []; setFormData({ ...formData, tipoViaje: arr.includes(v) ? arr.filter(x => x !== v) : [...arr, v] }); };
   const SortIcon = ({ field }: { field: SortField }) => sortField !== field ? <SortAsc className="w-4 h-4 opacity-30" /> : sortDirection === 'asc' ? <SortAsc className="w-4 h-4" /> : <SortDesc className="w-4 h-4" />;
 
-  // Componente Badge de Alerta
   const AlertBadge = ({ lead }: { lead: Lead }) => {
     const alerta = getAlertaLead(lead);
     if (!alerta.tipo) return null;
-    
-    if (alerta.tipo === 'amarillo') {
-      return (
-        <span title={alerta.mensaje} className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-yellow-500/20 text-yellow-400 text-xs font-semibold cursor-help border border-yellow-500/30 hover:bg-yellow-500/30 transition-colors">
-          <Zap className="w-3 h-3" />
-          <span>{alerta.dias}d</span>
-        </span>
-      );
-    }
-    
-    if (alerta.tipo === 'rojo') {
-      return (
-        <span title={alerta.mensaje} className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-red-500/20 text-red-400 text-xs font-semibold cursor-help border border-red-500/30 hover:bg-red-500/30 transition-colors animate-pulse">
-          <Flame className="w-3 h-3" />
-          <span>{alerta.dias}d</span>
-        </span>
-      );
-    }
-    
-    if (alerta.tipo === 'critico') {
-      return (
-        <span title={alerta.mensaje} className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-red-600/30 text-red-300 text-xs font-bold cursor-help border border-red-500/50 hover:bg-red-600/40 transition-colors animate-pulse">
-          <Skull className="w-3 h-3" />
-          <span>{alerta.dias}d</span>
-        </span>
-      );
-    }
-    
+    if (alerta.tipo === 'amarillo') return <span title={alerta.mensaje} className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-yellow-500/20 text-yellow-400 text-xs font-semibold cursor-help border border-yellow-500/30 hover:bg-yellow-500/30 transition-colors"><Zap className="w-3 h-3" /><span>{alerta.dias}d</span></span>;
+    if (alerta.tipo === 'rojo') return <span title={alerta.mensaje} className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-red-500/20 text-red-400 text-xs font-semibold cursor-help border border-red-500/30 hover:bg-red-500/30 transition-colors animate-pulse"><Flame className="w-3 h-3" /><span>{alerta.dias}d</span></span>;
+    if (alerta.tipo === 'critico') return <span title={alerta.mensaje} className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-red-600/30 text-red-300 text-xs font-bold cursor-help border border-red-500/50 hover:bg-red-600/40 transition-colors animate-pulse"><Skull className="w-3 h-3" /><span>{alerta.dias}d</span></span>;
     return null;
   };
 
@@ -413,13 +487,13 @@ export const PanelOportunidadesModule = ({ onBack }: PanelOportunidadesModulePro
                       <td className="px-2 py-2" style={{ width: '8%' }}><span className="text-white" style={{ fontSize: '10px' }}>{formatDate(lead.fechaCaptura)}</span></td>
                       <td className="px-2 py-2" style={{ width: '8%' }}>
                         <div className="flex items-center justify-center gap-1">
-                          <button onClick={() => setSelectedLead(lead)} className="p-1.5 rounded-lg bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 border border-blue-500/30" title="Ver detalle completo"><Eye className="w-3.5 h-3.5" /></button>
-                          <button onClick={() => setEditLead(lead)} className="p-1.5 rounded-lg bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-400 border border-yellow-500/30" disabled={lead.eliminado} title="Editar lead"><Pencil className="w-3.5 h-3.5" /></button>
+                          <button onClick={() => setSelectedLead(lead)} className="p-1.5 rounded-lg bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 border border-blue-500/30" title="Ver detalle"><Eye className="w-3.5 h-3.5" /></button>
+                          <button onClick={() => setEditLead(lead)} className="p-1.5 rounded-lg bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-400 border border-yellow-500/30" disabled={lead.eliminado} title="Editar"><Pencil className="w-3.5 h-3.5" /></button>
                           <div className="relative">
-                            <button onClick={() => setCotizacionesModal(lead)} className="p-1.5 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 border border-emerald-500/30" title="Gestionar cotizaciones"><FileText className="w-3.5 h-3.5" /></button>
+                            <button onClick={() => setCotizacionesModal(lead)} className="p-1.5 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 border border-emerald-500/30" title="Cotizaciones"><FileText className="w-3.5 h-3.5" /></button>
                             {lead.cotizaciones?.filter(c => !c.eliminado).length ? <div className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-emerald-500 flex items-center justify-center text-white" style={{ fontSize: '9px', fontWeight: 700 }}>{lead.cotizaciones.filter(c => !c.eliminado).length}</div> : null}
                           </div>
-                          {lead.eliminado && isAdmin ? <button onClick={() => handleRestaurarLead(lead)} className="p-1.5 rounded-lg bg-green-500/20 hover:bg-green-500/30 text-green-400 border border-green-500/30" title="Restaurar lead"><TrendingUp className="w-3.5 h-3.5" /></button> : <button onClick={() => setDeleteModal(lead)} className="p-1.5 rounded-lg bg-red-500/20 hover:bg-red-500/30 text-red-400 border border-red-500/30" disabled={lead.eliminado} title="Eliminar lead"><Trash2 className="w-3.5 h-3.5" /></button>}
+                          {lead.eliminado && isAdmin ? <button onClick={() => handleRestaurarLead(lead)} className="p-1.5 rounded-lg bg-green-500/20 hover:bg-green-500/30 text-green-400 border border-green-500/30" title="Restaurar"><TrendingUp className="w-3.5 h-3.5" /></button> : <button onClick={() => setDeleteModal(lead)} className="p-1.5 rounded-lg bg-red-500/20 hover:bg-red-500/30 text-red-400 border border-red-500/30" disabled={lead.eliminado} title="Eliminar"><Trash2 className="w-3.5 h-3.5" /></button>}
                         </div>
                       </td>
                     </tr>
@@ -435,89 +509,41 @@ export const PanelOportunidadesModule = ({ onBack }: PanelOportunidadesModulePro
         </div>
       </div>
 
-      {/* Modal Ver Lead Completo */}
+      {/* Modal Ver Lead */}
       {selectedLead && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setSelectedLead(null)}>
           <div className="bg-[var(--fx-surface)] rounded-2xl border border-white/20 w-[95vw] max-w-[1100px] max-h-[90vh] overflow-y-auto p-6" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-white text-xl font-bold flex items-center gap-2"><Building2 className="w-6 h-6 text-blue-400" />{selectedLead.nombreEmpresa}</h3>
-              <button onClick={() => setSelectedLead(null)} className="p-2 rounded-lg hover:bg-white/10"><X className="w-5 h-5 text-white" /></button>
-            </div>
-            
+            <div className="flex items-center justify-between mb-4"><h3 className="text-white text-xl font-bold flex items-center gap-2"><Building2 className="w-6 h-6 text-blue-400" />{selectedLead.nombreEmpresa}</h3><button onClick={() => setSelectedLead(null)} className="p-2 rounded-lg hover:bg-white/10"><X className="w-5 h-5 text-white" /></button></div>
             <div className="grid grid-cols-2 gap-4 mb-4">
-              <div className="p-3 rounded-lg bg-blue-500/10 border border-blue-500/30">
-                <div className="flex items-center gap-2 text-blue-400 text-xs mb-1"><Calendar className="w-3 h-3" />Fecha de Creación</div>
-                <div className="text-white font-semibold">{formatDateTime(selectedLead.fechaCaptura)}</div>
-              </div>
-              <div className="p-3 rounded-lg bg-orange-500/10 border border-orange-500/30">
-                <div className="flex items-center gap-2 text-orange-400 text-xs mb-1"><Clock className="w-3 h-3" />Última Modificación</div>
-                <div className="text-white font-semibold">{formatDateTime(selectedLead.fechaActualizacion) || formatDateTime(selectedLead.fechaCaptura)}</div>
-              </div>
+              <div className="p-3 rounded-lg bg-blue-500/10 border border-blue-500/30"><div className="flex items-center gap-2 text-blue-400 text-xs mb-1"><Calendar className="w-3 h-3" />Fecha de Creación</div><div className="text-white font-semibold">{formatDateTime(selectedLead.fechaCaptura)}</div></div>
+              <div className="p-3 rounded-lg bg-orange-500/10 border border-orange-500/30"><div className="flex items-center gap-2 text-orange-400 text-xs mb-1"><Clock className="w-3 h-3" />Última Modificación</div><div className="text-white font-semibold">{formatDateTime(selectedLead.fechaActualizacion) || formatDateTime(selectedLead.fechaCaptura)}</div></div>
             </div>
-            
             <div className="grid grid-cols-3 gap-4 text-sm mb-4">
-              <div className="p-3 rounded-lg bg-white/5"><div className="text-blue-400 text-xs mb-1">Contacto</div><div className="text-white font-semibold">{selectedLead.nombreContacto}</div><div className="text-gray-400">{selectedLead.correoElectronico}</div>{selectedLead.telefonoContacto && <div className="text-gray-400">{selectedLead.telefonoContacto}</div>}</div>
+              <div className="p-3 rounded-lg bg-white/5"><div className="text-blue-400 text-xs mb-1">Contacto</div><div className="text-white font-semibold">{selectedLead.nombreContacto}</div><div className="text-gray-400">{selectedLead.correoElectronico}</div></div>
               <div className="p-3 rounded-lg bg-white/5"><div className="text-blue-400 text-xs mb-1">Servicio</div><div className="flex flex-wrap gap-1">{(selectedLead.tipoServicio||[]).map((t,i)=><span key={i} className="px-2 py-0.5 rounded bg-blue-500/20 text-blue-400 text-xs">{t}</span>)}</div></div>
               <div className="p-3 rounded-lg bg-white/5"><div className="text-green-400 text-xs mb-1">Tipo de Viaje</div><div className="flex flex-wrap gap-1">{(selectedLead.tipoViaje||[]).map((t,i)=><span key={i} className="px-2 py-0.5 rounded bg-green-500/20 text-green-400 text-xs">{t}</span>)}</div></div>
               <div className="p-3 rounded-lg bg-white/5 col-span-2"><div className="text-purple-400 text-xs mb-1">Rutas</div><div className="text-white text-sm">{selectedLead.principalesRutas || '-'}</div></div>
               <div className="p-3 rounded-lg bg-white/5"><div className="text-orange-400 text-xs mb-1">Viajes/Mes</div><div className="text-white font-bold text-lg">{selectedLead.viajesPorMes || '-'}</div></div>
             </div>
-            
-            <div className="p-4 rounded-lg bg-emerald-500/10 border border-emerald-500/30 mb-4">
-              <div className="text-emerald-400 text-xs mb-1">$ Potencial Mensual</div>
-              <div className="text-emerald-400 font-bold text-3xl">{selectedLead.proyectadoVentaMensual || 'Sin calcular'}</div>
-            </div>
-            
+            <div className="p-4 rounded-lg bg-emerald-500/10 border border-emerald-500/30 mb-4"><div className="text-emerald-400 text-xs mb-1">$ Potencial Mensual</div><div className="text-emerald-400 font-bold text-3xl">{selectedLead.proyectadoVentaMensual || 'Sin calcular'}</div></div>
             {selectedLead.cotizaciones && selectedLead.cotizaciones.filter(c => !c.eliminado).length > 0 && (
               <div className="mb-4">
-                <h4 className="text-white font-semibold mb-2 flex items-center gap-2"><FileText className="w-4 h-4 text-emerald-400" />Cotizaciones ({selectedLead.cotizaciones.filter(c => !c.eliminado).length})</h4>
-                <div className="space-y-2">
-                  {selectedLead.cotizaciones.filter(c => !c.eliminado).map((cot, i) => (
-                    <div key={i} className="p-3 rounded-lg bg-white/5 border border-white/10">
-                      <div className="flex justify-between items-center mb-2">
-                        <span className="text-white font-medium">{cot.nombre}</span>
-                        <span className="text-gray-400 text-xs">{formatDate(cot.fecha)}</span>
-                      </div>
-                      {cot.lineas && cot.lineas.length > 0 && (
-                        <div className="space-y-1">
-                          {cot.lineas.map((linea, idx) => (
-                            <div key={idx} className="flex justify-between text-xs text-gray-400">
-                              <span>{linea.ruta} ({linea.tipoViaje})</span>
-                              <span>{linea.viajes} viajes × ${linea.tarifa.toLocaleString('es-MX')} = <span className="text-emerald-400">${linea.subtotalMXN.toLocaleString('es-MX')} MXN</span></span>
-                            </div>
-                          ))}
-                          <div className="pt-2 border-t border-white/10 flex justify-between text-sm">
-                            <span className="text-emerald-400">Total Cotización:</span>
-                            <span className="text-emerald-400 font-bold">${cot.potencialMXN?.toLocaleString('es-MX')} MXN</span>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
+                <h4 className="text-white font-semibold mb-2 flex items-center gap-2"><FileText className="w-4 h-4 text-emerald-400" />Cotizaciones</h4>
+                <div className="space-y-2">{selectedLead.cotizaciones.filter(c => !c.eliminado).map((cot, i) => (
+                  <div key={i} className="p-3 rounded-lg bg-white/5 border border-white/10">
+                    <div className="flex justify-between items-center mb-2"><span className="text-white font-medium">{cot.nombre}</span><span className="text-gray-400 text-xs">{formatDate(cot.fecha)}</span></div>
+                    {cot.lineas && cot.lineas.length > 0 && (<div className="space-y-1">{cot.lineas.map((linea, idx) => (<div key={idx} className="flex justify-between text-xs text-gray-400"><span>{linea.ruta} ({linea.tipoViaje})</span><span>{linea.viajes} viajes × ${linea.tarifa.toLocaleString('es-MX')} = <span className="text-emerald-400">${linea.subtotalMXN.toLocaleString('es-MX')} MXN</span></span></div>))}<div className="pt-2 border-t border-white/10 flex justify-between text-sm"><span className="text-emerald-400">Total:</span><span className="text-emerald-400 font-bold">${cot.potencialMXN?.toLocaleString('es-MX')} MXN</span></div></div>)}
+                  </div>
+                ))}</div>
               </div>
             )}
-            
             {selectedLead.historial && selectedLead.historial.length > 0 && (
               <div className="mb-4">
-                <h4 className="text-white font-semibold mb-2 flex items-center gap-2"><Clock className="w-4 h-4 text-orange-400" />Historial de Modificaciones</h4>
-                <div className="max-h-40 overflow-y-auto space-y-1">
-                  {selectedLead.historial.slice().reverse().map((h, i) => (
-                    <div key={i} className="flex items-center gap-3 text-xs p-2 rounded bg-white/5">
-                      <span className="text-gray-500">{formatDateTime(h.fecha)}</span>
-                      <span className="text-blue-400">{h.campo}</span>
-                      <span className="text-gray-400">{h.valorNuevo}</span>
-                      <span className="text-gray-500 ml-auto">{h.usuario}</span>
-                    </div>
-                  ))}
-                </div>
+                <h4 className="text-white font-semibold mb-2 flex items-center gap-2"><Clock className="w-4 h-4 text-orange-400" />Historial</h4>
+                <div className="max-h-40 overflow-y-auto space-y-1">{selectedLead.historial.slice().reverse().map((h, i) => (<div key={i} className="flex items-center gap-3 text-xs p-2 rounded bg-white/5"><span className="text-gray-500">{formatDateTime(h.fecha)}</span><span className="text-blue-400">{h.campo}</span><span className="text-gray-400">{h.valorNuevo}</span><span className="text-gray-500 ml-auto">{h.usuario}</span></div>))}</div>
               </div>
             )}
-            
-            <div className="flex justify-between items-center text-sm text-gray-400">
-              <span>Vendedor: {selectedLead.vendedor}</span>
-              <span>Etapa: {selectedLead.etapaLead || 'Prospecto'}</span>
-            </div>
+            <div className="flex justify-between items-center text-sm text-gray-400"><span>Vendedor: {selectedLead.vendedor}</span><span>Etapa: {selectedLead.etapaLead || 'Prospecto'}</span></div>
           </div>
         </div>
       )}
@@ -542,15 +568,13 @@ export const PanelOportunidadesModule = ({ onBack }: PanelOportunidadesModulePro
             <div className="flex items-center justify-between mb-4"><h3 className="text-white text-xl font-bold flex items-center gap-2"><FileText className="w-5 h-5 text-emerald-400" />Cotizaciones - {cotizacionesModal.nombreEmpresa}</h3><button onClick={() => setCotizacionesModal(null)} className="p-2 rounded-lg hover:bg-white/10"><X className="w-5 h-5 text-white" /></button></div>
             <div className="mb-4"><label className={`flex items-center justify-center gap-2 px-4 py-3 rounded-xl ${analizando ? 'bg-blue-600/50' : 'bg-blue-600 hover:bg-blue-700'} text-white cursor-pointer`}>{analizando ? <><Loader2 className="w-5 h-5 animate-spin" /><span>{statusMsg}</span></> : <><Upload className="w-5 h-5" /><span className="font-semibold">Subir Cotización (PDF)</span></>}<input type="file" accept="application/pdf" className="hidden" disabled={analizando} onChange={(e) => { if (e.target.files?.length) handleSubirCotizaciones(e.target.files, cotizacionesModal); e.target.value = ''; }} /></label></div>
             <div className="space-y-3">
-              {(!cotizacionesModal.cotizaciones || !cotizacionesModal.cotizaciones.filter(c => !c.eliminado).length) ? (
-                <div className="text-center py-6 text-gray-400">No hay cotizaciones adjuntas.</div>
-              ) : (
+              {(!cotizacionesModal.cotizaciones || !cotizacionesModal.cotizaciones.filter(c => !c.eliminado).length) ? (<div className="text-center py-6 text-gray-400">No hay cotizaciones adjuntas.</div>) : (
                 cotizacionesModal.cotizaciones.filter(c => !c.eliminado).map((cot, i) => (
                   <div key={i} className="p-4 rounded-lg bg-white/5 border border-white/10">
                     <div className="flex items-center justify-between mb-2">
                       <div className="flex items-center gap-2"><FileText className="w-4 h-4 text-emerald-400" /><span className="text-white font-semibold">{cot.nombre}</span><span className="text-gray-500 text-xs">{formatDate(cot.fecha)}</span></div>
                       <div className="flex gap-2">
-                        {cot.url && <button onClick={() => setPdfPreview(cot.url)} className="px-2 py-1 rounded bg-purple-500/20 text-purple-400 text-xs flex items-center gap-1" title="Ver PDF"><Eye className="w-3 h-3" />Ver</button>}
+                        {cot.url && <button onClick={() => setPdfPreview(cot.url)} className="px-2 py-1 rounded bg-purple-500/20 text-purple-400 text-xs flex items-center gap-1" title="Ver"><Eye className="w-3 h-3" />Ver</button>}
                         {cot.url && <a href={cot.url} download={cot.nombre} className="px-2 py-1 rounded bg-blue-500/20 text-blue-400 text-xs flex items-center gap-1" title="Descargar"><Download className="w-3 h-3" /></a>}
                         <button onClick={() => handleEliminarCotizacion(cotizacionesModal, cotizacionesModal.cotizaciones?.indexOf(cot) || i)} className="px-2 py-1 rounded bg-red-500/20 text-red-400 text-xs" title="Eliminar"><Trash2 className="w-3 h-3" /></button>
                       </div>
@@ -558,15 +582,7 @@ export const PanelOportunidadesModule = ({ onBack }: PanelOportunidadesModulePro
                     {cot.lineas && cot.lineas.length > 0 && (
                       <div className="mt-3 p-3 rounded bg-emerald-500/10 border border-emerald-500/20">
                         <div className="flex items-center gap-1 mb-2"><CheckCircle className="w-3 h-3 text-emerald-400" /><span className="text-emerald-400 text-xs font-semibold">Líneas Cotizadas</span></div>
-                        <div className="space-y-2">
-                          {cot.lineas.map((linea, idx) => (
-                            <div key={idx} className="flex justify-between items-center text-xs p-2 rounded bg-black/20">
-                              <div className="flex-1"><span className="text-white font-medium">{linea.ruta}</span><span className={`ml-2 px-1.5 py-0.5 rounded text-xs ${linea.tipoViaje === 'Impo' ? 'bg-blue-500/20 text-blue-400' : linea.tipoViaje === 'Expo' ? 'bg-green-500/20 text-green-400' : linea.tipoViaje === 'DTD' ? 'bg-purple-500/20 text-purple-400' : 'bg-gray-500/20 text-gray-400'}`}>{linea.tipoViaje}</span></div>
-                              <div className="text-gray-400">{linea.viajes} viajes × ${linea.tarifa.toLocaleString('es-MX')} {linea.moneda}</div>
-                              <div className="text-emerald-400 font-semibold ml-4">${linea.subtotalMXN.toLocaleString('es-MX')} MXN</div>
-                            </div>
-                          ))}
-                        </div>
+                        <div className="space-y-2">{cot.lineas.map((linea, idx) => (<div key={idx} className="flex justify-between items-center text-xs p-2 rounded bg-black/20"><div className="flex-1"><span className="text-white font-medium">{linea.ruta}</span><span className={`ml-2 px-1.5 py-0.5 rounded text-xs ${linea.tipoViaje === 'Impo' ? 'bg-blue-500/20 text-blue-400' : linea.tipoViaje === 'Expo' ? 'bg-green-500/20 text-green-400' : linea.tipoViaje === 'DTD' ? 'bg-purple-500/20 text-purple-400' : 'bg-gray-500/20 text-gray-400'}`}>{linea.tipoViaje}</span></div><div className="text-gray-400">{linea.viajes} viajes × ${linea.tarifa.toLocaleString('es-MX')} {linea.moneda}</div><div className="text-emerald-400 font-semibold ml-4">${linea.subtotalMXN.toLocaleString('es-MX')} MXN</div></div>))}</div>
                         <div className="mt-3 pt-3 border-t border-emerald-500/30 flex justify-between items-center"><span className="text-emerald-400 font-semibold">TOTAL:</span><span className="text-emerald-400 font-bold text-xl">${cot.potencialMXN?.toLocaleString('es-MX')} MXN</span></div>
                       </div>
                     )}
@@ -589,7 +605,7 @@ export const PanelOportunidadesModule = ({ onBack }: PanelOportunidadesModulePro
             </div>
             
             <div className="mb-4 p-3 rounded-lg bg-blue-500/10 border border-blue-500/20">
-              <p className="text-blue-400 text-sm">Captura únicamente el número de <strong>viajes potenciales por mes</strong> para cada ruta.</p>
+              <p className="text-blue-400 text-sm">Captura el número de <strong>viajes potenciales por mes</strong> para cada ruta.</p>
             </div>
             
             <div className="grid grid-cols-12 gap-2 px-3 py-2 bg-white/5 rounded-t-lg text-xs text-gray-400 font-semibold">
