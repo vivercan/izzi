@@ -7,19 +7,39 @@ import { projectId, publicAnonKey } from '../../utils/supabase/info';
 interface PanelOportunidadesModuleProps { onBack: () => void; }
 interface RutaViajes { ruta: string; viajes: number; tarifa: number; moneda: string; }
 interface Cotizacion { nombre: string; url: string; fecha: string; analisis?: any; eliminado?: boolean; rutasViajes?: RutaViajes[]; potencialMensual?: number; }
-interface Lead { id: string; nombreEmpresa: string; paginaWeb: string; nombreContacto: string; telefonoContacto?: string; correoElectronico: string; tipoServicio: string[]; tipoViaje: string[]; principalesRutas: string; viajesPorMes: string; tarifa: string; proyectadoVentaMensual?: string; proximosPasos: string; etapaLead?: string; altaCliente?: boolean; generacionSOP?: boolean; juntaArranque?: boolean; facturado?: boolean; vendedor: string; fechaCreacion: string; fechaActualizacion?: string; cotizaciones?: Cotizacion[]; eliminado?: boolean; fechaEliminado?: string; created_at?: string; }
+interface Lead { id: string; nombreEmpresa: string; paginaWeb: string; nombreContacto: string; telefonoContacto?: string; correoElectronico: string; tipoServicio: string[]; tipoViaje: string[]; principalesRutas: string; viajesPorMes: string; tarifa: string; proyectadoVentaMensual?: string; proximosPasos: string; etapaLead?: string; altaCliente?: boolean; generacionSOP?: boolean; juntaArranque?: boolean; facturado?: boolean; vendedor: string; fechaCreacion?: string; fechaActualizacion?: string; cotizaciones?: Cotizacion[]; eliminado?: boolean; fechaEliminado?: string; created_at?: string; fecha?: string; [key: string]: any; }
 type SortField = 'nombreEmpresa' | 'vendedor' | 'fechaCreacion' | 'viajesPorMes';
 type SortDirection = 'asc' | 'desc';
+
+const getLeadDate = (lead: Lead): string => {
+  // Buscar cualquier campo que parezca una fecha
+  const possibleDateFields = ['fechaCreacion', 'created_at', 'fecha', 'createdAt', 'date', 'timestamp', 'fechaCreada'];
+  for (const field of possibleDateFields) {
+    if (lead[field]) return lead[field];
+  }
+  // Buscar en todas las propiedades del lead
+  for (const key of Object.keys(lead)) {
+    const val = lead[key];
+    if (typeof val === 'string' && (val.includes('T') || val.match(/^\d{4}-\d{2}-\d{2}/))) {
+      return val;
+    }
+  }
+  return '';
+};
 
 const formatDate = (dateStr: string | undefined): string => {
   if (!dateStr) return '-';
   try {
     let date: Date;
-    if (dateStr.includes('T') || dateStr.includes('-')) {
+    if (dateStr.includes('T') || dateStr.match(/^\d{4}-\d{2}-\d{2}/)) {
       date = new Date(dateStr);
     } else if (dateStr.includes('/')) {
       const parts = dateStr.split('/');
-      date = new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0]));
+      if (parts.length === 3) {
+        date = new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0]));
+      } else {
+        return dateStr;
+      }
     } else {
       return dateStr;
     }
@@ -51,8 +71,6 @@ export const PanelOportunidadesModule = ({ onBack }: PanelOportunidadesModulePro
   const [statusMsg, setStatusMsg] = useState('');
   const [pdfPreview, setPdfPreview] = useState<string | null>(null);
   const [tipoCambio] = useState(TC_USD_MXN);
-  
-  // Modal para capturar viajes por ruta
   const [viajesModal, setViajesModal] = useState<{cotizacion: Cotizacion, lead: Lead, index: number} | null>(null);
   const [rutasViajes, setRutasViajes] = useState<RutaViajes[]>([]);
 
@@ -79,7 +97,12 @@ export const PanelOportunidadesModule = ({ onBack }: PanelOportunidadesModulePro
         const response = await fetch(url, { headers: { 'Authorization': `Bearer ${publicAnonKey}` } });
         const result = await response.json();
         if (response.ok && result.success) { 
-          console.log('Leads cargados:', result.leads[0]);
+          // DEBUG: Ver estructura del primer lead
+          if (result.leads.length > 0) {
+            console.log('=== ESTRUCTURA DEL LEAD ===');
+            console.log('Primer lead completo:', JSON.stringify(result.leads[0], null, 2));
+            console.log('Campos disponibles:', Object.keys(result.leads[0]));
+          }
           setLeads(result.leads); 
           setFilteredLeads(result.leads.filter((l: Lead) => !l.eliminado)); 
         }
@@ -93,13 +116,13 @@ export const PanelOportunidadesModule = ({ onBack }: PanelOportunidadesModulePro
     if (!showDeleted) resultado = resultado.filter(lead => !lead.eliminado);
     if (searchTerm) resultado = resultado.filter(lead => lead.nombreEmpresa.toLowerCase().includes(searchTerm.toLowerCase()) || lead.nombreContacto.toLowerCase().includes(searchTerm.toLowerCase()) || lead.correoElectronico.toLowerCase().includes(searchTerm.toLowerCase()));
     if (filterVendedor) resultado = resultado.filter(lead => lead.vendedor === filterVendedor);
-    if (filterFecha) resultado = resultado.filter(lead => { try { const fecha = lead.fechaCreacion || lead.created_at; return fecha && new Date(fecha).toISOString().split('T')[0] === filterFecha; } catch { return false; } });
+    if (filterFecha) resultado = resultado.filter(lead => { try { const fecha = getLeadDate(lead); return fecha && new Date(fecha).toISOString().split('T')[0] === filterFecha; } catch { return false; } });
     resultado.sort((a, b) => {
       let valueA: any = a[sortField], valueB: any = b[sortField];
       if (sortField === 'viajesPorMes') { valueA = parseInt(valueA) || 0; valueB = parseInt(valueB) || 0; }
       if (sortField === 'fechaCreacion') { 
-        const fechaA = a.fechaCreacion || a.created_at || '';
-        const fechaB = b.fechaCreacion || b.created_at || '';
+        const fechaA = getLeadDate(a);
+        const fechaB = getLeadDate(b);
         try { valueA = new Date(fechaA).getTime() || 0; valueB = new Date(fechaB).getTime() || 0; } catch { valueA = 0; valueB = 0; } 
       }
       if (valueA < valueB) return sortDirection === 'asc' ? -1 : 1;
@@ -110,11 +133,10 @@ export const PanelOportunidadesModule = ({ onBack }: PanelOportunidadesModulePro
   }, [leads, searchTerm, filterVendedor, filterFecha, sortField, sortDirection, showDeleted]);
 
   const handleSort = (field: SortField) => { if (sortField === field) setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc'); else { setSortField(field); setSortDirection('asc'); } };
-  const handleExportExcel = () => { const headers = ['Empresa', 'Contacto', 'Email', 'Servicio', 'Viaje', 'Rutas', 'Viajes/Mes', 'Tarifa', 'Potencial', 'Vendedor', 'Fecha']; const rows = filteredLeads.map(lead => [lead.nombreEmpresa, lead.nombreContacto, lead.correoElectronico, (lead.tipoServicio||[]).join(', '), (lead.tipoViaje||[]).join(', '), lead.principalesRutas, lead.viajesPorMes, lead.tarifa, lead.proyectadoVentaMensual || '', lead.vendedor, formatDate(lead.fechaCreacion || lead.created_at)]); const csvContent = [headers.join(','), ...rows.map(row => row.map(cell => `"${cell}"`).join(','))].join('\n'); const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' }); const link = document.createElement('a'); link.href = URL.createObjectURL(blob); link.download = `leads_fx27_${new Date().toISOString().split('T')[0]}.csv`; link.click(); };
+  const handleExportExcel = () => { const headers = ['Empresa', 'Contacto', 'Email', 'Servicio', 'Viaje', 'Rutas', 'Viajes/Mes', 'Tarifa', 'Potencial', 'Vendedor', 'Fecha']; const rows = filteredLeads.map(lead => [lead.nombreEmpresa, lead.nombreContacto, lead.correoElectronico, (lead.tipoServicio||[]).join(', '), (lead.tipoViaje||[]).join(', '), lead.principalesRutas, lead.viajesPorMes, lead.tarifa, lead.proyectadoVentaMensual || '', lead.vendedor, formatDate(getLeadDate(lead))]); const csvContent = [headers.join(','), ...rows.map(row => row.map(cell => `"${cell}"`).join(','))].join('\n'); const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' }); const link = document.createElement('a'); link.href = URL.createObjectURL(blob); link.download = `leads_fx27_${new Date().toISOString().split('T')[0]}.csv`; link.click(); };
   const getVendedoresUnicos = () => Array.from(new Set(leads.map(lead => lead.vendedor)));
 
   const analizarCotizacion = async (pdfText: string, fileName: string): Promise<any> => {
-    console.log('=== ANÁLISIS ===', fileName);
     try {
       const url = `https://${projectId}.supabase.co/functions/v1/analyze-cotizacion`;
       const textoParaEnviar = pdfText.length > 100 ? pdfText.substring(0, 8000) : `Cotización de transporte: ${fileName}. Analiza y extrae información típica.`;
@@ -140,9 +162,7 @@ export const PanelOportunidadesModule = ({ onBack }: PanelOportunidadesModulePro
     setStatusMsg('Leyendo archivos...');
     const archivos = Array.from(files).filter(f => f.type === 'application/pdf');
     if (archivos.length === 0) { alert('Solo PDFs'); setAnalizando(false); setStatusMsg(''); return; }
-
     let nuevasCotizaciones = [...(lead.cotizaciones || [])];
-
     for (let i = 0; i < archivos.length; i++) {
       const file = archivos[i];
       setStatusMsg(`Procesando ${i + 1}/${archivos.length}: ${file.name}`);
@@ -150,71 +170,45 @@ export const PanelOportunidadesModule = ({ onBack }: PanelOportunidadesModulePro
         const base64 = await new Promise<string>((resolve, reject) => { const reader = new FileReader(); reader.onload = () => resolve(reader.result as string); reader.onerror = () => reject('Error'); reader.readAsDataURL(file); });
         setStatusMsg(`Analizando ${file.name}...`);
         const analisis = await analizarCotizacion(file.name, file.name);
-        
         const nuevaCot: Cotizacion = { nombre: file.name, url: base64, fecha: new Date().toISOString(), analisis, eliminado: false };
         nuevasCotizaciones.push(nuevaCot);
-        
-        // Abrir modal para capturar viajes si hay análisis
         if (analisis && !analisis.error) {
           const leadTemp = { ...lead, cotizaciones: nuevasCotizaciones };
           setLeads(leads.map(l => l.id === lead.id ? leadTemp : l));
           setCotizacionesModal(leadTemp);
-          
-          // Preparar rutas para el modal
           const rutasStr = analisis.rutas || '';
           const rutasArray = rutasStr.split(',').map((r: string) => r.trim()).filter((r: string) => r);
           const rutasIniciales: RutaViajes[] = rutasArray.length > 0 
             ? rutasArray.map((r: string) => ({ ruta: r, viajes: 1, tarifa: analisis.tarifaMXN || analisis.tarifaTotal || 0, moneda: analisis.moneda || 'MXN' }))
             : [{ ruta: rutasStr || 'Ruta Principal', viajes: 1, tarifa: analisis.tarifaMXN || analisis.tarifaTotal || 0, moneda: analisis.moneda || 'MXN' }];
-          
           setRutasViajes(rutasIniciales);
           setViajesModal({ cotizacion: nuevaCot, lead: leadTemp, index: nuevasCotizaciones.length - 1 });
           setAnalizando(false);
           setStatusMsg('');
-          return; // Esperar a que el usuario complete el modal
+          return;
         }
       } catch (e) {
         nuevasCotizaciones.push({ nombre: file.name, url: '', fecha: new Date().toISOString(), analisis: { error: String(e) }, eliminado: false });
       }
     }
-
-    // Si no hubo análisis exitoso, guardar directamente
     await guardarCotizaciones(lead, nuevasCotizaciones);
   };
 
   const guardarCotizaciones = async (lead: Lead, cotizaciones: Cotizacion[], potencialTotal?: number) => {
     setStatusMsg('Guardando...');
-    
     let tiposServicio = [...(lead.tipoServicio || [])], tiposViaje = [...(lead.tipoViaje || [])];
     let rutas = lead.principalesRutas || '', tarifa = lead.tarifa || '', viajes = lead.viajesPorMes || '';
     let potencial = potencialTotal || 0;
-
     cotizaciones.forEach(cot => {
       if (cot.analisis && !cot.analisis.error) {
         if (Array.isArray(cot.analisis.tipoServicio)) cot.analisis.tipoServicio.forEach((s: string) => { if (s && !tiposServicio.includes(s)) tiposServicio.push(s); });
         if (Array.isArray(cot.analisis.tipoViaje)) cot.analisis.tipoViaje.forEach((v: string) => { if (v && !tiposViaje.includes(v)) tiposViaje.push(v); });
         if (cot.analisis.rutas && !rutas.includes(cot.analisis.rutas)) rutas = rutas ? `${rutas}, ${cot.analisis.rutas}` : cot.analisis.rutas;
-        if (cot.rutasViajes) {
-          const totalViajes = cot.rutasViajes.reduce((sum, r) => sum + r.viajes, 0);
-          viajes = String(parseInt(viajes || '0') + totalViajes);
-        }
+        if (cot.rutasViajes) { const totalViajes = cot.rutasViajes.reduce((sum, r) => sum + r.viajes, 0); viajes = String(parseInt(viajes || '0') + totalViajes); }
         if (cot.potencialMensual) potencial += cot.potencialMensual;
       }
     });
-
-    const leadActualizado = { 
-      ...lead, 
-      cotizaciones, 
-      tipoServicio: tiposServicio.length > 0 ? tiposServicio : lead.tipoServicio, 
-      tipoViaje: tiposViaje.length > 0 ? tiposViaje : lead.tipoViaje, 
-      principalesRutas: rutas || lead.principalesRutas, 
-      tarifa: tarifa || lead.tarifa, 
-      viajesPorMes: viajes || lead.viajesPorMes,
-      proyectadoVentaMensual: potencial > 0 ? `$${potencial.toLocaleString()} MXN` : lead.proyectadoVentaMensual,
-      etapaLead: 'Cotizado', 
-      fechaActualizacion: new Date().toISOString() 
-    };
-    
+    const leadActualizado = { ...lead, cotizaciones, tipoServicio: tiposServicio.length > 0 ? tiposServicio : lead.tipoServicio, tipoViaje: tiposViaje.length > 0 ? tiposViaje : lead.tipoViaje, principalesRutas: rutas || lead.principalesRutas, tarifa: tarifa || lead.tarifa, viajesPorMes: viajes || lead.viajesPorMes, proyectadoVentaMensual: potencial > 0 ? `$${potencial.toLocaleString()} MXN` : lead.proyectadoVentaMensual, etapaLead: 'Cotizado', fechaActualizacion: new Date().toISOString() };
     try {
       await fetch(`https://${projectId}.supabase.co/functions/v1/make-server-d84b50bb/leads/${lead.id}`, { method: 'PUT', headers: { 'Authorization': `Bearer ${publicAnonKey}`, 'Content-Type': 'application/json' }, body: JSON.stringify(leadActualizado) });
       setLeads(leads.map(l => l.id === lead.id ? leadActualizado : l));
@@ -227,23 +221,11 @@ export const PanelOportunidadesModule = ({ onBack }: PanelOportunidadesModulePro
 
   const handleGuardarViajes = async () => {
     if (!viajesModal) return;
-    
     const { lead, index } = viajesModal;
     const cotizaciones = [...(lead.cotizaciones || [])];
-    
-    // Calcular potencial
     let potencialMensual = 0;
-    rutasViajes.forEach(rv => {
-      const tarifaMXN = rv.moneda === 'USD' ? rv.tarifa * tipoCambio : rv.tarifa;
-      potencialMensual += rv.viajes * tarifaMXN;
-    });
-    
-    cotizaciones[index] = {
-      ...cotizaciones[index],
-      rutasViajes,
-      potencialMensual
-    };
-    
+    rutasViajes.forEach(rv => { const tarifaMXN = rv.moneda === 'USD' ? rv.tarifa * tipoCambio : rv.tarifa; potencialMensual += rv.viajes * tarifaMXN; });
+    cotizaciones[index] = { ...cotizaciones[index], rutasViajes, potencialMensual };
     setViajesModal(null);
     await guardarCotizaciones(lead, cotizaciones, potencialMensual);
   };
@@ -290,13 +272,7 @@ export const PanelOportunidadesModule = ({ onBack }: PanelOportunidadesModulePro
   const handleToggleServicio = (s: string) => { const arr = formData.tipoServicio || []; setFormData({ ...formData, tipoServicio: arr.includes(s) ? arr.filter(x => x !== s) : [...arr, s] }); };
   const handleToggleViaje = (v: string) => { const arr = formData.tipoViaje || []; setFormData({ ...formData, tipoViaje: arr.includes(v) ? arr.filter(x => x !== v) : [...arr, v] }); };
   const SortIcon = ({ field }: { field: SortField }) => sortField !== field ? <SortAsc className="w-4 h-4 opacity-30" /> : sortDirection === 'asc' ? <SortAsc className="w-4 h-4" /> : <SortDesc className="w-4 h-4" />;
-
-  const calcularPotencialTotal = () => {
-    return rutasViajes.reduce((total, rv) => {
-      const tarifaMXN = rv.moneda === 'USD' ? rv.tarifa * tipoCambio : rv.tarifa;
-      return total + (rv.viajes * tarifaMXN);
-    }, 0);
-  };
+  const calcularPotencialTotal = () => rutasViajes.reduce((total, rv) => { const tarifaMXN = rv.moneda === 'USD' ? rv.tarifa * tipoCambio : rv.tarifa; return total + (rv.viajes * tarifaMXN); }, 0);
 
   return (
     <ModuleTemplate title="Panel de Oportunidades" onBack={onBack} headerImage={MODULE_IMAGES.PANEL_OPORTUNIDADES}>
@@ -362,7 +338,7 @@ export const PanelOportunidadesModule = ({ onBack }: PanelOportunidadesModulePro
                     <td className="px-1.5 py-2" style={{ width: '8%' }}>{lead.tarifa ? <span className="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400" style={{ fontFamily: "'Orbitron', monospace", fontSize: '10px', fontWeight: 600 }}>{lead.tarifa}</span> : <span className="text-[var(--fx-muted)]" style={{ fontSize: '10px' }}>N/A</span>}</td>
                     <td className="px-1.5 py-2" style={{ width: '10%' }}>{lead.proyectadoVentaMensual ? <span className="px-2 py-0.5 rounded bg-amber-500/20 text-amber-400" style={{ fontFamily: "'Orbitron', monospace", fontSize: '10px', fontWeight: 600 }}>{lead.proyectadoVentaMensual}</span> : <span className="text-[var(--fx-muted)]" style={{ fontSize: '10px' }}>-</span>}</td>
                     <td className="px-2 py-2 text-[var(--fx-muted)]" style={{ fontSize: '11px', width: '9%' }}>{lead.vendedor}</td>
-                    <td className="px-2 py-2" style={{ width: '8%' }}><span className="text-white" style={{ fontSize: '10px' }}>{formatDate(lead.fechaCreacion || lead.created_at)}</span></td>
+                    <td className="px-2 py-2" style={{ width: '8%' }}><span className="text-white" style={{ fontSize: '10px' }}>{formatDate(getLeadDate(lead)) || 'Sin fecha'}</span></td>
                     <td className="px-2 py-2" style={{ width: '10%' }}>
                       <div className="flex items-center justify-center gap-1">
                         <button onClick={() => setSelectedLead(lead)} className="p-1.5 rounded-lg bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 border border-blue-500/30"><Eye className="w-3.5 h-3.5" /></button>
@@ -386,7 +362,6 @@ export const PanelOportunidadesModule = ({ onBack }: PanelOportunidadesModulePro
         </div>
       </div>
 
-      {/* Modal Ver Lead */}
       {selectedLead && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setSelectedLead(null)}>
           <div className="bg-[var(--fx-surface)] rounded-2xl border border-white/20 w-[95vw] max-w-[1200px] max-h-[90vh] overflow-y-auto p-6" onClick={(e) => e.stopPropagation()}>
@@ -400,12 +375,11 @@ export const PanelOportunidadesModule = ({ onBack }: PanelOportunidadesModulePro
               <div className="p-3 rounded-lg bg-emerald-500/10"><div className="text-emerald-400 text-xs mb-1">Tarifa</div><div className="text-emerald-400 font-bold text-lg">{selectedLead.tarifa || 'N/A'}</div></div>
               <div className="col-span-3 p-3 rounded-lg bg-amber-500/10"><div className="text-amber-400 text-xs mb-1">Potencial Mensual</div><div className="text-amber-400 font-bold text-2xl">{selectedLead.proyectadoVentaMensual || 'Sin calcular'}</div></div>
             </div>
-            <div className="mt-4 flex justify-between items-center text-sm text-gray-400"><span>Vendedor: {selectedLead.vendedor}</span><span>Creado: {formatDate(selectedLead.fechaCreacion || selectedLead.created_at)}</span></div>
+            <div className="mt-4 flex justify-between items-center text-sm text-gray-400"><span>Vendedor: {selectedLead.vendedor}</span><span>Creado: {formatDate(getLeadDate(selectedLead))}</span></div>
           </div>
         </div>
       )}
 
-      {/* Modal Eliminar */}
       {deleteModal && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => { setDeleteModal(null); setDeleteConfirmText(''); }}>
           <div className="bg-[var(--fx-surface)] rounded-2xl border border-red-500/30 w-[400px] p-6" onClick={(e) => e.stopPropagation()}>
@@ -418,7 +392,6 @@ export const PanelOportunidadesModule = ({ onBack }: PanelOportunidadesModulePro
         </div>
       )}
 
-      {/* Modal Cotizaciones */}
       {cotizacionesModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setCotizacionesModal(null)}>
           <div className="bg-[var(--fx-surface)] rounded-2xl border border-white/20 w-[900px] max-h-[85vh] overflow-y-auto p-6" onClick={(e) => e.stopPropagation()}>
@@ -450,35 +423,12 @@ export const PanelOportunidadesModule = ({ onBack }: PanelOportunidadesModulePro
                         {cot.rutasViajes && cot.rutasViajes.length > 0 && (
                           <div className="mt-2 p-2 rounded bg-amber-500/10 border border-amber-500/20">
                             <div className="text-amber-400 text-xs font-semibold mb-2">Viajes por Ruta</div>
-                            <div className="space-y-1">
-                              {cot.rutasViajes.map((rv, idx) => (
-                                <div key={idx} className="flex justify-between text-xs">
-                                  <span className="text-white">{rv.ruta}</span>
-                                  <span className="text-gray-400">{rv.viajes} viajes × ${rv.tarifa.toLocaleString()} {rv.moneda} = <span className="text-amber-400 font-semibold">${(rv.viajes * (rv.moneda === 'USD' ? rv.tarifa * tipoCambio : rv.tarifa)).toLocaleString()} MXN</span></span>
-                                </div>
-                              ))}
-                            </div>
-                            <div className="mt-2 pt-2 border-t border-amber-500/20 flex justify-between">
-                              <span className="text-amber-400 font-semibold">Potencial Mensual:</span>
-                              <span className="text-amber-400 font-bold text-lg">${cot.potencialMensual?.toLocaleString() || 0} MXN</span>
-                            </div>
+                            <div className="space-y-1">{cot.rutasViajes.map((rv, idx) => (<div key={idx} className="flex justify-between text-xs"><span className="text-white">{rv.ruta}</span><span className="text-gray-400">{rv.viajes} viajes × ${rv.tarifa.toLocaleString()} {rv.moneda} = <span className="text-amber-400 font-semibold">${(rv.viajes * (rv.moneda === 'USD' ? rv.tarifa * tipoCambio : rv.tarifa)).toLocaleString()} MXN</span></span></div>))}</div>
+                            <div className="mt-2 pt-2 border-t border-amber-500/20 flex justify-between"><span className="text-amber-400 font-semibold">Potencial Mensual:</span><span className="text-amber-400 font-bold text-lg">${cot.potencialMensual?.toLocaleString() || 0} MXN</span></div>
                           </div>
                         )}
                         {!cot.rutasViajes && (
-                          <button 
-                            onClick={() => {
-                              const rutasStr = cot.analisis.rutas || '';
-                              const rutasArray = rutasStr.split(',').map((r: string) => r.trim()).filter((r: string) => r);
-                              const rutasIniciales: RutaViajes[] = rutasArray.length > 0 
-                                ? rutasArray.map((r: string) => ({ ruta: r, viajes: 1, tarifa: cot.analisis.tarifaMXN || cot.analisis.tarifaTotal || 0, moneda: cot.analisis.moneda || 'MXN' }))
-                                : [{ ruta: rutasStr || 'Ruta Principal', viajes: 1, tarifa: cot.analisis.tarifaMXN || cot.analisis.tarifaTotal || 0, moneda: cot.analisis.moneda || 'MXN' }];
-                              setRutasViajes(rutasIniciales);
-                              setViajesModal({ cotizacion: cot, lead: cotizacionesModal, index: cotizacionesModal.cotizaciones?.indexOf(cot) || i });
-                            }}
-                            className="mt-2 w-full px-3 py-2 rounded bg-amber-500/20 hover:bg-amber-500/30 text-amber-400 text-sm font-semibold flex items-center justify-center gap-2"
-                          >
-                            <DollarSign className="w-4 h-4" /> Calcular Potencial (Viajes × Tarifa)
-                          </button>
+                          <button onClick={() => { const rutasStr = cot.analisis.rutas || ''; const rutasArray = rutasStr.split(',').map((r: string) => r.trim()).filter((r: string) => r); const rutasIniciales: RutaViajes[] = rutasArray.length > 0 ? rutasArray.map((r: string) => ({ ruta: r, viajes: 1, tarifa: cot.analisis.tarifaMXN || cot.analisis.tarifaTotal || 0, moneda: cot.analisis.moneda || 'MXN' })) : [{ ruta: rutasStr || 'Ruta Principal', viajes: 1, tarifa: cot.analisis.tarifaMXN || cot.analisis.tarifaTotal || 0, moneda: cot.analisis.moneda || 'MXN' }]; setRutasViajes(rutasIniciales); setViajesModal({ cotizacion: cot, lead: cotizacionesModal, index: cotizacionesModal.cotizaciones?.indexOf(cot) || i }); }} className="mt-2 w-full px-3 py-2 rounded bg-amber-500/20 hover:bg-amber-500/30 text-amber-400 text-sm font-semibold flex items-center justify-center gap-2"><DollarSign className="w-4 h-4" /> Calcular Potencial</button>
                         )}
                       </div>
                     )}
@@ -491,101 +441,31 @@ export const PanelOportunidadesModule = ({ onBack }: PanelOportunidadesModulePro
         </div>
       )}
 
-      {/* Modal Viajes por Ruta */}
       {viajesModal && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-[60] p-4" onClick={() => setViajesModal(null)}>
           <div className="bg-[var(--fx-surface)] rounded-2xl border border-amber-500/30 w-[600px] p-6" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-white text-lg font-bold flex items-center gap-2"><DollarSign className="w-5 h-5 text-amber-400" />Calcular Potencial Mensual</h3>
-              <button onClick={() => setViajesModal(null)} className="p-2 rounded-lg hover:bg-white/10"><X className="w-5 h-5 text-white" /></button>
-            </div>
-            
-            <div className="mb-4 p-3 rounded-lg bg-blue-500/10 border border-blue-500/20">
-              <div className="text-blue-400 text-xs mb-1">Tipo de Cambio USD/MXN</div>
-              <div className="text-white font-bold">${tipoCambio.toFixed(2)}</div>
-            </div>
-            
+            <div className="flex items-center justify-between mb-4"><h3 className="text-white text-lg font-bold flex items-center gap-2"><DollarSign className="w-5 h-5 text-amber-400" />Calcular Potencial Mensual</h3><button onClick={() => setViajesModal(null)} className="p-2 rounded-lg hover:bg-white/10"><X className="w-5 h-5 text-white" /></button></div>
+            <div className="mb-4 p-3 rounded-lg bg-blue-500/10 border border-blue-500/20"><div className="text-blue-400 text-xs mb-1">Tipo de Cambio USD/MXN</div><div className="text-white font-bold">${tipoCambio.toFixed(2)}</div></div>
             <div className="space-y-3 mb-4">
               {rutasViajes.map((rv, idx) => (
                 <div key={idx} className="p-3 rounded-lg bg-white/5 border border-white/10">
-                  <div className="flex items-center gap-3 mb-2">
-                    <input 
-                      type="text" 
-                      value={rv.ruta} 
-                      onChange={(e) => { const arr = [...rutasViajes]; arr[idx].ruta = e.target.value; setRutasViajes(arr); }}
-                      className="flex-1 px-3 py-2 rounded bg-black/30 border border-white/20 text-white text-sm"
-                      placeholder="Nombre de la ruta"
-                    />
-                    <button onClick={() => setRutasViajes(rutasViajes.filter((_, i) => i !== idx))} className="p-2 rounded bg-red-500/20 text-red-400"><Trash2 className="w-4 h-4" /></button>
-                  </div>
+                  <div className="flex items-center gap-3 mb-2"><input type="text" value={rv.ruta} onChange={(e) => { const arr = [...rutasViajes]; arr[idx].ruta = e.target.value; setRutasViajes(arr); }} className="flex-1 px-3 py-2 rounded bg-black/30 border border-white/20 text-white text-sm" placeholder="Nombre de la ruta" /><button onClick={() => setRutasViajes(rutasViajes.filter((_, i) => i !== idx))} className="p-2 rounded bg-red-500/20 text-red-400"><Trash2 className="w-4 h-4" /></button></div>
                   <div className="grid grid-cols-3 gap-2">
-                    <div>
-                      <label className="text-gray-400 text-xs">Viajes/Mes</label>
-                      <input 
-                        type="number" 
-                        min="1"
-                        value={rv.viajes} 
-                        onChange={(e) => { const arr = [...rutasViajes]; arr[idx].viajes = parseInt(e.target.value) || 1; setRutasViajes(arr); }}
-                        className="w-full mt-1 px-3 py-2 rounded bg-black/30 border border-white/20 text-white text-sm"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-gray-400 text-xs">Tarifa</label>
-                      <input 
-                        type="number" 
-                        min="0"
-                        value={rv.tarifa} 
-                        onChange={(e) => { const arr = [...rutasViajes]; arr[idx].tarifa = parseFloat(e.target.value) || 0; setRutasViajes(arr); }}
-                        className="w-full mt-1 px-3 py-2 rounded bg-black/30 border border-white/20 text-white text-sm"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-gray-400 text-xs">Moneda</label>
-                      <select 
-                        value={rv.moneda} 
-                        onChange={(e) => { const arr = [...rutasViajes]; arr[idx].moneda = e.target.value; setRutasViajes(arr); }}
-                        className="w-full mt-1 px-3 py-2 rounded bg-black/30 border border-white/20 text-white text-sm"
-                      >
-                        <option value="MXN">MXN</option>
-                        <option value="USD">USD</option>
-                      </select>
-                    </div>
+                    <div><label className="text-gray-400 text-xs">Viajes/Mes</label><input type="number" min="1" value={rv.viajes} onChange={(e) => { const arr = [...rutasViajes]; arr[idx].viajes = parseInt(e.target.value) || 1; setRutasViajes(arr); }} className="w-full mt-1 px-3 py-2 rounded bg-black/30 border border-white/20 text-white text-sm" /></div>
+                    <div><label className="text-gray-400 text-xs">Tarifa</label><input type="number" min="0" value={rv.tarifa} onChange={(e) => { const arr = [...rutasViajes]; arr[idx].tarifa = parseFloat(e.target.value) || 0; setRutasViajes(arr); }} className="w-full mt-1 px-3 py-2 rounded bg-black/30 border border-white/20 text-white text-sm" /></div>
+                    <div><label className="text-gray-400 text-xs">Moneda</label><select value={rv.moneda} onChange={(e) => { const arr = [...rutasViajes]; arr[idx].moneda = e.target.value; setRutasViajes(arr); }} className="w-full mt-1 px-3 py-2 rounded bg-black/30 border border-white/20 text-white text-sm"><option value="MXN">MXN</option><option value="USD">USD</option></select></div>
                   </div>
-                  <div className="mt-2 text-right text-sm">
-                    <span className="text-gray-400">Subtotal: </span>
-                    <span className="text-amber-400 font-semibold">
-                      ${(rv.viajes * (rv.moneda === 'USD' ? rv.tarifa * tipoCambio : rv.tarifa)).toLocaleString()} MXN
-                    </span>
-                  </div>
+                  <div className="mt-2 text-right text-sm"><span className="text-gray-400">Subtotal: </span><span className="text-amber-400 font-semibold">${(rv.viajes * (rv.moneda === 'USD' ? rv.tarifa * tipoCambio : rv.tarifa)).toLocaleString()} MXN</span></div>
                 </div>
               ))}
             </div>
-            
-            <button 
-              onClick={() => setRutasViajes([...rutasViajes, { ruta: '', viajes: 1, tarifa: 0, moneda: 'MXN' }])}
-              className="w-full mb-4 px-4 py-2 rounded-lg bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 border border-blue-500/30 text-sm"
-            >
-              + Agregar Ruta
-            </button>
-            
-            <div className="p-4 rounded-lg bg-amber-500/10 border border-amber-500/30 mb-4">
-              <div className="flex justify-between items-center">
-                <span className="text-amber-400 font-semibold text-lg">POTENCIAL MENSUAL TOTAL:</span>
-                <span className="text-amber-400 font-bold text-2xl" style={{ fontFamily: "'Orbitron', monospace" }}>
-                  ${calcularPotencialTotal().toLocaleString()} MXN
-                </span>
-              </div>
-            </div>
-            
-            <div className="flex gap-3">
-              <button onClick={() => setViajesModal(null)} className="flex-1 px-4 py-2 rounded-lg bg-gray-600 text-white">Cancelar</button>
-              <button onClick={handleGuardarViajes} className="flex-1 px-4 py-2 rounded-lg bg-amber-500 text-black font-semibold">Guardar Potencial</button>
-            </div>
+            <button onClick={() => setRutasViajes([...rutasViajes, { ruta: '', viajes: 1, tarifa: 0, moneda: 'MXN' }])} className="w-full mb-4 px-4 py-2 rounded-lg bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 border border-blue-500/30 text-sm">+ Agregar Ruta</button>
+            <div className="p-4 rounded-lg bg-amber-500/10 border border-amber-500/30 mb-4"><div className="flex justify-between items-center"><span className="text-amber-400 font-semibold text-lg">POTENCIAL MENSUAL TOTAL:</span><span className="text-amber-400 font-bold text-2xl" style={{ fontFamily: "'Orbitron', monospace" }}>${calcularPotencialTotal().toLocaleString()} MXN</span></div></div>
+            <div className="flex gap-3"><button onClick={() => setViajesModal(null)} className="flex-1 px-4 py-2 rounded-lg bg-gray-600 text-white">Cancelar</button><button onClick={handleGuardarViajes} className="flex-1 px-4 py-2 rounded-lg bg-amber-500 text-black font-semibold">Guardar Potencial</button></div>
           </div>
         </div>
       )}
 
-      {/* Modal Preview PDF */}
       {pdfPreview && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-[60] p-4" onClick={() => setPdfPreview(null)}>
           <div className="bg-white rounded-2xl w-[90vw] h-[90vh] overflow-hidden flex flex-col" onClick={(e) => e.stopPropagation()}>
@@ -595,7 +475,6 @@ export const PanelOportunidadesModule = ({ onBack }: PanelOportunidadesModulePro
         </div>
       )}
 
-      {/* Modal Editar */}
       {editLead && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setEditLead(null)}>
           <div className="bg-[var(--fx-surface)] rounded-2xl border border-white/20 w-[700px] max-h-[80vh] overflow-y-auto p-6" onClick={(e) => e.stopPropagation()}>
