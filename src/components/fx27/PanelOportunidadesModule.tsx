@@ -7,45 +7,17 @@ import { projectId, publicAnonKey } from '../../utils/supabase/info';
 interface PanelOportunidadesModuleProps { onBack: () => void; }
 interface RutaViajes { ruta: string; viajes: number; tarifa: number; moneda: string; }
 interface Cotizacion { nombre: string; url: string; fecha: string; analisis?: any; eliminado?: boolean; rutasViajes?: RutaViajes[]; potencialMensual?: number; }
-interface Lead { id: string; nombreEmpresa: string; paginaWeb: string; nombreContacto: string; telefonoContacto?: string; correoElectronico: string; tipoServicio: string[]; tipoViaje: string[]; principalesRutas: string; viajesPorMes: string; tarifa: string; proyectadoVentaMensual?: string; proximosPasos: string; etapaLead?: string; altaCliente?: boolean; generacionSOP?: boolean; juntaArranque?: boolean; facturado?: boolean; vendedor: string; fechaCreacion?: string; fechaActualizacion?: string; cotizaciones?: Cotizacion[]; eliminado?: boolean; fechaEliminado?: string; created_at?: string; fecha?: string; [key: string]: any; }
-type SortField = 'nombreEmpresa' | 'vendedor' | 'fechaCreacion' | 'viajesPorMes';
+interface Lead { id: string; nombreEmpresa: string; paginaWeb: string; nombreContacto: string; telefonoContacto?: string; correoElectronico: string; tipoServicio: string[]; tipoViaje: string[]; principalesRutas: string; viajesPorMes: string; tarifa: string; proyectadoVentaMensual?: string; proximosPasos: string; etapaLead?: string; altaCliente?: boolean; generacionSOP?: boolean; juntaArranque?: boolean; facturado?: boolean; vendedor: string; fechaCaptura?: string; fechaActualizacion?: string; cotizaciones?: Cotizacion[]; eliminado?: boolean; fechaEliminado?: string; }
+type SortField = 'nombreEmpresa' | 'vendedor' | 'fechaCaptura' | 'viajesPorMes';
 type SortDirection = 'asc' | 'desc';
-
-const getLeadDate = (lead: Lead): string => {
-  // Buscar cualquier campo que parezca una fecha
-  const possibleDateFields = ['fechaCreacion', 'created_at', 'fecha', 'createdAt', 'date', 'timestamp', 'fechaCreada'];
-  for (const field of possibleDateFields) {
-    if (lead[field]) return lead[field];
-  }
-  // Buscar en todas las propiedades del lead
-  for (const key of Object.keys(lead)) {
-    const val = lead[key];
-    if (typeof val === 'string' && (val.includes('T') || val.match(/^\d{4}-\d{2}-\d{2}/))) {
-      return val;
-    }
-  }
-  return '';
-};
 
 const formatDate = (dateStr: string | undefined): string => {
   if (!dateStr) return '-';
   try {
-    let date: Date;
-    if (dateStr.includes('T') || dateStr.match(/^\d{4}-\d{2}-\d{2}/)) {
-      date = new Date(dateStr);
-    } else if (dateStr.includes('/')) {
-      const parts = dateStr.split('/');
-      if (parts.length === 3) {
-        date = new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0]));
-      } else {
-        return dateStr;
-      }
-    } else {
-      return dateStr;
-    }
-    if (isNaN(date.getTime())) return dateStr || '-';
+    const date = new Date(dateStr);
+    if (isNaN(date.getTime())) return '-';
     return date.toLocaleDateString('es-MX', { day: '2-digit', month: '2-digit', year: 'numeric' });
-  } catch { return dateStr || '-'; }
+  } catch { return '-'; }
 };
 
 const TC_USD_MXN = 20.50;
@@ -56,7 +28,7 @@ export const PanelOportunidadesModule = ({ onBack }: PanelOportunidadesModulePro
   const [searchTerm, setSearchTerm] = useState('');
   const [filterVendedor, setFilterVendedor] = useState('');
   const [filterFecha, setFilterFecha] = useState('');
-  const [sortField, setSortField] = useState<SortField>('fechaCreacion');
+  const [sortField, setSortField] = useState<SortField>('fechaCaptura');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
   const [showFunnel, setShowFunnel] = useState(false);
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
@@ -96,16 +68,7 @@ export const PanelOportunidadesModule = ({ onBack }: PanelOportunidadesModulePro
         const url = esAdmin ? `https://${projectId}.supabase.co/functions/v1/make-server-d84b50bb/leads` : `https://${projectId}.supabase.co/functions/v1/make-server-d84b50bb/leads?vendedor=${encodeURIComponent(vendedorActual)}`;
         const response = await fetch(url, { headers: { 'Authorization': `Bearer ${publicAnonKey}` } });
         const result = await response.json();
-        if (response.ok && result.success) { 
-          // DEBUG: Ver estructura del primer lead
-          if (result.leads.length > 0) {
-            console.log('=== ESTRUCTURA DEL LEAD ===');
-            console.log('Primer lead completo:', JSON.stringify(result.leads[0], null, 2));
-            console.log('Campos disponibles:', Object.keys(result.leads[0]));
-          }
-          setLeads(result.leads); 
-          setFilteredLeads(result.leads.filter((l: Lead) => !l.eliminado)); 
-        }
+        if (response.ok && result.success) { setLeads(result.leads); setFilteredLeads(result.leads.filter((l: Lead) => !l.eliminado)); }
       } catch (error) { console.error('Error:', error); }
     };
     cargarLeads();
@@ -116,15 +79,11 @@ export const PanelOportunidadesModule = ({ onBack }: PanelOportunidadesModulePro
     if (!showDeleted) resultado = resultado.filter(lead => !lead.eliminado);
     if (searchTerm) resultado = resultado.filter(lead => lead.nombreEmpresa.toLowerCase().includes(searchTerm.toLowerCase()) || lead.nombreContacto.toLowerCase().includes(searchTerm.toLowerCase()) || lead.correoElectronico.toLowerCase().includes(searchTerm.toLowerCase()));
     if (filterVendedor) resultado = resultado.filter(lead => lead.vendedor === filterVendedor);
-    if (filterFecha) resultado = resultado.filter(lead => { try { const fecha = getLeadDate(lead); return fecha && new Date(fecha).toISOString().split('T')[0] === filterFecha; } catch { return false; } });
+    if (filterFecha) resultado = resultado.filter(lead => { try { return lead.fechaCaptura && new Date(lead.fechaCaptura).toISOString().split('T')[0] === filterFecha; } catch { return false; } });
     resultado.sort((a, b) => {
       let valueA: any = a[sortField], valueB: any = b[sortField];
       if (sortField === 'viajesPorMes') { valueA = parseInt(valueA) || 0; valueB = parseInt(valueB) || 0; }
-      if (sortField === 'fechaCreacion') { 
-        const fechaA = getLeadDate(a);
-        const fechaB = getLeadDate(b);
-        try { valueA = new Date(fechaA).getTime() || 0; valueB = new Date(fechaB).getTime() || 0; } catch { valueA = 0; valueB = 0; } 
-      }
+      if (sortField === 'fechaCaptura') { try { valueA = new Date(a.fechaCaptura || '').getTime() || 0; valueB = new Date(b.fechaCaptura || '').getTime() || 0; } catch { valueA = 0; valueB = 0; } }
       if (valueA < valueB) return sortDirection === 'asc' ? -1 : 1;
       if (valueA > valueB) return sortDirection === 'asc' ? 1 : -1;
       return 0;
@@ -133,7 +92,7 @@ export const PanelOportunidadesModule = ({ onBack }: PanelOportunidadesModulePro
   }, [leads, searchTerm, filterVendedor, filterFecha, sortField, sortDirection, showDeleted]);
 
   const handleSort = (field: SortField) => { if (sortField === field) setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc'); else { setSortField(field); setSortDirection('asc'); } };
-  const handleExportExcel = () => { const headers = ['Empresa', 'Contacto', 'Email', 'Servicio', 'Viaje', 'Rutas', 'Viajes/Mes', 'Tarifa', 'Potencial', 'Vendedor', 'Fecha']; const rows = filteredLeads.map(lead => [lead.nombreEmpresa, lead.nombreContacto, lead.correoElectronico, (lead.tipoServicio||[]).join(', '), (lead.tipoViaje||[]).join(', '), lead.principalesRutas, lead.viajesPorMes, lead.tarifa, lead.proyectadoVentaMensual || '', lead.vendedor, formatDate(getLeadDate(lead))]); const csvContent = [headers.join(','), ...rows.map(row => row.map(cell => `"${cell}"`).join(','))].join('\n'); const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' }); const link = document.createElement('a'); link.href = URL.createObjectURL(blob); link.download = `leads_fx27_${new Date().toISOString().split('T')[0]}.csv`; link.click(); };
+  const handleExportExcel = () => { const headers = ['Empresa', 'Contacto', 'Email', 'Servicio', 'Viaje', 'Rutas', 'Viajes/Mes', 'Tarifa', 'Potencial', 'Vendedor', 'Fecha']; const rows = filteredLeads.map(lead => [lead.nombreEmpresa, lead.nombreContacto, lead.correoElectronico, (lead.tipoServicio||[]).join(', '), (lead.tipoViaje||[]).join(', '), lead.principalesRutas, lead.viajesPorMes, lead.tarifa, lead.proyectadoVentaMensual || '', lead.vendedor, formatDate(lead.fechaCaptura)]); const csvContent = [headers.join(','), ...rows.map(row => row.map(cell => `"${cell}"`).join(','))].join('\n'); const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' }); const link = document.createElement('a'); link.href = URL.createObjectURL(blob); link.download = `leads_fx27_${new Date().toISOString().split('T')[0]}.csv`; link.click(); };
   const getVendedoresUnicos = () => Array.from(new Set(leads.map(lead => lead.vendedor)));
 
   const analizarCotizacion = async (pdfText: string, fileName: string): Promise<any> => {
@@ -317,7 +276,7 @@ export const PanelOportunidadesModule = ({ onBack }: PanelOportunidadesModulePro
               <th className="px-1.5 py-2 text-left text-[var(--fx-muted)]" style={{ fontSize: '11px', fontWeight: 600, width: '8%' }}>TARIFA</th>
               <th className="px-1.5 py-2 text-left text-[var(--fx-muted)]" style={{ fontSize: '11px', fontWeight: 600, width: '10%' }}><div className="flex items-center gap-1"><DollarSign className="w-3 h-3" />POTENCIAL</div></th>
               <th onClick={() => handleSort('vendedor')} className="px-2 py-2 text-left text-[var(--fx-muted)] cursor-pointer hover:text-white" style={{ fontSize: '11px', fontWeight: 600, width: '9%' }}><div className="flex items-center gap-1"><User className="w-3 h-3" />VENDEDOR<SortIcon field="vendedor" /></div></th>
-              <th onClick={() => handleSort('fechaCreacion')} className="px-2 py-2 text-left text-[var(--fx-muted)] cursor-pointer hover:text-white" style={{ fontSize: '11px', fontWeight: 600, width: '8%' }}><div className="flex items-center gap-1"><Calendar className="w-3 h-3" />CREADO<SortIcon field="fechaCreacion" /></div></th>
+              <th onClick={() => handleSort('fechaCaptura')} className="px-2 py-2 text-left text-[var(--fx-muted)] cursor-pointer hover:text-white" style={{ fontSize: '11px', fontWeight: 600, width: '8%' }}><div className="flex items-center gap-1"><Calendar className="w-3 h-3" />CREADO<SortIcon field="fechaCaptura" /></div></th>
               <th className="px-2 py-2 text-center text-[var(--fx-muted)]" style={{ fontSize: '11px', fontWeight: 600, width: '10%' }}>ACCIONES</th>
             </tr></thead></table>
           </div>
@@ -338,7 +297,7 @@ export const PanelOportunidadesModule = ({ onBack }: PanelOportunidadesModulePro
                     <td className="px-1.5 py-2" style={{ width: '8%' }}>{lead.tarifa ? <span className="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400" style={{ fontFamily: "'Orbitron', monospace", fontSize: '10px', fontWeight: 600 }}>{lead.tarifa}</span> : <span className="text-[var(--fx-muted)]" style={{ fontSize: '10px' }}>N/A</span>}</td>
                     <td className="px-1.5 py-2" style={{ width: '10%' }}>{lead.proyectadoVentaMensual ? <span className="px-2 py-0.5 rounded bg-amber-500/20 text-amber-400" style={{ fontFamily: "'Orbitron', monospace", fontSize: '10px', fontWeight: 600 }}>{lead.proyectadoVentaMensual}</span> : <span className="text-[var(--fx-muted)]" style={{ fontSize: '10px' }}>-</span>}</td>
                     <td className="px-2 py-2 text-[var(--fx-muted)]" style={{ fontSize: '11px', width: '9%' }}>{lead.vendedor}</td>
-                    <td className="px-2 py-2" style={{ width: '8%' }}><span className="text-white" style={{ fontSize: '10px' }}>{formatDate(getLeadDate(lead)) || 'Sin fecha'}</span></td>
+                    <td className="px-2 py-2" style={{ width: '8%' }}><span className="text-white" style={{ fontSize: '10px' }}>{formatDate(lead.fechaCaptura)}</span></td>
                     <td className="px-2 py-2" style={{ width: '10%' }}>
                       <div className="flex items-center justify-center gap-1">
                         <button onClick={() => setSelectedLead(lead)} className="p-1.5 rounded-lg bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 border border-blue-500/30"><Eye className="w-3.5 h-3.5" /></button>
@@ -375,7 +334,7 @@ export const PanelOportunidadesModule = ({ onBack }: PanelOportunidadesModulePro
               <div className="p-3 rounded-lg bg-emerald-500/10"><div className="text-emerald-400 text-xs mb-1">Tarifa</div><div className="text-emerald-400 font-bold text-lg">{selectedLead.tarifa || 'N/A'}</div></div>
               <div className="col-span-3 p-3 rounded-lg bg-amber-500/10"><div className="text-amber-400 text-xs mb-1">Potencial Mensual</div><div className="text-amber-400 font-bold text-2xl">{selectedLead.proyectadoVentaMensual || 'Sin calcular'}</div></div>
             </div>
-            <div className="mt-4 flex justify-between items-center text-sm text-gray-400"><span>Vendedor: {selectedLead.vendedor}</span><span>Creado: {formatDate(getLeadDate(selectedLead))}</span></div>
+            <div className="mt-4 flex justify-between items-center text-sm text-gray-400"><span>Vendedor: {selectedLead.vendedor}</span><span>Creado: {formatDate(selectedLead.fechaCaptura)}</span></div>
           </div>
         </div>
       )}
