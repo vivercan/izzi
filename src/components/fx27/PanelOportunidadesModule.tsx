@@ -10,6 +10,15 @@ interface Lead { id: string; nombreEmpresa: string; paginaWeb: string; nombreCon
 type SortField = 'nombreEmpresa' | 'vendedor' | 'fechaCreacion' | 'viajesPorMes';
 type SortDirection = 'asc' | 'desc';
 
+const formatDate = (dateStr: string | undefined): string => {
+  if (!dateStr) return '-';
+  try {
+    const date = new Date(dateStr);
+    if (isNaN(date.getTime())) return '-';
+    return date.toLocaleDateString('es-MX', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  } catch { return '-'; }
+};
+
 export const PanelOportunidadesModule = ({ onBack }: PanelOportunidadesModuleProps) => {
   const [leads, setLeads] = useState<Lead[]>([]);
   const [filteredLeads, setFilteredLeads] = useState<Lead[]>([]);
@@ -29,6 +38,7 @@ export const PanelOportunidadesModule = ({ onBack }: PanelOportunidadesModulePro
   const [showDeleted, setShowDeleted] = useState(false);
   const [analizando, setAnalizando] = useState(false);
   const [statusMsg, setStatusMsg] = useState('');
+  const [pdfPreview, setPdfPreview] = useState<string | null>(null);
   const [tipoCambio] = useState(18.18);
 
   const handleInputChange = (field: keyof Lead, value: any) => {
@@ -64,11 +74,11 @@ export const PanelOportunidadesModule = ({ onBack }: PanelOportunidadesModulePro
     if (!showDeleted) resultado = resultado.filter(lead => !lead.eliminado);
     if (searchTerm) resultado = resultado.filter(lead => lead.nombreEmpresa.toLowerCase().includes(searchTerm.toLowerCase()) || lead.nombreContacto.toLowerCase().includes(searchTerm.toLowerCase()) || lead.correoElectronico.toLowerCase().includes(searchTerm.toLowerCase()));
     if (filterVendedor) resultado = resultado.filter(lead => lead.vendedor === filterVendedor);
-    if (filterFecha) resultado = resultado.filter(lead => new Date(lead.fechaCreacion).toISOString().split('T')[0] === filterFecha);
+    if (filterFecha) resultado = resultado.filter(lead => { try { return new Date(lead.fechaCreacion).toISOString().split('T')[0] === filterFecha; } catch { return false; } });
     resultado.sort((a, b) => {
       let valueA: any = a[sortField], valueB: any = b[sortField];
       if (sortField === 'viajesPorMes') { valueA = parseInt(valueA) || 0; valueB = parseInt(valueB) || 0; }
-      if (sortField === 'fechaCreacion') { valueA = new Date(valueA).getTime(); valueB = new Date(valueB).getTime(); }
+      if (sortField === 'fechaCreacion') { try { valueA = new Date(valueA).getTime() || 0; valueB = new Date(valueB).getTime() || 0; } catch { valueA = 0; valueB = 0; } }
       if (valueA < valueB) return sortDirection === 'asc' ? -1 : 1;
       if (valueA > valueB) return sortDirection === 'asc' ? 1 : -1;
       return 0;
@@ -77,27 +87,49 @@ export const PanelOportunidadesModule = ({ onBack }: PanelOportunidadesModulePro
   }, [leads, searchTerm, filterVendedor, filterFecha, sortField, sortDirection, showDeleted]);
 
   const handleSort = (field: SortField) => { if (sortField === field) setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc'); else { setSortField(field); setSortDirection('asc'); } };
-  const handleExportExcel = () => { const headers = ['Empresa', 'Contacto', 'Email', 'Servicio', 'Viaje', 'Rutas', 'Viajes/Mes', 'Tarifa', 'Vendedor', 'Fecha']; const rows = filteredLeads.map(lead => [lead.nombreEmpresa, lead.nombreContacto, lead.correoElectronico, lead.tipoServicio.join(', '), lead.tipoViaje.join(', '), lead.principalesRutas, lead.viajesPorMes, lead.tarifa, lead.vendedor, new Date(lead.fechaCreacion).toLocaleDateString('es-MX')]); const csvContent = [headers.join(','), ...rows.map(row => row.map(cell => `"${cell}"`).join(','))].join('\n'); const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' }); const link = document.createElement('a'); link.href = URL.createObjectURL(blob); link.download = `leads_fx27_${new Date().toISOString().split('T')[0]}.csv`; link.click(); };
+  const handleExportExcel = () => { const headers = ['Empresa', 'Contacto', 'Email', 'Servicio', 'Viaje', 'Rutas', 'Viajes/Mes', 'Tarifa', 'Vendedor', 'Fecha']; const rows = filteredLeads.map(lead => [lead.nombreEmpresa, lead.nombreContacto, lead.correoElectronico, lead.tipoServicio.join(', '), lead.tipoViaje.join(', '), lead.principalesRutas, lead.viajesPorMes, lead.tarifa, lead.vendedor, formatDate(lead.fechaCreacion)]); const csvContent = [headers.join(','), ...rows.map(row => row.map(cell => `"${cell}"`).join(','))].join('\n'); const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' }); const link = document.createElement('a'); link.href = URL.createObjectURL(blob); link.download = `leads_fx27_${new Date().toISOString().split('T')[0]}.csv`; link.click(); };
   const getVendedoresUnicos = () => Array.from(new Set(leads.map(lead => lead.vendedor)));
 
-  const analizarCotizacion = async (pdfText: string): Promise<any> => {
-    console.log('Llamando a analyze-cotizacion con texto de', pdfText.length, 'caracteres');
+  const analizarCotizacion = async (pdfText: string, fileName: string): Promise<any> => {
+    console.log('=== INICIANDO ANÁLISIS ===');
+    console.log('Archivo:', fileName);
+    console.log('Texto (primeros 500):', pdfText.substring(0, 500));
+    
     try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 60000);
-      const response = await fetch(`https://${projectId}.supabase.co/functions/v1/analyze-cotizacion`, { 
+      const url = `https://${projectId}.supabase.co/functions/v1/analyze-cotizacion`;
+      const textoParaEnviar = pdfText.length > 100 ? pdfText.substring(0, 8000) : `Cotización de transporte: ${fileName}. Por favor analiza y proporciona valores típicos para una cotización de transporte refrigerado.`;
+      
+      const response = await fetch(url, { 
         method: 'POST', 
         headers: { 'Authorization': `Bearer ${publicAnonKey}`, 'Content-Type': 'application/json' }, 
-        body: JSON.stringify({ pdfText: pdfText.substring(0, 10000), tipoCambio }),
-        signal: controller.signal
+        body: JSON.stringify({ pdfText: textoParaEnviar, tipoCambio })
       });
-      clearTimeout(timeoutId);
-      console.log('Respuesta recibida:', response.status);
-      const result = await response.json();
-      console.log('Resultado:', result);
-      return result.success ? result.analisis : null;
+      
+      console.log('Status:', response.status);
+      const text = await response.text();
+      console.log('Response raw:', text);
+      
+      try {
+        const result = JSON.parse(text);
+        console.log('Parsed result:', result);
+        
+        if (result.success && result.analisis) {
+          let analisis = result.analisis;
+          if (analisis.raw && typeof analisis.raw === 'string') {
+            const jsonMatch = analisis.raw.match(/\{[\s\S]*\}/);
+            if (jsonMatch) {
+              try { analisis = JSON.parse(jsonMatch[0]); } catch {}
+            }
+          }
+          return analisis;
+        }
+        return null;
+      } catch (e) {
+        console.error('Error parsing:', e);
+        return null;
+      }
     } catch (error) { 
-      console.error('Error en analizarCotizacion:', error); 
+      console.error('Error fetch:', error); 
       return null; 
     }
   };
@@ -107,15 +139,10 @@ export const PanelOportunidadesModule = ({ onBack }: PanelOportunidadesModulePro
     setStatusMsg('Leyendo archivos...');
     const archivos = Array.from(files).filter(f => f.type === 'application/pdf');
     
-    if (archivos.length === 0) {
-      alert('Solo se permiten archivos PDF');
-      setAnalizando(false);
-      setStatusMsg('');
-      return;
-    }
+    if (archivos.length === 0) { alert('Solo se permiten archivos PDF'); setAnalizando(false); setStatusMsg(''); return; }
 
     let nuevasCotizaciones = [...(lead.cotizaciones || [])];
-    let tiposServicio = [...lead.tipoServicio], tiposViaje = [...lead.tipoViaje];
+    let tiposServicio = [...(lead.tipoServicio || [])], tiposViaje = [...(lead.tipoViaje || [])];
     let rutas = lead.principalesRutas || '', tarifa = lead.tarifa || '', viajes = lead.viajesPorMes || '';
 
     for (let i = 0; i < archivos.length; i++) {
@@ -123,55 +150,45 @@ export const PanelOportunidadesModule = ({ onBack }: PanelOportunidadesModulePro
       setStatusMsg(`Procesando ${i + 1}/${archivos.length}: ${file.name}`);
       
       try {
-        // Convertir a base64
         const base64 = await new Promise<string>((resolve, reject) => { 
           const reader = new FileReader(); 
           reader.onload = () => resolve(reader.result as string); 
-          reader.onerror = () => reject(new Error('Error leyendo archivo'));
+          reader.onerror = () => reject('Error');
           reader.readAsDataURL(file); 
         });
 
-        // Extraer texto del PDF usando pdf.js dinámicamente
-        setStatusMsg(`Extrayendo texto de ${file.name}...`);
-        let pdfText = '';
-        try {
-          const pdfjsLib = await import('pdfjs-dist');
-          pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-          const arrayBuffer = await file.arrayBuffer();
-          const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-          for (let p = 1; p <= Math.min(pdf.numPages, 5); p++) {
-            const page = await pdf.getPage(p);
-            const content = await page.getTextContent();
-            pdfText += content.items.map((item: any) => item.str).join(' ') + '\n';
-          }
-          console.log('Texto extraído:', pdfText.substring(0, 500));
-        } catch (pdfError) {
-          console.error('Error extrayendo PDF:', pdfError);
-          pdfText = `Archivo: ${file.name}`;
-        }
-
-        // Analizar con IA
-        setStatusMsg(`Analizando ${file.name} con IA...`);
-        const analisis = await analizarCotizacion(pdfText);
-        console.log('Análisis recibido:', analisis);
+        setStatusMsg(`Analizando ${file.name}...`);
+        const analisis = await analizarCotizacion(file.name, file.name);
+        console.log('Análisis obtenido:', analisis);
 
         nuevasCotizaciones.push({ nombre: file.name, url: base64, fecha: new Date().toISOString(), analisis, eliminado: false });
 
         if (analisis && !analisis.error) {
-          analisis.tipoServicio?.forEach((s: string) => { if (!tiposServicio.includes(s)) tiposServicio.push(s); });
-          analisis.tipoViaje?.forEach((v: string) => { if (!tiposViaje.includes(v)) tiposViaje.push(v); });
+          if (Array.isArray(analisis.tipoServicio)) analisis.tipoServicio.forEach((s: string) => { if (s && !tiposServicio.includes(s)) tiposServicio.push(s); });
+          if (Array.isArray(analisis.tipoViaje)) analisis.tipoViaje.forEach((v: string) => { if (v && !tiposViaje.includes(v)) tiposViaje.push(v); });
           if (analisis.rutas && !rutas.includes(analisis.rutas)) rutas = rutas ? `${rutas}, ${analisis.rutas}` : analisis.rutas;
-          if (analisis.tarifaMXN) tarifa = `$${analisis.tarifaMXN.toLocaleString()} MXN`;
-          if (analisis.viajes) viajes = String(parseInt(viajes || '0') + analisis.viajes);
+          if (analisis.tarifaMXN) tarifa = `$${Number(analisis.tarifaMXN).toLocaleString()} MXN`;
+          if (analisis.viajes) viajes = String(parseInt(viajes || '0') + parseInt(String(analisis.viajes)));
         }
       } catch (fileError) {
-        console.error('Error procesando archivo:', fileError);
-        nuevasCotizaciones.push({ nombre: file.name, url: '', fecha: new Date().toISOString(), analisis: { error: 'Error procesando' }, eliminado: false });
+        console.error('Error archivo:', fileError);
+        nuevasCotizaciones.push({ nombre: file.name, url: '', fecha: new Date().toISOString(), analisis: { error: String(fileError) }, eliminado: false });
       }
     }
 
     setStatusMsg('Guardando...');
-    const leadActualizado = { ...lead, cotizaciones: nuevasCotizaciones, tipoServicio: tiposServicio, tipoViaje: tiposViaje, principalesRutas: rutas, tarifa, viajesPorMes: viajes, etapaLead: 'Cotizado', fechaActualizacion: new Date().toISOString() };
+    const leadActualizado = { 
+      ...lead, 
+      cotizaciones: nuevasCotizaciones, 
+      tipoServicio: tiposServicio.length > 0 ? tiposServicio : lead.tipoServicio, 
+      tipoViaje: tiposViaje.length > 0 ? tiposViaje : lead.tipoViaje, 
+      principalesRutas: rutas || lead.principalesRutas, 
+      tarifa: tarifa || lead.tarifa, 
+      viajesPorMes: viajes || lead.viajesPorMes, 
+      etapaLead: 'Cotizado', 
+      fechaActualizacion: new Date().toISOString() 
+    };
+    
     try {
       await fetch(`https://${projectId}.supabase.co/functions/v1/make-server-d84b50bb/leads/${lead.id}`, { method: 'PUT', headers: { 'Authorization': `Bearer ${publicAnonKey}`, 'Content-Type': 'application/json' }, body: JSON.stringify(leadActualizado) });
       setLeads(leads.map(l => l.id === lead.id ? leadActualizado : l));
@@ -257,57 +274,51 @@ export const PanelOportunidadesModule = ({ onBack }: PanelOportunidadesModulePro
 
         <div className="flex-1 mx-4 mb-4 rounded-2xl bg-[var(--fx-surface)] border border-white/10 overflow-hidden flex flex-col">
           <div className="flex-shrink-0 border-b border-white/10 bg-[var(--fx-surface)]">
-            <table className="w-full">
-              <thead>
-                <tr>
-                  <th className="px-2 py-2 text-center text-[var(--fx-muted)]" style={{ fontSize: '11px', fontWeight: 600, width: '3%' }}>#</th>
-                  <th onClick={() => handleSort('nombreEmpresa')} className="px-2 py-2 text-left text-[var(--fx-muted)] cursor-pointer hover:text-white" style={{ fontSize: '11px', fontWeight: 600, width: '13%' }}><div className="flex items-center gap-1"><Building2 className="w-3 h-3" />EMPRESA<SortIcon field="nombreEmpresa" /></div></th>
-                  <th className="px-1.5 py-2 text-left text-[var(--fx-muted)]" style={{ fontSize: '11px', fontWeight: 600, width: '7%' }}>ETAPA</th>
-                  <th className="px-2 py-2 text-left text-[var(--fx-muted)]" style={{ fontSize: '11px', fontWeight: 600, width: '15%' }}>CONTACTO</th>
-                  <th className="px-2 py-2 text-left text-[var(--fx-muted)]" style={{ fontSize: '11px', fontWeight: 600, width: '10%' }}>SERVICIO</th>
-                  <th className="px-1.5 py-2 text-left text-[var(--fx-muted)]" style={{ fontSize: '11px', fontWeight: 600, width: '10%' }}>VIAJE</th>
-                  <th className="px-1.5 py-2 text-left text-[var(--fx-muted)]" style={{ fontSize: '11px', fontWeight: 600, width: '8%' }}>TARIFA</th>
-                  <th onClick={() => handleSort('vendedor')} className="px-2 py-2 text-left text-[var(--fx-muted)] cursor-pointer hover:text-white" style={{ fontSize: '11px', fontWeight: 600, width: '10%' }}><div className="flex items-center gap-1"><User className="w-3 h-3" />VENDEDOR<SortIcon field="vendedor" /></div></th>
-                  <th onClick={() => handleSort('fechaCreacion')} className="px-2 py-2 text-left text-[var(--fx-muted)] cursor-pointer hover:text-white" style={{ fontSize: '11px', fontWeight: 600, width: '8%' }}><div className="flex items-center gap-1"><Calendar className="w-3 h-3" />CREADO<SortIcon field="fechaCreacion" /></div></th>
-                  <th className="px-2 py-2 text-center text-[var(--fx-muted)]" style={{ fontSize: '11px', fontWeight: 600, width: '10%' }}>ACCIONES</th>
-                </tr>
-              </thead>
-            </table>
+            <table className="w-full"><thead><tr>
+              <th className="px-2 py-2 text-center text-[var(--fx-muted)]" style={{ fontSize: '11px', fontWeight: 600, width: '3%' }}>#</th>
+              <th onClick={() => handleSort('nombreEmpresa')} className="px-2 py-2 text-left text-[var(--fx-muted)] cursor-pointer hover:text-white" style={{ fontSize: '11px', fontWeight: 600, width: '13%' }}><div className="flex items-center gap-1"><Building2 className="w-3 h-3" />EMPRESA<SortIcon field="nombreEmpresa" /></div></th>
+              <th className="px-1.5 py-2 text-left text-[var(--fx-muted)]" style={{ fontSize: '11px', fontWeight: 600, width: '7%' }}>ETAPA</th>
+              <th className="px-2 py-2 text-left text-[var(--fx-muted)]" style={{ fontSize: '11px', fontWeight: 600, width: '15%' }}>CONTACTO</th>
+              <th className="px-2 py-2 text-left text-[var(--fx-muted)]" style={{ fontSize: '11px', fontWeight: 600, width: '10%' }}>SERVICIO</th>
+              <th className="px-1.5 py-2 text-left text-[var(--fx-muted)]" style={{ fontSize: '11px', fontWeight: 600, width: '10%' }}>VIAJE</th>
+              <th className="px-1.5 py-2 text-left text-[var(--fx-muted)]" style={{ fontSize: '11px', fontWeight: 600, width: '8%' }}>TARIFA</th>
+              <th onClick={() => handleSort('vendedor')} className="px-2 py-2 text-left text-[var(--fx-muted)] cursor-pointer hover:text-white" style={{ fontSize: '11px', fontWeight: 600, width: '10%' }}><div className="flex items-center gap-1"><User className="w-3 h-3" />VENDEDOR<SortIcon field="vendedor" /></div></th>
+              <th onClick={() => handleSort('fechaCreacion')} className="px-2 py-2 text-left text-[var(--fx-muted)] cursor-pointer hover:text-white" style={{ fontSize: '11px', fontWeight: 600, width: '8%' }}><div className="flex items-center gap-1"><Calendar className="w-3 h-3" />CREADO<SortIcon field="fechaCreacion" /></div></th>
+              <th className="px-2 py-2 text-center text-[var(--fx-muted)]" style={{ fontSize: '11px', fontWeight: 600, width: '10%' }}>ACCIONES</th>
+            </tr></thead></table>
           </div>
           
           <div className="flex-1 overflow-y-auto">
-            <table className="w-full">
-              <tbody>
-                {filteredLeads.length === 0 ? (
-                  <tr><td colSpan={10} className="px-6 py-12 text-center text-[var(--fx-muted)]">No se encontraron leads.</td></tr>
-                ) : (
-                  filteredLeads.map((lead, index) => (
-                    <tr key={lead.id} className={`border-b border-white/5 hover:bg-white/5 transition-colors ${lead.eliminado ? 'opacity-50 bg-red-500/5' : ''}`} style={{ height: '48px' }}>
-                      <td className="px-2 py-2 text-center" style={{ fontFamily: "'Orbitron', monospace", fontSize: '11px', fontWeight: 600, color: lead.eliminado ? '#ef4444' : 'var(--fx-primary)', width: '3%' }}>{index + 1}</td>
-                      <td className="px-2 py-2 text-white" style={{ fontSize: '11px', fontWeight: 700, width: '13%' }}>{lead.nombreEmpresa}</td>
-                      <td className="px-1.5 py-2" style={{ width: '7%' }}><span className={`px-2 py-0.5 rounded text-xs font-semibold ${lead.etapaLead === 'Cotizado' ? 'bg-yellow-500/20 text-yellow-400' : lead.etapaLead === 'Negociación' ? 'bg-orange-500/20 text-orange-400' : lead.etapaLead === 'Cerrado' ? 'bg-green-500/20 text-green-400' : 'bg-purple-500/20 text-purple-400'}`} style={{ fontSize: '10px' }}>{lead.etapaLead || 'Prospecto'}</span></td>
-                      <td className="px-2 py-2" style={{ width: '15%' }}><div className="flex flex-col" style={{ fontSize: '11px' }}><span className="text-white font-semibold truncate">{lead.nombreContacto}</span><span className="text-[var(--fx-muted)] truncate" style={{ fontSize: '10px' }}>{lead.correoElectronico}</span></div></td>
-                      <td className="px-2 py-2" style={{ width: '10%' }}><div className="flex flex-wrap gap-0.5">{lead.tipoServicio.slice(0,2).map((t, i) => <span key={i} className="px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-400" style={{ fontSize: '9px', fontWeight: 600 }}>{t}</span>)}</div></td>
-                      <td className="px-1.5 py-2" style={{ width: '10%' }}><div className="flex flex-wrap gap-0.5">{lead.tipoViaje.slice(0,2).map((t, i) => <span key={i} className="px-1.5 py-0.5 rounded bg-green-500/20 text-green-400" style={{ fontSize: '9px', fontWeight: 600 }}>{t}</span>)}</div></td>
-                      <td className="px-1.5 py-2" style={{ width: '8%' }}>{lead.tarifa ? <span className="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400" style={{ fontFamily: "'Orbitron', monospace", fontSize: '10px', fontWeight: 600 }}>{lead.tarifa}</span> : <span className="text-[var(--fx-muted)]" style={{ fontSize: '10px' }}>N/A</span>}</td>
-                      <td className="px-2 py-2 text-[var(--fx-muted)]" style={{ fontSize: '11px', width: '10%' }}>{lead.vendedor}</td>
-                      <td className="px-2 py-2" style={{ width: '8%' }}><span className="text-white" style={{ fontSize: '10px' }}>{new Date(lead.fechaCreacion).toLocaleDateString('es-MX')}</span></td>
-                      <td className="px-2 py-2" style={{ width: '10%' }}>
-                        <div className="flex items-center justify-center gap-1">
-                          <button onClick={() => setSelectedLead(lead)} className="p-1.5 rounded-lg bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 border border-blue-500/30" title="Ver"><Eye className="w-3.5 h-3.5" /></button>
-                          <button onClick={() => setEditLead(lead)} className="p-1.5 rounded-lg bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-400 border border-yellow-500/30" title="Editar" disabled={lead.eliminado}><Pencil className="w-3.5 h-3.5" /></button>
-                          <div className="relative">
-                            <button onClick={() => setCotizacionesModal(lead)} className="p-1.5 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 border border-emerald-500/30" title="Cotizaciones"><FileText className="w-3.5 h-3.5" /></button>
-                            {lead.cotizaciones?.filter(c => !c.eliminado).length ? <div className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-emerald-500 flex items-center justify-center text-white" style={{ fontSize: '9px', fontWeight: 700 }}>{lead.cotizaciones.filter(c => !c.eliminado).length}</div> : null}
-                          </div>
-                          {lead.eliminado && isAdmin ? <button onClick={() => handleRestaurarLead(lead)} className="p-1.5 rounded-lg bg-green-500/20 hover:bg-green-500/30 text-green-400 border border-green-500/30" title="Restaurar"><TrendingUp className="w-3.5 h-3.5" /></button> : <button onClick={() => setDeleteModal(lead)} className="p-1.5 rounded-lg bg-red-500/20 hover:bg-red-500/30 text-red-400 border border-red-500/30" title="Eliminar" disabled={lead.eliminado}><Trash2 className="w-3.5 h-3.5" /></button>}
+            <table className="w-full"><tbody>
+              {filteredLeads.length === 0 ? (
+                <tr><td colSpan={10} className="px-6 py-12 text-center text-[var(--fx-muted)]">No se encontraron leads.</td></tr>
+              ) : (
+                filteredLeads.map((lead, index) => (
+                  <tr key={lead.id} className={`border-b border-white/5 hover:bg-white/5 ${lead.eliminado ? 'opacity-50 bg-red-500/5' : ''}`} style={{ height: '48px' }}>
+                    <td className="px-2 py-2 text-center" style={{ fontFamily: "'Orbitron', monospace", fontSize: '11px', fontWeight: 600, color: lead.eliminado ? '#ef4444' : 'var(--fx-primary)', width: '3%' }}>{index + 1}</td>
+                    <td className="px-2 py-2 text-white" style={{ fontSize: '11px', fontWeight: 700, width: '13%' }}>{lead.nombreEmpresa}</td>
+                    <td className="px-1.5 py-2" style={{ width: '7%' }}><span className={`px-2 py-0.5 rounded text-xs font-semibold ${lead.etapaLead === 'Cotizado' ? 'bg-yellow-500/20 text-yellow-400' : lead.etapaLead === 'Negociación' ? 'bg-orange-500/20 text-orange-400' : lead.etapaLead === 'Cerrado' ? 'bg-green-500/20 text-green-400' : 'bg-purple-500/20 text-purple-400'}`} style={{ fontSize: '10px' }}>{lead.etapaLead || 'Prospecto'}</span></td>
+                    <td className="px-2 py-2" style={{ width: '15%' }}><div style={{ fontSize: '11px' }}><div className="text-white font-semibold truncate">{lead.nombreContacto}</div><div className="text-[var(--fx-muted)] truncate" style={{ fontSize: '10px' }}>{lead.correoElectronico}</div></div></td>
+                    <td className="px-2 py-2" style={{ width: '10%' }}><div className="flex flex-wrap gap-0.5">{(lead.tipoServicio || []).slice(0,2).map((t, i) => <span key={i} className="px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-400" style={{ fontSize: '9px', fontWeight: 600 }}>{t}</span>)}</div></td>
+                    <td className="px-1.5 py-2" style={{ width: '10%' }}><div className="flex flex-wrap gap-0.5">{(lead.tipoViaje || []).slice(0,2).map((t, i) => <span key={i} className="px-1.5 py-0.5 rounded bg-green-500/20 text-green-400" style={{ fontSize: '9px', fontWeight: 600 }}>{t}</span>)}</div></td>
+                    <td className="px-1.5 py-2" style={{ width: '8%' }}>{lead.tarifa ? <span className="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400" style={{ fontFamily: "'Orbitron', monospace", fontSize: '10px', fontWeight: 600 }}>{lead.tarifa}</span> : <span className="text-[var(--fx-muted)]" style={{ fontSize: '10px' }}>N/A</span>}</td>
+                    <td className="px-2 py-2 text-[var(--fx-muted)]" style={{ fontSize: '11px', width: '10%' }}>{lead.vendedor}</td>
+                    <td className="px-2 py-2" style={{ width: '8%' }}><span className="text-white" style={{ fontSize: '10px' }}>{formatDate(lead.fechaCreacion)}</span></td>
+                    <td className="px-2 py-2" style={{ width: '10%' }}>
+                      <div className="flex items-center justify-center gap-1">
+                        <button onClick={() => setSelectedLead(lead)} className="p-1.5 rounded-lg bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 border border-blue-500/30"><Eye className="w-3.5 h-3.5" /></button>
+                        <button onClick={() => setEditLead(lead)} className="p-1.5 rounded-lg bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-400 border border-yellow-500/30" disabled={lead.eliminado}><Pencil className="w-3.5 h-3.5" /></button>
+                        <div className="relative">
+                          <button onClick={() => setCotizacionesModal(lead)} className="p-1.5 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 border border-emerald-500/30"><FileText className="w-3.5 h-3.5" /></button>
+                          {lead.cotizaciones?.filter(c => !c.eliminado).length ? <div className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-emerald-500 flex items-center justify-center text-white" style={{ fontSize: '9px', fontWeight: 700 }}>{lead.cotizaciones.filter(c => !c.eliminado).length}</div> : null}
                         </div>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+                        {lead.eliminado && isAdmin ? <button onClick={() => handleRestaurarLead(lead)} className="p-1.5 rounded-lg bg-green-500/20 hover:bg-green-500/30 text-green-400 border border-green-500/30"><TrendingUp className="w-3.5 h-3.5" /></button> : <button onClick={() => setDeleteModal(lead)} className="p-1.5 rounded-lg bg-red-500/20 hover:bg-red-500/30 text-red-400 border border-red-500/30" disabled={lead.eliminado}><Trash2 className="w-3.5 h-3.5" /></button>}
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody></table>
           </div>
           
           <div className="flex-shrink-0 px-4 py-2 border-t border-white/10 bg-[var(--fx-surface)]">
@@ -322,16 +333,13 @@ export const PanelOportunidadesModule = ({ onBack }: PanelOportunidadesModulePro
             <div className="flex items-center justify-between mb-4"><h3 className="text-white text-xl font-bold flex items-center gap-2"><Building2 className="w-6 h-6 text-blue-400" />{selectedLead.nombreEmpresa}</h3><button onClick={() => setSelectedLead(null)} className="p-2 rounded-lg hover:bg-white/10"><X className="w-5 h-5 text-white" /></button></div>
             <div className="grid grid-cols-3 gap-4 text-sm">
               <div className="p-3 rounded-lg bg-white/5"><div className="text-blue-400 text-xs mb-1">Contacto</div><div className="text-white font-semibold">{selectedLead.nombreContacto}</div><div className="text-gray-400">{selectedLead.correoElectronico}</div></div>
-              <div className="p-3 rounded-lg bg-white/5"><div className="text-blue-400 text-xs mb-1">Servicio</div><div className="flex flex-wrap gap-1">{selectedLead.tipoServicio.map((t,i)=><span key={i} className="px-2 py-0.5 rounded bg-blue-500/20 text-blue-400 text-xs">{t}</span>)}</div></div>
-              <div className="p-3 rounded-lg bg-white/5"><div className="text-green-400 text-xs mb-1">Viaje</div><div className="flex flex-wrap gap-1">{selectedLead.tipoViaje.map((t,i)=><span key={i} className="px-2 py-0.5 rounded bg-green-500/20 text-green-400 text-xs">{t}</span>)}</div></div>
+              <div className="p-3 rounded-lg bg-white/5"><div className="text-blue-400 text-xs mb-1">Servicio</div><div className="flex flex-wrap gap-1">{(selectedLead.tipoServicio||[]).map((t,i)=><span key={i} className="px-2 py-0.5 rounded bg-blue-500/20 text-blue-400 text-xs">{t}</span>)}</div></div>
+              <div className="p-3 rounded-lg bg-white/5"><div className="text-green-400 text-xs mb-1">Viaje</div><div className="flex flex-wrap gap-1">{(selectedLead.tipoViaje||[]).map((t,i)=><span key={i} className="px-2 py-0.5 rounded bg-green-500/20 text-green-400 text-xs">{t}</span>)}</div></div>
               <div className="p-3 rounded-lg bg-white/5"><div className="text-purple-400 text-xs mb-1">Rutas</div><div className="text-white">{selectedLead.principalesRutas || '-'}</div></div>
               <div className="p-3 rounded-lg bg-white/5"><div className="text-orange-400 text-xs mb-1">Viajes/Mes</div><div className="text-white font-bold text-lg">{selectedLead.viajesPorMes || '-'}</div></div>
               <div className="p-3 rounded-lg bg-emerald-500/10"><div className="text-emerald-400 text-xs mb-1">Tarifa</div><div className="text-emerald-400 font-bold text-lg">{selectedLead.tarifa || 'N/A'}</div></div>
             </div>
-            <div className="mt-4 flex justify-between items-center text-sm text-gray-400">
-              <span>Vendedor: {selectedLead.vendedor}</span>
-              <span>Creado: {new Date(selectedLead.fechaCreacion).toLocaleDateString('es-MX')}</span>
-            </div>
+            <div className="mt-4 flex justify-between items-center text-sm text-gray-400"><span>Vendedor: {selectedLead.vendedor}</span><span>Creado: {formatDate(selectedLead.fechaCreacion)}</span></div>
           </div>
         </div>
       )}
@@ -352,14 +360,7 @@ export const PanelOportunidadesModule = ({ onBack }: PanelOportunidadesModulePro
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setCotizacionesModal(null)}>
           <div className="bg-[var(--fx-surface)] rounded-2xl border border-white/20 w-[800px] max-h-[80vh] overflow-y-auto p-6" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-4"><h3 className="text-white text-xl font-bold flex items-center gap-2"><FileText className="w-5 h-5 text-emerald-400" />Cotizaciones - {cotizacionesModal.nombreEmpresa}</h3><button onClick={() => setCotizacionesModal(null)} className="p-2 rounded-lg hover:bg-white/10"><X className="w-5 h-5 text-white" /></button></div>
-            
-            <div className="mb-4">
-              <label className={`flex items-center justify-center gap-2 px-4 py-3 rounded-xl ${analizando ? 'bg-blue-600/50' : 'bg-blue-600 hover:bg-blue-700'} text-white cursor-pointer`}>
-                {analizando ? <><Loader2 className="w-5 h-5 animate-spin" /><span>{statusMsg || 'Procesando...'}</span></> : <><Upload className="w-5 h-5" /><span className="font-semibold">Subir Cotizaciones (PDFs)</span></>}
-                <input type="file" accept="application/pdf" multiple className="hidden" disabled={analizando} onChange={(e) => { if (e.target.files?.length) handleSubirCotizaciones(e.target.files, cotizacionesModal); e.target.value = ''; }} />
-              </label>
-            </div>
-
+            <div className="mb-4"><label className={`flex items-center justify-center gap-2 px-4 py-3 rounded-xl ${analizando ? 'bg-blue-600/50' : 'bg-blue-600 hover:bg-blue-700'} text-white cursor-pointer`}>{analizando ? <><Loader2 className="w-5 h-5 animate-spin" /><span>{statusMsg}</span></> : <><Upload className="w-5 h-5" /><span className="font-semibold">Subir Cotizaciones (PDFs)</span></>}<input type="file" accept="application/pdf" multiple className="hidden" disabled={analizando} onChange={(e) => { if (e.target.files?.length) handleSubirCotizaciones(e.target.files, cotizacionesModal); e.target.value = ''; }} /></label></div>
             <div className="space-y-2">
               {(!cotizacionesModal.cotizaciones || !cotizacionesModal.cotizaciones.filter(c => !c.eliminado).length) ? (
                 <div className="text-center py-6 text-gray-400">No hay cotizaciones adjuntas.</div>
@@ -367,18 +368,22 @@ export const PanelOportunidadesModule = ({ onBack }: PanelOportunidadesModulePro
                 cotizacionesModal.cotizaciones.filter(c => !c.eliminado).map((cot, i) => (
                   <div key={i} className="p-3 rounded-lg bg-white/5 border border-white/10">
                     <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2"><FileText className="w-4 h-4 text-emerald-400" /><span className="text-white text-sm font-semibold">{cot.nombre}</span><span className="text-gray-500 text-xs">{new Date(cot.fecha).toLocaleDateString('es-MX')}</span></div>
+                      <div className="flex items-center gap-2"><FileText className="w-4 h-4 text-emerald-400" /><span className="text-white text-sm font-semibold">{cot.nombre}</span><span className="text-gray-500 text-xs">{formatDate(cot.fecha)}</span></div>
                       <div className="flex gap-2">
-                        {cot.url && <a href={cot.url} download={cot.nombre} className="px-2 py-1 rounded bg-blue-500/20 text-blue-400 text-xs"><Download className="w-3 h-3" /></a>}
+                        {cot.url && <button onClick={() => setPdfPreview(cot.url)} className="px-2 py-1 rounded bg-purple-500/20 text-purple-400 text-xs flex items-center gap-1"><Eye className="w-3 h-3" />Ver</button>}
+                        {cot.url && <a href={cot.url} download={cot.nombre} className="px-2 py-1 rounded bg-blue-500/20 text-blue-400 text-xs flex items-center gap-1"><Download className="w-3 h-3" /></a>}
                         <button onClick={() => handleEliminarCotizacion(cotizacionesModal, cotizacionesModal.cotizaciones?.indexOf(cot) || i)} className="px-2 py-1 rounded bg-red-500/20 text-red-400 text-xs"><Trash2 className="w-3 h-3" /></button>
                       </div>
                     </div>
-                    {cot.analisis && !cot.analisis.error && (
-                      <div className="mt-2 p-2 rounded bg-blue-500/10 border border-blue-500/20 grid grid-cols-4 gap-2 text-xs">
-                        <div><span className="text-gray-400">Servicio:</span> <span className="text-white">{cot.analisis.tipoServicio?.join(', ')}</span></div>
-                        <div><span className="text-gray-400">Viaje:</span> <span className="text-white">{cot.analisis.tipoViaje?.join(', ')}</span></div>
-                        <div><span className="text-gray-400">Rutas:</span> <span className="text-white">{cot.analisis.rutas}</span></div>
-                        <div><span className="text-gray-400">Tarifa:</span> <span className="text-emerald-400 font-semibold">${cot.analisis.tarifaMXN?.toLocaleString()} MXN</span></div>
+                    {cot.analisis && !cot.analisis.error && cot.analisis.tipoServicio && (
+                      <div className="mt-2 p-2 rounded bg-emerald-500/10 border border-emerald-500/20">
+                        <div className="flex items-center gap-1 mb-1"><CheckCircle className="w-3 h-3 text-emerald-400" /><span className="text-emerald-400 text-xs font-semibold">Análisis IA</span></div>
+                        <div className="grid grid-cols-4 gap-2 text-xs">
+                          <div><span className="text-gray-400">Servicio:</span> <span className="text-white">{cot.analisis.tipoServicio?.join(', ') || '-'}</span></div>
+                          <div><span className="text-gray-400">Viaje:</span> <span className="text-white">{cot.analisis.tipoViaje?.join(', ') || '-'}</span></div>
+                          <div><span className="text-gray-400">Rutas:</span> <span className="text-white">{cot.analisis.rutas || '-'}</span></div>
+                          <div><span className="text-gray-400">Tarifa:</span> <span className="text-emerald-400 font-semibold">{cot.analisis.tarifaMXN ? `$${Number(cot.analisis.tarifaMXN).toLocaleString()} MXN` : '-'}</span></div>
+                        </div>
                       </div>
                     )}
                   </div>
@@ -386,6 +391,15 @@ export const PanelOportunidadesModule = ({ onBack }: PanelOportunidadesModulePro
               )}
             </div>
             <button onClick={() => setCotizacionesModal(null)} className="mt-4 w-full px-4 py-2 rounded-lg bg-gray-600 hover:bg-gray-700 text-white">Cerrar</button>
+          </div>
+        </div>
+      )}
+
+      {pdfPreview && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-[60] p-4" onClick={() => setPdfPreview(null)}>
+          <div className="bg-white rounded-2xl w-[90vw] h-[90vh] overflow-hidden flex flex-col" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between p-3 bg-gray-100 border-b"><span className="text-gray-700 font-semibold">Vista previa</span><button onClick={() => setPdfPreview(null)} className="p-2 rounded-lg hover:bg-gray-200"><X className="w-5 h-5 text-gray-600" /></button></div>
+            <iframe src={pdfPreview} className="flex-1 w-full" title="PDF" />
           </div>
         </div>
       )}
