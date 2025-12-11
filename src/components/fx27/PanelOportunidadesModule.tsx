@@ -5,7 +5,7 @@ import { Search, Download, TrendingUp, X, BarChart3, Building2, User, Calendar, 
 import { projectId, publicAnonKey } from '../../utils/supabase/info';
 import * as pdfjsLib from 'pdfjs-dist';
 
-pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
 
 interface PanelOportunidadesModuleProps { onBack: () => void; }
 interface LineaCotizacion { origen: string; destino: string; servicio: string; tarifa: number; moneda: string; viajes: number; tipoViaje: string; subtotalMXN: number; }
@@ -502,6 +502,58 @@ export const PanelOportunidadesModule = ({ onBack }: PanelOportunidadesModulePro
       {pdfPreview && (<div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-[60] p-4" onClick={() => setPdfPreview(null)}><div className="bg-white rounded-2xl w-[90vw] h-[90vh] overflow-hidden flex flex-col" onClick={(e) => e.stopPropagation()}><div className="flex items-center justify-between p-3 bg-gray-100 border-b"><span className="text-gray-700 font-semibold">Vista previa</span><button onClick={() => setPdfPreview(null)} className="p-2 rounded-lg hover:bg-gray-200"><X className="w-5 h-5 text-gray-600" /></button></div><iframe src={pdfPreview} className="flex-1 w-full" title="PDF" /></div></div>)}
 
       {editLead && (<div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setEditLead(null)}><div className="bg-[var(--fx-surface)] rounded-2xl border border-white/20 w-[700px] max-h-[80vh] overflow-y-auto p-6" onClick={(e) => e.stopPropagation()}><div className="flex items-center justify-between mb-4"><h3 className="text-white text-xl font-bold flex items-center gap-2"><Pencil className="w-5 h-5 text-yellow-400" />Editar - {editLead.nombreEmpresa}</h3><button onClick={() => setEditLead(null)} className="p-2 rounded-lg hover:bg-white/10"><X className="w-5 h-5 text-white" /></button></div><div className="grid grid-cols-2 gap-3 text-sm"><div><label className="text-gray-400 text-xs">Empresa</label><input type="text" value={formData.nombreEmpresa || ''} onChange={(e) => setFormData({ ...formData, nombreEmpresa: e.target.value })} className="w-full mt-1 px-3 py-2 rounded-lg bg-black/30 border border-white/20 text-white" /></div><div><label className="text-gray-400 text-xs">Web</label><input type="text" value={formData.paginaWeb || ''} onChange={(e) => setFormData({ ...formData, paginaWeb: e.target.value })} className="w-full mt-1 px-3 py-2 rounded-lg bg-black/30 border border-white/20 text-white" /></div><div><label className="text-gray-400 text-xs">Contacto</label><input type="text" value={formData.nombreContacto || ''} onChange={(e) => handleInputChange('nombreContacto', e.target.value)} className="w-full mt-1 px-3 py-2 rounded-lg bg-black/30 border border-white/20 text-white" /></div><div><label className="text-gray-400 text-xs">Email</label><input type="email" value={formData.correoElectronico || ''} onChange={(e) => handleInputChange('correoElectronico', e.target.value)} className="w-full mt-1 px-3 py-2 rounded-lg bg-black/30 border border-white/20 text-white" /></div><div className="col-span-2"><label className="text-gray-400 text-xs">Servicio</label><div className="flex flex-wrap gap-2 mt-1">{['Seco', 'Refrigerado', 'Seco Hazmat', 'Refrigerado Hazmat'].map(s => <button key={s} onClick={() => handleToggleServicio(s)} className={`px-3 py-1 rounded text-xs ${formData.tipoServicio?.includes(s) ? 'bg-blue-500/30 text-blue-400 border border-blue-500' : 'bg-black/30 border border-white/20 text-white'}`}>{s}</button>)}</div></div><div className="col-span-2"><label className="text-gray-400 text-xs">Viaje</label><div className="flex flex-wrap gap-2 mt-1">{['Impo', 'Expo', 'Nacional', 'DTD', 'Dedicado'].map(v => <button key={v} onClick={() => handleToggleViaje(v)} className={`px-3 py-1 rounded text-xs ${formData.tipoViaje?.includes(v) ? 'bg-green-500/30 text-green-400 border border-green-500' : 'bg-black/30 border border-white/20 text-white'}`}>{v}</button>)}</div></div><div className="col-span-2"><label className="text-gray-400 text-xs">Rutas</label><input type="text" value={formData.principalesRutas || ''} onChange={(e) => setFormData({ ...formData, principalesRutas: e.target.value })} className="w-full mt-1 px-3 py-2 rounded-lg bg-black/30 border border-white/20 text-white" /></div><div><label className="text-gray-400 text-xs">Viajes/Mes</label><input type="number" value={formData.viajesPorMes || ''} onChange={(e) => setFormData({ ...formData, viajesPorMes: e.target.value })} className="w-full mt-1 px-3 py-2 rounded-lg bg-black/30 border border-white/20 text-white" /></div><div><label className="text-gray-400 text-xs">Etapa</label><select value={formData.etapaLead || 'Prospecto'} onChange={(e) => setFormData({ ...formData, etapaLead: e.target.value })} className="w-full mt-1 px-3 py-2 rounded-lg bg-black/30 border border-white/20 text-white"><option>Prospecto</option><option>Cotizado</option><option>Negociación</option><option>Cerrado</option></select></div><div className="col-span-2"><label className="text-gray-400 text-xs">Próximos Pasos</label><input type="text" value={formData.proximosPasos || ''} onChange={(e) => setFormData({ ...formData, proximosPasos: e.target.value })} className="w-full mt-1 px-3 py-2 rounded-lg bg-black/30 border border-white/20 text-white" /></div></div><div className="flex gap-3 mt-4"><button onClick={() => setEditLead(null)} className="flex-1 px-4 py-2 rounded-lg bg-gray-600 text-white">Cancelar</button><button onClick={handleGuardarEdicion} className="flex-1 px-4 py-2 rounded-lg bg-yellow-500 text-black font-semibold">Guardar</button></div></div></div>)}
+    </ModuleTemplate>
+  );
+};
+="col-span-2">
+                <label className="text-gray-400 text-xs">Servicio</label>
+                <div className="flex flex-wrap gap-2 mt-1">
+                  {['Seco', 'Refrigerado', 'Seco Hazmat', 'Refrigerado Hazmat'].map(s => (
+                    <button key={s} onClick={() => handleToggleServicio(s)} className={`px-3 py-1 rounded text-xs ${formData.tipoServicio?.includes(s) ? 'bg-blue-500/30 text-blue-400 border border-blue-500' : 'bg-black/30 border border-white/20 text-white'}`}>{s}</button>
+                  ))}
+                </div>
+              </div>
+              <div className="col-span-2">
+                <label className="text-gray-400 text-xs">Viaje</label>
+                <div className="flex flex-wrap gap-2 mt-1">
+                  {['Impo', 'Expo', 'Nacional', 'DTD', 'Dedicado'].map(v => (
+                    <button key={v} onClick={() => handleToggleViaje(v)} className={`px-3 py-1 rounded text-xs ${formData.tipoViaje?.includes(v) ? 'bg-green-500/30 text-green-400 border border-green-500' : 'bg-black/30 border border-white/20 text-white'}`}>{v}</button>
+                  ))}
+                </div>
+              </div>
+              <div className="col-span-2">
+                <label className="text-gray-400 text-xs">Rutas</label>
+                <input type="text" value={formData.principalesRutas || ''} onChange={(e) => setFormData({ ...formData, principalesRutas: e.target.value })} className="w-full mt-1 px-3 py-2 rounded-lg bg-black/30 border border-white/20 text-white" />
+              </div>
+              <div>
+                <label className="text-gray-400 text-xs">Viajes/Mes</label>
+                <input type="number" value={formData.viajesPorMes || ''} onChange={(e) => setFormData({ ...formData, viajesPorMes: e.target.value })} className="w-full mt-1 px-3 py-2 rounded-lg bg-black/30 border border-white/20 text-white" />
+              </div>
+              <div>
+                <label className="text-gray-400 text-xs">Etapa</label>
+                <select value={formData.etapaLead || 'Prospecto'} onChange={(e) => setFormData({ ...formData, etapaLead: e.target.value })} className="w-full mt-1 px-3 py-2 rounded-lg bg-black/30 border border-white/20 text-white">
+                  <option>Prospecto</option>
+                  <option>Cotizado</option>
+                  <option>Negociación</option>
+                  <option>Cerrado</option>
+                </select>
+              </div>
+              <div className="col-span-2">
+                <label className="text-gray-400 text-xs">Próximos Pasos</label>
+                <input type="text" value={formData.proximosPasos || ''} onChange={(e) => setFormData({ ...formData, proximosPasos: e.target.value })} className="w-full mt-1 px-3 py-2 rounded-lg bg-black/30 border border-white/20 text-white" />
+              </div>
+            </div>
+            <div className="flex gap-3 mt-4">
+              <button onClick={() => setEditLead(null)} className="flex-1 px-4 py-2 rounded-lg bg-gray-600 text-white">Cancelar</button>
+              <button onClick={handleGuardarEdicion} className="flex-1 px-4 py-2 rounded-lg bg-yellow-500 text-black font-semibold">Guardar</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </ModuleTemplate>
+  );
+};
+white'}`}>{v}</button>)}</div></div><div className="col-span-2"><label className="text-gray-400 text-xs">Rutas</label><input type="text" value={formData.principalesRutas || ''} onChange={(e) => setFormData({ ...formData, principalesRutas: e.target.value })} className="w-full mt-1 px-3 py-2 rounded-lg bg-black/30 border border-white/20 text-white" /></div><div><label className="text-gray-400 text-xs">Viajes/Mes</label><input type="number" value={formData.viajesPorMes || ''} onChange={(e) => setFormData({ ...formData, viajesPorMes: e.target.value })} className="w-full mt-1 px-3 py-2 rounded-lg bg-black/30 border border-white/20 text-white" /></div><div><label className="text-gray-400 text-xs">Etapa</label><select value={formData.etapaLead || 'Prospecto'} onChange={(e) => setFormData({ ...formData, etapaLead: e.target.value })} className="w-full mt-1 px-3 py-2 rounded-lg bg-black/30 border border-white/20 text-white"><option>Prospecto</option><option>Cotizado</option><option>Negociación</option><option>Cerrado</option></select></div><div className="col-span-2"><label className="text-gray-400 text-xs">Próximos Pasos</label><input type="text" value={formData.proximosPasos || ''} onChange={(e) => setFormData({ ...formData, proximosPasos: e.target.value })} className="w-full mt-1 px-3 py-2 rounded-lg bg-black/30 border border-white/20 text-white" /></div></div><div className="flex gap-3 mt-4"><button onClick={() => setEditLead(null)} className="flex-1 px-4 py-2 rounded-lg bg-gray-600 text-white">Cancelar</button><button onClick={handleGuardarEdicion} className="flex-1 px-4 py-2 rounded-lg bg-yellow-500 text-black font-semibold">Guardar</button></div></div></div>)}
     </ModuleTemplate>
   );
 };
