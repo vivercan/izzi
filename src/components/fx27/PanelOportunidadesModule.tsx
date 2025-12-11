@@ -1,7 +1,7 @@
 import { ModuleTemplate } from './ModuleTemplate';
 import { useState, useEffect } from 'react';
 import { MODULE_IMAGES } from '../../assets/module-images';
-import { Search, Download, TrendingUp, X, BarChart3, Building2, User, Calendar, Eye, Trash2, SortAsc, SortDesc, FileText, Upload, Pencil, AlertTriangle, Loader2, CheckCircle, Brain } from 'lucide-react';
+import { Search, Download, TrendingUp, X, BarChart3, Building2, User, Calendar, Eye, Trash2, SortAsc, SortDesc, FileText, Upload, Pencil, AlertTriangle, Loader2, CheckCircle } from 'lucide-react';
 import { projectId, publicAnonKey } from '../../utils/supabase/info';
 import * as pdfjsLib from 'pdfjs-dist';
 
@@ -17,7 +17,7 @@ interface Lead {
   viajesPorMes: string; tarifa: string; proyectadoVentaMensual?: string; proximosPasos: string;
   etapaLead?: string; altaCliente?: boolean; generacionSOP?: boolean; juntaArranque?: boolean;
   facturado?: boolean; vendedor: string; fechaCreacion: string; fechaActualizacion?: string;
-  cotizaciones?: Cotizacion[]; eliminado?: boolean; fechaEliminado?: string; historialCambios?: { fecha: string; campo: string; valorAnterior: string; valorNuevo: string; }[];
+  cotizaciones?: Cotizacion[]; eliminado?: boolean; fechaEliminado?: string;
 }
 
 type SortField = 'nombreEmpresa' | 'vendedor' | 'fechaCreacion' | 'viajesPorMes';
@@ -41,7 +41,7 @@ export const PanelOportunidadesModule = ({ onBack }: PanelOportunidadesModulePro
   const [isAdmin, setIsAdmin] = useState(false);
   const [showDeleted, setShowDeleted] = useState(false);
   const [analizando, setAnalizando] = useState(false);
-  const [tipoCambio, setTipoCambio] = useState(18.18);
+  const [tipoCambio] = useState(18.18);
 
   const handleInputChange = (field: keyof Lead, value: any) => {
     if (field === 'nombreContacto') {
@@ -110,7 +110,7 @@ export const PanelOportunidadesModule = ({ onBack }: PanelOportunidadesModulePro
     return texto;
   };
 
-  const analizarCotizacionConIA = async (pdfText: string): Promise<any> => {
+  const analizarCotizacion = async (pdfText: string): Promise<any> => {
     try {
       const response = await fetch(`https://${projectId}.supabase.co/functions/v1/analyze-cotizacion`, {
         method: 'POST',
@@ -141,60 +141,26 @@ export const PanelOportunidadesModule = ({ onBack }: PanelOportunidadesModulePro
       });
 
       const pdfText = await extraerTextoPDF(file);
-      const analisis = await analizarCotizacionConIA(pdfText);
+      const analisis = await analizarCotizacion(pdfText);
 
-      nuevasCotizaciones.push({
-        nombre: file.name,
-        url: base64,
-        fecha: new Date().toISOString(),
-        analisis: analisis,
-        eliminado: false
-      });
+      nuevasCotizaciones.push({ nombre: file.name, url: base64, fecha: new Date().toISOString(), analisis: analisis, eliminado: false });
 
       if (analisis && !analisis.error) {
-        if (analisis.tipoServicio) {
-          analisis.tipoServicio.forEach((s: string) => {
-            if (!tiposServicioActualizados.includes(s)) tiposServicioActualizados.push(s);
-          });
-        }
-        if (analisis.tipoViaje) {
-          analisis.tipoViaje.forEach((v: string) => {
-            if (!tiposViajeActualizados.includes(v)) tiposViajeActualizados.push(v);
-          });
-        }
-        if (analisis.rutas && !rutasActualizadas.includes(analisis.rutas)) {
-          rutasActualizadas = rutasActualizadas ? `${rutasActualizadas}, ${analisis.rutas}` : analisis.rutas;
-        }
-        if (analisis.tarifaMXN) {
-          tarifaActualizada = `$${analisis.tarifaMXN.toLocaleString()} MXN`;
-        }
-        if (analisis.viajes) {
-          viajesActualizados = String(parseInt(viajesActualizados || '0') + analisis.viajes);
-        }
+        if (analisis.tipoServicio) { analisis.tipoServicio.forEach((s: string) => { if (!tiposServicioActualizados.includes(s)) tiposServicioActualizados.push(s); }); }
+        if (analisis.tipoViaje) { analisis.tipoViaje.forEach((v: string) => { if (!tiposViajeActualizados.includes(v)) tiposViajeActualizados.push(v); }); }
+        if (analisis.rutas && !rutasActualizadas.includes(analisis.rutas)) { rutasActualizadas = rutasActualizadas ? `${rutasActualizadas}, ${analisis.rutas}` : analisis.rutas; }
+        if (analisis.tarifaMXN) { tarifaActualizada = `$${analisis.tarifaMXN.toLocaleString()} MXN`; }
+        if (analisis.viajes) { viajesActualizados = String(parseInt(viajesActualizados || '0') + analisis.viajes); }
       }
     }
 
-    const leadActualizado = {
-      ...lead,
-      cotizaciones: nuevasCotizaciones,
-      tipoServicio: tiposServicioActualizados,
-      tipoViaje: tiposViajeActualizados,
-      principalesRutas: rutasActualizadas,
-      tarifa: tarifaActualizada,
-      viajesPorMes: viajesActualizados,
-      etapaLead: 'Cotizado',
-      fechaActualizacion: new Date().toISOString()
-    };
+    const leadActualizado = { ...lead, cotizaciones: nuevasCotizaciones, tipoServicio: tiposServicioActualizados, tipoViaje: tiposViajeActualizados, principalesRutas: rutasActualizadas, tarifa: tarifaActualizada, viajesPorMes: viajesActualizados, etapaLead: 'Cotizado', fechaActualizacion: new Date().toISOString() };
 
     try {
-      await fetch(`https://${projectId}.supabase.co/functions/v1/make-server-d84b50bb/leads/${lead.id}`, {
-        method: 'PUT',
-        headers: { 'Authorization': `Bearer ${publicAnonKey}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify(leadActualizado)
-      });
+      await fetch(`https://${projectId}.supabase.co/functions/v1/make-server-d84b50bb/leads/${lead.id}`, { method: 'PUT', headers: { 'Authorization': `Bearer ${publicAnonKey}`, 'Content-Type': 'application/json' }, body: JSON.stringify(leadActualizado) });
       setLeads(leads.map(l => l.id === lead.id ? leadActualizado : l));
       setCotizacionesModal(leadActualizado);
-      alert(`${archivos.length} cotización(es) analizadas y guardadas`);
+      alert(`${archivos.length} cotización(es) procesadas`);
     } catch (error) { alert('Error al guardar'); }
     setAnalizando(false);
   };
@@ -203,10 +169,7 @@ export const PanelOportunidadesModule = ({ onBack }: PanelOportunidadesModulePro
     const cotizacionesActualizadas = lead.cotizaciones?.map((c, i) => i === index ? { ...c, eliminado: true } : c) || [];
     const leadActualizado = { ...lead, cotizaciones: cotizacionesActualizadas, fechaActualizacion: new Date().toISOString() };
     try {
-      await fetch(`https://${projectId}.supabase.co/functions/v1/make-server-d84b50bb/leads/${lead.id}`, {
-        method: 'PUT', headers: { 'Authorization': `Bearer ${publicAnonKey}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify(leadActualizado)
-      });
+      await fetch(`https://${projectId}.supabase.co/functions/v1/make-server-d84b50bb/leads/${lead.id}`, { method: 'PUT', headers: { 'Authorization': `Bearer ${publicAnonKey}`, 'Content-Type': 'application/json' }, body: JSON.stringify(leadActualizado) });
       setLeads(leads.map(l => l.id === lead.id ? leadActualizado : l));
       setCotizacionesModal(leadActualizado);
     } catch (error) { alert('Error'); }
@@ -323,7 +286,6 @@ export const PanelOportunidadesModule = ({ onBack }: PanelOportunidadesModulePro
           </div>
         </div>
 
-        {/* MODAL VER */}
         {selectedLead && (
           <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setSelectedLead(null)}>
             <div className="bg-[var(--fx-surface)] rounded-2xl border border-white/20 w-[95vw] max-w-[1400px] max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
@@ -365,7 +327,6 @@ export const PanelOportunidadesModule = ({ onBack }: PanelOportunidadesModulePro
           </div>
         )}
 
-        {/* MODAL ELIMINAR */}
         {deleteModal && (
           <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => { setDeleteModal(null); setDeleteConfirmText(''); }}>
             <div className="bg-[var(--fx-surface)] rounded-2xl border border-red-500/30 w-[500px] p-6" onClick={(e) => e.stopPropagation()}>
@@ -377,7 +338,6 @@ export const PanelOportunidadesModule = ({ onBack }: PanelOportunidadesModulePro
           </div>
         )}
 
-        {/* MODAL COTIZACIONES CON IA */}
         {cotizacionesModal && (
           <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setCotizacionesModal(null)}>
             <div className="bg-[var(--fx-surface)] rounded-2xl border border-white/20 w-[900px] max-h-[90vh] overflow-y-auto p-6" onClick={(e) => e.stopPropagation()}>
@@ -386,13 +346,9 @@ export const PanelOportunidadesModule = ({ onBack }: PanelOportunidadesModulePro
                 <button onClick={() => setCotizacionesModal(null)} className="p-2 rounded-lg hover:bg-white/10"><X className="w-5 h-5 text-white" /></button>
               </div>
               
-              <div className="mb-6 p-4 rounded-xl bg-gradient-to-r from-purple-500/10 to-blue-500/10 border border-purple-500/30">
-                <div className="flex items-center gap-3 mb-3">
-                  <Brain className="w-6 h-6 text-purple-400" />
-                  <div><div className="text-white font-semibold">Análisis Inteligente con IA</div><div className="text-[var(--fx-muted)] text-sm">Sube PDFs y Claude extraerá automáticamente: servicio, viaje, rutas y tarifas</div></div>
-                </div>
-                <label className={`flex items-center justify-center gap-2 px-4 py-3 rounded-lg ${analizando ? 'bg-purple-500/30' : 'bg-emerald-500/20 hover:bg-emerald-500/30'} text-emerald-400 border border-emerald-500/30 cursor-pointer`}>
-                  {analizando ? <><Loader2 className="w-5 h-5 animate-spin" /><span>Analizando con IA...</span></> : <><Upload className="w-5 h-5" /><span style={{ fontWeight: 600 }}>Subir Cotizaciones (PDFs)</span></>}
+              <div className="mb-6">
+                <label className={`flex items-center justify-center gap-2 px-4 py-4 rounded-xl ${analizando ? 'bg-blue-600/50' : 'bg-blue-600 hover:bg-blue-700'} text-white cursor-pointer transition-colors`}>
+                  {analizando ? <><Loader2 className="w-5 h-5 animate-spin" /><span className="font-semibold">Procesando...</span></> : <><Upload className="w-5 h-5" /><span className="font-semibold">Subir Cotizaciones (PDFs)</span></>}
                   <input type="file" accept="application/pdf" multiple className="hidden" disabled={analizando} onChange={(e) => { if (e.target.files && e.target.files.length > 0) handleSubirCotizaciones(e.target.files, cotizacionesModal); e.target.value = ''; }} />
                 </label>
               </div>
@@ -417,8 +373,8 @@ export const PanelOportunidadesModule = ({ onBack }: PanelOportunidadesModulePro
                         </div>
                       </div>
                       {cot.analisis && !cot.analisis.error && (
-                        <div className="mt-3 p-3 rounded-lg bg-purple-500/10 border border-purple-500/20">
-                          <div className="flex items-center gap-2 mb-2"><CheckCircle className="w-4 h-4 text-purple-400" /><span className="text-purple-400 text-xs font-semibold">ANÁLISIS IA</span></div>
+                        <div className="mt-3 p-3 rounded-lg bg-blue-500/10 border border-blue-500/20">
+                          <div className="flex items-center gap-2 mb-2"><CheckCircle className="w-4 h-4 text-blue-400" /><span className="text-blue-400 text-xs font-semibold">DATOS EXTRAÍDOS</span></div>
                           <div className="grid grid-cols-4 gap-2 text-xs">
                             <div><span className="text-[var(--fx-muted)]">Servicio:</span> <span className="text-white">{cot.analisis.tipoServicio?.join(', ')}</span></div>
                             <div><span className="text-[var(--fx-muted)]">Viaje:</span> <span className="text-white">{cot.analisis.tipoViaje?.join(', ')}</span></div>
@@ -436,7 +392,6 @@ export const PanelOportunidadesModule = ({ onBack }: PanelOportunidadesModulePro
           </div>
         )}
 
-        {/* MODAL EDITAR */}
         {editLead && (
           <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setEditLead(null)}>
             <div className="bg-[var(--fx-surface)] rounded-2xl border border-white/20 w-[900px] max-h-[90vh] overflow-y-auto p-6" onClick={(e) => e.stopPropagation()}>
