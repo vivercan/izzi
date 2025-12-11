@@ -1,7 +1,7 @@
 import { ModuleTemplate } from './ModuleTemplate';
 import { useState, useEffect } from 'react';
 import { MODULE_IMAGES } from '../../assets/module-images';
-import { Search, Download, TrendingUp, X, BarChart3, Building2, User, Calendar, Eye, Trash2, SortAsc, SortDesc, FileText, Upload, Pencil, AlertTriangle, Loader2, CheckCircle, DollarSign, Clock, AlertCircle } from 'lucide-react';
+import { Search, Download, TrendingUp, X, BarChart3, Building2, User, Calendar, Eye, Trash2, SortAsc, SortDesc, FileText, Upload, Pencil, AlertTriangle, Loader2, CheckCircle, DollarSign, Clock, Zap, Flame, Skull } from 'lucide-react';
 import { projectId, publicAnonKey } from '../../utils/supabase/info';
 
 interface PanelOportunidadesModuleProps { onBack: () => void; }
@@ -12,7 +12,6 @@ interface Lead { id: string; nombreEmpresa: string; paginaWeb: string; nombreCon
 type SortField = 'nombreEmpresa' | 'vendedor' | 'fechaCaptura' | 'viajesPorMes';
 type SortDirection = 'asc' | 'desc';
 
-// Lista de clientes existentes para validación
 const CLIENTES_EXISTENTES = ['ABASTECEDORA DE MATERIAS PRIMAS','AGROINDUSTRIAL AGRILEG DE TEHUACAN','AGROPECUARIA MARLEE','AGROS','ALIANZA CARNICA','ALIMENTOS FINOS DE OCCIDENTE','ALIMENTOS Y SAZONADORES REGIOS','ALL CARRIERS, INC.','ANA PAULA ALONSO ZARAZUA','ARCBEST II INC','ARCH MEAT','ATLAS EXPEDITORS','AVICOLA PILGRIM\'S PRIDE DE MEXICO','AYVI','BAK - HERCA','BAKERY MACHINERY AND ENGINEERING LLC','BARCEL','BARRY CALLEBAUT MEXICO','BARRY CALLEBAUT MEXICO DISTRIBUTORS','BBA LOGISTCS LLC','BERRIES PARADISE','BIMBO','BIO-ORGANICOS SALUDABLES','BISON TRANSPORT INC','C H ROBINSON DE MEXICO','CADENA COMERCIAL OXXO','CARNES SELECTAS TANGAMANGA','CAROLINA LOGISTICS INC','CFI LOGISTICA','CH ROBINSON WORLDWIDE, INC','COMERCIALIZADORA DE LACTEOS Y DERIVADOS','COMERCIALIZADORA GAB','COMERCIALIZADORA KEES','DEACERO','DISTRIBUCION Y EMBARQUES FRESH','DISTRIBUIDORA Y COMERCIALIZADORA INTERNACIONAL DEL NORTE','EA LOGISTICA','EBI TRANSFERS','EDMUNDO BARRAGAN PERALES','EMPACADORA DE CARNES UNIDAD GANADERA','ENLACES TERRESTRES DEL BOSQUE','FORJAS Y MAQUINAS','FP GRUPO LOGISTICO EMPRESARIAL','FRIGORIFICO Y EMPACADORA DE AGUASCALIENTES','FWD LOGISTICA','GANADEROS PRODUCTORES DE LECHE PURA','GRANJAS CARROLL DE MEXICO','GRANJERO FELIZ','GRUPO MELANGE DE MEXICO','GUILLERMO ACEVES CASILLAS','HEXPOL COMPOUNDING','HEXPOL COMPOUNDING QUERETARO','HIGH - TECH GARDENS','HIGH TECH FARMS','HONDA TRADING DE MEXICO','HORTIFRUT','IMPORTADORA DE PRODUCTOS CARNICOS APODACA','INDUSTRIALIZADORA DE CARNICOS STRATTEGA','INDUSTRIAS ACROS WHIRLPOOL','INFINITY TRADING IMPORTS AND EXPORTS','INTERCARNES','INTERLAND TRANSPORT','INTERLAND USA','INVERNADERO ISER','JD AGRO KAPITAL','JOHNSON CONTROLS ENTERPRISES MEXICO','KGL INTERNATIONAL NETWORK MEXICO','KONEKT INTERSERVICE','KRONUS LOGISTICS LLC','L\'ORTICELLO','LA PRADERA MIXTECA','LILA LISSETH GOVEA DUEÑAS','LOADED AND ROLLING CARRIER SOLUTIONS','LOGISTEED MEXICO','LONGHORN WAREHOUSES, INC','LTD INTERNATIONAL','MAR BRAN','MARBRAN USA, LTD','MARIA DE LOURDES HERNANDEZ CABRERA','MARTICO MEX','MCALLEN MEAT PURVEYORS, LLC','MCCAIN MEXICO','MGB INTERNATIONAL LLC','MI PUEBLITO TIERRA BUENA','NATURESWEET COMERCIALIZADORA','NATURESWEET INVERNADEROS','NS BRANDS, LTD','NUVOCARGO','ONE SOLUTION GROUP, INC','ONTARIO LIMITED DBA TRAFFIX','ONUS COMERCIAL','P.A.C. INTERNATIONAL','PERFORMER LOGISTICS','PILGRIM\'S PRIDE','PIPER TRADING LLC','POLLO Y HUEVO TRIUNFO','PRODUCTORA AGRICOLA DE AGUASCALIENTES','PRODUCTORA DE BOCADOS CARNICOS','PRODUCTORA DE HUEVO GIGANTES','PRODUCTOS CAREY','PRODUCTOS FRUGO','PROMOTORA DE MERCADOS','RA QUINTANA ELIZONDO CORPORATIVO ADUANAL','R.H. SHIPPING & CHARTERING','R.H. SHIPPING AND CHARTERING','RANCHO ACUICOLA ELIXIR','RED ROAD LOGISTICS INC','REGULO BARAJAS MEDINA','SCHENKER INTERNATIONAL','SERVI CARNES DE OCCIDENTE','SIGMA ALIMENTOS CENTRO','SIGMA ALIMENTOS COMERCIAL','SKYWHALE','SPEEDYHAUL INTERNATIONAL','STEERINGMEX','SUMMIT PLASTICS GUANAJUATO','SUMMIT PLASTICS SILAO','SUN CHEMICAL','TEU LOGISTICA','TITAN MEATS LLC','TRANSPLACE MEXICO LLC','TRAXION TECHNOLOGIES','TROB TRANSPORTES','TROB USA, LLC','UNITED FC DE MEXICO','UNIVERSAL WIPES','VALLE REDONDO','VDT LOGISTICA','VEGGIE PRIME','VICTUX','VISCERAS SELECTAS DEL BAJIO','WEXPRESS','WHIRLPOOL INTERNACIONAL','ZEBRA LOGISTICS','ZEBRA LOGISTICS, INC'];
 
 const formatDate = (dateStr: string | undefined): string => {
@@ -61,14 +60,8 @@ const buscarDuplicados = (nombre: string, leadsExistentes: Lead[]): { duplicadoE
   const duplicadoExacto = CLIENTES_EXISTENTES.some(c => c.toUpperCase() === nombreNorm) || leadsExistentes.some(l => l.nombreEmpresa.toUpperCase() === nombreNorm);
   const similares: string[] = [];
   const palabras = nombreNorm.split(' ').filter(p => p.length > 3);
-  CLIENTES_EXISTENTES.forEach(c => {
-    const cNorm = c.toUpperCase();
-    if (cNorm !== nombreNorm && palabras.some(p => cNorm.includes(p))) similares.push(c);
-  });
-  leadsExistentes.forEach(l => {
-    const lNorm = l.nombreEmpresa.toUpperCase();
-    if (lNorm !== nombreNorm && palabras.some(p => lNorm.includes(p)) && !similares.includes(l.nombreEmpresa)) similares.push(l.nombreEmpresa);
-  });
+  CLIENTES_EXISTENTES.forEach(c => { const cNorm = c.toUpperCase(); if (cNorm !== nombreNorm && palabras.some(p => cNorm.includes(p))) similares.push(c); });
+  leadsExistentes.forEach(l => { const lNorm = l.nombreEmpresa.toUpperCase(); if (lNorm !== nombreNorm && palabras.some(p => lNorm.includes(p)) && !similares.includes(l.nombreEmpresa)) similares.push(l.nombreEmpresa); });
   return { duplicadoExacto, similares: similares.slice(0, 5) };
 };
 
@@ -135,17 +128,17 @@ export const PanelOportunidadesModule = ({ onBack }: PanelOportunidadesModulePro
     setFilteredLeads(resultado);
   }, [leads, searchTerm, filterVendedor, filterFecha, sortField, sortDirection, showDeleted]);
 
-  const getAlertaLead = (lead: Lead): { tipo: 'amarillo' | 'rojo' | 'critico' | null; mensaje: string; diasRestantes?: number } => {
-    if (lead.etapaLead === 'Cerrado') return { tipo: null, mensaje: '' };
+  const getAlertaLead = (lead: Lead): { tipo: 'amarillo' | 'rojo' | 'critico' | null; mensaje: string; dias: number } => {
+    if (lead.etapaLead === 'Cerrado') return { tipo: null, mensaje: '', dias: 0 };
     const diasCreacion = diasDesdeCreacion(lead.fechaCaptura);
     const diasSinMov = diasSinMovimiento(lead.fechaActualizacion, lead.fechaCaptura);
     if (diasCreacion >= 90) {
       const diasRestantes = 15 - (diasCreacion - 90);
-      return { tipo: 'critico', mensaje: `Lead será liberado en ${diasRestantes > 0 ? diasRestantes : 0} días`, diasRestantes: diasRestantes > 0 ? diasRestantes : 0 };
+      return { tipo: 'critico', mensaje: `Lead será liberado en ${diasRestantes > 0 ? diasRestantes : 0} días. No podrá volver a capturarlo.`, dias: diasRestantes > 0 ? diasRestantes : 0 };
     }
-    if (diasSinMov >= 30) return { tipo: 'rojo', mensaje: 'Urge estatus' };
-    if (diasSinMov >= 15) return { tipo: 'amarillo', mensaje: 'Requiere seguimiento' };
-    return { tipo: null, mensaje: '' };
+    if (diasSinMov >= 30) return { tipo: 'rojo', mensaje: `${diasSinMov} días sin movimiento. ¡Urge actualizar estatus!`, dias: diasSinMov };
+    if (diasSinMov >= 15) return { tipo: 'amarillo', mensaje: `${diasSinMov} días sin movimiento. Requiere seguimiento.`, dias: diasSinMov };
+    return { tipo: null, mensaje: '', dias: 0 };
   };
 
   const handleSort = (field: SortField) => { if (sortField === field) setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc'); else { setSortField(field); setSortDirection('asc'); } };
@@ -313,6 +306,41 @@ export const PanelOportunidadesModule = ({ onBack }: PanelOportunidadesModulePro
   const handleToggleViaje = (v: string) => { const arr = formData.tipoViaje || []; setFormData({ ...formData, tipoViaje: arr.includes(v) ? arr.filter(x => x !== v) : [...arr, v] }); };
   const SortIcon = ({ field }: { field: SortField }) => sortField !== field ? <SortAsc className="w-4 h-4 opacity-30" /> : sortDirection === 'asc' ? <SortAsc className="w-4 h-4" /> : <SortDesc className="w-4 h-4" />;
 
+  // Componente Badge de Alerta
+  const AlertBadge = ({ lead }: { lead: Lead }) => {
+    const alerta = getAlertaLead(lead);
+    if (!alerta.tipo) return null;
+    
+    if (alerta.tipo === 'amarillo') {
+      return (
+        <span title={alerta.mensaje} className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-yellow-500/20 text-yellow-400 text-xs font-semibold cursor-help border border-yellow-500/30 hover:bg-yellow-500/30 transition-colors">
+          <Zap className="w-3 h-3" />
+          <span>{alerta.dias}d</span>
+        </span>
+      );
+    }
+    
+    if (alerta.tipo === 'rojo') {
+      return (
+        <span title={alerta.mensaje} className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-red-500/20 text-red-400 text-xs font-semibold cursor-help border border-red-500/30 hover:bg-red-500/30 transition-colors animate-pulse">
+          <Flame className="w-3 h-3" />
+          <span>{alerta.dias}d</span>
+        </span>
+      );
+    }
+    
+    if (alerta.tipo === 'critico') {
+      return (
+        <span title={alerta.mensaje} className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-red-600/30 text-red-300 text-xs font-bold cursor-help border border-red-500/50 hover:bg-red-600/40 transition-colors animate-pulse">
+          <Skull className="w-3 h-3" />
+          <span>{alerta.dias}d</span>
+        </span>
+      );
+    }
+    
+    return null;
+  };
+
   return (
     <ModuleTemplate title="Panel de Oportunidades" onBack={onBack} headerImage={MODULE_IMAGES.PANEL_OPORTUNIDADES}>
       <div className="flex flex-col h-[calc(100vh-120px)]">
@@ -339,7 +367,7 @@ export const PanelOportunidadesModule = ({ onBack }: PanelOportunidadesModulePro
               <div className="p-3 rounded-lg bg-yellow-500/10 border border-yellow-500/30"><div className="text-yellow-400 mb-1" style={{ fontSize: '12px' }}>Cotizados</div><div className="text-white" style={{ fontFamily: "'Orbitron', sans-serif", fontSize: '28px', fontWeight: 700 }}>{leads.filter(l => !l.eliminado && l.etapaLead === 'Cotizado').length}</div></div>
               <div className="p-3 rounded-lg bg-green-500/10 border border-green-500/30"><div className="text-green-400 mb-1" style={{ fontSize: '12px' }}>Cerrados</div><div className="text-white" style={{ fontFamily: "'Orbitron', sans-serif", fontSize: '28px', fontWeight: 700 }}>{leads.filter(l => !l.eliminado && l.etapaLead === 'Cerrado').length}</div></div>
               <div className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/30"><div className="text-emerald-400 mb-1" style={{ fontSize: '12px' }}>$ Potencial Total</div><div className="text-emerald-400" style={{ fontFamily: "'Orbitron', sans-serif", fontSize: '18px', fontWeight: 700 }}>${leads.filter(l => !l.eliminado && l.proyectadoVentaMensual).reduce((sum, l) => sum + (parseInt(l.proyectadoVentaMensual?.replace(/[^0-9]/g, '') || '0') || 0), 0).toLocaleString('es-MX')} MXN</div></div>
-              <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/30"><div className="text-red-400 mb-1" style={{ fontSize: '12px' }}>En Riesgo</div><div className="text-white" style={{ fontFamily: "'Orbitron', sans-serif", fontSize: '28px', fontWeight: 700 }}>{leads.filter(l => !l.eliminado && getAlertaLead(l).tipo === 'critico').length}</div></div>
+              <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/30"><div className="text-red-400 mb-1" style={{ fontSize: '12px' }}>En Riesgo</div><div className="text-white" style={{ fontFamily: "'Orbitron', sans-serif", fontSize: '28px', fontWeight: 700 }}>{leads.filter(l => !l.eliminado && getAlertaLead(l).tipo !== null).length}</div></div>
             </div>
           </div>
         )}
@@ -348,7 +376,7 @@ export const PanelOportunidadesModule = ({ onBack }: PanelOportunidadesModulePro
           <div className="flex-shrink-0 border-b border-white/10 bg-[var(--fx-surface)]">
             <table className="w-full"><thead><tr>
               <th className="px-2 py-2 text-center text-[var(--fx-muted)]" style={{ fontSize: '11px', fontWeight: 600, width: '3%' }}>#</th>
-              <th onClick={() => handleSort('nombreEmpresa')} className="px-2 py-2 text-left text-[var(--fx-muted)] cursor-pointer hover:text-white" style={{ fontSize: '11px', fontWeight: 600, width: '16%' }}><div className="flex items-center gap-1"><Building2 className="w-3 h-3" />EMPRESA<SortIcon field="nombreEmpresa" /></div></th>
+              <th onClick={() => handleSort('nombreEmpresa')} className="px-2 py-2 text-left text-[var(--fx-muted)] cursor-pointer hover:text-white" style={{ fontSize: '11px', fontWeight: 600, width: '18%' }}><div className="flex items-center gap-1"><Building2 className="w-3 h-3" />EMPRESA<SortIcon field="nombreEmpresa" /></div></th>
               <th className="px-1.5 py-2 text-left text-[var(--fx-muted)]" style={{ fontSize: '11px', fontWeight: 600, width: '7%' }}>ETAPA</th>
               <th className="px-2 py-2 text-left text-[var(--fx-muted)]" style={{ fontSize: '11px', fontWeight: 600, width: '14%' }}>CONTACTO</th>
               <th className="px-2 py-2 text-left text-[var(--fx-muted)]" style={{ fontSize: '11px', fontWeight: 600, width: '10%' }}>SERVICIO</th>
@@ -356,7 +384,7 @@ export const PanelOportunidadesModule = ({ onBack }: PanelOportunidadesModulePro
               <th className="px-1.5 py-2 text-left text-[var(--fx-muted)]" style={{ fontSize: '11px', fontWeight: 600, width: '12%' }}><div className="flex items-center gap-1"><DollarSign className="w-3 h-3" />$ POTENCIAL</div></th>
               <th onClick={() => handleSort('vendedor')} className="px-2 py-2 text-left text-[var(--fx-muted)] cursor-pointer hover:text-white" style={{ fontSize: '11px', fontWeight: 600, width: '10%' }}><div className="flex items-center gap-1"><User className="w-3 h-3" />VENDEDOR<SortIcon field="vendedor" /></div></th>
               <th onClick={() => handleSort('fechaCaptura')} className="px-2 py-2 text-left text-[var(--fx-muted)] cursor-pointer hover:text-white" style={{ fontSize: '11px', fontWeight: 600, width: '8%' }}><div className="flex items-center gap-1"><Calendar className="w-3 h-3" />CREADO<SortIcon field="fechaCaptura" /></div></th>
-              <th className="px-2 py-2 text-center text-[var(--fx-muted)]" style={{ fontSize: '11px', fontWeight: 600, width: '10%' }}>ACCIONES</th>
+              <th className="px-2 py-2 text-center text-[var(--fx-muted)]" style={{ fontSize: '11px', fontWeight: 600, width: '8%' }}>ACCIONES</th>
             </tr></thead></table>
           </div>
           
@@ -368,14 +396,12 @@ export const PanelOportunidadesModule = ({ onBack }: PanelOportunidadesModulePro
                 filteredLeads.map((lead, index) => {
                   const alerta = getAlertaLead(lead);
                   return (
-                    <tr key={lead.id} className={`border-b border-white/5 hover:bg-white/5 ${lead.eliminado ? 'opacity-50 bg-red-500/5' : ''} ${alerta.tipo === 'critico' ? 'bg-red-500/20 border-red-500/30' : ''}`} style={{ height: '48px' }}>
+                    <tr key={lead.id} className={`border-b border-white/5 hover:bg-white/5 ${lead.eliminado ? 'opacity-50 bg-red-500/5' : ''} ${alerta.tipo === 'critico' ? 'bg-red-500/10' : ''}`} style={{ height: '48px' }}>
                       <td className="px-2 py-2 text-center" style={{ fontFamily: "'Orbitron', monospace", fontSize: '11px', fontWeight: 600, color: lead.eliminado ? '#ef4444' : alerta.tipo === 'critico' ? '#ef4444' : 'var(--fx-primary)', width: '3%' }}>{index + 1}</td>
-                      <td className="px-2 py-2" style={{ width: '16%' }}>
-                        <div className="flex items-center gap-2">
-                          <span className="text-white" style={{ fontSize: '11px', fontWeight: 700 }}>{lead.nombreEmpresa}</span>
-                          {alerta.tipo === 'amarillo' && <span title={alerta.mensaje} className="w-3 h-3 rounded-full bg-yellow-500 cursor-help animate-pulse" />}
-                          {alerta.tipo === 'rojo' && <span title={alerta.mensaje} className="w-3 h-3 rounded-full bg-red-500 cursor-help animate-pulse" />}
-                          {alerta.tipo === 'critico' && <span title={alerta.mensaje} className="flex items-center gap-1 px-2 py-0.5 rounded bg-red-500/30 text-red-400 text-xs cursor-help"><AlertCircle className="w-3 h-3" />{alerta.diasRestantes}d</span>}
+                      <td className="px-2 py-2" style={{ width: '18%' }}>
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="text-white truncate" style={{ fontSize: '11px', fontWeight: 700 }}>{lead.nombreEmpresa}</span>
+                          <AlertBadge lead={lead} />
                         </div>
                       </td>
                       <td className="px-1.5 py-2" style={{ width: '7%' }}><span className={`px-2 py-0.5 rounded text-xs font-semibold ${lead.etapaLead === 'Cotizado' ? 'bg-yellow-500/20 text-yellow-400' : lead.etapaLead === 'Negociación' ? 'bg-orange-500/20 text-orange-400' : lead.etapaLead === 'Cerrado' ? 'bg-green-500/20 text-green-400' : 'bg-purple-500/20 text-purple-400'}`} style={{ fontSize: '10px' }}>{lead.etapaLead || 'Prospecto'}</span></td>
@@ -385,7 +411,7 @@ export const PanelOportunidadesModule = ({ onBack }: PanelOportunidadesModulePro
                       <td className="px-1.5 py-2" style={{ width: '12%' }}>{lead.proyectadoVentaMensual ? <span className="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400" style={{ fontFamily: "'Orbitron', monospace", fontSize: '10px', fontWeight: 600 }}>{lead.proyectadoVentaMensual}</span> : <span className="text-[var(--fx-muted)]" style={{ fontSize: '10px' }}>-</span>}</td>
                       <td className="px-2 py-2 text-[var(--fx-muted)]" style={{ fontSize: '11px', width: '10%' }}>{lead.vendedor}</td>
                       <td className="px-2 py-2" style={{ width: '8%' }}><span className="text-white" style={{ fontSize: '10px' }}>{formatDate(lead.fechaCaptura)}</span></td>
-                      <td className="px-2 py-2" style={{ width: '10%' }}>
+                      <td className="px-2 py-2" style={{ width: '8%' }}>
                         <div className="flex items-center justify-center gap-1">
                           <button onClick={() => setSelectedLead(lead)} className="p-1.5 rounded-lg bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 border border-blue-500/30" title="Ver detalle completo"><Eye className="w-3.5 h-3.5" /></button>
                           <button onClick={() => setEditLead(lead)} className="p-1.5 rounded-lg bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-400 border border-yellow-500/30" disabled={lead.eliminado} title="Editar lead"><Pencil className="w-3.5 h-3.5" /></button>
@@ -418,7 +444,6 @@ export const PanelOportunidadesModule = ({ onBack }: PanelOportunidadesModulePro
               <button onClick={() => setSelectedLead(null)} className="p-2 rounded-lg hover:bg-white/10"><X className="w-5 h-5 text-white" /></button>
             </div>
             
-            {/* Fechas importantes */}
             <div className="grid grid-cols-2 gap-4 mb-4">
               <div className="p-3 rounded-lg bg-blue-500/10 border border-blue-500/30">
                 <div className="flex items-center gap-2 text-blue-400 text-xs mb-1"><Calendar className="w-3 h-3" />Fecha de Creación</div>
@@ -430,7 +455,6 @@ export const PanelOportunidadesModule = ({ onBack }: PanelOportunidadesModulePro
               </div>
             </div>
             
-            {/* Info básica */}
             <div className="grid grid-cols-3 gap-4 text-sm mb-4">
               <div className="p-3 rounded-lg bg-white/5"><div className="text-blue-400 text-xs mb-1">Contacto</div><div className="text-white font-semibold">{selectedLead.nombreContacto}</div><div className="text-gray-400">{selectedLead.correoElectronico}</div>{selectedLead.telefonoContacto && <div className="text-gray-400">{selectedLead.telefonoContacto}</div>}</div>
               <div className="p-3 rounded-lg bg-white/5"><div className="text-blue-400 text-xs mb-1">Servicio</div><div className="flex flex-wrap gap-1">{(selectedLead.tipoServicio||[]).map((t,i)=><span key={i} className="px-2 py-0.5 rounded bg-blue-500/20 text-blue-400 text-xs">{t}</span>)}</div></div>
@@ -439,13 +463,11 @@ export const PanelOportunidadesModule = ({ onBack }: PanelOportunidadesModulePro
               <div className="p-3 rounded-lg bg-white/5"><div className="text-orange-400 text-xs mb-1">Viajes/Mes</div><div className="text-white font-bold text-lg">{selectedLead.viajesPorMes || '-'}</div></div>
             </div>
             
-            {/* Potencial */}
             <div className="p-4 rounded-lg bg-emerald-500/10 border border-emerald-500/30 mb-4">
               <div className="text-emerald-400 text-xs mb-1">$ Potencial Mensual</div>
               <div className="text-emerald-400 font-bold text-3xl">{selectedLead.proyectadoVentaMensual || 'Sin calcular'}</div>
             </div>
             
-            {/* Cotizaciones */}
             {selectedLead.cotizaciones && selectedLead.cotizaciones.filter(c => !c.eliminado).length > 0 && (
               <div className="mb-4">
                 <h4 className="text-white font-semibold mb-2 flex items-center gap-2"><FileText className="w-4 h-4 text-emerald-400" />Cotizaciones ({selectedLead.cotizaciones.filter(c => !c.eliminado).length})</h4>
@@ -476,7 +498,6 @@ export const PanelOportunidadesModule = ({ onBack }: PanelOportunidadesModulePro
               </div>
             )}
             
-            {/* Historial de cambios */}
             {selectedLead.historial && selectedLead.historial.length > 0 && (
               <div className="mb-4">
                 <h4 className="text-white font-semibold mb-2 flex items-center gap-2"><Clock className="w-4 h-4 text-orange-400" />Historial de Modificaciones</h4>
@@ -558,7 +579,7 @@ export const PanelOportunidadesModule = ({ onBack }: PanelOportunidadesModulePro
         </div>
       )}
 
-      {/* Modal Captura de Viajes - Solo editable viajes */}
+      {/* Modal Captura de Viajes */}
       {lineasModal && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
           <div className="bg-[var(--fx-surface)] rounded-2xl border border-emerald-500/30 w-[900px] max-h-[90vh] overflow-y-auto p-6">
@@ -568,10 +589,9 @@ export const PanelOportunidadesModule = ({ onBack }: PanelOportunidadesModulePro
             </div>
             
             <div className="mb-4 p-3 rounded-lg bg-blue-500/10 border border-blue-500/20">
-              <p className="text-blue-400 text-sm">Captura únicamente el número de <strong>viajes potenciales por mes</strong> para cada ruta. Los demás datos fueron extraídos del PDF.</p>
+              <p className="text-blue-400 text-sm">Captura únicamente el número de <strong>viajes potenciales por mes</strong> para cada ruta.</p>
             </div>
             
-            {/* Header de la tabla */}
             <div className="grid grid-cols-12 gap-2 px-3 py-2 bg-white/5 rounded-t-lg text-xs text-gray-400 font-semibold">
               <div className="col-span-4">RUTA</div>
               <div className="col-span-2">TIPO</div>
