@@ -1,0 +1,14 @@
+========================================
+⚡ COMANDO RÁPIDO PARA SUBIR TODO
+========================================
+
+Copia y pega esto en PowerShell:
+
+cd C:\Users\timon\Documents\Chabelita && Copy-Item "C:\Users\timon\Downloads\ES ESTE\src\App.tsx" -Destination ".\src\App.tsx" -Force && Copy-Item "C:\Users\timon\Downloads\ES ESTE\src\styles\*" -Destination ".\src\styles\" -Recurse -Force && Copy-Item "C:\Users\timon\Downloads\ES ESTE\src\components\*" -Destination ".\src\components\" -Recurse -Force && Copy-Item "C:\Users\timon\Downloads\ES ESTE\package.json" -Destination ".\package.json" -Force && git add . && git commit -m "feat(fx27): Sync Figma Make → GitHub" && git push origin main
+
+========================================
+
+¡Eso es todo! Espera 2-3 minutos y revisa:
+www.jjcrm27.com
+
+========================================

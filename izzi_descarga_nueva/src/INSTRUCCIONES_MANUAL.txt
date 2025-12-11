@@ -1,0 +1,50 @@
+═══════════════════════════════════════════════════════════════
+CORRECCIÓN MANUAL - REGEX EN index.tsx
+═══════════════════════════════════════════════════════════════
+
+ARCHIVO: supabase\functions\server\index.tsx
+LÍNEAS: 1150-1161
+
+BUSCAR ESTAS 12 LÍNEAS:
+──────────────────────────────────────────────────────────────
+        const latMatch = responseText.match(/<Latitude>([-\\d.]+)<\\/Latitude>/);
+        const lngMatch = responseText.match(/<Longitude>([-\\d.]+)<\\/Longitude>/);
+        const speedMatch = responseText.match(/<Speed>([\\d.]+)<\\/Speed>/);
+        const headingMatch = responseText.match(/<Heading>([^<]+)<\\/Heading>/);
+        const locationMatch = responseText.match(/<Location><!\\[CDATA\\[([^\\]]+)\\]\\]><\\/Location>/);
+        const dateTimeMatch = responseText.match(/<DateTimeGPS>([^<]+)<\\/DateTimeGPS>/);
+        const odometerMatch = responseText.match(/<Odometer>([\\d.]+)<\\/Odometer>/);
+        const ignitionMatch = responseText.match(/<Ignition>([01])<\\/Ignition>/);
+        
+        // Parsear temperaturas (S1 y S2)
+        const temp1Match = responseText.match(/<S1[^>]*>([-\\d.]+)<\\/S1>/);
+        const temp2Match = responseText.match(/<S2[^>]*>([-\\d.]+)<\\/S2>/);
+
+REEMPLAZAR CON ESTAS 12 LÍNEAS:
+──────────────────────────────────────────────────────────────
+        const latMatch = responseText.match(/<Latitude>([-\d.]+)<\/Latitude>/);
+        const lngMatch = responseText.match(/<Longitude>([-\d.]+)<\/Longitude>/);
+        const speedMatch = responseText.match(/<Speed>([\d.]+)<\/Speed>/);
+        const headingMatch = responseText.match(/<Heading>([^<]+)<\/Heading>/);
+        const locationMatch = responseText.match(/<Location><!\[CDATA\[([^\]]+)\]\]><\/Location>/);
+        const dateTimeMatch = responseText.match(/<DateTimeGPS>([^<]+)<\/DateTimeGPS>/);
+        const odometerMatch = responseText.match(/<Odometer>([\d.]+)<\/Odometer>/);
+        const ignitionMatch = responseText.match(/<Ignition>([01])<\/Ignition>/);
+        
+        // Parsear temperaturas (S1 y S2)
+        const temp1Match = responseText.match(/<S1[^>]*>([-\d.]+)<\/S1>/);
+        const temp2Match = responseText.match(/<S2[^>]*>([-\d.]+)<\/S2>/);
+
+CAMBIOS:
+──────────────────────────────────────────────────────────────
+ ✓ \\d → \d   (quitar doble backslash)
+ ✓ \\/ → \/   (quitar doble backslash de barras)
+ ✓ \\] → \]   (quitar doble backslash de corchetes)
+
+DESPUÉS DE EDITAR:
+──────────────────────────────────────────────────────────────
+1. Guardar el archivo
+2. Ejecutar: git diff supabase/functions/server/index.tsx
+3. Hacer commit: git add . && git commit -m "fix: corregir regex para parseo XML en WideTech" && git push
+
+═══════════════════════════════════════════════════════════════
