@@ -5,7 +5,6 @@ import { Search, Download, TrendingUp, X, BarChart3, Building2, User, Calendar, 
 import { projectId, publicAnonKey } from '../../utils/supabase/info';
 import * as pdfjsLib from 'pdfjs-dist';
 
-// Configurar worker de PDF.js
 pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
 interface PanelOportunidadesModuleProps { onBack: () => void; }
@@ -18,56 +17,22 @@ type SortDirection = 'asc' | 'desc';
 
 const CLIENTES_EXISTENTES = ['ABASTECEDORA DE MATERIAS PRIMAS','AGROINDUSTRIAL AGRILEG DE TEHUACAN','AGROPECUARIA MARLEE','AGROS','ALIANZA CARNICA','ALIMENTOS FINOS DE OCCIDENTE','ALIMENTOS Y SAZONADORES REGIOS','ALL CARRIERS, INC.','ARCBEST II INC','ARCH MEAT','ATLAS EXPEDITORS','AVICOLA PILGRIM\'S PRIDE DE MEXICO','BAKERY MACHINERY AND ENGINEERING LLC','BARCEL','BARRY CALLEBAUT MEXICO','BBA LOGISTCS LLC','BERRIES PARADISE','BIMBO','BISON TRANSPORT INC','C H ROBINSON DE MEXICO','CADENA COMERCIAL OXXO','CARNES SELECTAS TANGAMANGA','CAROLINA LOGISTICS INC','CFI LOGISTICA','CH ROBINSON WORLDWIDE, INC','COMERCIALIZADORA DE LACTEOS Y DERIVADOS','COMERCIALIZADORA GAB','COMERCIALIZADORA KEES','DEACERO','DISTRIBUCION Y EMBARQUES FRESH','EA LOGISTICA','EMPACADORA DE CARNES UNIDAD GANADERA','ENLACES TERRESTRES DEL BOSQUE','FRIGORIFICO Y EMPACADORA DE AGUASCALIENTES','FWD LOGISTICA','GANADEROS PRODUCTORES DE LECHE PURA','GRANJAS CARROLL DE MEXICO','GRANJERO FELIZ','GRUPO MELANGE DE MEXICO','HEXPOL COMPOUNDING','HIGH TECH FARMS','HONDA TRADING DE MEXICO','HORTIFRUT','IMPORTADORA DE PRODUCTOS CARNICOS APODACA','INDUSTRIALIZADORA DE CARNICOS STRATTEGA','INDUSTRIAS ACROS WHIRLPOOL','INTERCARNES','INTERLAND TRANSPORT','INTERLAND USA','JOHNSON CONTROLS ENTERPRISES MEXICO','KGL INTERNATIONAL NETWORK MEXICO','KONEKT INTERSERVICE','KRONUS LOGISTICS LLC','LOGISTEED MEXICO','LONGHORN WAREHOUSES, INC','MAR BRAN','MARBRAN USA, LTD','MARTICO MEX','MCALLEN MEAT PURVEYORS, LLC','MCCAIN MEXICO','NATURESWEET COMERCIALIZADORA','NATURESWEET INVERNADEROS','NS BRANDS, LTD','NUVOCARGO','ONE SOLUTION GROUP, INC','P.A.C. INTERNATIONAL','PERFORMER LOGISTICS','PILGRIM\'S PRIDE','PIPER TRADING LLC','POLLO Y HUEVO TRIUNFO','PRODUCTORA AGRICOLA DE AGUASCALIENTES','PRODUCTORA DE BOCADOS CARNICOS','PRODUCTOS CAREY','PRODUCTOS FRUGO','PROMOTORA DE MERCADOS','R.H. SHIPPING & CHARTERING','RANCHO ACUICOLA ELIXIR','RED ROAD LOGISTICS INC','SCHENKER INTERNATIONAL','SERVI CARNES DE OCCIDENTE','SIGMA ALIMENTOS CENTRO','SIGMA ALIMENTOS COMERCIAL','SPEEDYHAUL INTERNATIONAL','STEERINGMEX','SUMMIT PLASTICS GUANAJUATO','SUN CHEMICAL','TEU LOGISTICA','TITAN MEATS LLC','TRANSPLACE MEXICO LLC','TRAXION TECHNOLOGIES','TROB TRANSPORTES','TROB USA, LLC','UNITED FC DE MEXICO','VALLE REDONDO','VDT LOGISTICA','VEGGIE PRIME','VICTUX','VISCERAS SELECTAS DEL BAJIO','WEXPRESS','WHIRLPOOL INTERNACIONAL','ZEBRA LOGISTICS','ZEBRA LOGISTICS, INC'];
 
-const formatDate = (dateStr: string | undefined): string => {
-  if (!dateStr) return '-';
-  try { const date = new Date(dateStr); if (isNaN(date.getTime())) return '-'; return date.toLocaleDateString('es-MX', { day: '2-digit', month: '2-digit', year: 'numeric' }); } catch { return '-'; }
-};
-
-const formatDateTime = (dateStr: string | undefined): string => {
-  if (!dateStr) return '-';
-  try { const date = new Date(dateStr); if (isNaN(date.getTime())) return '-'; return date.toLocaleDateString('es-MX', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }); } catch { return '-'; }
-};
-
-const diasSinMovimiento = (fechaActualizacion: string | undefined, fechaCaptura: string | undefined): number => {
-  const fecha = fechaActualizacion || fechaCaptura;
-  if (!fecha) return 0;
-  const diff = Date.now() - new Date(fecha).getTime();
-  return Math.floor(diff / (1000 * 60 * 60 * 24));
-};
-
-const diasDesdeCreacion = (fechaCaptura: string | undefined): number => {
-  if (!fechaCaptura) return 0;
-  const diff = Date.now() - new Date(fechaCaptura).getTime();
-  return Math.floor(diff / (1000 * 60 * 60 * 24));
-};
-
-const TC_USD_MXN = 20.50;
+const formatDate = (dateStr: string | undefined): string => { if (!dateStr) return '-'; try { const date = new Date(dateStr); if (isNaN(date.getTime())) return '-'; return date.toLocaleDateString('es-MX', { day: '2-digit', month: '2-digit', year: 'numeric' }); } catch { return '-'; } };
+const formatDateTime = (dateStr: string | undefined): string => { if (!dateStr) return '-'; try { const date = new Date(dateStr); if (isNaN(date.getTime())) return '-'; return date.toLocaleDateString('es-MX', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }); } catch { return '-'; } };
+const diasSinMovimiento = (fechaActualizacion: string | undefined, fechaCaptura: string | undefined): number => { const fecha = fechaActualizacion || fechaCaptura; if (!fecha) return 0; return Math.floor((Date.now() - new Date(fecha).getTime()) / (1000 * 60 * 60 * 24)); };
+const diasDesdeCreacion = (fechaCaptura: string | undefined): number => { if (!fechaCaptura) return 0; return Math.floor((Date.now() - new Date(fechaCaptura).getTime()) / (1000 * 60 * 60 * 24)); };
 
 const detectarTipoViaje = (ruta: string): string => {
   const rutaLower = ruta.toLowerCase();
   const ciudadesUSA = ['laredo', 'nuevo laredo', 'nvo laredo', 'dallas', 'houston', 'san antonio', 'el paso', 'mcallen', 'brownsville', 'eagle pass', 'texas', 'tx', 'california', 'ca', 'arizona', 'az', 'chicago', 'los angeles', 'phoenix'];
   const tieneUSA = ciudadesUSA.some(c => rutaLower.includes(c));
   const tieneLaredo = rutaLower.includes('laredo') || rutaLower.includes('lrd');
-  
-  if (tieneLaredo) {
-    const partes = rutaLower.split(/[-–—>a]/);
-    if (partes.length >= 2) {
-      const origen = partes[0].trim();
-      const destino = partes[partes.length - 1].trim();
-      const origenUSA = ciudadesUSA.some(c => origen.includes(c));
-      const destinoUSA = ciudadesUSA.some(c => destino.includes(c));
-      if (origenUSA && !destinoUSA) return 'Impo';
-      if (!origenUSA && destinoUSA) return 'Expo';
-    }
-  }
+  if (tieneLaredo) { const partes = rutaLower.split(/[-–—>a]/); if (partes.length >= 2) { const origen = partes[0].trim(); const destino = partes[partes.length - 1].trim(); const origenUSA = ciudadesUSA.some(c => origen.includes(c)); const destinoUSA = ciudadesUSA.some(c => destino.includes(c)); if (origenUSA && !destinoUSA) return 'Impo'; if (!origenUSA && destinoUSA) return 'Expo'; } }
   if (tieneUSA && !tieneLaredo) return 'DTD';
   return 'Nacional';
 };
 
-const detectarMoneda = (texto: string): string => {
-  if (texto.includes('USD') || texto.includes('usd') || texto.includes('dlls') || texto.includes('dólares') || texto.includes('dolares')) return 'USD';
-  return 'MXN';
-};
+const detectarMoneda = (texto: string): string => { if (texto.includes('USD') || texto.includes('usd') || texto.includes('dlls') || texto.includes('dólares') || texto.includes('dolares')) return 'USD'; return 'MXN'; };
 
 const buscarDuplicados = (nombre: string, leadsExistentes: Lead[]): { duplicadoExacto: boolean; similares: string[] } => {
   const nombreNorm = nombre.toUpperCase().trim();
@@ -79,103 +44,50 @@ const buscarDuplicados = (nombre: string, leadsExistentes: Lead[]): { duplicadoE
   return { duplicadoExacto, similares: similares.slice(0, 5) };
 };
 
-// Función para extraer texto del PDF
 const extraerTextoPDF = async (base64: string): Promise<string> => {
   try {
     const base64Data = base64.split(',')[1] || base64;
     const binaryString = atob(base64Data);
     const bytes = new Uint8Array(binaryString.length);
-    for (let i = 0; i < binaryString.length; i++) {
-      bytes[i] = binaryString.charCodeAt(i);
-    }
-    
+    for (let i = 0; i < binaryString.length; i++) bytes[i] = binaryString.charCodeAt(i);
     const pdf = await pdfjsLib.getDocument({ data: bytes }).promise;
     let fullText = '';
-    
-    for (let i = 1; i <= pdf.numPages; i++) {
-      const page = await pdf.getPage(i);
-      const textContent = await page.getTextContent();
-      const pageText = textContent.items.map((item: any) => item.str).join(' ');
-      fullText += pageText + '\n';
-    }
-    
+    for (let i = 1; i <= pdf.numPages; i++) { const page = await pdf.getPage(i); const textContent = await page.getTextContent(); fullText += textContent.items.map((item: any) => item.str).join(' ') + '\n'; }
     return fullText;
-  } catch (error) {
-    console.error('Error extrayendo texto del PDF:', error);
-    return '';
-  }
+  } catch (error) { console.error('Error extrayendo texto del PDF:', error); return ''; }
 };
 
-// Función para parsear cotización del texto
 const parsearCotizacion = (texto: string): { rutas: LineaCotizacion[], moneda: string } => {
   const lineas: LineaCotizacion[] = [];
   const monedaGlobal = detectarMoneda(texto);
-  
-  // Patrones comunes de rutas en cotizaciones
-  const patronesRuta = [
-    /([A-ZÁÉÍÓÚÑ][A-ZÁÉÍÓÚÑa-záéíóúñ\s,\.]+)\s*[-–—>a]+\s*([A-ZÁÉÍÓÚÑ][A-ZÁÉÍÓÚÑa-záéíóúñ\s,\.]+)[\s:]*\$?\s*([\d,\.]+)/gi,
-    /ruta[:\s]*([^$\n]+)\$?\s*([\d,\.]+)/gi,
-    /origen[:\s]*([^\n]+).*destino[:\s]*([^\n]+).*(?:tarifa|precio|costo)[:\s]*\$?\s*([\d,\.]+)/gi,
-    /([A-Z]{3,})\s*[-–—>]+\s*([A-Z]{3,})[\s:]*\$?\s*([\d,\.]+)/gi,
-  ];
-  
-  // Buscar tarifas en el texto
+  const patronesRuta = [/([A-ZÁÉÍÓÚÑ][A-ZÁÉÍÓÚÑa-záéíóúñ\s,\.]+)\s*[-–—>a]+\s*([A-ZÁÉÍÓÚÑ][A-ZÁÉÍÓÚÑa-záéíóúñ\s,\.]+)[\s:]*\$?\s*([\d,\.]+)/gi, /ruta[:\s]*([^$\n]+)\$?\s*([\d,\.]+)/gi, /([A-Z]{3,})\s*[-–—>]+\s*([A-Z]{3,})[\s:]*\$?\s*([\d,\.]+)/gi];
   const tarifaMatch = texto.match(/(?:tarifa|precio|costo|rate|flete)[:\s]*\$?\s*([\d,\.]+)/i);
   const tarifaBase = tarifaMatch ? parseFloat(tarifaMatch[1].replace(/,/g, '')) : 0;
-  
-  // Buscar rutas
-  for (const patron of patronesRuta) {
-    let match;
-    while ((match = patron.exec(texto)) !== null) {
-      const origen = match[1]?.trim() || '';
-      const destino = match[2]?.trim() || '';
-      const tarifa = match[3] ? parseFloat(match[3].replace(/,/g, '')) : tarifaBase;
-      
-      if (origen && destino && origen.length > 2 && destino.length > 2) {
-        const rutaCompleta = `${origen} - ${destino}`;
-        if (!lineas.some(l => l.ruta.toLowerCase() === rutaCompleta.toLowerCase())) {
-          lineas.push({
-            ruta: rutaCompleta,
-            tarifa: tarifa || 0,
-            moneda: monedaGlobal,
-            viajes: 0,
-            tipoViaje: detectarTipoViaje(rutaCompleta),
-            subtotalMXN: 0
-          });
-        }
-      }
-    }
-  }
-  
-  // Si no encontró rutas, buscar ciudades mencionadas
-  if (lineas.length === 0) {
-    const ciudades = texto.match(/(?:monterrey|guadalajara|cdmx|ciudad de mexico|mexico city|queretaro|aguascalientes|leon|saltillo|torreon|chihuahua|tijuana|laredo|nuevo laredo|dallas|houston|san antonio|mcallen)/gi);
-    if (ciudades && ciudades.length >= 2) {
-      const rutaCompleta = `${ciudades[0]} - ${ciudades[1]}`;
-      lineas.push({
-        ruta: rutaCompleta,
-        tarifa: tarifaBase,
-        moneda: monedaGlobal,
-        viajes: 0,
-        tipoViaje: detectarTipoViaje(rutaCompleta),
-        subtotalMXN: 0
-      });
-    }
-  }
-  
-  // Si aún no hay rutas, crear una genérica con la tarifa encontrada
-  if (lineas.length === 0) {
-    lineas.push({
-      ruta: 'Ruta por definir',
-      tarifa: tarifaBase,
-      moneda: monedaGlobal,
-      viajes: 0,
-      tipoViaje: 'Nacional',
-      subtotalMXN: 0
-    });
-  }
-  
+  for (const patron of patronesRuta) { let match; while ((match = patron.exec(texto)) !== null) { const origen = match[1]?.trim() || ''; const destino = match[2]?.trim() || ''; const tarifa = match[3] ? parseFloat(match[3].replace(/,/g, '')) : tarifaBase; if (origen && destino && origen.length > 2 && destino.length > 2) { const rutaCompleta = `${origen} - ${destino}`; if (!lineas.some(l => l.ruta.toLowerCase() === rutaCompleta.toLowerCase())) { lineas.push({ ruta: rutaCompleta, tarifa: tarifa || 0, moneda: monedaGlobal, viajes: 0, tipoViaje: detectarTipoViaje(rutaCompleta), subtotalMXN: 0 }); } } } }
+  if (lineas.length === 0) { const ciudades = texto.match(/(?:monterrey|guadalajara|cdmx|ciudad de mexico|queretaro|aguascalientes|leon|saltillo|torreon|chihuahua|tijuana|laredo|nuevo laredo|dallas|houston|san antonio|mcallen)/gi); if (ciudades && ciudades.length >= 2) { const rutaCompleta = `${ciudades[0]} - ${ciudades[1]}`; lineas.push({ ruta: rutaCompleta, tarifa: tarifaBase, moneda: monedaGlobal, viajes: 0, tipoViaje: detectarTipoViaje(rutaCompleta), subtotalMXN: 0 }); } }
+  if (lineas.length === 0) lineas.push({ ruta: 'Ruta por definir', tarifa: tarifaBase, moneda: monedaGlobal, viajes: 0, tipoViaje: 'Nacional', subtotalMXN: 0 });
   return { rutas: lineas, moneda: monedaGlobal };
+};
+
+// Función para obtener tipo de cambio del día
+const obtenerTipoCambio = async (): Promise<number> => {
+  try {
+    // Intentar obtener de localStorage si fue guardado hoy
+    const cached = localStorage.getItem('tipoCambioUSD');
+    if (cached) {
+      const { valor, fecha } = JSON.parse(cached);
+      if (fecha === new Date().toISOString().split('T')[0]) return valor;
+    }
+    // Obtener de API gratuita (exchangerate-api.com)
+    const response = await fetch('https://api.exchangerate-api.com/v4/latest/USD');
+    if (response.ok) {
+      const data = await response.json();
+      const tc = data.rates?.MXN || 20.50;
+      localStorage.setItem('tipoCambioUSD', JSON.stringify({ valor: tc, fecha: new Date().toISOString().split('T')[0] }));
+      return tc;
+    }
+    return 20.50; // Fallback
+  } catch { return 20.50; }
 };
 
 export const PanelOportunidadesModule = ({ onBack }: PanelOportunidadesModuleProps) => {
@@ -198,10 +110,12 @@ export const PanelOportunidadesModule = ({ onBack }: PanelOportunidadesModulePro
   const [analizando, setAnalizando] = useState(false);
   const [statusMsg, setStatusMsg] = useState('');
   const [pdfPreview, setPdfPreview] = useState<string | null>(null);
-  const [tipoCambio] = useState(TC_USD_MXN);
+  const [tipoCambio, setTipoCambio] = useState<number>(20.50);
   const [lineasModal, setLineasModal] = useState<{cotizacion: Cotizacion, lead: Lead, index: number} | null>(null);
   const [lineasCotizacion, setLineasCotizacion] = useState<LineaCotizacion[]>([]);
 
+  // Cargar tipo de cambio al iniciar
+  useEffect(() => { obtenerTipoCambio().then(tc => setTipoCambio(tc)); }, []);
   useEffect(() => { if (editLead) setFormData(editLead); }, [editLead]);
 
   useEffect(() => {
@@ -209,12 +123,7 @@ export const PanelOportunidadesModule = ({ onBack }: PanelOportunidadesModulePro
       try {
         const session = localStorage.getItem('fx27-session');
         let vendedorActual = '', esAdmin = false;
-        if (session) {
-          const { email } = JSON.parse(session);
-          const usuarios = JSON.parse(localStorage.getItem('fx27-usuarios') || '[]');
-          const usuario = usuarios.find((u: any) => u.correo === email);
-          if (usuario) { vendedorActual = usuario.nombre; esAdmin = usuario.rol === 'admin'; setIsAdmin(esAdmin); }
-        }
+        if (session) { const { email } = JSON.parse(session); const usuarios = JSON.parse(localStorage.getItem('fx27-usuarios') || '[]'); const usuario = usuarios.find((u: any) => u.correo === email); if (usuario) { vendedorActual = usuario.nombre; esAdmin = usuario.rol === 'admin'; setIsAdmin(esAdmin); } }
         const url = esAdmin ? `https://${projectId}.supabase.co/functions/v1/make-server-d84b50bb/leads` : `https://${projectId}.supabase.co/functions/v1/make-server-d84b50bb/leads?vendedor=${encodeURIComponent(vendedorActual)}`;
         const response = await fetch(url, { headers: { 'Authorization': `Bearer ${publicAnonKey}` } });
         const result = await response.json();
@@ -230,14 +139,7 @@ export const PanelOportunidadesModule = ({ onBack }: PanelOportunidadesModulePro
     if (searchTerm) resultado = resultado.filter(lead => lead.nombreEmpresa.toLowerCase().includes(searchTerm.toLowerCase()) || lead.nombreContacto.toLowerCase().includes(searchTerm.toLowerCase()) || lead.correoElectronico.toLowerCase().includes(searchTerm.toLowerCase()));
     if (filterVendedor) resultado = resultado.filter(lead => lead.vendedor === filterVendedor);
     if (filterFecha) resultado = resultado.filter(lead => { try { return lead.fechaCaptura && new Date(lead.fechaCaptura).toISOString().split('T')[0] === filterFecha; } catch { return false; } });
-    resultado.sort((a, b) => {
-      let valueA: any = a[sortField], valueB: any = b[sortField];
-      if (sortField === 'viajesPorMes') { valueA = parseInt(valueA) || 0; valueB = parseInt(valueB) || 0; }
-      if (sortField === 'fechaCaptura') { try { valueA = new Date(a.fechaCaptura || '').getTime() || 0; valueB = new Date(b.fechaCaptura || '').getTime() || 0; } catch { valueA = 0; valueB = 0; } }
-      if (valueA < valueB) return sortDirection === 'asc' ? -1 : 1;
-      if (valueA > valueB) return sortDirection === 'asc' ? 1 : -1;
-      return 0;
-    });
+    resultado.sort((a, b) => { let valueA: any = a[sortField], valueB: any = b[sortField]; if (sortField === 'viajesPorMes') { valueA = parseInt(valueA) || 0; valueB = parseInt(valueB) || 0; } if (sortField === 'fechaCaptura') { try { valueA = new Date(a.fechaCaptura || '').getTime() || 0; valueB = new Date(b.fechaCaptura || '').getTime() || 0; } catch { valueA = 0; valueB = 0; } } if (valueA < valueB) return sortDirection === 'asc' ? -1 : 1; if (valueA > valueB) return sortDirection === 'asc' ? 1 : -1; return 0; });
     setFilteredLeads(resultado);
   }, [leads, searchTerm, filterVendedor, filterFecha, sortField, sortDirection, showDeleted]);
 
@@ -245,12 +147,9 @@ export const PanelOportunidadesModule = ({ onBack }: PanelOportunidadesModulePro
     if (lead.etapaLead === 'Cerrado') return { tipo: null, mensaje: '', dias: 0 };
     const diasCreacion = diasDesdeCreacion(lead.fechaCaptura);
     const diasSinMov = diasSinMovimiento(lead.fechaActualizacion, lead.fechaCaptura);
-    if (diasCreacion >= 90) {
-      const diasRestantes = 15 - (diasCreacion - 90);
-      return { tipo: 'critico', mensaje: `Lead será liberado en ${diasRestantes > 0 ? diasRestantes : 0} días. No podrá volver a capturarlo.`, dias: diasRestantes > 0 ? diasRestantes : 0 };
-    }
-    if (diasSinMov >= 30) return { tipo: 'rojo', mensaje: `${diasSinMov} días sin movimiento. ¡Urge actualizar estatus!`, dias: diasSinMov };
-    if (diasSinMov >= 15) return { tipo: 'amarillo', mensaje: `${diasSinMov} días sin movimiento. Requiere seguimiento.`, dias: diasSinMov };
+    if (diasCreacion >= 90) { const diasRestantes = 15 - (diasCreacion - 90); return { tipo: 'critico', mensaje: `Lead será liberado en ${diasRestantes > 0 ? diasRestantes : 0} días.`, dias: diasRestantes > 0 ? diasRestantes : 0 }; }
+    if (diasSinMov >= 30) return { tipo: 'rojo', mensaje: `${diasSinMov} días sin movimiento. ¡Urge!`, dias: diasSinMov };
+    if (diasSinMov >= 15) return { tipo: 'amarillo', mensaje: `${diasSinMov} días sin movimiento.`, dias: diasSinMov };
     return { tipo: null, mensaje: '', dias: 0 };
   };
 
@@ -259,61 +158,30 @@ export const PanelOportunidadesModule = ({ onBack }: PanelOportunidadesModulePro
   const getVendedoresUnicos = () => Array.from(new Set(leads.map(lead => lead.vendedor)));
 
   const handleSubirCotizaciones = async (files: FileList, lead: Lead) => {
-    setAnalizando(true);
-    setStatusMsg('Leyendo PDF...');
+    setAnalizando(true); setStatusMsg('Leyendo PDF...');
     const archivos = Array.from(files).filter(f => f.type === 'application/pdf');
     if (archivos.length === 0) { alert('Solo PDFs'); setAnalizando(false); setStatusMsg(''); return; }
-    
-    for (let i = 0; i < archivos.length; i++) {
-      const file = archivos[i];
+    for (const file of archivos) {
       try {
         setStatusMsg('Extrayendo contenido...');
-        const base64 = await new Promise<string>((resolve, reject) => { 
-          const reader = new FileReader(); 
-          reader.onload = () => resolve(reader.result as string); 
-          reader.onerror = () => reject('Error'); 
-          reader.readAsDataURL(file); 
-        });
-        
-        // Extraer texto del PDF
+        const base64 = await new Promise<string>((resolve, reject) => { const reader = new FileReader(); reader.onload = () => resolve(reader.result as string); reader.onerror = () => reject('Error'); reader.readAsDataURL(file); });
         setStatusMsg('Analizando rutas y tarifas...');
         const textoPDF = await extraerTextoPDF(base64);
-        console.log('Texto extraído del PDF:', textoPDF.substring(0, 500));
-        
-        // Parsear la cotización
-        const { rutas, moneda } = parsearCotizacion(textoPDF);
-        console.log('Rutas encontradas:', rutas);
-        
-        const nuevaCot: Cotizacion = { 
-          nombre: file.name, 
-          url: base64, 
-          fecha: new Date().toISOString(), 
-          analisis: { textoPDF: textoPDF.substring(0, 1000), moneda },
-          eliminado: false 
-        };
-        
+        const { rutas } = parsearCotizacion(textoPDF);
+        const nuevaCot: Cotizacion = { nombre: file.name, url: base64, fecha: new Date().toISOString(), eliminado: false };
         const leadTemp = { ...lead, cotizaciones: [...(lead.cotizaciones || []), nuevaCot] };
         setLeads(leads.map(l => l.id === lead.id ? leadTemp : l));
         setCotizacionesModal(leadTemp);
         setLineasCotizacion(rutas);
         setLineasModal({ cotizacion: nuevaCot, lead: leadTemp, index: (lead.cotizaciones || []).length });
-        setAnalizando(false);
-        setStatusMsg('');
+        setAnalizando(false); setStatusMsg('');
         return;
-      } catch (e) { 
-        console.error('Error:', e); 
-        alert('Error al procesar el PDF');
-      }
+      } catch (e) { console.error('Error:', e); alert('Error al procesar el PDF'); }
     }
-    setAnalizando(false);
-    setStatusMsg('');
+    setAnalizando(false); setStatusMsg('');
   };
 
-  const calcularSubtotal = (linea: LineaCotizacion): number => {
-    const tarifaMXN = linea.moneda === 'USD' ? linea.tarifa * tipoCambio : linea.tarifa;
-    return linea.viajes * tarifaMXN;
-  };
-
+  const calcularSubtotal = (linea: LineaCotizacion): number => { const tarifaMXN = linea.moneda === 'USD' ? linea.tarifa * tipoCambio : linea.tarifa; return linea.viajes * tarifaMXN; };
   const calcularTotalMXN = (): number => lineasCotizacion.reduce((sum, linea) => sum + calcularSubtotal(linea), 0);
   const todosViajesCapturados = (): boolean => lineasCotizacion.every(l => l.viajes > 0);
 
@@ -324,96 +192,41 @@ export const PanelOportunidadesModule = ({ onBack }: PanelOportunidadesModulePro
     const lineasConSubtotal = lineasCotizacion.map(l => ({ ...l, subtotalMXN: calcularSubtotal(l) }));
     const potencialMXN = calcularTotalMXN();
     cotizaciones[index] = { ...cotizaciones[index], lineas: lineasConSubtotal, potencialMXN };
-    
-    const tiposViaje = [...(lead.tipoViaje || [])];
-    let rutas = lead.principalesRutas || '';
-    let totalViajes = parseInt(lead.viajesPorMes || '0');
-    
-    lineasConSubtotal.forEach(l => {
-      if (l.tipoViaje && !tiposViaje.includes(l.tipoViaje)) tiposViaje.push(l.tipoViaje);
-      if (l.ruta && !rutas.includes(l.ruta)) rutas = rutas ? `${rutas}, ${l.ruta}` : l.ruta;
-      totalViajes += l.viajes;
-    });
-    
-    let potencialTotal = 0;
-    cotizaciones.forEach(cot => { if (cot.potencialMXN) potencialTotal += cot.potencialMXN; });
-    
+    const tiposViaje = [...(lead.tipoViaje || [])]; let rutas = lead.principalesRutas || ''; let totalViajes = parseInt(lead.viajesPorMes || '0');
+    lineasConSubtotal.forEach(l => { if (l.tipoViaje && !tiposViaje.includes(l.tipoViaje)) tiposViaje.push(l.tipoViaje); if (l.ruta && !rutas.includes(l.ruta)) rutas = rutas ? `${rutas}, ${l.ruta}` : l.ruta; totalViajes += l.viajes; });
+    let potencialTotal = 0; cotizaciones.forEach(cot => { if (cot.potencialMXN) potencialTotal += cot.potencialMXN; });
     const historialNuevo: HistorialCambio = { fecha: new Date().toISOString(), campo: 'cotizaciones', valorAnterior: '', valorNuevo: `Nueva cotización: ${cotizaciones[index].nombre}`, usuario: lead.vendedor };
-    
     const leadActualizado = { ...lead, cotizaciones, tipoViaje: tiposViaje, principalesRutas: rutas, viajesPorMes: String(totalViajes), proyectadoVentaMensual: `$${potencialTotal.toLocaleString('es-MX')} MXN`, etapaLead: 'Cotizado', fechaActualizacion: new Date().toISOString(), historial: [...(lead.historial || []), historialNuevo] };
-    
     try {
       await fetch(`https://${projectId}.supabase.co/functions/v1/make-server-d84b50bb/leads/${lead.id}`, { method: 'PUT', headers: { 'Authorization': `Bearer ${publicAnonKey}`, 'Content-Type': 'application/json' }, body: JSON.stringify(leadActualizado) });
       setLeads(leads.map(l => l.id === lead.id ? leadActualizado : l));
-      setCotizacionesModal(leadActualizado);
-      setLineasModal(null);
-      setLineasCotizacion([]);
+      setCotizacionesModal(leadActualizado); setLineasModal(null); setLineasCotizacion([]);
       alert('Cotización guardada correctamente');
     } catch { alert('Error guardando'); }
   };
 
-  const handleEliminarCotizacion = async (lead: Lead, index: number) => {
-    const cotizaciones = lead.cotizaciones?.map((c, i) => i === index ? { ...c, eliminado: true } : c) || [];
-    const leadActualizado = { ...lead, cotizaciones, fechaActualizacion: new Date().toISOString() };
-    try {
-      await fetch(`https://${projectId}.supabase.co/functions/v1/make-server-d84b50bb/leads/${lead.id}`, { method: 'PUT', headers: { 'Authorization': `Bearer ${publicAnonKey}`, 'Content-Type': 'application/json' }, body: JSON.stringify(leadActualizado) });
-      setLeads(leads.map(l => l.id === lead.id ? leadActualizado : l));
-      setCotizacionesModal(leadActualizado);
-    } catch { alert('Error'); }
-  };
-
-  const handleConfirmarEliminacion = async () => {
-    if (!deleteModal || deleteConfirmText !== 'DELETE') return;
-    try {
-      const leadActualizado = { ...deleteModal, eliminado: true, fechaEliminado: new Date().toISOString() };
-      await fetch(`https://${projectId}.supabase.co/functions/v1/make-server-d84b50bb/leads/${deleteModal.id}`, { method: 'PUT', headers: { 'Authorization': `Bearer ${publicAnonKey}`, 'Content-Type': 'application/json' }, body: JSON.stringify(leadActualizado) });
-      setLeads(leads.map(l => l.id === deleteModal.id ? leadActualizado : l));
-      setDeleteModal(null); setDeleteConfirmText('');
-    } catch { alert('Error'); }
-  };
-
-  const handleRestaurarLead = async (lead: Lead) => {
-    if (!isAdmin) return;
-    try {
-      const leadActualizado = { ...lead, eliminado: false, fechaEliminado: null };
-      await fetch(`https://${projectId}.supabase.co/functions/v1/make-server-d84b50bb/leads/${lead.id}`, { method: 'PUT', headers: { 'Authorization': `Bearer ${publicAnonKey}`, 'Content-Type': 'application/json' }, body: JSON.stringify(leadActualizado) });
-      setLeads(leads.map(l => l.id === lead.id ? leadActualizado : l));
-    } catch {}
-  };
+  const handleEliminarCotizacion = async (lead: Lead, index: number) => { const cotizaciones = lead.cotizaciones?.map((c, i) => i === index ? { ...c, eliminado: true } : c) || []; const leadActualizado = { ...lead, cotizaciones, fechaActualizacion: new Date().toISOString() }; try { await fetch(`https://${projectId}.supabase.co/functions/v1/make-server-d84b50bb/leads/${lead.id}`, { method: 'PUT', headers: { 'Authorization': `Bearer ${publicAnonKey}`, 'Content-Type': 'application/json' }, body: JSON.stringify(leadActualizado) }); setLeads(leads.map(l => l.id === lead.id ? leadActualizado : l)); setCotizacionesModal(leadActualizado); } catch { alert('Error'); } };
+  const handleConfirmarEliminacion = async () => { if (!deleteModal || deleteConfirmText !== 'DELETE') return; try { const leadActualizado = { ...deleteModal, eliminado: true, fechaEliminado: new Date().toISOString() }; await fetch(`https://${projectId}.supabase.co/functions/v1/make-server-d84b50bb/leads/${deleteModal.id}`, { method: 'PUT', headers: { 'Authorization': `Bearer ${publicAnonKey}`, 'Content-Type': 'application/json' }, body: JSON.stringify(leadActualizado) }); setLeads(leads.map(l => l.id === deleteModal.id ? leadActualizado : l)); setDeleteModal(null); setDeleteConfirmText(''); } catch { alert('Error'); } };
+  const handleRestaurarLead = async (lead: Lead) => { if (!isAdmin) return; try { const leadActualizado = { ...lead, eliminado: false, fechaEliminado: null }; await fetch(`https://${projectId}.supabase.co/functions/v1/make-server-d84b50bb/leads/${lead.id}`, { method: 'PUT', headers: { 'Authorization': `Bearer ${publicAnonKey}`, 'Content-Type': 'application/json' }, body: JSON.stringify(leadActualizado) }); setLeads(leads.map(l => l.id === lead.id ? leadActualizado : l)); } catch {} };
 
   const handleGuardarEdicion = async () => {
     if (!editLead || !formData?.nombreEmpresa?.trim() || !formData?.nombreContacto?.trim() || !formData?.correoElectronico?.trim()) { alert('Campos obligatorios'); return; }
     const { duplicadoExacto, similares } = buscarDuplicados(formData.nombreEmpresa || '', leads.filter(l => l.id !== editLead.id));
-    if (duplicadoExacto) { alert(`Error: El cliente "${formData.nombreEmpresa}" ya existe en el sistema.`); return; }
-    if (similares.length > 0 && !confirm(`Se encontraron clientes similares:\n${similares.join('\n')}\n\n¿Desea continuar de todos modos?`)) return;
-    
+    if (duplicadoExacto) { alert(`Error: El cliente "${formData.nombreEmpresa}" ya existe.`); return; }
+    if (similares.length > 0 && !confirm(`Clientes similares:\n${similares.join('\n')}\n\n¿Continuar?`)) return;
     try {
       const historialNuevo: HistorialCambio = { fecha: new Date().toISOString(), campo: 'edición', valorAnterior: editLead.nombreEmpresa, valorNuevo: formData.nombreEmpresa || '', usuario: editLead.vendedor };
       const leadActualizado = { ...editLead, ...formData, tipoServicio: formData.tipoServicio || [], tipoViaje: formData.tipoViaje || [], fechaActualizacion: new Date().toISOString(), historial: [...(editLead.historial || []), historialNuevo] };
       await fetch(`https://${projectId}.supabase.co/functions/v1/make-server-d84b50bb/leads/${editLead.id}`, { method: 'PUT', headers: { 'Authorization': `Bearer ${publicAnonKey}`, 'Content-Type': 'application/json' }, body: JSON.stringify(leadActualizado) });
-      setLeads(leads.map(l => l.id === editLead.id ? leadActualizado : l));
-      setEditLead(null); setFormData({});
+      setLeads(leads.map(l => l.id === editLead.id ? leadActualizado : l)); setEditLead(null); setFormData({});
     } catch { alert('Error'); }
   };
 
-  const handleInputChange = (field: keyof Lead, value: any) => {
-    if (field === 'nombreContacto') { setFormData({ ...formData, [field]: value.toLowerCase().split(' ').map((p: string) => p.charAt(0).toUpperCase() + p.slice(1)).join(' ') }); }
-    else if (field === 'correoElectronico') { setFormData({ ...formData, [field]: value.toLowerCase() }); }
-    else { setFormData({ ...formData, [field]: value }); }
-  };
-
+  const handleInputChange = (field: keyof Lead, value: any) => { if (field === 'nombreContacto') setFormData({ ...formData, [field]: value.toLowerCase().split(' ').map((p: string) => p.charAt(0).toUpperCase() + p.slice(1)).join(' ') }); else if (field === 'correoElectronico') setFormData({ ...formData, [field]: value.toLowerCase() }); else setFormData({ ...formData, [field]: value }); };
   const handleToggleServicio = (s: string) => { const arr = formData.tipoServicio || []; setFormData({ ...formData, tipoServicio: arr.includes(s) ? arr.filter(x => x !== s) : [...arr, s] }); };
   const handleToggleViaje = (v: string) => { const arr = formData.tipoViaje || []; setFormData({ ...formData, tipoViaje: arr.includes(v) ? arr.filter(x => x !== v) : [...arr, v] }); };
   const SortIcon = ({ field }: { field: SortField }) => sortField !== field ? <SortAsc className="w-4 h-4 opacity-30" /> : sortDirection === 'asc' ? <SortAsc className="w-4 h-4" /> : <SortDesc className="w-4 h-4" />;
-
-  const AlertBadge = ({ lead }: { lead: Lead }) => {
-    const alerta = getAlertaLead(lead);
-    if (!alerta.tipo) return null;
-    if (alerta.tipo === 'amarillo') return <span title={alerta.mensaje} className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-yellow-500/20 text-yellow-400 text-xs font-semibold cursor-help border border-yellow-500/30 hover:bg-yellow-500/30 transition-colors"><Zap className="w-3 h-3" /><span>{alerta.dias}d</span></span>;
-    if (alerta.tipo === 'rojo') return <span title={alerta.mensaje} className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-red-500/20 text-red-400 text-xs font-semibold cursor-help border border-red-500/30 hover:bg-red-500/30 transition-colors animate-pulse"><Flame className="w-3 h-3" /><span>{alerta.dias}d</span></span>;
-    if (alerta.tipo === 'critico') return <span title={alerta.mensaje} className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-red-600/30 text-red-300 text-xs font-bold cursor-help border border-red-500/50 hover:bg-red-600/40 transition-colors animate-pulse"><Skull className="w-3 h-3" /><span>{alerta.dias}d</span></span>;
-    return null;
-  };
+  const AlertBadge = ({ lead }: { lead: Lead }) => { const alerta = getAlertaLead(lead); if (!alerta.tipo) return null; if (alerta.tipo === 'amarillo') return <span title={alerta.mensaje} className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-yellow-500/20 text-yellow-400 text-xs font-semibold cursor-help border border-yellow-500/30"><Zap className="w-3 h-3" />{alerta.dias}d</span>; if (alerta.tipo === 'rojo') return <span title={alerta.mensaje} className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-red-500/20 text-red-400 text-xs font-semibold cursor-help border border-red-500/30 animate-pulse"><Flame className="w-3 h-3" />{alerta.dias}d</span>; if (alerta.tipo === 'critico') return <span title={alerta.mensaje} className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-red-600/30 text-red-300 text-xs font-bold cursor-help border border-red-500/50 animate-pulse"><Skull className="w-3 h-3" />{alerta.dias}d</span>; return null; };
 
   return (
     <ModuleTemplate title="Panel de Oportunidades" onBack={onBack} headerImage={MODULE_IMAGES.PANEL_OPORTUNIDADES}>
@@ -440,7 +253,7 @@ export const PanelOportunidadesModule = ({ onBack }: PanelOportunidadesModulePro
               <div className="p-3 rounded-lg bg-blue-500/10 border border-blue-500/30"><div className="text-blue-400 mb-1" style={{ fontSize: '12px' }}>Total</div><div className="text-white" style={{ fontFamily: "'Orbitron', sans-serif", fontSize: '28px', fontWeight: 700 }}>{leads.filter(l => !l.eliminado).length}</div></div>
               <div className="p-3 rounded-lg bg-yellow-500/10 border border-yellow-500/30"><div className="text-yellow-400 mb-1" style={{ fontSize: '12px' }}>Cotizados</div><div className="text-white" style={{ fontFamily: "'Orbitron', sans-serif", fontSize: '28px', fontWeight: 700 }}>{leads.filter(l => !l.eliminado && l.etapaLead === 'Cotizado').length}</div></div>
               <div className="p-3 rounded-lg bg-green-500/10 border border-green-500/30"><div className="text-green-400 mb-1" style={{ fontSize: '12px' }}>Cerrados</div><div className="text-white" style={{ fontFamily: "'Orbitron', sans-serif", fontSize: '28px', fontWeight: 700 }}>{leads.filter(l => !l.eliminado && l.etapaLead === 'Cerrado').length}</div></div>
-              <div className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/30"><div className="text-emerald-400 mb-1" style={{ fontSize: '12px' }}>$ Potencial Total</div><div className="text-emerald-400" style={{ fontFamily: "'Orbitron', sans-serif", fontSize: '18px', fontWeight: 700 }}>${leads.filter(l => !l.eliminado && l.proyectadoVentaMensual).reduce((sum, l) => sum + (parseInt(l.proyectadoVentaMensual?.replace(/[^0-9]/g, '') || '0') || 0), 0).toLocaleString('es-MX')} MXN</div></div>
+              <div className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/30"><div className="text-emerald-400 mb-1" style={{ fontSize: '12px' }}>$ Potencial</div><div className="text-emerald-400" style={{ fontFamily: "'Orbitron', sans-serif", fontSize: '18px', fontWeight: 700 }}>${leads.filter(l => !l.eliminado && l.proyectadoVentaMensual).reduce((sum, l) => sum + (parseInt(l.proyectadoVentaMensual?.replace(/[^0-9]/g, '') || '0') || 0), 0).toLocaleString('es-MX')}</div></div>
               <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/30"><div className="text-red-400 mb-1" style={{ fontSize: '12px' }}>En Riesgo</div><div className="text-white" style={{ fontFamily: "'Orbitron', sans-serif", fontSize: '28px', fontWeight: 700 }}>{leads.filter(l => !l.eliminado && getAlertaLead(l).tipo !== null).length}</div></div>
             </div>
           </div>
@@ -464,20 +277,13 @@ export const PanelOportunidadesModule = ({ onBack }: PanelOportunidadesModulePro
           
           <div className="flex-1 overflow-y-auto">
             <table className="w-full"><tbody>
-              {filteredLeads.length === 0 ? (
-                <tr><td colSpan={10} className="px-6 py-12 text-center text-[var(--fx-muted)]">No se encontraron leads.</td></tr>
-              ) : (
+              {filteredLeads.length === 0 ? (<tr><td colSpan={10} className="px-6 py-12 text-center text-[var(--fx-muted)]">No se encontraron leads.</td></tr>) : (
                 filteredLeads.map((lead, index) => {
                   const alerta = getAlertaLead(lead);
                   return (
                     <tr key={lead.id} className={`border-b border-white/5 hover:bg-white/5 ${lead.eliminado ? 'opacity-50 bg-red-500/5' : ''} ${alerta.tipo === 'critico' ? 'bg-red-500/10' : ''}`} style={{ height: '48px' }}>
                       <td className="px-2 py-2 text-center" style={{ fontFamily: "'Orbitron', monospace", fontSize: '11px', fontWeight: 600, color: lead.eliminado ? '#ef4444' : alerta.tipo === 'critico' ? '#ef4444' : 'var(--fx-primary)', width: '3%' }}>{index + 1}</td>
-                      <td className="px-2 py-2" style={{ width: '18%' }}>
-                        <div className="flex items-center justify-between gap-2">
-                          <span className="text-white truncate" style={{ fontSize: '11px', fontWeight: 700 }}>{lead.nombreEmpresa}</span>
-                          <AlertBadge lead={lead} />
-                        </div>
-                      </td>
+                      <td className="px-2 py-2" style={{ width: '18%' }}><div className="flex items-center justify-between gap-2"><span className="text-white truncate" style={{ fontSize: '11px', fontWeight: 700 }}>{lead.nombreEmpresa}</span><AlertBadge lead={lead} /></div></td>
                       <td className="px-1.5 py-2" style={{ width: '7%' }}><span className={`px-2 py-0.5 rounded text-xs font-semibold ${lead.etapaLead === 'Cotizado' ? 'bg-yellow-500/20 text-yellow-400' : lead.etapaLead === 'Negociación' ? 'bg-orange-500/20 text-orange-400' : lead.etapaLead === 'Cerrado' ? 'bg-green-500/20 text-green-400' : 'bg-purple-500/20 text-purple-400'}`} style={{ fontSize: '10px' }}>{lead.etapaLead || 'Prospecto'}</span></td>
                       <td className="px-2 py-2" style={{ width: '14%' }}><div style={{ fontSize: '11px' }}><div className="text-white font-semibold truncate">{lead.nombreContacto}</div><div className="text-[var(--fx-muted)] truncate" style={{ fontSize: '10px' }}>{lead.correoElectronico}</div></div></td>
                       <td className="px-2 py-2" style={{ width: '10%' }}><div className="flex flex-wrap gap-0.5">{(lead.tipoServicio || []).slice(0,2).map((t, i) => <span key={i} className="px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-400" style={{ fontSize: '9px', fontWeight: 600 }}>{t}</span>)}</div></td>
@@ -489,10 +295,7 @@ export const PanelOportunidadesModule = ({ onBack }: PanelOportunidadesModulePro
                         <div className="flex items-center justify-center gap-1">
                           <button onClick={() => setSelectedLead(lead)} className="p-1.5 rounded-lg bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 border border-blue-500/30" title="Ver detalle"><Eye className="w-3.5 h-3.5" /></button>
                           <button onClick={() => setEditLead(lead)} className="p-1.5 rounded-lg bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-400 border border-yellow-500/30" disabled={lead.eliminado} title="Editar"><Pencil className="w-3.5 h-3.5" /></button>
-                          <div className="relative">
-                            <button onClick={() => setCotizacionesModal(lead)} className="p-1.5 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 border border-emerald-500/30" title="Cotizaciones"><FileText className="w-3.5 h-3.5" /></button>
-                            {lead.cotizaciones?.filter(c => !c.eliminado).length ? <div className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-emerald-500 flex items-center justify-center text-white" style={{ fontSize: '9px', fontWeight: 700 }}>{lead.cotizaciones.filter(c => !c.eliminado).length}</div> : null}
-                          </div>
+                          <div className="relative"><button onClick={() => setCotizacionesModal(lead)} className="p-1.5 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 border border-emerald-500/30" title="Cotizaciones"><FileText className="w-3.5 h-3.5" /></button>{lead.cotizaciones?.filter(c => !c.eliminado).length ? <div className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-emerald-500 flex items-center justify-center text-white" style={{ fontSize: '9px', fontWeight: 700 }}>{lead.cotizaciones.filter(c => !c.eliminado).length}</div> : null}</div>
                           {lead.eliminado && isAdmin ? <button onClick={() => handleRestaurarLead(lead)} className="p-1.5 rounded-lg bg-green-500/20 hover:bg-green-500/30 text-green-400 border border-green-500/30" title="Restaurar"><TrendingUp className="w-3.5 h-3.5" /></button> : <button onClick={() => setDeleteModal(lead)} className="p-1.5 rounded-lg bg-red-500/20 hover:bg-red-500/30 text-red-400 border border-red-500/30" disabled={lead.eliminado} title="Eliminar"><Trash2 className="w-3.5 h-3.5" /></button>}
                         </div>
                       </td>
@@ -502,182 +305,21 @@ export const PanelOportunidadesModule = ({ onBack }: PanelOportunidadesModulePro
               )}
             </tbody></table>
           </div>
-          
-          <div className="flex-shrink-0 px-4 py-2 border-t border-white/10 bg-[var(--fx-surface)]">
-            <span className="text-[var(--fx-muted)]" style={{ fontSize: '12px' }}>Mostrando {filteredLeads.length} de {leads.filter(l => !l.eliminado).length} leads</span>
-          </div>
+          <div className="flex-shrink-0 px-4 py-2 border-t border-white/10 bg-[var(--fx-surface)]"><span className="text-[var(--fx-muted)]" style={{ fontSize: '12px' }}>Mostrando {filteredLeads.length} de {leads.filter(l => !l.eliminado).length} leads</span></div>
         </div>
       </div>
 
-      {/* Modal Ver Lead */}
-      {selectedLead && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setSelectedLead(null)}>
-          <div className="bg-[var(--fx-surface)] rounded-2xl border border-white/20 w-[95vw] max-w-[1100px] max-h-[90vh] overflow-y-auto p-6" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between mb-4"><h3 className="text-white text-xl font-bold flex items-center gap-2"><Building2 className="w-6 h-6 text-blue-400" />{selectedLead.nombreEmpresa}</h3><button onClick={() => setSelectedLead(null)} className="p-2 rounded-lg hover:bg-white/10"><X className="w-5 h-5 text-white" /></button></div>
-            <div className="grid grid-cols-2 gap-4 mb-4">
-              <div className="p-3 rounded-lg bg-blue-500/10 border border-blue-500/30"><div className="flex items-center gap-2 text-blue-400 text-xs mb-1"><Calendar className="w-3 h-3" />Fecha de Creación</div><div className="text-white font-semibold">{formatDateTime(selectedLead.fechaCaptura)}</div></div>
-              <div className="p-3 rounded-lg bg-orange-500/10 border border-orange-500/30"><div className="flex items-center gap-2 text-orange-400 text-xs mb-1"><Clock className="w-3 h-3" />Última Modificación</div><div className="text-white font-semibold">{formatDateTime(selectedLead.fechaActualizacion) || formatDateTime(selectedLead.fechaCaptura)}</div></div>
-            </div>
-            <div className="grid grid-cols-3 gap-4 text-sm mb-4">
-              <div className="p-3 rounded-lg bg-white/5"><div className="text-blue-400 text-xs mb-1">Contacto</div><div className="text-white font-semibold">{selectedLead.nombreContacto}</div><div className="text-gray-400">{selectedLead.correoElectronico}</div></div>
-              <div className="p-3 rounded-lg bg-white/5"><div className="text-blue-400 text-xs mb-1">Servicio</div><div className="flex flex-wrap gap-1">{(selectedLead.tipoServicio||[]).map((t,i)=><span key={i} className="px-2 py-0.5 rounded bg-blue-500/20 text-blue-400 text-xs">{t}</span>)}</div></div>
-              <div className="p-3 rounded-lg bg-white/5"><div className="text-green-400 text-xs mb-1">Tipo de Viaje</div><div className="flex flex-wrap gap-1">{(selectedLead.tipoViaje||[]).map((t,i)=><span key={i} className="px-2 py-0.5 rounded bg-green-500/20 text-green-400 text-xs">{t}</span>)}</div></div>
-              <div className="p-3 rounded-lg bg-white/5 col-span-2"><div className="text-purple-400 text-xs mb-1">Rutas</div><div className="text-white text-sm">{selectedLead.principalesRutas || '-'}</div></div>
-              <div className="p-3 rounded-lg bg-white/5"><div className="text-orange-400 text-xs mb-1">Viajes/Mes</div><div className="text-white font-bold text-lg">{selectedLead.viajesPorMes || '-'}</div></div>
-            </div>
-            <div className="p-4 rounded-lg bg-emerald-500/10 border border-emerald-500/30 mb-4"><div className="text-emerald-400 text-xs mb-1">$ Potencial Mensual</div><div className="text-emerald-400 font-bold text-3xl">{selectedLead.proyectadoVentaMensual || 'Sin calcular'}</div></div>
-            {selectedLead.cotizaciones && selectedLead.cotizaciones.filter(c => !c.eliminado).length > 0 && (
-              <div className="mb-4">
-                <h4 className="text-white font-semibold mb-2 flex items-center gap-2"><FileText className="w-4 h-4 text-emerald-400" />Cotizaciones</h4>
-                <div className="space-y-2">{selectedLead.cotizaciones.filter(c => !c.eliminado).map((cot, i) => (
-                  <div key={i} className="p-3 rounded-lg bg-white/5 border border-white/10">
-                    <div className="flex justify-between items-center mb-2"><span className="text-white font-medium">{cot.nombre}</span><span className="text-gray-400 text-xs">{formatDate(cot.fecha)}</span></div>
-                    {cot.lineas && cot.lineas.length > 0 && (<div className="space-y-1">{cot.lineas.map((linea, idx) => (<div key={idx} className="flex justify-between text-xs text-gray-400"><span>{linea.ruta} ({linea.tipoViaje})</span><span>{linea.viajes} viajes × ${linea.tarifa.toLocaleString('es-MX')} = <span className="text-emerald-400">${linea.subtotalMXN.toLocaleString('es-MX')} MXN</span></span></div>))}<div className="pt-2 border-t border-white/10 flex justify-between text-sm"><span className="text-emerald-400">Total:</span><span className="text-emerald-400 font-bold">${cot.potencialMXN?.toLocaleString('es-MX')} MXN</span></div></div>)}
-                  </div>
-                ))}</div>
-              </div>
-            )}
-            {selectedLead.historial && selectedLead.historial.length > 0 && (
-              <div className="mb-4">
-                <h4 className="text-white font-semibold mb-2 flex items-center gap-2"><Clock className="w-4 h-4 text-orange-400" />Historial</h4>
-                <div className="max-h-40 overflow-y-auto space-y-1">{selectedLead.historial.slice().reverse().map((h, i) => (<div key={i} className="flex items-center gap-3 text-xs p-2 rounded bg-white/5"><span className="text-gray-500">{formatDateTime(h.fecha)}</span><span className="text-blue-400">{h.campo}</span><span className="text-gray-400">{h.valorNuevo}</span><span className="text-gray-500 ml-auto">{h.usuario}</span></div>))}</div>
-              </div>
-            )}
-            <div className="flex justify-between items-center text-sm text-gray-400"><span>Vendedor: {selectedLead.vendedor}</span><span>Etapa: {selectedLead.etapaLead || 'Prospecto'}</span></div>
-          </div>
-        </div>
-      )}
+      {selectedLead && (<div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setSelectedLead(null)}><div className="bg-[var(--fx-surface)] rounded-2xl border border-white/20 w-[95vw] max-w-[1100px] max-h-[90vh] overflow-y-auto p-6" onClick={(e) => e.stopPropagation()}><div className="flex items-center justify-between mb-4"><h3 className="text-white text-xl font-bold flex items-center gap-2"><Building2 className="w-6 h-6 text-blue-400" />{selectedLead.nombreEmpresa}</h3><button onClick={() => setSelectedLead(null)} className="p-2 rounded-lg hover:bg-white/10"><X className="w-5 h-5 text-white" /></button></div><div className="grid grid-cols-2 gap-4 mb-4"><div className="p-3 rounded-lg bg-blue-500/10 border border-blue-500/30"><div className="flex items-center gap-2 text-blue-400 text-xs mb-1"><Calendar className="w-3 h-3" />Creación</div><div className="text-white font-semibold">{formatDateTime(selectedLead.fechaCaptura)}</div></div><div className="p-3 rounded-lg bg-orange-500/10 border border-orange-500/30"><div className="flex items-center gap-2 text-orange-400 text-xs mb-1"><Clock className="w-3 h-3" />Última Modificación</div><div className="text-white font-semibold">{formatDateTime(selectedLead.fechaActualizacion) || formatDateTime(selectedLead.fechaCaptura)}</div></div></div><div className="grid grid-cols-3 gap-4 text-sm mb-4"><div className="p-3 rounded-lg bg-white/5"><div className="text-blue-400 text-xs mb-1">Contacto</div><div className="text-white font-semibold">{selectedLead.nombreContacto}</div><div className="text-gray-400">{selectedLead.correoElectronico}</div></div><div className="p-3 rounded-lg bg-white/5"><div className="text-blue-400 text-xs mb-1">Servicio</div><div className="flex flex-wrap gap-1">{(selectedLead.tipoServicio||[]).map((t,i)=><span key={i} className="px-2 py-0.5 rounded bg-blue-500/20 text-blue-400 text-xs">{t}</span>)}</div></div><div className="p-3 rounded-lg bg-white/5"><div className="text-green-400 text-xs mb-1">Viaje</div><div className="flex flex-wrap gap-1">{(selectedLead.tipoViaje||[]).map((t,i)=><span key={i} className="px-2 py-0.5 rounded bg-green-500/20 text-green-400 text-xs">{t}</span>)}</div></div><div className="p-3 rounded-lg bg-white/5 col-span-2"><div className="text-purple-400 text-xs mb-1">Rutas</div><div className="text-white text-sm">{selectedLead.principalesRutas || '-'}</div></div><div className="p-3 rounded-lg bg-white/5"><div className="text-orange-400 text-xs mb-1">Viajes/Mes</div><div className="text-white font-bold text-lg">{selectedLead.viajesPorMes || '-'}</div></div></div><div className="p-4 rounded-lg bg-emerald-500/10 border border-emerald-500/30 mb-4"><div className="text-emerald-400 text-xs mb-1">$ Potencial Mensual</div><div className="text-emerald-400 font-bold text-3xl">{selectedLead.proyectadoVentaMensual || 'Sin calcular'}</div></div>{selectedLead.cotizaciones && selectedLead.cotizaciones.filter(c => !c.eliminado).length > 0 && (<div className="mb-4"><h4 className="text-white font-semibold mb-2 flex items-center gap-2"><FileText className="w-4 h-4 text-emerald-400" />Cotizaciones</h4><div className="space-y-2">{selectedLead.cotizaciones.filter(c => !c.eliminado).map((cot, i) => (<div key={i} className="p-3 rounded-lg bg-white/5 border border-white/10"><div className="flex justify-between items-center mb-2"><span className="text-white font-medium">{cot.nombre}</span><span className="text-gray-400 text-xs">{formatDate(cot.fecha)}</span></div>{cot.lineas && cot.lineas.length > 0 && (<div className="space-y-1">{cot.lineas.map((linea, idx) => (<div key={idx} className="flex justify-between text-xs text-gray-400"><span>{linea.ruta} ({linea.tipoViaje})</span><span>{linea.viajes} × ${linea.tarifa.toLocaleString('es-MX')} = <span className="text-emerald-400">${linea.subtotalMXN.toLocaleString('es-MX')}</span></span></div>))}<div className="pt-2 border-t border-white/10 flex justify-between text-sm"><span className="text-emerald-400">Total:</span><span className="text-emerald-400 font-bold">${cot.potencialMXN?.toLocaleString('es-MX')}</span></div></div>)}</div>))}</div></div>)}{selectedLead.historial && selectedLead.historial.length > 0 && (<div className="mb-4"><h4 className="text-white font-semibold mb-2 flex items-center gap-2"><Clock className="w-4 h-4 text-orange-400" />Historial</h4><div className="max-h-40 overflow-y-auto space-y-1">{selectedLead.historial.slice().reverse().map((h, i) => (<div key={i} className="flex items-center gap-3 text-xs p-2 rounded bg-white/5"><span className="text-gray-500">{formatDateTime(h.fecha)}</span><span className="text-blue-400">{h.campo}</span><span className="text-gray-400">{h.valorNuevo}</span><span className="text-gray-500 ml-auto">{h.usuario}</span></div>))}</div></div>)}<div className="flex justify-between items-center text-sm text-gray-400"><span>Vendedor: {selectedLead.vendedor}</span><span>Etapa: {selectedLead.etapaLead || 'Prospecto'}</span></div></div></div>)}
 
-      {/* Modal Eliminar */}
-      {deleteModal && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => { setDeleteModal(null); setDeleteConfirmText(''); }}>
-          <div className="bg-[var(--fx-surface)] rounded-2xl border border-red-500/30 w-[400px] p-6" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center gap-3 mb-4"><AlertTriangle className="w-8 h-8 text-red-400" /><h3 className="text-white text-lg font-bold">Eliminar Lead</h3></div>
-            <p className="text-white mb-2">¿Eliminar <strong>{deleteModal.nombreEmpresa}</strong>?</p>
-            <p className="text-gray-400 text-sm mb-4">Escribe DELETE:</p>
-            <input type="text" value={deleteConfirmText} onChange={(e) => setDeleteConfirmText(e.target.value.toUpperCase())} className="w-full px-4 py-2 rounded-lg bg-black/30 border border-red-500/40 text-white text-center mb-4" />
-            <div className="flex gap-3"><button onClick={() => { setDeleteModal(null); setDeleteConfirmText(''); }} className="flex-1 px-4 py-2 rounded-lg bg-gray-600 text-white">Cancelar</button><button onClick={handleConfirmarEliminacion} disabled={deleteConfirmText !== 'DELETE'} className={`flex-1 px-4 py-2 rounded-lg ${deleteConfirmText === 'DELETE' ? 'bg-red-500 text-white' : 'bg-red-500/20 text-red-400/50'}`}>Eliminar</button></div>
-          </div>
-        </div>
-      )}
+      {deleteModal && (<div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => { setDeleteModal(null); setDeleteConfirmText(''); }}><div className="bg-[var(--fx-surface)] rounded-2xl border border-red-500/30 w-[400px] p-6" onClick={(e) => e.stopPropagation()}><div className="flex items-center gap-3 mb-4"><AlertTriangle className="w-8 h-8 text-red-400" /><h3 className="text-white text-lg font-bold">Eliminar Lead</h3></div><p className="text-white mb-2">¿Eliminar <strong>{deleteModal.nombreEmpresa}</strong>?</p><p className="text-gray-400 text-sm mb-4">Escribe DELETE:</p><input type="text" value={deleteConfirmText} onChange={(e) => setDeleteConfirmText(e.target.value.toUpperCase())} className="w-full px-4 py-2 rounded-lg bg-black/30 border border-red-500/40 text-white text-center mb-4" /><div className="flex gap-3"><button onClick={() => { setDeleteModal(null); setDeleteConfirmText(''); }} className="flex-1 px-4 py-2 rounded-lg bg-gray-600 text-white">Cancelar</button><button onClick={handleConfirmarEliminacion} disabled={deleteConfirmText !== 'DELETE'} className={`flex-1 px-4 py-2 rounded-lg ${deleteConfirmText === 'DELETE' ? 'bg-red-500 text-white' : 'bg-red-500/20 text-red-400/50'}`}>Eliminar</button></div></div></div>)}
 
-      {/* Modal Cotizaciones */}
-      {cotizacionesModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setCotizacionesModal(null)}>
-          <div className="bg-[var(--fx-surface)] rounded-2xl border border-white/20 w-[900px] max-h-[85vh] overflow-y-auto p-6" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between mb-4"><h3 className="text-white text-xl font-bold flex items-center gap-2"><FileText className="w-5 h-5 text-emerald-400" />Cotizaciones - {cotizacionesModal.nombreEmpresa}</h3><button onClick={() => setCotizacionesModal(null)} className="p-2 rounded-lg hover:bg-white/10"><X className="w-5 h-5 text-white" /></button></div>
-            <div className="mb-4"><label className={`flex items-center justify-center gap-2 px-4 py-3 rounded-xl ${analizando ? 'bg-blue-600/50' : 'bg-blue-600 hover:bg-blue-700'} text-white cursor-pointer`}>{analizando ? <><Loader2 className="w-5 h-5 animate-spin" /><span>{statusMsg}</span></> : <><Upload className="w-5 h-5" /><span className="font-semibold">Subir Cotización (PDF)</span></>}<input type="file" accept="application/pdf" className="hidden" disabled={analizando} onChange={(e) => { if (e.target.files?.length) handleSubirCotizaciones(e.target.files, cotizacionesModal); e.target.value = ''; }} /></label></div>
-            <div className="space-y-3">
-              {(!cotizacionesModal.cotizaciones || !cotizacionesModal.cotizaciones.filter(c => !c.eliminado).length) ? (<div className="text-center py-6 text-gray-400">No hay cotizaciones adjuntas.</div>) : (
-                cotizacionesModal.cotizaciones.filter(c => !c.eliminado).map((cot, i) => (
-                  <div key={i} className="p-4 rounded-lg bg-white/5 border border-white/10">
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-2"><FileText className="w-4 h-4 text-emerald-400" /><span className="text-white font-semibold">{cot.nombre}</span><span className="text-gray-500 text-xs">{formatDate(cot.fecha)}</span></div>
-                      <div className="flex gap-2">
-                        {cot.url && <button onClick={() => setPdfPreview(cot.url)} className="px-2 py-1 rounded bg-purple-500/20 text-purple-400 text-xs flex items-center gap-1" title="Ver"><Eye className="w-3 h-3" />Ver</button>}
-                        {cot.url && <a href={cot.url} download={cot.nombre} className="px-2 py-1 rounded bg-blue-500/20 text-blue-400 text-xs flex items-center gap-1" title="Descargar"><Download className="w-3 h-3" /></a>}
-                        <button onClick={() => handleEliminarCotizacion(cotizacionesModal, cotizacionesModal.cotizaciones?.indexOf(cot) || i)} className="px-2 py-1 rounded bg-red-500/20 text-red-400 text-xs" title="Eliminar"><Trash2 className="w-3 h-3" /></button>
-                      </div>
-                    </div>
-                    {cot.lineas && cot.lineas.length > 0 && (
-                      <div className="mt-3 p-3 rounded bg-emerald-500/10 border border-emerald-500/20">
-                        <div className="flex items-center gap-1 mb-2"><CheckCircle className="w-3 h-3 text-emerald-400" /><span className="text-emerald-400 text-xs font-semibold">Líneas Cotizadas</span></div>
-                        <div className="space-y-2">{cot.lineas.map((linea, idx) => (<div key={idx} className="flex justify-between items-center text-xs p-2 rounded bg-black/20"><div className="flex-1"><span className="text-white font-medium">{linea.ruta}</span><span className={`ml-2 px-1.5 py-0.5 rounded text-xs ${linea.tipoViaje === 'Impo' ? 'bg-blue-500/20 text-blue-400' : linea.tipoViaje === 'Expo' ? 'bg-green-500/20 text-green-400' : linea.tipoViaje === 'DTD' ? 'bg-purple-500/20 text-purple-400' : 'bg-gray-500/20 text-gray-400'}`}>{linea.tipoViaje}</span></div><div className="text-gray-400">{linea.viajes} viajes × ${linea.tarifa.toLocaleString('es-MX')} {linea.moneda}</div><div className="text-emerald-400 font-semibold ml-4">${linea.subtotalMXN.toLocaleString('es-MX')} MXN</div></div>))}</div>
-                        <div className="mt-3 pt-3 border-t border-emerald-500/30 flex justify-between items-center"><span className="text-emerald-400 font-semibold">TOTAL:</span><span className="text-emerald-400 font-bold text-xl">${cot.potencialMXN?.toLocaleString('es-MX')} MXN</span></div>
-                      </div>
-                    )}
-                  </div>
-                ))
-              )}
-            </div>
-            <button onClick={() => setCotizacionesModal(null)} className="mt-4 w-full px-4 py-2 rounded-lg bg-gray-600 hover:bg-gray-700 text-white">Cerrar</button>
-          </div>
-        </div>
-      )}
+      {cotizacionesModal && (<div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setCotizacionesModal(null)}><div className="bg-[var(--fx-surface)] rounded-2xl border border-white/20 w-[900px] max-h-[85vh] overflow-y-auto p-6" onClick={(e) => e.stopPropagation()}><div className="flex items-center justify-between mb-4"><h3 className="text-white text-xl font-bold flex items-center gap-2"><FileText className="w-5 h-5 text-emerald-400" />Cotizaciones - {cotizacionesModal.nombreEmpresa}</h3><button onClick={() => setCotizacionesModal(null)} className="p-2 rounded-lg hover:bg-white/10"><X className="w-5 h-5 text-white" /></button></div><div className="mb-4"><label className={`flex items-center justify-center gap-2 px-4 py-3 rounded-xl ${analizando ? 'bg-blue-600/50' : 'bg-blue-600 hover:bg-blue-700'} text-white cursor-pointer`}>{analizando ? <><Loader2 className="w-5 h-5 animate-spin" /><span>{statusMsg}</span></> : <><Upload className="w-5 h-5" /><span className="font-semibold">Subir Cotización (PDF)</span></>}<input type="file" accept="application/pdf" className="hidden" disabled={analizando} onChange={(e) => { if (e.target.files?.length) handleSubirCotizaciones(e.target.files, cotizacionesModal); e.target.value = ''; }} /></label></div><div className="space-y-3">{(!cotizacionesModal.cotizaciones || !cotizacionesModal.cotizaciones.filter(c => !c.eliminado).length) ? (<div className="text-center py-6 text-gray-400">No hay cotizaciones.</div>) : (cotizacionesModal.cotizaciones.filter(c => !c.eliminado).map((cot, i) => (<div key={i} className="p-4 rounded-lg bg-white/5 border border-white/10"><div className="flex items-center justify-between mb-2"><div className="flex items-center gap-2"><FileText className="w-4 h-4 text-emerald-400" /><span className="text-white font-semibold">{cot.nombre}</span><span className="text-gray-500 text-xs">{formatDate(cot.fecha)}</span></div><div className="flex gap-2">{cot.url && <button onClick={() => setPdfPreview(cot.url)} className="px-2 py-1 rounded bg-purple-500/20 text-purple-400 text-xs flex items-center gap-1"><Eye className="w-3 h-3" />Ver</button>}{cot.url && <a href={cot.url} download={cot.nombre} className="px-2 py-1 rounded bg-blue-500/20 text-blue-400 text-xs flex items-center gap-1"><Download className="w-3 h-3" /></a>}<button onClick={() => handleEliminarCotizacion(cotizacionesModal, cotizacionesModal.cotizaciones?.indexOf(cot) || i)} className="px-2 py-1 rounded bg-red-500/20 text-red-400 text-xs"><Trash2 className="w-3 h-3" /></button></div></div>{cot.lineas && cot.lineas.length > 0 && (<div className="mt-3 p-3 rounded bg-emerald-500/10 border border-emerald-500/20"><div className="flex items-center gap-1 mb-2"><CheckCircle className="w-3 h-3 text-emerald-400" /><span className="text-emerald-400 text-xs font-semibold">Líneas Cotizadas</span></div><div className="space-y-2">{cot.lineas.map((linea, idx) => (<div key={idx} className="flex justify-between items-center text-xs p-2 rounded bg-black/20"><div className="flex-1"><span className="text-white font-medium">{linea.ruta}</span><span className={`ml-2 px-1.5 py-0.5 rounded text-xs ${linea.tipoViaje === 'Impo' ? 'bg-blue-500/20 text-blue-400' : linea.tipoViaje === 'Expo' ? 'bg-green-500/20 text-green-400' : linea.tipoViaje === 'DTD' ? 'bg-purple-500/20 text-purple-400' : 'bg-gray-500/20 text-gray-400'}`}>{linea.tipoViaje}</span></div><div className="text-gray-400">{linea.viajes} × ${linea.tarifa.toLocaleString('es-MX')} {linea.moneda}</div><div className="text-emerald-400 font-semibold ml-4">${linea.subtotalMXN.toLocaleString('es-MX')}</div></div>))}</div><div className="mt-3 pt-3 border-t border-emerald-500/30 flex justify-between items-center"><span className="text-emerald-400 font-semibold">TOTAL:</span><span className="text-emerald-400 font-bold text-xl">${cot.potencialMXN?.toLocaleString('es-MX')}</span></div></div>)}</div>)))}</div><button onClick={() => setCotizacionesModal(null)} className="mt-4 w-full px-4 py-2 rounded-lg bg-gray-600 hover:bg-gray-700 text-white">Cerrar</button></div></div>)}
 
-      {/* Modal Captura de Viajes */}
-      {lineasModal && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
-          <div className="bg-[var(--fx-surface)] rounded-2xl border border-emerald-500/30 w-[900px] max-h-[90vh] overflow-y-auto p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-white text-lg font-bold flex items-center gap-2"><DollarSign className="w-5 h-5 text-emerald-400" />Capturar Viajes por Ruta</h3>
-              <div className="text-blue-400 text-sm">TC: $1 USD = ${tipoCambio} MXN</div>
-            </div>
-            
-            <div className="mb-4 p-3 rounded-lg bg-blue-500/10 border border-blue-500/20">
-              <p className="text-blue-400 text-sm">Captura el número de <strong>viajes potenciales por mes</strong> para cada ruta.</p>
-            </div>
-            
-            <div className="grid grid-cols-12 gap-2 px-3 py-2 bg-white/5 rounded-t-lg text-xs text-gray-400 font-semibold">
-              <div className="col-span-4">RUTA</div>
-              <div className="col-span-2">TIPO</div>
-              <div className="col-span-2">TARIFA</div>
-              <div className="col-span-2 text-center">VIAJES/MES</div>
-              <div className="col-span-2 text-right">SUBTOTAL</div>
-            </div>
-            
-            <div className="space-y-1 mb-4">
-              {lineasCotizacion.map((linea, idx) => (
-                <div key={idx} className="grid grid-cols-12 gap-2 p-3 rounded-lg bg-white/5 border border-white/10 items-center">
-                  <div className="col-span-4 text-white text-sm font-medium">{linea.ruta}</div>
-                  <div className="col-span-2"><span className={`px-2 py-1 rounded text-xs font-semibold ${linea.tipoViaje === 'Impo' ? 'bg-blue-500/20 text-blue-400' : linea.tipoViaje === 'Expo' ? 'bg-green-500/20 text-green-400' : linea.tipoViaje === 'DTD' ? 'bg-purple-500/20 text-purple-400' : 'bg-gray-500/20 text-gray-400'}`}>{linea.tipoViaje}</span></div>
-                  <div className="col-span-2 text-gray-300 text-sm">${linea.tarifa.toLocaleString('es-MX')} {linea.moneda}</div>
-                  <div className="col-span-2">
-                    <input type="number" min="0" value={linea.viajes || ''} onChange={(e) => { const arr = [...lineasCotizacion]; arr[idx].viajes = parseInt(e.target.value) || 0; setLineasCotizacion(arr); }} className={`w-full px-3 py-2 rounded border text-white text-center text-sm font-bold ${linea.viajes > 0 ? 'bg-emerald-500/20 border-emerald-500/50' : 'bg-red-500/10 border-red-500/30'}`} placeholder="0" style={{ MozAppearance: 'textfield' }} />
-                  </div>
-                  <div className="col-span-2 text-right text-emerald-400 font-bold">${calcularSubtotal(linea).toLocaleString('es-MX')} MXN</div>
-                </div>
-              ))}
-            </div>
-            
-            <div className="p-4 rounded-lg bg-emerald-500/10 border border-emerald-500/30 mb-4">
-              <div className="flex justify-between items-center">
-                <span className="text-emerald-400 font-semibold text-lg">POTENCIAL MENSUAL TOTAL:</span>
-                <span className="text-emerald-400 font-bold text-3xl" style={{ fontFamily: "'Orbitron', monospace" }}>${calcularTotalMXN().toLocaleString('es-MX')} MXN</span>
-              </div>
-            </div>
-            
-            <div className="flex gap-3">
-              <button onClick={() => { setLineasModal(null); setLineasCotizacion([]); }} className="flex-1 px-4 py-2 rounded-lg bg-gray-600 text-white">Cancelar</button>
-              <button onClick={handleGuardarCotizacion} disabled={!todosViajesCapturados()} className={`flex-1 px-4 py-3 rounded-lg font-semibold ${todosViajesCapturados() ? 'bg-emerald-500 text-black' : 'bg-gray-500/30 text-gray-500 cursor-not-allowed'}`}>
-                {todosViajesCapturados() ? 'Guardar Cotización' : 'Completa todos los viajes'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {lineasModal && (<div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-[60] p-4"><div className="bg-[var(--fx-surface)] rounded-2xl border border-emerald-500/30 w-[900px] max-h-[90vh] overflow-y-auto p-6"><div className="flex items-center justify-between mb-4"><h3 className="text-white text-lg font-bold flex items-center gap-2"><DollarSign className="w-5 h-5 text-emerald-400" />Capturar Viajes por Ruta</h3></div><div className="mb-4 p-3 rounded-lg bg-blue-500/10 border border-blue-500/20"><p className="text-blue-400 text-sm">Captura el número de <strong>viajes potenciales por mes</strong> para cada ruta. TC: <strong>${tipoCambio.toFixed(2)} MXN/USD</strong></p></div><div className="grid grid-cols-12 gap-2 px-3 py-2 bg-white/5 rounded-t-lg text-xs text-gray-400 font-semibold"><div className="col-span-4">RUTA</div><div className="col-span-2">TIPO</div><div className="col-span-2">TARIFA</div><div className="col-span-2 text-center">VIAJES/MES</div><div className="col-span-2 text-right">SUBTOTAL</div></div><div className="space-y-1 mb-4">{lineasCotizacion.map((linea, idx) => (<div key={idx} className="grid grid-cols-12 gap-2 p-3 rounded-lg bg-white/5 border border-white/10 items-center"><div className="col-span-4 text-white text-sm font-medium">{linea.ruta}</div><div className="col-span-2"><span className={`px-2 py-1 rounded text-xs font-semibold ${linea.tipoViaje === 'Impo' ? 'bg-blue-500/20 text-blue-400' : linea.tipoViaje === 'Expo' ? 'bg-green-500/20 text-green-400' : linea.tipoViaje === 'DTD' ? 'bg-purple-500/20 text-purple-400' : 'bg-gray-500/20 text-gray-400'}`}>{linea.tipoViaje}</span></div><div className="col-span-2 text-gray-300 text-sm">${linea.tarifa.toLocaleString('es-MX')} {linea.moneda}</div><div className="col-span-2"><input type="number" min="0" value={linea.viajes || ''} onChange={(e) => { const arr = [...lineasCotizacion]; arr[idx].viajes = parseInt(e.target.value) || 0; setLineasCotizacion(arr); }} className={`w-full px-3 py-2 rounded border text-white text-center text-sm font-bold ${linea.viajes > 0 ? 'bg-emerald-500/20 border-emerald-500/50' : 'bg-red-500/10 border-red-500/30'}`} placeholder="0" /></div><div className="col-span-2 text-right text-emerald-400 font-bold">${calcularSubtotal(linea).toLocaleString('es-MX')}</div></div>))}</div><div className="p-4 rounded-lg bg-emerald-500/10 border border-emerald-500/30 mb-4"><div className="flex justify-between items-center"><span className="text-emerald-400 font-semibold text-lg">POTENCIAL MENSUAL:</span><span className="text-emerald-400 font-bold text-3xl" style={{ fontFamily: "'Orbitron', monospace" }}>${calcularTotalMXN().toLocaleString('es-MX')} MXN</span></div></div><div className="flex gap-3"><button onClick={() => { setLineasModal(null); setLineasCotizacion([]); }} className="flex-1 px-4 py-2 rounded-lg bg-gray-600 text-white">Cancelar</button><button onClick={handleGuardarCotizacion} disabled={!todosViajesCapturados()} className={`flex-1 px-4 py-3 rounded-lg font-semibold ${todosViajesCapturados() ? 'bg-emerald-500 text-black' : 'bg-gray-500/30 text-gray-500 cursor-not-allowed'}`}>{todosViajesCapturados() ? 'Guardar Cotización' : 'Completa todos los viajes'}</button></div></div></div>)}
 
-      {/* Modal Preview PDF */}
-      {pdfPreview && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-[60] p-4" onClick={() => setPdfPreview(null)}>
-          <div className="bg-white rounded-2xl w-[90vw] h-[90vh] overflow-hidden flex flex-col" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between p-3 bg-gray-100 border-b"><span className="text-gray-700 font-semibold">Vista previa</span><button onClick={() => setPdfPreview(null)} className="p-2 rounded-lg hover:bg-gray-200"><X className="w-5 h-5 text-gray-600" /></button></div>
-            <iframe src={pdfPreview} className="flex-1 w-full" title="PDF" />
-          </div>
-        </div>
-      )}
+      {pdfPreview && (<div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-[60] p-4" onClick={() => setPdfPreview(null)}><div className="bg-white rounded-2xl w-[90vw] h-[90vh] overflow-hidden flex flex-col" onClick={(e) => e.stopPropagation()}><div className="flex items-center justify-between p-3 bg-gray-100 border-b"><span className="text-gray-700 font-semibold">Vista previa</span><button onClick={() => setPdfPreview(null)} className="p-2 rounded-lg hover:bg-gray-200"><X className="w-5 h-5 text-gray-600" /></button></div><iframe src={pdfPreview} className="flex-1 w-full" title="PDF" /></div></div>)}
 
-      {/* Modal Editar */}
-      {editLead && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setEditLead(null)}>
-          <div className="bg-[var(--fx-surface)] rounded-2xl border border-white/20 w-[700px] max-h-[80vh] overflow-y-auto p-6" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between mb-4"><h3 className="text-white text-xl font-bold flex items-center gap-2"><Pencil className="w-5 h-5 text-yellow-400" />Editar - {editLead.nombreEmpresa}</h3><button onClick={() => setEditLead(null)} className="p-2 rounded-lg hover:bg-white/10"><X className="w-5 h-5 text-white" /></button></div>
-            <div className="grid grid-cols-2 gap-3 text-sm">
-              <div><label className="text-gray-400 text-xs">Empresa</label><input type="text" value={formData.nombreEmpresa || ''} onChange={(e) => setFormData({ ...formData, nombreEmpresa: e.target.value })} className="w-full mt-1 px-3 py-2 rounded-lg bg-black/30 border border-white/20 text-white" /></div>
-              <div><label className="text-gray-400 text-xs">Web</label><input type="text" value={formData.paginaWeb || ''} onChange={(e) => setFormData({ ...formData, paginaWeb: e.target.value })} className="w-full mt-1 px-3 py-2 rounded-lg bg-black/30 border border-white/20 text-white" /></div>
-              <div><label className="text-gray-400 text-xs">Contacto</label><input type="text" value={formData.nombreContacto || ''} onChange={(e) => handleInputChange('nombreContacto', e.target.value)} className="w-full mt-1 px-3 py-2 rounded-lg bg-black/30 border border-white/20 text-white" /></div>
-              <div><label className="text-gray-400 text-xs">Email</label><input type="email" value={formData.correoElectronico || ''} onChange={(e) => handleInputChange('correoElectronico', e.target.value)} className="w-full mt-1 px-3 py-2 rounded-lg bg-black/30 border border-white/20 text-white" /></div>
-              <div className="col-span-2"><label className="text-gray-400 text-xs">Servicio</label><div className="flex flex-wrap gap-2 mt-1">{['Seco', 'Refrigerado', 'Seco Hazmat', 'Refrigerado Hazmat'].map(s => <button key={s} onClick={() => handleToggleServicio(s)} className={`px-3 py-1 rounded text-xs ${formData.tipoServicio?.includes(s) ? 'bg-blue-500/30 text-blue-400 border border-blue-500' : 'bg-black/30 border border-white/20 text-white'}`}>{s}</button>)}</div></div>
-              <div className="col-span-2"><label className="text-gray-400 text-xs">Viaje</label><div className="flex flex-wrap gap-2 mt-1">{['Impo', 'Expo', 'Nacional', 'DTD', 'Dedicado'].map(v => <button key={v} onClick={() => handleToggleViaje(v)} className={`px-3 py-1 rounded text-xs ${formData.tipoViaje?.includes(v) ? 'bg-green-500/30 text-green-400 border border-green-500' : 'bg-black/30 border border-white/20 text-white'}`}>{v}</button>)}</div></div>
-              <div className="col-span-2"><label className="text-gray-400 text-xs">Rutas</label><input type="text" value={formData.principalesRutas || ''} onChange={(e) => setFormData({ ...formData, principalesRutas: e.target.value })} className="w-full mt-1 px-3 py-2 rounded-lg bg-black/30 border border-white/20 text-white" /></div>
-              <div><label className="text-gray-400 text-xs">Viajes/Mes</label><input type="number" value={formData.viajesPorMes || ''} onChange={(e) => setFormData({ ...formData, viajesPorMes: e.target.value })} className="w-full mt-1 px-3 py-2 rounded-lg bg-black/30 border border-white/20 text-white" /></div>
-              <div><label className="text-gray-400 text-xs">Etapa</label><select value={formData.etapaLead || 'Prospecto'} onChange={(e) => setFormData({ ...formData, etapaLead: e.target.value })} className="w-full mt-1 px-3 py-2 rounded-lg bg-black/30 border border-white/20 text-white"><option>Prospecto</option><option>Cotizado</option><option>Negociación</option><option>Cerrado</option></select></div>
-              <div className="col-span-2"><label className="text-gray-400 text-xs">Próximos Pasos</label><input type="text" value={formData.proximosPasos || ''} onChange={(e) => setFormData({ ...formData, proximosPasos: e.target.value })} className="w-full mt-1 px-3 py-2 rounded-lg bg-black/30 border border-white/20 text-white" /></div>
-            </div>
-            <div className="flex gap-3 mt-4"><button onClick={() => setEditLead(null)} className="flex-1 px-4 py-2 rounded-lg bg-gray-600 text-white">Cancelar</button><button onClick={handleGuardarEdicion} className="flex-1 px-4 py-2 rounded-lg bg-yellow-500 text-black font-semibold">Guardar</button></div>
-          </div>
-        </div>
-      )}
+      {editLead && (<div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setEditLead(null)}><div className="bg-[var(--fx-surface)] rounded-2xl border border-white/20 w-[700px] max-h-[80vh] overflow-y-auto p-6" onClick={(e) => e.stopPropagation()}><div className="flex items-center justify-between mb-4"><h3 className="text-white text-xl font-bold flex items-center gap-2"><Pencil className="w-5 h-5 text-yellow-400" />Editar - {editLead.nombreEmpresa}</h3><button onClick={() => setEditLead(null)} className="p-2 rounded-lg hover:bg-white/10"><X className="w-5 h-5 text-white" /></button></div><div className="grid grid-cols-2 gap-3 text-sm"><div><label className="text-gray-400 text-xs">Empresa</label><input type="text" value={formData.nombreEmpresa || ''} onChange={(e) => setFormData({ ...formData, nombreEmpresa: e.target.value })} className="w-full mt-1 px-3 py-2 rounded-lg bg-black/30 border border-white/20 text-white" /></div><div><label className="text-gray-400 text-xs">Web</label><input type="text" value={formData.paginaWeb || ''} onChange={(e) => setFormData({ ...formData, paginaWeb: e.target.value })} className="w-full mt-1 px-3 py-2 rounded-lg bg-black/30 border border-white/20 text-white" /></div><div><label className="text-gray-400 text-xs">Contacto</label><input type="text" value={formData.nombreContacto || ''} onChange={(e) => handleInputChange('nombreContacto', e.target.value)} className="w-full mt-1 px-3 py-2 rounded-lg bg-black/30 border border-white/20 text-white" /></div><div><label className="text-gray-400 text-xs">Email</label><input type="email" value={formData.correoElectronico || ''} onChange={(e) => handleInputChange('correoElectronico', e.target.value)} className="w-full mt-1 px-3 py-2 rounded-lg bg-black/30 border border-white/20 text-white" /></div><div className="col-span-2"><label className="text-gray-400 text-xs">Servicio</label><div className="flex flex-wrap gap-2 mt-1">{['Seco', 'Refrigerado', 'Seco Hazmat', 'Refrigerado Hazmat'].map(s => <button key={s} onClick={() => handleToggleServicio(s)} className={`px-3 py-1 rounded text-xs ${formData.tipoServicio?.includes(s) ? 'bg-blue-500/30 text-blue-400 border border-blue-500' : 'bg-black/30 border border-white/20 text-white'}`}>{s}</button>)}</div></div><div className="col-span-2"><label className="text-gray-400 text-xs">Viaje</label><div className="flex flex-wrap gap-2 mt-1">{['Impo', 'Expo', 'Nacional', 'DTD', 'Dedicado'].map(v => <button key={v} onClick={() => handleToggleViaje(v)} className={`px-3 py-1 rounded text-xs ${formData.tipoViaje?.includes(v) ? 'bg-green-500/30 text-green-400 border border-green-500' : 'bg-black/30 border border-white/20 text-white'}`}>{v}</button>)}</div></div><div className="col-span-2"><label className="text-gray-400 text-xs">Rutas</label><input type="text" value={formData.principalesRutas || ''} onChange={(e) => setFormData({ ...formData, principalesRutas: e.target.value })} className="w-full mt-1 px-3 py-2 rounded-lg bg-black/30 border border-white/20 text-white" /></div><div><label className="text-gray-400 text-xs">Viajes/Mes</label><input type="number" value={formData.viajesPorMes || ''} onChange={(e) => setFormData({ ...formData, viajesPorMes: e.target.value })} className="w-full mt-1 px-3 py-2 rounded-lg bg-black/30 border border-white/20 text-white" /></div><div><label className="text-gray-400 text-xs">Etapa</label><select value={formData.etapaLead || 'Prospecto'} onChange={(e) => setFormData({ ...formData, etapaLead: e.target.value })} className="w-full mt-1 px-3 py-2 rounded-lg bg-black/30 border border-white/20 text-white"><option>Prospecto</option><option>Cotizado</option><option>Negociación</option><option>Cerrado</option></select></div><div className="col-span-2"><label className="text-gray-400 text-xs">Próximos Pasos</label><input type="text" value={formData.proximosPasos || ''} onChange={(e) => setFormData({ ...formData, proximosPasos: e.target.value })} className="w-full mt-1 px-3 py-2 rounded-lg bg-black/30 border border-white/20 text-white" /></div></div><div className="flex gap-3 mt-4"><button onClick={() => setEditLead(null)} className="flex-1 px-4 py-2 rounded-lg bg-gray-600 text-white">Cancelar</button><button onClick={handleGuardarEdicion} className="flex-1 px-4 py-2 rounded-lg bg-yellow-500 text-black font-semibold">Guardar</button></div></div></div>)}
     </ModuleTemplate>
   );
 };
