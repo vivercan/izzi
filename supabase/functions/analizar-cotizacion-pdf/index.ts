@@ -14,68 +14,106 @@ serve(async (req) => {
   }
 
   try {
-    const { textoPDF } = await req.json();
+    const { imagenBase64, textoPDF } = await req.json();
 
-    if (!textoPDF) {
-      return new Response(JSON.stringify({ success: false, error: "No se proporciono texto del PDF" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    if (!imagenBase64 && !textoPDF) {
+      return new Response(JSON.stringify({ success: false, error: "No se proporciono imagen ni texto" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     if (!ANTHROPIC_API_KEY) {
-      return new Response(JSON.stringify({ success: false, error: "API Key de Anthropic no configurada" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      return new Response(JSON.stringify({ success: false, error: "API Key no configurada" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
+    let messages;
+    
+    if (imagenBase64) {
+      // Usar Claude Vision con imagen
+      const base64Data = imagenBase64.replace(/^data:image\/\w+;base64,/, '');
+      messages = [{
+        role: "user",
+        content: [
+          {
+            type: "image",
+            source: {
+              type: "base64",
+              media_type: "image/png",
+              data: base64Data
+            }
+          },
+          {
+            type: "text",
+            text: `Analiza esta imagen de una cotizacion de transporte y extrae TODAS las rutas/servicios cotizados.
+
+INSTRUCCIONES:
+1. Busca tablas o bloques con informacion de rutas
+2. Para cada ruta extrae:
+   - origen: ciudad/estado de origen completo
+   - destino: ciudad/estado de destino final
+   - servicio: "Refrigerado" o "Seco"
+   - tarifa: numero sin comas (ej: 30000)
+   - moneda: "USD" o "MXN"
+
+Responde UNICAMENTE con un JSON array valido, sin explicaciones:
+[{"origen":"...", "destino":"...", "servicio":"...", "tarifa":0, "moneda":"..."}]
+
+Si no encuentras rutas, responde: []`
+          }
+        ]
+      }];
+    } else {
+      // Usar texto como fallback
+      messages = [{
+        role: "user",
+        content: `Analiza este texto de cotizacion de transporte y extrae TODAS las rutas:
+
+${textoPDF}
+
+Para cada ruta extrae: origen, destino, servicio (Refrigerado/Seco), tarifa (numero), moneda (USD/MXN).
+
+Responde SOLO con JSON array:
+[{"origen":"...", "destino":"...", "servicio":"...", "tarifa":0, "moneda":"..."}]
+
+Si no hay rutas: []`
+      }];
     }
 
     const claudeResponse = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
-      headers: { "Content-Type": "application/json", "x-api-key": ANTHROPIC_API_KEY, "anthropic-version": "2023-06-01" },
+      headers: { 
+        "Content-Type": "application/json", 
+        "x-api-key": ANTHROPIC_API_KEY, 
+        "anthropic-version": "2023-06-01" 
+      },
       body: JSON.stringify({
         model: "claude-sonnet-4-20250514",
         max_tokens: 2000,
-        messages: [{ role: "user", content: `Analiza este texto extraido de una cotizacion de transporte TROB y extrae TODAS las rutas/servicios cotizados.
-
-TEXTO DEL PDF:
-${textoPDF}
-
-INSTRUCCIONES:
-1. Identifica CADA ruta cotizada (puede haber multiples bloques "Origen Destino Servicio Importe" hasta "Total")
-2. Para cada ruta extrae:
-   - origen: ciudad/estado de origen. Si tiene multiples paradas como "Guadalajara, Jal. - Aguascalientes, Ags." eso es el origen completo
-   - destino: ciudad/estado de destino final (la ultima ciudad antes del servicio/importe)
-   - servicio: "Refrigerado" o "Seco" (si no se especifica, usa "Seco")
-   - tarifa: numero sin comas ni simbolos (ej: 30000)
-   - moneda: "USD" o "MXN"
-
-IMPORTANTE:
-- Cada bloque entre "Origen Destino Servicio Importe" y "Total" es UNA ruta
-- El texto puede estar fragmentado en varias lineas, unelo logicamente
-- Busca patrones de ciudades mexicanas (Guadalajara, Monterrey, Aguascalientes, etc.) y estadounidenses (Laredo, Dallas, etc.)
-- Los importes tienen formato XX,XXX.XX seguido de USD o MXN
-
-Responde UNICAMENTE con un JSON array valido, sin explicaciones, sin markdown, sin backticks:
-[{"origen":"...", "destino":"...", "servicio":"...", "tarifa":0, "moneda":"..."}]
-
-Si no encuentras rutas validas, responde exactamente: []` }]
+        messages: messages
       })
     });
 
     if (!claudeResponse.ok) {
       const errorText = await claudeResponse.text();
-      return new Response(JSON.stringify({ success: false, error: "Error al llamar a Claude API", details: errorText }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      console.error("Error Claude:", errorText);
+      return new Response(JSON.stringify({ success: false, error: "Error Claude API", details: errorText }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     const claudeData = await claudeResponse.json();
     const contenido = claudeData.content?.[0]?.text || "[]";
+    console.log("Respuesta Claude:", contenido);
 
     let rutas = [];
     try {
       const jsonStr = contenido.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
       rutas = JSON.parse(jsonStr);
-    } catch (parseError) {
+    } catch (e) {
+      console.error("Error parsing:", e);
       rutas = [];
     }
 
     return new Response(JSON.stringify({ success: true, rutas }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
   } catch (error) {
+    console.error("Error:", error);
     return new Response(JSON.stringify({ success: false, error: error.message }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
 });
