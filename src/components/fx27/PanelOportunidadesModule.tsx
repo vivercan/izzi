@@ -533,7 +533,7 @@ export const PanelOportunidadesModule = ({ onBack }: PanelOportunidadesModulePro
                     </div>
                     <div className="flex items-center gap-2">
                       <label className="text-gray-400 text-sm">Viajes/mes:</label>
-                      <input type="number" min="0" value={linea.viajes || ''} onChange={(e) => handleCambioLinea(idx, 'viajes', parseInt(e.target.value) || 0)} placeholder="0" className={`w-20 px-3 py-2 rounded-lg text-center font-bold text-lg ${linea.viajes > 0 ? 'bg-emerald-500/20 border-emerald-500 text-emerald-300' : 'bg-red-500/10 border-red-500/50 text-white'} border-2`} />
+                      <input type="number" min="0" value={linea.viajes || ''} onChange={(e) => handleCambioLinea(idx, 'viajes', parseInt(e.target.value) || 0)} placeholder="0" style={{ MozAppearance: 'textfield' }} className={`w-20 px-3 py-2 rounded-lg text-center font-bold text-lg [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${linea.viajes > 0 ? 'bg-emerald-500/20 border-emerald-500 text-emerald-300' : 'bg-red-500/10 border-red-500/50 text-white'} border-2`} />
                     </div>
                   </div>
                 </div>
