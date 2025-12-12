@@ -5,7 +5,7 @@ import { Search, Download, TrendingUp, X, BarChart3, Building2, User, Calendar, 
 import { projectId, publicAnonKey } from '../../utils/supabase/info';
 import * as pdfjsLib from 'pdfjs-dist';
 
-pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
 
 interface PanelOportunidadesModuleProps { onBack: () => void; }
 interface LineaCotizacion { origen: string; destino: string; servicio: string; tarifa: number; moneda: string; viajes: number; tipoViaje: string; subtotalMXN: number; }
@@ -114,6 +114,56 @@ const parsearCotizacionPDF = (texto: string): LineaCotizacion[] => {
   }
   
   return lineas;
+};
+
+const analizarPDFConClaude = async (textoPDF: string, pdfBase64?: string): Promise<LineaCotizacion[]> => {
+  try {
+    console.log('Enviando a Edge Function para análisis con Claude Vision...');
+    
+    let imagenBase64 = '';
+    
+    // Convertir primera página del PDF a imagen
+    if (pdfBase64) {
+      try {
+        const base64Data = pdfBase64.split(',')[1] || pdfBase64;
+        const binaryString = atob(base64Data);
+        const bytes = new Uint8Array(binaryString.length);
+        for (let i = 0; i < binaryString.length; i++) bytes[i] = binaryString.charCodeAt(i);
+        
+        const pdf = await pdfjsLib.getDocument({ data: bytes }).promise;
+        const page = await pdf.getPage(1);
+        const scale = 2; // Alta resolución
+        const viewport = page.getViewport({ scale });
+        
+        const canvas = document.createElement('canvas');
+        canvas.width = viewport.width;
+        canvas.height = viewport.height;
+        const ctx = canvas.getContext('2d');
+        
+        await page.render({ canvasContext: ctx!, viewport }).promise;
+        imagenBase64 = canvas.toDataURL('image/png');
+        console.log('PDF convertido a imagen, tamaño:', imagenBase64.length);
+      } catch (e) {
+        console.error('Error convirtiendo PDF a imagen:', e);
+      }
+    }
+    
+    const response = await fetch(`https://fbxbsslhewchyibdoyzk.supabase.co/functions/v1/analizar-cotizacion-pdf`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${publicAnonKey}` },
+      body: JSON.stringify({ imagenBase64, textoPDF })
+    });
+    
+    if (!response.ok) { console.error('Error en Edge Function:', response.status); return []; }
+    const data = await response.json();
+    console.log('Respuesta de Claude:', data);
+    if (!data.success || !data.rutas || data.rutas.length === 0) { console.log('No se detectaron rutas con IA'); return []; }
+    return data.rutas.map((r: any) => ({
+      origen: r.origen || '', destino: r.destino || '', servicio: r.servicio || 'Seco',
+      tarifa: parseFloat(r.tarifa) || 0, moneda: r.moneda || 'MXN', viajes: 0,
+      tipoViaje: detectarTipoViaje(r.origen || '', r.destino || '', r.servicio || ''), subtotalMXN: 0
+    }));
+  } catch (error) { console.error('Error llamando a Edge Function:', error); return []; }
 };
 
 const extraerTextoPDF = async (base64: string): Promise<string> => {
@@ -244,12 +294,18 @@ export const PanelOportunidadesModule = ({ onBack }: PanelOportunidadesModulePro
       try {
         setStatusMsg('Extrayendo contenido...');
         const base64 = await new Promise<string>((resolve, reject) => { const reader = new FileReader(); reader.onload = () => resolve(reader.result as string); reader.onerror = () => reject('Error'); reader.readAsDataURL(file); });
-        setStatusMsg('Analizando rutas y tarifas...');
+        setStatusMsg('Extrayendo texto del PDF...');
         const textoPDF = await extraerTextoPDF(base64);
         console.log('Texto extraído:', textoPDF.substring(0, 1500));
         
-        const rutas = parsearCotizacionPDF(textoPDF);
+        setStatusMsg('🤖 Analizando rutas con IA (Vision)...');
+        let rutas = await analizarPDFConClaude(textoPDF, base64);
         console.log('Rutas encontradas:', rutas);
+        
+        if (rutas.length === 0) {
+          rutas = parsearCotizacionPDF(textoPDF);
+          console.log('Rutas con parser local:', rutas);
+        }
         
         if (rutas.length === 0) {
           rutas.push({ origen: '', destino: '', servicio: 'Seco', tarifa: 0, moneda: 'USD', viajes: 0, tipoViaje: 'Nacional', subtotalMXN: 0 });
