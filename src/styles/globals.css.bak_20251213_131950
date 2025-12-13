@@ -214,28 +214,3 @@
     border-color: rgba(244,63,94,0.22);
   }
 }
-
-
-
-/* ============================
-   FX27 UBUNTU FALLBACK (Panel Oportunidades)
-   - Por si NO existe data-lucide en los SVG
-   ============================ */
-@layer utilities{
-  .fx-opps td:last-child button{
-    border-radius: 10px;
-  }
-
-  /* Orden esperado: 1) Ver 2) Editar 3) Archivo/Doc 4) Borrar */
-  .fx-opps td:last-child button:nth-of-type(1){ color: rgba(125,211,252,0.95); }
-  .fx-opps td:last-child button:nth-of-type(1):hover{ background: rgba(56,189,248,0.10); border-color: rgba(56,189,248,0.22); }
-
-  .fx-opps td:last-child button:nth-of-type(2){ color: rgba(253,186,116,0.95); }
-  .fx-opps td:last-child button:nth-of-type(2):hover{ background: rgba(251,146,60,0.10); border-color: rgba(251,146,60,0.22); }
-
-  .fx-opps td:last-child button:nth-of-type(3){ color: rgba(196,181,253,0.95); }
-  .fx-opps td:last-child button:nth-of-type(3):hover{ background: rgba(167,139,250,0.10); border-color: rgba(167,139,250,0.22); }
-
-  .fx-opps td:last-child button:nth-of-type(4){ color: rgba(251,113,133,0.95); }
-  .fx-opps td:last-child button:nth-of-type(4):hover{ background: rgba(244,63,94,0.10); border-color: rgba(244,63,94,0.22); }
-}
