@@ -414,7 +414,7 @@ export const PanelOportunidadesModule = ({ onBack }: PanelOportunidadesModulePro
   const AlertBadge = ({ lead }: { lead: Lead }) => { const alerta = getAlertaLead(lead); if (!alerta.tipo) return null; if (alerta.tipo === 'amarillo') return <span title={alerta.mensaje} className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-amber-500/10 text-amber-400/80 text-xs font-medium cursor-help border border-amber-500/20"><Zap className="w-3 h-3" />{alerta.dias}d</span>; if (alerta.tipo === 'rojo') return <span title={alerta.mensaje} className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-red-500/10 text-red-400/80 text-xs font-medium cursor-help border border-red-500/20 animate-pulse"><Flame className="w-3 h-3" />{alerta.dias}d</span>; if (alerta.tipo === 'critico') return <span title={alerta.mensaje} className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-red-500/15 text-red-300 text-xs font-semibold cursor-help border border-red-500/30 animate-pulse"><Skull className="w-3 h-3" />{alerta.dias}d</span>; return null; };
 
   return (
-    <ModuleTemplate title="Panel de Oportunidades" onBack={onBack} headerImage={MODULE_IMAGES.PANEL_OPORTUNIDADES}>
+    <ModuleTemplate title="Panel de Oportunidades" onBack={onBack} >
       <div className="flex flex-col h-[calc(100vh-120px)]">
         <div className="flex-shrink-0 p-4 pb-2">
           <div className="flex flex-wrap gap-3 items-center justify-between">

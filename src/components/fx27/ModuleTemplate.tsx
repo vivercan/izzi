@@ -1,4 +1,4 @@
-import { ArrowLeft, Linkedin } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import React from 'react';
 
 interface ModuleTemplateProps {
@@ -14,7 +14,7 @@ export const ModuleTemplate = ({ title, onBack, children, headerImage }: ModuleT
       {/* Background with gradient */}
       <div className="absolute inset-0 bg-gradient-to-br from-[#0B1220] via-[#0F172A] to-[#1E66F5]/20"></div>
 
-      {/* Vignette ultra sutil - oscurece bordes 2-3% */}
+      {/* Vignette ultra sutil */}
       <div 
         className="absolute pointer-events-none"
         style={{
@@ -26,7 +26,7 @@ export const ModuleTemplate = ({ title, onBack, children, headerImage }: ModuleT
         }}
       />
 
-      {/* Spotlight de trabajo - halo suave debajo del título */}
+      {/* Spotlight de trabajo */}
       <div 
         className="absolute pointer-events-none"
         style={{
@@ -40,9 +40,9 @@ export const ModuleTemplate = ({ title, onBack, children, headerImage }: ModuleT
         }}
       />
 
-      {/* Ruido fino para evitar banding */}
+      {/* Ruido fino premium 4% */}
       <svg 
-        className="absolute w-full pointer-events-none opacity-[0.03]"
+        className="absolute w-full pointer-events-none opacity-[0.04]"
         style={{
           top: '119px',
           left: 0,
@@ -72,7 +72,7 @@ export const ModuleTemplate = ({ title, onBack, children, headerImage }: ModuleT
         }}
       />
 
-      {/* Logo FX27 en esquina superior derecha - INAMOVIBLE */}
+      {/* Logo FX27 - INAMOVIBLE */}
       <div className="absolute z-50 opacity-25 flex flex-col items-center" style={{ top: '-4px', right: '8px' }}>
         <div className="text-[80px] font-black text-white leading-none" style={{ fontFamily: 'Exo 2, sans-serif' }}>
           FX27
@@ -82,39 +82,65 @@ export const ModuleTemplate = ({ title, onBack, children, headerImage }: ModuleT
         </div>
       </div>
 
-      {/* Barra superior "glass" - Extendida hasta donde termina el logo */}
+      {/* Barra superior PREMIUM - Gradiente navy/petroleo + noise */}
       <div 
         className="absolute top-0 left-0 right-0 z-10"
         style={{
           height: '119px',
-          background: 'rgba(15, 23, 42, 0.25)',
-          backdropFilter: 'blur(12px)',
-          WebkitBackdropFilter: 'blur(12px)',
           overflow: 'hidden'
         }}
       >
-        {/* Imagen de fondo tipo tecnología */}
+        {/* Base: Gradiente oscuro navy -> petroleo */}
         <div 
           className="absolute inset-0"
           style={{
-            backgroundImage: headerImage ? `url(${headerImage})` : 'url(https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=2072)',
-            backgroundSize: 'cover',
-            backgroundPosition: 'center',
-            opacity: 0.45,
-            filter: 'saturate(1.2) brightness(1.1)'
+            background: 'linear-gradient(135deg, #0a1628 0%, #0d1f35 25%, #0f2847 50%, #0a1e38 75%, #081420 100%)'
           }}
         />
         
-        {/* Overlay de gradiente azul */}
+        {/* Capa 2: Gradiente horizontal sutil para profundidad */}
         <div 
           className="absolute inset-0"
           style={{
-            background: 'linear-gradient(90deg, rgba(30, 102, 245, 0.12) 0%, rgba(15, 23, 42, 0.25) 50%, rgba(30, 102, 245, 0.08) 100%)'
+            background: 'linear-gradient(90deg, rgba(15,30,56,0.9) 0%, rgba(20,45,75,0.6) 30%, rgba(15,35,60,0.7) 70%, rgba(10,20,40,0.9) 100%)'
+          }}
+        />
+
+        {/* Capa 3: Acento azul muy sutil en centro */}
+        <div 
+          className="absolute inset-0"
+          style={{
+            background: 'radial-gradient(ellipse 80% 100% at 50% 100%, rgba(59,130,246,0.08) 0%, transparent 60%)'
+          }}
+        />
+
+        {/* Capa 4: Overlay oscuro homogeneizador */}
+        <div 
+          className="absolute inset-0"
+          style={{
+            background: 'linear-gradient(180deg, rgba(8,15,28,0.4) 0%, rgba(8,15,28,0.2) 50%, rgba(8,15,28,0.5) 100%)'
+          }}
+        />
+
+        {/* Capa 5: Noise/grain premium 4% */}
+        <svg className="absolute inset-0 w-full h-full opacity-[0.04] pointer-events-none">
+          <filter id="headerNoise">
+            <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="4" stitchTiles="stitch"/>
+            <feColorMatrix type="saturate" values="0"/>
+          </filter>
+          <rect width="100%" height="100%" filter="url(#headerNoise)"/>
+        </svg>
+
+        {/* Linea inferior sutil */}
+        <div 
+          className="absolute bottom-0 left-0 right-0 h-px"
+          style={{
+            background: 'linear-gradient(90deg, transparent 0%, rgba(59,130,246,0.2) 20%, rgba(59,130,246,0.3) 50%, rgba(59,130,246,0.2) 80%, transparent 100%)'
           }}
         />
       </div>
 
-      {/* Main Content con animación de entrada */}
+      {/* Main Content */}
       <div 
         className="relative z-10 w-full h-full flex flex-col"
         style={{
@@ -122,7 +148,7 @@ export const ModuleTemplate = ({ title, onBack, children, headerImage }: ModuleT
           padding: '0 24px 0px 24px'
         }}
       >
-        {/* Header - Centrado verticalmente en la franja */}
+        {/* Header */}
         <div className="flex items-center gap-6 relative z-20" style={{ paddingTop: '25px', marginBottom: '65px' }}>
           <button
             onClick={onBack}
@@ -162,7 +188,7 @@ export const ModuleTemplate = ({ title, onBack, children, headerImage }: ModuleT
           </h1>
         </div>
 
-        {/* Workstage translúcido - Panel de trabajo */}
+        {/* Workstage */}
         <div style={{ height: 'calc(100vh - 167px)' }}>
           <div 
             className="w-full h-full rounded-[18px]"
@@ -177,14 +203,8 @@ export const ModuleTemplate = ({ title, onBack, children, headerImage }: ModuleT
           >
             {children || (
               <div className="p-8 flex items-center justify-center min-h-[400px]">
-                <p 
-                  style={{
-                    fontFamily: "'Exo 2', sans-serif",
-                    fontSize: '16px',
-                    color: 'rgba(255, 255, 255, 0.5)'
-                  }}
-                >
-                  Contenido del módulo
+                <p style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '16px', color: 'rgba(255, 255, 255, 0.5)' }}>
+                  Contenido del modulo
                 </p>
               </div>
             )}
@@ -192,33 +212,18 @@ export const ModuleTemplate = ({ title, onBack, children, headerImage }: ModuleT
         </div>
       </div>
 
-      {/* Keyframes para animaciones */}
       <style>{`
         @keyframes sheen {
           0%, 100% { background-position: 0% 0%; }
           50% { background-position: 100% 100%; }
         }
-        
         @keyframes moduleEnter {
-          from { 
-            opacity: 0;
-            transform: translateY(8px);
-          }
-          to { 
-            opacity: 1;
-            transform: translateY(0);
-          }
+          from { opacity: 0; transform: translateY(8px); }
+          to { opacity: 1; transform: translateY(0); }
         }
-        
         @keyframes panelEnter {
-          from { 
-            opacity: 0;
-            transform: translateY(12px) scale(0.99);
-          }
-          to { 
-            opacity: 1;
-            transform: translateY(0) scale(1);
-          }
+          from { opacity: 0; transform: translateY(12px) scale(0.99); }
+          to { opacity: 1; transform: translateY(0) scale(1); }
         }
       `}</style>
     </div>
