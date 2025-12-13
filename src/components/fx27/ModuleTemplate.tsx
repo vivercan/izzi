@@ -72,45 +72,31 @@ export const ModuleTemplate = ({ title, onBack, children, headerImage }: ModuleT
         }}
       />
 
-      {/* Logo FX27 - IDENTICO AL DASHBOARD */}
-      <div className="absolute z-50 flex flex-col items-end" style={{ top: '20px', right: '28px' }}>
-        {/* FX27 con gradiente metálico gris */}
-        <div 
-          className="leading-none"
-          style={{ 
-            fontFamily: "'Exo 2', sans-serif",
-            fontSize: '48px',
-            fontWeight: 700,
-            background: 'linear-gradient(180deg, #8899aa 0%, #667788 40%, #556677 70%, #445566 100%)',
+      {/* Logo FX27 - COPIADO EXACTO DEL DASHBOARD */}
+      <div className="absolute z-50 flex flex-col items-end" style={{ top: '13px', right: '32px' }}>
+        <div
+          className="text-[72px] font-black leading-none tracking-tight"
+          style={{
+            fontFamily: 'Exo 2, sans-serif',
+            background: 'linear-gradient(135deg, #E8EEF4 0%, #B5C4D8 30%, #D8DFE8 55%, #9FB0C5 80%, #D0D9E4 100%)',
             WebkitBackgroundClip: 'text',
             WebkitTextFillColor: 'transparent',
             backgroundClip: 'text',
-            letterSpacing: '1px'
+            filter: 'drop-shadow(2px 0 4px rgba(160, 180, 210, 0.2)) drop-shadow(-1px 0 2px rgba(255, 255, 255, 0.1))',
           }}
         >
           FX27
         </div>
-        
-        {/* Línea separadora horizontal */}
-        <div 
-          style={{ 
-            width: '100%',
-            height: '1px',
-            background: 'linear-gradient(90deg, transparent 0%, rgba(100,120,140,0.5) 20%, rgba(100,120,140,0.6) 50%, rgba(100,120,140,0.5) 80%, transparent 100%)',
-            marginTop: '6px',
-            marginBottom: '6px'
-          }}
-        />
-        
-        {/* Future Experience 27 */}
-        <div 
-          style={{ 
-            fontFamily: "'Exo 2', sans-serif",
-            fontSize: '10px',
-            fontWeight: 400,
-            color: 'rgba(130,150,170,0.85)',
-            letterSpacing: '2.5px',
-            textTransform: 'uppercase'
+        <div
+          className="text-[13px] tracking-[0.15em] mt-1 uppercase"
+          style={{
+            fontFamily: 'Exo 2, sans-serif',
+            color: 'rgba(240, 160, 80, 0.75)',
+            fontWeight: 500,
+            letterSpacing: '0.25em',
+            marginRight: '-3px',
+            fontSize: '11px',
+            filter: 'blur(0.5px) drop-shadow(0 0 8px rgba(240, 160, 80, 0.6)) drop-shadow(0 0 16px rgba(240, 160, 80, 0.4))',
           }}
         >
           Future Experience 27
