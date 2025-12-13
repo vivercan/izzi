@@ -42,12 +42,12 @@ export const LoginScreen = ({
         }}
       />
 
-      {/* FX27 Logo & Background - ESTILO DASHBOARD */}
+      {/* FX27 Logo & Background - ALINEADO A LA DERECHA */}
       <div
         className="absolute inset-0 z-0 flex items-center justify-start"
         style={{ paddingLeft: "58%", paddingTop: "-200px" }}
       >
-        <div className="relative flex flex-col items-center">
+        <div className="relative flex flex-col items-end">
           {/* FX27 grande */}
           <div
             className="text-[240px] font-black leading-none opacity-25"
@@ -59,18 +59,19 @@ export const LoginScreen = ({
             FX27
           </div>
           
-          {/* Slogan - COLOR NARANJA SÓLIDO #fe5000 SIN TRANSPARENCIA */}
+          {/* Slogan - TAMAÑO MITAD (12px), ALINEADO A LA DERECHA donde termina FX27 */}
           <div
             className="uppercase"
             style={{ 
               fontFamily: "Exo 2, sans-serif",
-              fontSize: '24px',
+              fontSize: '12px',
               fontWeight: 500,
-              letterSpacing: '0.35em',
-              marginTop: '12px',
+              letterSpacing: '0.25em',
+              marginTop: '8px',
               color: '#fe5000',
-              opacity: 0.85,
-              textShadow: '0 2px 8px rgba(254, 80, 0, 0.3)',
+              opacity: 0.9,
+              textShadow: '0 1px 4px rgba(254, 80, 0, 0.3)',
+              textAlign: 'right',
             }}
           >
             Future Experience 27
