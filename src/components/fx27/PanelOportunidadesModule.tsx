@@ -449,3 +449,4 @@ export const PanelOportunidadesModule = ({ onBack }: PanelOportunidadesModulePro
     </ModuleTemplate>
   );
 };
+
