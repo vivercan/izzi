@@ -9,8 +9,6 @@ export const LoginScreen = ({
   onLogin,
   loginError,
 }: LoginScreenProps) => {
-  // ✅ PRE-LLENADO SOLO EN DESARROLLO (localhost / Figma / FX27 Mail)
-  // En producción (jjcrm27.com) estos campos estarán vacíos
   const isDevelopment =
     typeof window !== 'undefined' &&
     (
@@ -44,23 +42,37 @@ export const LoginScreen = ({
         }}
       />
 
-      {/* FX27 Logo & Background - Positioned 25% from left */}
+      {/* FX27 Logo & Background - ESTILO DASHBOARD */}
       <div
         className="absolute inset-0 z-0 flex items-center justify-start"
         style={{ paddingLeft: "58%", paddingTop: "-200px" }}
       >
-        <div className="relative">
+        <div className="relative flex flex-col items-center">
+          {/* FX27 grande */}
           <div
-            className="text-[240px] font-black text-white leading-none opacity-25 flex flex-col items-center"
-            style={{ fontFamily: "Exo 2, sans-serif" }}
+            className="text-[240px] font-black leading-none opacity-25"
+            style={{ 
+              fontFamily: "Exo 2, sans-serif",
+              color: 'white'
+            }}
           >
             FX27
-            <div
-              className="text-[48px] text-white tracking-wider mt-2"
-              style={{ fontFamily: "Exo 2, sans-serif" }}
-            >
-              Future Experiencie 27
-            </div>
+          </div>
+          
+          {/* Slogan - ESTILO DASHBOARD: naranja con glow, pequeño, sin bold */}
+          <div
+            className="uppercase"
+            style={{ 
+              fontFamily: "Exo 2, sans-serif",
+              fontSize: '18px',
+              fontWeight: 400,
+              letterSpacing: '0.3em',
+              marginTop: '8px',
+              color: 'rgba(240, 160, 80, 0.25)',
+              filter: 'blur(0.3px) drop-shadow(0 0 12px rgba(240, 160, 80, 0.15)) drop-shadow(0 0 24px rgba(240, 160, 80, 0.1))',
+            }}
+          >
+            Future Experience 27
           </div>
         </div>
       </div>
