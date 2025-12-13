@@ -59,17 +59,18 @@ export const LoginScreen = ({
             FX27
           </div>
           
-          {/* Slogan - ESTILO DASHBOARD: naranja con glow, pequeño, sin bold */}
+          {/* Slogan - COLOR NARANJA SÓLIDO #fe5000 SIN TRANSPARENCIA */}
           <div
             className="uppercase"
             style={{ 
               fontFamily: "Exo 2, sans-serif",
-              fontSize: '18px',
-              fontWeight: 400,
-              letterSpacing: '0.3em',
-              marginTop: '8px',
-              color: 'rgba(240, 160, 80, 0.25)',
-              filter: 'blur(0.3px) drop-shadow(0 0 12px rgba(240, 160, 80, 0.15)) drop-shadow(0 0 24px rgba(240, 160, 80, 0.1))',
+              fontSize: '24px',
+              fontWeight: 500,
+              letterSpacing: '0.35em',
+              marginTop: '12px',
+              color: '#fe5000',
+              opacity: 0.85,
+              textShadow: '0 2px 8px rgba(254, 80, 0, 0.3)',
             }}
           >
             Future Experience 27

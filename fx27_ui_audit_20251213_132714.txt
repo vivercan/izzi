@@ -1,0 +1,744 @@
+============================
+FX27 UI AUDIT REPORT - 20251213_132714
+Root: C:\Users\timon\Downloads\izzi_sync
+============================
+
+## GIT
+Branch: main
+Commit: fbbcd5c622a4afa49055857b6f5d843941762682
+Remote: origin	https://github.com/vivercan/izzi.git (fetch)
+origin	https://github.com/vivercan/izzi.git (push)
+Status:
+M archivosjjdescomprimidos
+?? fx27_ui_audit_20251213_132714.txt
+
+## PROJECT FILES
+package.json exists? True
+src\app exists? False
+src\pages exists? False
+
+## FILE COUNT
+Scanned files: 361
+
+## GLOBAL CSS IMPORTS
+Files importing globals.css (or referencing it):
+- C:\Users\timon\Downloads\izzi_sync\App.tsx
+- C:\Users\timon\Downloads\izzi_sync\archivosjjdescomprimidos\src\App.tsx
+- C:\Users\timon\Downloads\izzi_sync\izzi_descarga_nueva\src\App.tsx
+- C:\Users\timon\Downloads\izzi_sync\src\App.tsx
+
+## FIND: 'Future Experience 27'
+Matches found: 7
+
+---
+File: C:\Users\timon\Downloads\izzi_sync\archivosjjdescomprimidos\src\components\fx27\AgregarLeadModule.tsx
+Line: 359
+Text: Future Experience 27
+Context:
+   356 |             FX<span className="text-[#1E66F5]">27</span>
+   357 |           </div>
+   358 |           <div className="text-slate-400/60" style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '9px', fontWeight: 300, letterSpacing: '2.5px', textTransform: 'uppercase', marginTop: '-3px' }}>
+   359 |             Future Experience 27
+   360 |           </div>
+   361 |         </div>
+   362 |       </div>
+---
+File: C:\Users\timon\Downloads\izzi_sync\archivosjjdescomprimidos\src\components\fx27\DashboardScreen.tsx
+Line: 157
+Text: Future Experience 27
+Context:
+   154 |             filter: 'blur(0.5px) drop-shadow(0 0 8px rgba(240, 160, 80, 0.6)) drop-shadow(0 0 16px rgba(240, 160, 80, 0.4))',
+   155 |           }}
+   156 |         >
+   157 |           Future Experience 27
+   158 |         </div>
+   159 |       </div>
+   160 | 
+---
+File: C:\Users\timon\Downloads\izzi_sync\archivosjjdescomprimidos\src\components\fx27\PanelOportunidadesModule.tsx
+Line: 482
+Text: Future Experience 27
+Context:
+   479 |             FX<span className="text-[#1E66F5]">27</span>
+   480 |           </div>
+   481 |           <div className="text-slate-400/60" style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '9px', fontWeight: 300, letterSpacing: '2.5px', textTransform: 'uppercase', marginTop: '-3px' }}>
+   482 |             Future Experience 27
+   483 |           </div>
+   484 |         </div>
+   485 |       </div>
+---
+File: C:\Users\timon\Downloads\izzi_sync\izzi_descarga_nueva\src\components\fx27\AgregarLeadModule.tsx
+Line: 359
+Text: Future Experience 27
+Context:
+   356 |             FX<span className="text-[#1E66F5]">27</span>
+   357 |           </div>
+   358 |           <div className="text-slate-400/60" style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '9px', fontWeight: 300, letterSpacing: '2.5px', textTransform: 'uppercase', marginTop: '-3px' }}>
+   359 |             Future Experience 27
+   360 |           </div>
+   361 |         </div>
+   362 |       </div>
+---
+File: C:\Users\timon\Downloads\izzi_sync\izzi_descarga_nueva\src\components\fx27\DashboardScreen.tsx
+Line: 157
+Text: Future Experience 27
+Context:
+   154 |             filter: 'blur(0.5px) drop-shadow(0 0 8px rgba(240, 160, 80, 0.6)) drop-shadow(0 0 16px rgba(240, 160, 80, 0.4))',
+   155 |           }}
+   156 |         >
+   157 |           Future Experience 27
+   158 |         </div>
+   159 |       </div>
+   160 | 
+---
+File: C:\Users\timon\Downloads\izzi_sync\izzi_descarga_nueva\src\components\fx27\PanelOportunidadesModule.tsx
+Line: 482
+Text: Future Experience 27
+Context:
+   479 |             FX<span className="text-[#1E66F5]">27</span>
+   480 |           </div>
+   481 |           <div className="text-slate-400/60" style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '9px', fontWeight: 300, letterSpacing: '2.5px', textTransform: 'uppercase', marginTop: '-3px' }}>
+   482 |             Future Experience 27
+   483 |           </div>
+   484 |         </div>
+   485 |       </div>
+---
+File: C:\Users\timon\Downloads\izzi_sync\src\components\fx27\DashboardScreen.tsx
+Line: 157
+Text: Future Experience 27
+Context:
+   154 |             filter: 'blur(0.5px) drop-shadow(0 0 8px rgba(240, 160, 80, 0.6)) drop-shadow(0 0 16px rgba(240, 160, 80, 0.4))',
+   155 |           }}
+   156 |         >
+   157 |           Future Experience 27
+   158 |         </div>
+   159 |       </div>
+   160 | 
+
+## FIND: 'FX27' (clues)
+Files containing FX27/Logo/Header clues:
+- C:\Users\timon\Downloads\izzi_sync\App.tsx
+- C:\Users\timon\Downloads\izzi_sync\archivosjjdescomprimidos\src\App.tsx
+- C:\Users\timon\Downloads\izzi_sync\archivosjjdescomprimidos\src\assets\module-images.ts
+- C:\Users\timon\Downloads\izzi_sync\archivosjjdescomprimidos\src\components\fx27\AdminCarrollModule.tsx
+- C:\Users\timon\Downloads\izzi_sync\archivosjjdescomprimidos\src\components\fx27\AdministracionCarroll.tsx
+- C:\Users\timon\Downloads\izzi_sync\archivosjjdescomprimidos\src\components\fx27\AgregarLeadModule_LIGHT.tsx
+- C:\Users\timon\Downloads\izzi_sync\archivosjjdescomprimidos\src\components\fx27\AgregarLeadModule.tsx
+- C:\Users\timon\Downloads\izzi_sync\archivosjjdescomprimidos\src\components\fx27\AIAssistant.tsx
+- C:\Users\timon\Downloads\izzi_sync\archivosjjdescomprimidos\src\components\fx27\CarrollConfigModule.tsx
+- C:\Users\timon\Downloads\izzi_sync\archivosjjdescomprimidos\src\components\fx27\CarrollModule.tsx
+- C:\Users\timon\Downloads\izzi_sync\archivosjjdescomprimidos\src\components\fx27\CarrollModuleFinal.tsx
+- C:\Users\timon\Downloads\izzi_sync\archivosjjdescomprimidos\src\components\fx27\CarrollModuleFinalV2.tsx
+- C:\Users\timon\Downloads\izzi_sync\archivosjjdescomprimidos\src\components\fx27\CarrollModuleFinalV2Compact.tsx
+- C:\Users\timon\Downloads\izzi_sync\archivosjjdescomprimidos\src\components\fx27\CatalogoFormatosVenta.tsx
+- C:\Users\timon\Downloads\izzi_sync\archivosjjdescomprimidos\src\components\fx27\ConfiguracionModule.tsx
+- C:\Users\timon\Downloads\izzi_sync\archivosjjdescomprimidos\src\components\fx27\ControlEquipoModule.tsx
+- C:\Users\timon\Downloads\izzi_sync\archivosjjdescomprimidos\src\components\fx27\CotizacionesModule.tsx
+- C:\Users\timon\Downloads\izzi_sync\archivosjjdescomprimidos\src\components\fx27\DashboardScreen.tsx
+- C:\Users\timon\Downloads\izzi_sync\archivosjjdescomprimidos\src\components\fx27\DashboardWidgets.tsx
+- C:\Users\timon\Downloads\izzi_sync\archivosjjdescomprimidos\src\components\fx27\DedicadosModuleWideTech.tsx
+- C:\Users\timon\Downloads\izzi_sync\archivosjjdescomprimidos\src\components\fx27\DespachoInteligenteModule.tsx
+- C:\Users\timon\Downloads\izzi_sync\archivosjjdescomprimidos\src\components\fx27\EjemploUbicacionesInteligentes.tsx
+- C:\Users\timon\Downloads\izzi_sync\archivosjjdescomprimidos\src\components\fx27\EjemploUbicacionGPS.tsx
+- C:\Users\timon\Downloads\izzi_sync\archivosjjdescomprimidos\src\components\fx27\FormatosVentaHub.tsx
+- C:\Users\timon\Downloads\izzi_sync\archivosjjdescomprimidos\src\components\fx27\KPIsModule.tsx
+- C:\Users\timon\Downloads\izzi_sync\archivosjjdescomprimidos\src\components\fx27\LoginScreen.tsx
+- C:\Users\timon\Downloads\izzi_sync\archivosjjdescomprimidos\src\components\fx27\MapaClim aticoCarroll.tsx
+- C:\Users\timon\Downloads\izzi_sync\archivosjjdescomprimidos\src\components\fx27\MapaClimaticoCarroll.tsx
+- C:\Users\timon\Downloads\izzi_sync\archivosjjdescomprimidos\src\components\fx27\MapaFlota.tsx
+- C:\Users\timon\Downloads\izzi_sync\archivosjjdescomprimidos\src\components\fx27\MapaFlotaGoogleMaps.tsx
+- C:\Users\timon\Downloads\izzi_sync\archivosjjdescomprimidos\src\components\fx27\ModuleTemplate.tsx
+- C:\Users\timon\Downloads\izzi_sync\archivosjjdescomprimidos\src\components\fx27\NuevoFormatoVenta.tsx
+- C:\Users\timon\Downloads\izzi_sync\archivosjjdescomprimidos\src\components\fx27\PanelOportunidadesModule.tsx
+- C:\Users\timon\Downloads\izzi_sync\archivosjjdescomprimidos\src\components\fx27\ServicioClientesModule.tsx
+- C:\Users\timon\Downloads\izzi_sync\archivosjjdescomprimidos\src\components\fx27\UbicacionDetallada.tsx
+- C:\Users\timon\Downloads\izzi_sync\archivosjjdescomprimidos\src\components\fx27\UbicacionGPS.tsx
+- C:\Users\timon\Downloads\izzi_sync\archivosjjdescomprimidos\src\components\fx27\UsuariosModule.tsx
+- C:\Users\timon\Downloads\izzi_sync\archivosjjdescomprimidos\src\components\fx27\UtileriasModule.tsx
+- C:\Users\timon\Downloads\izzi_sync\archivosjjdescomprimidos\src\components\fx27\VariablesCotizacionModule.tsx
+- C:\Users\timon\Downloads\izzi_sync\archivosjjdescomprimidos\src\components\fx27\VentasModule.tsx
+- C:\Users\timon\Downloads\izzi_sync\archivosjjdescomprimidos\src\components\fx27\VerificadorGoogleMapsAPI.tsx
+- C:\Users\timon\Downloads\izzi_sync\archivosjjdescomprimidos\src\components\fx27\VistaClientesCarroll.tsx
+- C:\Users\timon\Downloads\izzi_sync\archivosjjdescomprimidos\src\components\ui\accordion.tsx
+- C:\Users\timon\Downloads\izzi_sync\archivosjjdescomprimidos\src\components\ui\alert-dialog.tsx
+- C:\Users\timon\Downloads\izzi_sync\archivosjjdescomprimidos\src\components\ui\card.tsx
+- C:\Users\timon\Downloads\izzi_sync\archivosjjdescomprimidos\src\components\ui\command.tsx
+- C:\Users\timon\Downloads\izzi_sync\archivosjjdescomprimidos\src\components\ui\dialog.tsx
+- C:\Users\timon\Downloads\izzi_sync\archivosjjdescomprimidos\src\components\ui\drawer.tsx
+- C:\Users\timon\Downloads\izzi_sync\archivosjjdescomprimidos\src\components\ui\sheet.tsx
+- C:\Users\timon\Downloads\izzi_sync\archivosjjdescomprimidos\src\components\ui\sidebar.tsx
+- C:\Users\timon\Downloads\izzi_sync\archivosjjdescomprimidos\src\components\ui\table.tsx
+- C:\Users\timon\Downloads\izzi_sync\archivosjjdescomprimidos\src\DESCARGA_ESTO_index.tsx
+- C:\Users\timon\Downloads\izzi_sync\archivosjjdescomprimidos\src\supabase\functions\server\index.tsx
+- C:\Users\timon\Downloads\izzi_sync\archivosjjdescomprimidos\src\supabase\functions\server\widetech_batch_fixed.tsx
+- C:\Users\timon\Downloads\izzi_sync\archivosjjdescomprimidos\src\utils\soundGenerator.ts
+- C:\Users\timon\Downloads\izzi_sync\archivosjjdescomprimidos\src\utils\supabase\getGoogleMapsKey.tsx
+- C:\Users\timon\Downloads\izzi_sync\archivosjjdescomprimidos\src\utils\ubicacion-inteligente.ts
+- C:\Users\timon\Downloads\izzi_sync\izzi_descarga_nueva\src\App.tsx
+- C:\Users\timon\Downloads\izzi_sync\izzi_descarga_nueva\src\assets\module-images.ts
+- C:\Users\timon\Downloads\izzi_sync\izzi_descarga_nueva\src\components\fx27\AdminCarrollModule.tsx
+- C:\Users\timon\Downloads\izzi_sync\izzi_descarga_nueva\src\components\fx27\AdministracionCarroll.tsx
+- C:\Users\timon\Downloads\izzi_sync\izzi_descarga_nueva\src\components\fx27\AgregarLeadModule_LIGHT.tsx
+- C:\Users\timon\Downloads\izzi_sync\izzi_descarga_nueva\src\components\fx27\AgregarLeadModule.tsx
+- C:\Users\timon\Downloads\izzi_sync\izzi_descarga_nueva\src\components\fx27\AIAssistant.tsx
+- C:\Users\timon\Downloads\izzi_sync\izzi_descarga_nueva\src\components\fx27\CarrollConfigModule.tsx
+- C:\Users\timon\Downloads\izzi_sync\izzi_descarga_nueva\src\components\fx27\CarrollModule.tsx
+- C:\Users\timon\Downloads\izzi_sync\izzi_descarga_nueva\src\components\fx27\CarrollModuleFinal.tsx
+- C:\Users\timon\Downloads\izzi_sync\izzi_descarga_nueva\src\components\fx27\CarrollModuleFinalV2.tsx
+- C:\Users\timon\Downloads\izzi_sync\izzi_descarga_nueva\src\components\fx27\CarrollModuleFinalV2Compact.tsx
+- C:\Users\timon\Downloads\izzi_sync\izzi_descarga_nueva\src\components\fx27\CatalogoFormatosVenta.tsx
+- C:\Users\timon\Downloads\izzi_sync\izzi_descarga_nueva\src\components\fx27\ConfiguracionModule.tsx
+- C:\Users\timon\Downloads\izzi_sync\izzi_descarga_nueva\src\components\fx27\ControlEquipoModule.tsx
+- C:\Users\timon\Downloads\izzi_sync\izzi_descarga_nueva\src\components\fx27\CotizacionesModule.tsx
+- C:\Users\timon\Downloads\izzi_sync\izzi_descarga_nueva\src\components\fx27\DashboardScreen.tsx
+- C:\Users\timon\Downloads\izzi_sync\izzi_descarga_nueva\src\components\fx27\DashboardWidgets.tsx
+- C:\Users\timon\Downloads\izzi_sync\izzi_descarga_nueva\src\components\fx27\DedicadosModuleWideTech.tsx
+- C:\Users\timon\Downloads\izzi_sync\izzi_descarga_nueva\src\components\fx27\DespachoInteligenteModule.tsx
+- C:\Users\timon\Downloads\izzi_sync\izzi_descarga_nueva\src\components\fx27\EjemploUbicacionesInteligentes.tsx
+- C:\Users\timon\Downloads\izzi_sync\izzi_descarga_nueva\src\components\fx27\EjemploUbicacionGPS.tsx
+- C:\Users\timon\Downloads\izzi_sync\izzi_descarga_nueva\src\components\fx27\FormatosVentaHub.tsx
+- C:\Users\timon\Downloads\izzi_sync\izzi_descarga_nueva\src\components\fx27\KPIsModule.tsx
+- C:\Users\timon\Downloads\izzi_sync\izzi_descarga_nueva\src\components\fx27\LoginScreen.tsx
+- C:\Users\timon\Downloads\izzi_sync\izzi_descarga_nueva\src\components\fx27\MapaClim aticoCarroll.tsx
+- C:\Users\timon\Downloads\izzi_sync\izzi_descarga_nueva\src\components\fx27\MapaClimaticoCarroll.tsx
+- C:\Users\timon\Downloads\izzi_sync\izzi_descarga_nueva\src\components\fx27\MapaFlota.tsx
+- C:\Users\timon\Downloads\izzi_sync\izzi_descarga_nueva\src\components\fx27\MapaFlotaGoogleMaps.tsx
+- C:\Users\timon\Downloads\izzi_sync\izzi_descarga_nueva\src\components\fx27\ModuleTemplate.tsx
+- C:\Users\timon\Downloads\izzi_sync\izzi_descarga_nueva\src\components\fx27\NuevoFormatoVenta.tsx
+- C:\Users\timon\Downloads\izzi_sync\izzi_descarga_nueva\src\components\fx27\PanelOportunidadesModule.tsx
+- C:\Users\timon\Downloads\izzi_sync\izzi_descarga_nueva\src\components\fx27\ServicioClientesModule.tsx
+- C:\Users\timon\Downloads\izzi_sync\izzi_descarga_nueva\src\components\fx27\UbicacionDetallada.tsx
+- C:\Users\timon\Downloads\izzi_sync\izzi_descarga_nueva\src\components\fx27\UbicacionGPS.tsx
+- C:\Users\timon\Downloads\izzi_sync\izzi_descarga_nueva\src\components\fx27\UsuariosModule.tsx
+- C:\Users\timon\Downloads\izzi_sync\izzi_descarga_nueva\src\components\fx27\UtileriasModule.tsx
+- C:\Users\timon\Downloads\izzi_sync\izzi_descarga_nueva\src\components\fx27\VariablesCotizacionModule.tsx
+- C:\Users\timon\Downloads\izzi_sync\izzi_descarga_nueva\src\components\fx27\VentasModule.tsx
+- C:\Users\timon\Downloads\izzi_sync\izzi_descarga_nueva\src\components\fx27\VerificadorGoogleMapsAPI.tsx
+- C:\Users\timon\Downloads\izzi_sync\izzi_descarga_nueva\src\components\fx27\VistaClientesCarroll.tsx
+- C:\Users\timon\Downloads\izzi_sync\izzi_descarga_nueva\src\components\ui\accordion.tsx
+- C:\Users\timon\Downloads\izzi_sync\izzi_descarga_nueva\src\components\ui\alert-dialog.tsx
+- C:\Users\timon\Downloads\izzi_sync\izzi_descarga_nueva\src\components\ui\card.tsx
+- C:\Users\timon\Downloads\izzi_sync\izzi_descarga_nueva\src\components\ui\command.tsx
+- C:\Users\timon\Downloads\izzi_sync\izzi_descarga_nueva\src\components\ui\dialog.tsx
+- C:\Users\timon\Downloads\izzi_sync\izzi_descarga_nueva\src\components\ui\drawer.tsx
+- C:\Users\timon\Downloads\izzi_sync\izzi_descarga_nueva\src\components\ui\sheet.tsx
+- C:\Users\timon\Downloads\izzi_sync\izzi_descarga_nueva\src\components\ui\sidebar.tsx
+- C:\Users\timon\Downloads\izzi_sync\izzi_descarga_nueva\src\components\ui\table.tsx
+- C:\Users\timon\Downloads\izzi_sync\izzi_descarga_nueva\src\DESCARGA_ESTO_index.tsx
+- C:\Users\timon\Downloads\izzi_sync\izzi_descarga_nueva\src\supabase\functions\server\index.tsx
+- C:\Users\timon\Downloads\izzi_sync\izzi_descarga_nueva\src\supabase\functions\server\widetech_batch_fixed.tsx
+- C:\Users\timon\Downloads\izzi_sync\izzi_descarga_nueva\src\utils\soundGenerator.ts
+- C:\Users\timon\Downloads\izzi_sync\izzi_descarga_nueva\src\utils\supabase\getGoogleMapsKey.tsx
+- C:\Users\timon\Downloads\izzi_sync\izzi_descarga_nueva\src\utils\ubicacion-inteligente.ts
+- C:\Users\timon\Downloads\izzi_sync\src\App.tsx
+- C:\Users\timon\Downloads\izzi_sync\src\assets\module-images.ts
+- C:\Users\timon\Downloads\izzi_sync\src\components\fx27\AdminCarrollModule.tsx
+- C:\Users\timon\Downloads\izzi_sync\src\components\fx27\AdministracionCarroll.tsx
+- C:\Users\timon\Downloads\izzi_sync\src\components\fx27\AgregarLeadModule_LIGHT.tsx
+- C:\Users\timon\Downloads\izzi_sync\src\components\fx27\AgregarLeadModule.tsx
+- C:\Users\timon\Downloads\izzi_sync\src\components\fx27\AIAssistant.tsx
+- C:\Users\timon\Downloads\izzi_sync\src\components\fx27\CarrollConfigModule.tsx
+- C:\Users\timon\Downloads\izzi_sync\src\components\fx27\CarrollModule.tsx
+- C:\Users\timon\Downloads\izzi_sync\src\components\fx27\CarrollModuleFinal.tsx
+- C:\Users\timon\Downloads\izzi_sync\src\components\fx27\CarrollModuleFinalV2.tsx
+- C:\Users\timon\Downloads\izzi_sync\src\components\fx27\CarrollModuleFinalV2Compact.tsx
+- C:\Users\timon\Downloads\izzi_sync\src\components\fx27\CatalogoFormatosVenta.tsx
+- C:\Users\timon\Downloads\izzi_sync\src\components\fx27\ConfiguracionModule.tsx
+- C:\Users\timon\Downloads\izzi_sync\src\components\fx27\ControlEquipoModule.tsx
+- C:\Users\timon\Downloads\izzi_sync\src\components\fx27\CotizacionesModule.tsx
+- C:\Users\timon\Downloads\izzi_sync\src\components\fx27\DashboardScreen.tsx
+- C:\Users\timon\Downloads\izzi_sync\src\components\fx27\DashboardWidgets.tsx
+- C:\Users\timon\Downloads\izzi_sync\src\components\fx27\DedicadosModuleWideTech.tsx
+- C:\Users\timon\Downloads\izzi_sync\src\components\fx27\DespachoInteligenteModule.tsx
+- C:\Users\timon\Downloads\izzi_sync\src\components\fx27\EjemploUbicacionesInteligentes.tsx
+- C:\Users\timon\Downloads\izzi_sync\src\components\fx27\EjemploUbicacionGPS.tsx
+- C:\Users\timon\Downloads\izzi_sync\src\components\fx27\FormatosVentaHub.tsx
+- C:\Users\timon\Downloads\izzi_sync\src\components\fx27\KPIsModule.tsx
+- C:\Users\timon\Downloads\izzi_sync\src\components\fx27\LoginScreen.tsx
+- C:\Users\timon\Downloads\izzi_sync\src\components\fx27\MapaClim aticoCarroll.tsx
+- C:\Users\timon\Downloads\izzi_sync\src\components\fx27\MapaClimaticoCarroll.tsx
+- C:\Users\timon\Downloads\izzi_sync\src\components\fx27\MapaFlota.tsx
+- C:\Users\timon\Downloads\izzi_sync\src\components\fx27\MapaFlotaGoogleMaps.tsx
+- C:\Users\timon\Downloads\izzi_sync\src\components\fx27\ModuleTemplate.tsx
+- C:\Users\timon\Downloads\izzi_sync\src\components\fx27\NuevoFormatoVenta.tsx
+- C:\Users\timon\Downloads\izzi_sync\src\components\fx27\PanelOportunidadesModule.tsx
+- C:\Users\timon\Downloads\izzi_sync\src\components\fx27\ServicioClientesModule.tsx
+- C:\Users\timon\Downloads\izzi_sync\src\components\fx27\UbicacionDetallada.tsx
+- C:\Users\timon\Downloads\izzi_sync\src\components\fx27\UbicacionGPS.tsx
+- C:\Users\timon\Downloads\izzi_sync\src\components\fx27\UsuariosModule.tsx
+- C:\Users\timon\Downloads\izzi_sync\src\components\fx27\UtileriasModule.tsx
+- C:\Users\timon\Downloads\izzi_sync\src\components\fx27\VariablesCotizacionModule.tsx
+- C:\Users\timon\Downloads\izzi_sync\src\components\fx27\VentasModule.tsx
+- C:\Users\timon\Downloads\izzi_sync\src\components\fx27\VerificadorGoogleMapsAPI.tsx
+- C:\Users\timon\Downloads\izzi_sync\src\components\fx27\VistaClientesCarroll.tsx
+- C:\Users\timon\Downloads\izzi_sync\src\components\ui\accordion.tsx
+- C:\Users\timon\Downloads\izzi_sync\src\components\ui\alert-dialog.tsx
+- C:\Users\timon\Downloads\izzi_sync\src\components\ui\card.tsx
+- C:\Users\timon\Downloads\izzi_sync\src\components\ui\command.tsx
+- C:\Users\timon\Downloads\izzi_sync\src\components\ui\dialog.tsx
+- C:\Users\timon\Downloads\izzi_sync\src\components\ui\drawer.tsx
+- C:\Users\timon\Downloads\izzi_sync\src\components\ui\sheet.tsx
+- C:\Users\timon\Downloads\izzi_sync\src\components\ui\sidebar.tsx
+- C:\Users\timon\Downloads\izzi_sync\src\components\ui\table.tsx
+- C:\Users\timon\Downloads\izzi_sync\src\DESCARGA_ESTO_index.tsx
+- C:\Users\timon\Downloads\izzi_sync\src\supabase\functions\server\index.tsx
+- C:\Users\timon\Downloads\izzi_sync\src\supabase\functions\server\widetech_batch_fixed.tsx
+- C:\Users\timon\Downloads\izzi_sync\src\utils\soundGenerator.ts
+- C:\Users\timon\Downloads\izzi_sync\src\utils\supabase\getGoogleMapsKey.tsx
+- C:\Users\timon\Downloads\izzi_sync\src\utils\ubicacion-inteligente.ts
+- C:\Users\timon\Downloads\izzi_sync\supabase\functions\analizar-cotizacion-pdf\index.ts
+
+## SNIPPETS: ModuleTemplate.tsx
+Path: C:\Users\timon\Downloads\izzi_sync\src\components\fx27\ModuleTemplate.tsx
+Contains '<header'? 0
+Contains 'rounded-[18px]'? 1
+Contains 'min-h-screen'? 0
+Contains 'Future Experience'? 0
+
+First 220 lines:
+   1 | import { ArrowLeft } from 'lucide-react';
+   2 | import React from 'react';
+   3 | 
+   4 | interface ModuleTemplateProps {
+   5 |   title: string;
+   6 |   onBack: () => void;
+   7 |   children?: React.ReactNode;
+   8 |   headerImage?: string;
+   9 | }
+  10 | 
+  11 | export const ModuleTemplate = ({ title, onBack, children, headerImage }: ModuleTemplateProps) => {
+  12 |   return (
+  13 |     <div className="relative w-full h-screen overflow-hidden">
+  14 |       {/* Background with gradient */}
+  15 |       <div className="absolute inset-0 bg-gradient-to-br from-[#0B1220] via-[#0F172A] to-[#1E66F5]/20"></div>
+  16 | 
+  17 |       {/* Vignette ultra sutil */}
+  18 |       <div 
+  19 |         className="absolute pointer-events-none"
+  20 |         style={{
+  21 |           top: '119px',
+  22 |           left: 0,
+  23 |           right: 0,
+  24 |           bottom: 0,
+  25 |           background: 'radial-gradient(ellipse at center, transparent 0%, transparent 40%, rgba(0,0,0,0.025) 75%, rgba(0,0,0,0.03) 100%)'
+  26 |         }}
+  27 |       />
+  28 | 
+  29 |       {/* Spotlight de trabajo */}
+  30 |       <div 
+  31 |         className="absolute pointer-events-none"
+  32 |         style={{
+  33 |           top: '380px',
+  34 |           left: '55%',
+  35 |           transform: 'translateX(-50%)',
+  36 |           width: '900px',
+  37 |           height: '700px',
+  38 |           background: 'radial-gradient(ellipse at center, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.04) 30%, transparent 70%)',
+  39 |           filter: 'blur(60px)'
+  40 |         }}
+  41 |       />
+  42 | 
+  43 |       {/* Ruido fino premium 4% */}
+  44 |       <svg 
+  45 |         className="absolute w-full pointer-events-none opacity-[0.04]"
+  46 |         style={{
+  47 |           top: '119px',
+  48 |           left: 0,
+  49 |           right: 0,
+  50 |           bottom: 0,
+  51 |           height: 'calc(100vh - 119px)'
+  52 |         }}
+  53 |       >
+  54 |         <filter id="noiseFilter">
+  55 |           <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="4" stitchTiles="stitch"/>
+  56 |           <feColorMatrix type="saturate" values="0"/>
+  57 |         </filter>
+  58 |         <rect width="100%" height="100%" filter="url(#noiseFilter)"/>
+  59 |       </svg>
+  60 | 
+  61 |       {/* Sheen diagonal lento */}
+  62 |       <div 
+  63 |         className="absolute pointer-events-none"
+  64 |         style={{
+  65 |           top: '119px',
+  66 |           left: 0,
+  67 |           right: 0,
+  68 |           bottom: 0,
+  69 |           background: 'linear-gradient(135deg, transparent 0%, rgba(255,255,255,0.008) 50%, transparent 100%)',
+  70 |           backgroundSize: '400% 400%',
+  71 |           animation: 'sheen 30s ease-in-out infinite'
+  72 |         }}
+  73 |       />
+  74 | 
+  75 |       {/* Logo FX27 - INAMOVIBLE */}
+  76 |       <div className="absolute z-50 opacity-25 flex flex-col items-center" style={{ top: '-4px', right: '8px' }}>
+  77 |         <div className="text-[80px] font-black text-white leading-none" style={{ fontFamily: 'Exo 2, sans-serif' }}>
+  78 |           FX27
+  79 |         </div>
+  80 |         <div className="text-[16px] text-white tracking-wider mt-1" style={{ fontFamily: 'Exo 2, sans-serif' }}>
+  81 |           Future Experiencie 27
+  82 |         </div>
+  83 |       </div>
+  84 | 
+  85 |       {/* Barra superior PREMIUM - Gradiente navy/petroleo + noise */}
+  86 |       <div 
+  87 |         className="absolute top-0 left-0 right-0 z-10"
+  88 |         style={{
+  89 |           height: '119px',
+  90 |           overflow: 'hidden'
+  91 |         }}
+  92 |       >
+  93 |         {/* Base: Gradiente oscuro navy -> petroleo */}
+  94 |         <div 
+  95 |           className="absolute inset-0"
+  96 |           style={{
+  97 |             background: 'linear-gradient(135deg, #0a1628 0%, #0d1f35 25%, #0f2847 50%, #0a1e38 75%, #081420 100%)'
+  98 |           }}
+  99 |         />
+ 100 |         
+ 101 |         {/* Capa 2: Gradiente horizontal sutil para profundidad */}
+ 102 |         <div 
+ 103 |           className="absolute inset-0"
+ 104 |           style={{
+ 105 |             background: 'linear-gradient(90deg, rgba(15,30,56,0.9) 0%, rgba(20,45,75,0.6) 30%, rgba(15,35,60,0.7) 70%, rgba(10,20,40,0.9) 100%)'
+ 106 |           }}
+ 107 |         />
+ 108 | 
+ 109 |         {/* Capa 3: Acento azul muy sutil en centro */}
+ 110 |         <div 
+ 111 |           className="absolute inset-0"
+ 112 |           style={{
+ 113 |             background: 'radial-gradient(ellipse 80% 100% at 50% 100%, rgba(59,130,246,0.08) 0%, transparent 60%)'
+ 114 |           }}
+ 115 |         />
+ 116 | 
+ 117 |         {/* Capa 4: Overlay oscuro homogeneizador */}
+ 118 |         <div 
+ 119 |           className="absolute inset-0"
+ 120 |           style={{
+ 121 |             background: 'linear-gradient(180deg, rgba(8,15,28,0.4) 0%, rgba(8,15,28,0.2) 50%, rgba(8,15,28,0.5) 100%)'
+ 122 |           }}
+ 123 |         />
+ 124 | 
+ 125 |         {/* Capa 5: Noise/grain premium 4% */}
+ 126 |         <svg className="absolute inset-0 w-full h-full opacity-[0.04] pointer-events-none">
+ 127 |           <filter id="headerNoise">
+ 128 |             <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="4" stitchTiles="stitch"/>
+ 129 |             <feColorMatrix type="saturate" values="0"/>
+ 130 |           </filter>
+ 131 |           <rect width="100%" height="100%" filter="url(#headerNoise)"/>
+ 132 |         </svg>
+ 133 | 
+ 134 |         {/* Linea inferior sutil */}
+ 135 |         <div 
+ 136 |           className="absolute bottom-0 left-0 right-0 h-px"
+ 137 |           style={{
+ 138 |             background: 'linear-gradient(90deg, transparent 0%, rgba(59,130,246,0.2) 20%, rgba(59,130,246,0.3) 50%, rgba(59,130,246,0.2) 80%, transparent 100%)'
+ 139 |           }}
+ 140 |         />
+ 141 |       </div>
+ 142 | 
+ 143 |       {/* Main Content */}
+ 144 |       <div 
+ 145 |         className="relative z-10 w-full h-full flex flex-col"
+ 146 |         style={{
+ 147 |           animation: 'moduleEnter 150ms ease-out',
+ 148 |           padding: '0 24px 0px 24px'
+ 149 |         }}
+ 150 |       >
+ 151 |         {/* Header */}
+ 152 |         <div className="flex items-center gap-6 relative z-20" style={{ paddingTop: '25px', marginBottom: '65px' }}>
+ 153 |           <button
+ 154 |             onClick={onBack}
+ 155 |             className="group flex items-center justify-center w-12 h-12 rounded-xl bg-[rgba(0,0,0,0.4)] border border-[rgba(255,255,255,0.15)] hover:bg-[rgba(30,102,245,0.25)] hover:border-[rgba(30,102,245,0.5)] transition-all duration-200 hover:scale-105"
+ 156 |             style={{
+ 157 |               backdropFilter: 'blur(12px)',
+ 158 |               WebkitBackdropFilter: 'blur(12px)'
+ 159 |             }}
+ 160 |           >
+ 161 |             <ArrowLeft 
+ 162 |               className="w-6 h-6 transition-all duration-200" 
+ 163 |               style={{ 
+ 164 |                 color: 'rgba(255, 255, 255, 0.92)',
+ 165 |                 filter: 'drop-shadow(0 0 0 transparent)'
+ 166 |               }}
+ 167 |               onMouseEnter={(e) => {
+ 168 |                 e.currentTarget.style.filter = 'drop-shadow(0 0 8px rgba(30, 102, 245, 0.4))';
+ 169 |                 e.currentTarget.style.color = 'rgba(255, 255, 255, 1)';
+ 170 |               }}
+ 171 |               onMouseLeave={(e) => {
+ 172 |                 e.currentTarget.style.filter = 'drop-shadow(0 0 0 transparent)';
+ 173 |                 e.currentTarget.style.color = 'rgba(255, 255, 255, 0.92)';
+ 174 |               }}
+ 175 |             />
+ 176 |           </button>
+ 177 | 
+ 178 |           <h1 
+ 179 |             style={{
+ 180 |               fontFamily: "'Exo 2', sans-serif",
+ 181 |               fontWeight: 600,
+ 182 |               fontSize: '32px',
+ 183 |               lineHeight: '1',
+ 184 |               color: 'rgba(255, 255, 255, 1)'
+ 185 |             }}
+ 186 |           >
+ 187 |             {title}
+ 188 |           </h1>
+ 189 |         </div>
+ 190 | 
+ 191 |         {/* Workstage */}
+ 192 |         <div style={{ height: 'calc(100vh - 167px)' }}>
+ 193 |           <div 
+ 194 |             className="w-full h-full rounded-[18px] overflow-hidden"
+ 195 |             style={{
+ 196 |               background: 'rgba(15, 23, 42, 0.35)',
+ 197 |               backdropFilter: 'blur(32px) saturate(180%)',
+ 198 |               WebkitBackdropFilter: 'blur(32px) saturate(180%)',
+ 199 |               border: '1px solid rgba(255, 255, 255, 0.12)',
+ 200 |               boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3), inset 0 1px 1px rgba(255, 255, 255, 0.08)',
+ 201 |               animation: 'panelEnter 150ms ease-out'
+ 202 |             }}
+ 203 |           >
+ 204 |             {children || (
+ 205 |               <div className="p-8 flex items-center justify-center min-h-[400px]">
+ 206 |                 <p style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '16px', color: 'rgba(255, 255, 255, 0.5)' }}>
+ 207 |                   Contenido del modulo
+ 208 |                 </p>
+ 209 |               </div>
+ 210 |             )}
+ 211 |           </div>
+ 212 |         </div>
+ 213 |       </div>
+ 214 | 
+ 215 |       <style>{`
+ 216 |         @keyframes sheen {
+ 217 |           0%, 100% { background-position: 0% 0%; }
+ 218 |           50% { background-position: 100% 100%; }
+ 219 |         }
+ 220 |         @keyframes moduleEnter {
+
+## SNIPPETS: PanelOportunidadesModule.tsx
+Path: C:\Users\timon\Downloads\izzi_sync\src\components\fx27\PanelOportunidadesModule.tsx
+Contains 'fx-opps'? 1
+Contains 'overflow-y-auto'? 5
+
+First 220 lines:
+   1 | import { ModuleTemplate } from './ModuleTemplate';
+   2 | import { useState, useEffect } from 'react';
+   3 | import { Search, Download, TrendingUp, X, BarChart3, Building2, User, Calendar, Eye, Trash2, SortAsc, SortDesc, FileText, Upload, Pencil, AlertTriangle, Loader2, CheckCircle, DollarSign, Clock, Zap, Flame, Skull, MapPin, ArrowRight, Truck } from 'lucide-react';
+   4 | import { projectId, publicAnonKey } from '../../utils/supabase/info';
+   5 | import * as pdfjsLib from 'pdfjs-dist';
+   6 | 
+   7 | pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+   8 | 
+   9 | interface PanelOportunidadesModuleProps { onBack: () => void; }
+  10 | interface LineaCotizacion { origen: string; destino: string; servicio: string; tarifa: number; moneda: string; viajes: number; tipoViaje: string; subtotalMXN: number; }
+  11 | interface Cotizacion { nombre: string; url: string; fecha: string; analisis?: any; eliminado?: boolean; lineas?: LineaCotizacion[]; potencialMXN?: number; }
+  12 | interface HistorialCambio { fecha: string; campo: string; valorAnterior: string; valorNuevo: string; usuario: string; }
+  13 | interface Lead { id: string; nombreEmpresa: string; paginaWeb: string; nombreContacto: string; telefonoContacto?: string; correoElectronico: string; tipoServicio: string[]; tipoViaje: string[]; principalesRutas: string; viajesPorMes: string; tarifa: string; proyectadoVentaMensual?: string; proximosPasos: string; etapaLead?: string; altaCliente?: boolean; generacionSOP?: boolean; juntaArranque?: boolean; facturado?: boolean; vendedor: string; fechaCaptura?: string; fechaActualizacion?: string; cotizaciones?: Cotizacion[]; eliminado?: boolean; fechaEliminado?: string; historial?: HistorialCambio[]; fechaLiberacion?: string; }
+  14 | type SortField = 'nombreEmpresa' | 'vendedor' | 'fechaCaptura' | 'viajesPorMes';
+  15 | type SortDirection = 'asc' | 'desc';
+  16 | 
+  17 | const CLIENTES_EXISTENTES = ['ABASTECEDORA DE MATERIAS PRIMAS','AGROINDUSTRIAL AGRILEG DE TEHUACAN','AGROPECUARIA MARLEE','AGROS','ALIANZA CARNICA','ALIMENTOS FINOS DE OCCIDENTE','ALIMENTOS Y SAZONADORES REGIOS','ALL CARRIERS, INC.','ARCBEST II INC','ARCH MEAT','ATLAS EXPEDITORS','AVICOLA PILGRIM\'S PRIDE DE MEXICO','BAKERY MACHINERY AND ENGINEERING LLC','BARCEL','BARRY CALLEBAUT MEXICO','BBA LOGISTCS LLC','BERRIES PARADISE','BIMBO','BISON TRANSPORT INC','C H ROBINSON DE MEXICO','CADENA COMERCIAL OXXO','CARNES SELECTAS TANGAMANGA','CAROLINA LOGISTICS INC','CFI LOGISTICA','CH ROBINSON WORLDWIDE, INC','COMERCIALIZADORA DE LACTEOS Y DERIVADOS','COMERCIALIZADORA GAB','COMERCIALIZADORA KEES','DEACERO','DISTRIBUCION Y EMBARQUES FRESH','EA LOGISTICA','EMPACADORA DE CARNES UNIDAD GANADERA','ENLACES TERRESTRES DEL BOSQUE','FRIGORIFICO Y EMPACADORA DE AGUASCALIENTES','FWD LOGISTICA','GANADEROS PRODUCTORES DE LECHE PURA','GRANJAS CARROLL DE MEXICO','GRANJERO FELIZ','GRUPO MELANGE DE MEXICO','HEXPOL COMPOUNDING','HIGH TECH FARMS','HONDA TRADING DE MEXICO','HORTIFRUT','IMPORTADORA DE PRODUCTOS CARNICOS APODACA','INDUSTRIALIZADORA DE CARNICOS STRATTEGA','INDUSTRIAS ACROS WHIRLPOOL','INTERCARNES','INTERLAND TRANSPORT','INTERLAND USA','JOHNSON CONTROLS ENTERPRISES MEXICO','KGL INTERNATIONAL NETWORK MEXICO','KONEKT INTERSERVICE','KRONUS LOGISTICS LLC','LOGISTEED MEXICO','LONGHORN WAREHOUSES, INC','MAR BRAN','MARBRAN USA, LTD','MARTICO MEX','MCALLEN MEAT PURVEYORS, LLC','MCCAIN MEXICO','NATURESWEET COMERCIALIZADORA','NATURESWEET INVERNADEROS','NS BRANDS, LTD','NUVOCARGO','ONE SOLUTION GROUP, INC','P.A.C. INTERNATIONAL','PERFORMER LOGISTICS','PILGRIM\'S PRIDE','PIPER TRADING LLC','POLLO Y HUEVO TRIUNFO','PRODUCTORA AGRICOLA DE AGUASCALIENTES','PRODUCTORA DE BOCADOS CARNICOS','PRODUCTOS CAREY','PRODUCTOS FRUGO','PROMOTORA DE MERCADOS','R.H. SHIPPING & CHARTERING','RANCHO ACUICOLA ELIXIR','RED ROAD LOGISTICS INC','SCHENKER INTERNATIONAL','SERVI CARNES DE OCCIDENTE','SIGMA ALIMENTOS CENTRO','SIGMA ALIMENTOS COMERCIAL','SPEEDYHAUL INTERNATIONAL','STEERINGMEX','SUMMIT PLASTICS GUANAJUATO','SUN CHEMICAL','TEU LOGISTICA','TITAN MEATS LLC','TRANSPLACE MEXICO LLC','TRAXION TECHNOLOGIES','TROB TRANSPORTES','TROB USA, LLC','UNITED FC DE MEXICO','VALLE REDONDO','VDT LOGISTICA','VEGGIE PRIME','VICTUX','VISCERAS SELECTAS DEL BAJIO','WEXPRESS','WHIRLPOOL INTERNACIONAL','ZEBRA LOGISTICS','ZEBRA LOGISTICS, INC'];
+  18 | 
+  19 | const formatDate = (dateStr: string | undefined): string => { if (!dateStr) return '-'; try { const date = new Date(dateStr); if (isNaN(date.getTime())) return '-'; return date.toLocaleDateString('es-MX', { day: '2-digit', month: '2-digit', year: 'numeric' }); } catch { return '-'; } };
+  20 | const formatDateTime = (dateStr: string | undefined): string => { if (!dateStr) return '-'; try { const date = new Date(dateStr); if (isNaN(date.getTime())) return '-'; return date.toLocaleDateString('es-MX', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }); } catch { return '-'; } };
+  21 | const diasSinMovimiento = (fechaActualizacion: string | undefined, fechaCaptura: string | undefined): number => { const fecha = fechaActualizacion || fechaCaptura; if (!fecha) return 0; return Math.floor((Date.now() - new Date(fecha).getTime()) / (1000 * 60 * 60 * 24)); };
+  22 | const diasDesdeCreacion = (fechaCaptura: string | undefined): number => { if (!fechaCaptura) return 0; return Math.floor((Date.now() - new Date(fechaCaptura).getTime()) / (1000 * 60 * 60 * 24)); };
+  23 | 
+  24 | const esUbicacionUSA = (ubicacion: string): boolean => { const lower = ubicacion.toLowerCase(); const estadosUSA = ['tx', 'texas', 'ca', 'california', 'az', 'arizona', 'nm', 'new mexico', 'illinois', 'il', 'ohio', 'oh', 'michigan', 'mi']; const ciudadesUSA = ['laredo', 'dallas', 'houston', 'san antonio', 'mcallen', 'brownsville', 'eagle pass', 'el paso', 'austin', 'chicago', 'los angeles', 'phoenix', 'tucson', 'tyler', 'edinburg']; const tieneZipUSA = /\b\d{5}\b/.test(ubicacion); return estadosUSA.some(e => lower.includes(e)) || ciudadesUSA.some(c => lower.includes(c)) || tieneZipUSA; };
+  25 | const esFronteraMX = (ubicacion: string): boolean => { const lower = ubicacion.toLowerCase(); return lower.includes('nuevo laredo') || lower.includes('nvo laredo') || lower.includes('reynosa') || lower.includes('matamoros') || (lower.includes('nogales') && !lower.includes('az')) || lower.includes('tijuana') || lower.includes('mexicali') || lower.includes('ciudad juarez') || lower.includes('piedras negras') || (lower.includes('colombia') && lower.includes('nl')); };
+  26 | const detectarTipoViaje = (origen: string, destino: string, servicio: string): string => { const origenUSA = esUbicacionUSA(origen); const destinoUSA = esUbicacionUSA(destino); const destinoFronteraMX = esFronteraMX(destino); const servicioLower = servicio.toLowerCase(); if (servicioLower.includes('parte americana') || servicioLower.includes('americana')) return 'DTD'; if (origenUSA && destinoUSA) return 'DTD'; if (origenUSA && !destinoUSA) return 'Impo'; if (!origenUSA && destinoUSA) return 'Expo'; if (!origenUSA && destinoFronteraMX) return 'Expo'; return 'Nacional'; };
+  27 | const normalizarServicio = (servicio: string): string => { const lower = servicio.toLowerCase(); if (lower.includes('refrigerado') || lower.includes('thermo') || lower.includes('reefer')) return 'Refrigerado'; if (lower.includes('hazmat')) return lower.includes('refri') ? 'Refrigerado Hazmat' : 'Seco Hazmat'; return 'Seco'; };
+  28 | 
+  29 | const parsearCotizacionPDF = (texto: string): LineaCotizacion[] => { const lineas: LineaCotizacion[] = []; const lines = texto.split('\n').map(l => l.trim()).filter(l => l); let i = 0; while (i < lines.length) { const line = lines[i]; if (line.toLowerCase().includes('origen') && line.toLowerCase().includes('destino') && line.toLowerCase().includes('importe')) { i++; let origen = '', destino = '', servicio = '', importe = 0, moneda = 'MXN'; while (i < lines.length && !lines[i].toLowerCase().startsWith('total') && !(lines[i].toLowerCase().includes('origen') && lines[i].toLowerCase().includes('destino') && lines[i].toLowerCase().includes('importe'))) { const dataLine = lines[i].trim(); const importeMatch = dataLine.match(/([\d,]+\.?\d*)\s*(USD|MXN|\$MX)/i); if (importeMatch) { importe = parseFloat(importeMatch[1].replace(/,/g, '')); moneda = importeMatch[2].toUpperCase().includes('USD') ? 'USD' : 'MXN'; } const servicioMatch = dataLine.match(/(Refrigerado|Seco|Parte Americana|Cruce|Hazmat)/i); if (servicioMatch) servicio = servicioMatch[1]; if (!origen && !importeMatch && dataLine.length > 3) { if (/[A-Za-z]+.*[,.]/.test(dataLine) || /\b(TX|CA|AZ|NL|Jal|Ags|Coah|Tamps|Gto|Qro)\b/i.test(dataLine)) { origen = dataLine.replace(/-$/, '').trim(); } } else if (origen && !destino && !importeMatch && !servicioMatch && dataLine.length > 3) { if (/[A-Za-z]+.*[,.]/.test(dataLine) || /\b(TX|CA|AZ|NL|Jal|Ags|Coah|Tamps|Gto|Qro)\b/i.test(dataLine)) { destino = dataLine.replace(/-$/, '').trim(); } } i++; } if (origen && destino && importe > 0) { lineas.push({ origen: origen.replace(/\s+/g, ' ').trim(), destino: destino.replace(/\s+/g, ' ').trim(), servicio: normalizarServicio(servicio) || 'Seco', tarifa: importe, moneda, viajes: 0, tipoViaje: detectarTipoViaje(origen, destino, servicio), subtotalMXN: 0 }); } } else { i++; } } return lineas; };
+  30 | 
+  31 | const analizarPDFConClaude = async (textoPDF: string, pdfBase64?: string): Promise<LineaCotizacion[]> => { try { let imagenBase64 = ''; if (pdfBase64) { try { const base64Data = pdfBase64.split(',')[1] || pdfBase64; const binaryString = atob(base64Data); const bytes = new Uint8Array(binaryString.length); for (let i = 0; i < binaryString.length; i++) bytes[i] = binaryString.charCodeAt(i); const pdf = await pdfjsLib.getDocument({ data: bytes }).promise; const page = await pdf.getPage(1); const scale = 2; const viewport = page.getViewport({ scale }); const canvas = document.createElement('canvas'); canvas.width = viewport.width; canvas.height = viewport.height; const ctx = canvas.getContext('2d'); await page.render({ canvasContext: ctx!, viewport }).promise; imagenBase64 = canvas.toDataURL('image/png'); } catch (e) { console.error('Error convirtiendo PDF:', e); } } const response = await fetch(`https://fbxbsslhewchyibdoyzk.supabase.co/functions/v1/analizar-cotizacion-pdf`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${publicAnonKey}` }, body: JSON.stringify({ imagenBase64, textoPDF }) }); if (!response.ok) return []; const data = await response.json(); if (!data.success || !data.rutas || data.rutas.length === 0) return []; return data.rutas.map((r: any) => ({ origen: r.origen || '', destino: r.destino || '', servicio: r.servicio || 'Seco', tarifa: parseFloat(r.tarifa) || 0, moneda: r.moneda || 'MXN', viajes: 0, tipoViaje: detectarTipoViaje(r.origen || '', r.destino || '', r.servicio || ''), subtotalMXN: 0 })); } catch { return []; } };
+  32 | 
+  33 | const extraerTextoPDF = async (base64: string): Promise<string> => { try { const base64Data = base64.split(',')[1] || base64; const binaryString = atob(base64Data); const bytes = new Uint8Array(binaryString.length); for (let i = 0; i < binaryString.length; i++) bytes[i] = binaryString.charCodeAt(i); const pdf = await pdfjsLib.getDocument({ data: bytes }).promise; let fullText = ''; for (let i = 1; i <= pdf.numPages; i++) { const page = await pdf.getPage(i); const textContent = await page.getTextContent(); fullText += textContent.items.map((item: any) => item.str).join(' ') + '\n'; } return fullText; } catch { return ''; } };
+  34 | const obtenerTipoCambio = async (): Promise<number> => { try { const cached = localStorage.getItem('tipoCambioUSD'); if (cached) { const { valor, fecha } = JSON.parse(cached); if (fecha === new Date().toISOString().split('T')[0]) return valor; } const response = await fetch('https://api.exchangerate-api.com/v4/latest/USD'); if (response.ok) { const data = await response.json(); const tc = data.rates?.MXN || 18.5; localStorage.setItem('tipoCambioUSD', JSON.stringify({ valor: tc, fecha: new Date().toISOString().split('T')[0] })); return tc; } return 18.5; } catch { return 18.5; } };
+  35 | const calcularPotencialDesdeCotizaciones = (lead: Lead): number => { if (!lead.cotizaciones) return 0; return lead.cotizaciones.filter(c => !c.eliminado && c.potencialMXN).reduce((sum, c) => sum + (c.potencialMXN || 0), 0); };
+  36 | const buscarDuplicados = (nombre: string, leadsExistentes: Lead[]): { duplicadoExacto: boolean; similares: string[] } => { const nombreNorm = nombre.toUpperCase().trim(); const duplicadoExacto = CLIENTES_EXISTENTES.some(c => c.toUpperCase() === nombreNorm) || leadsExistentes.some(l => l.nombreEmpresa.toUpperCase() === nombreNorm); const similares: string[] = []; const palabras = nombreNorm.split(' ').filter(p => p.length > 3); CLIENTES_EXISTENTES.forEach(c => { const cNorm = c.toUpperCase(); if (cNorm !== nombreNorm && palabras.some(p => cNorm.includes(p))) similares.push(c); }); leadsExistentes.forEach(l => { const lNorm = l.nombreEmpresa.toUpperCase(); if (lNorm !== nombreNorm && palabras.some(p => lNorm.includes(p)) && !similares.includes(l.nombreEmpresa)) similares.push(l.nombreEmpresa); }); return { duplicadoExacto, similares: similares.slice(0, 5) }; };
+  37 | 
+  38 | export const PanelOportunidadesModule = ({ onBack }: PanelOportunidadesModuleProps) => {
+  39 |   const [leads, setLeads] = useState<Lead[]>([]);
+  40 |   const [filteredLeads, setFilteredLeads] = useState<Lead[]>([]);
+  41 |   const [searchTerm, setSearchTerm] = useState('');
+  42 |   const [filterVendedor, setFilterVendedor] = useState('');
+  43 |   const [filterFecha, setFilterFecha] = useState('');
+  44 |   const [sortField, setSortField] = useState<SortField>('fechaCaptura');
+  45 |   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
+  46 |   const [showFunnel, setShowFunnel] = useState(false);
+  47 |   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
+  48 |   const [cotizacionesModal, setCotizacionesModal] = useState<Lead | null>(null);
+  49 |   const [editLead, setEditLead] = useState<Lead | null>(null);
+  50 |   const [formData, setFormData] = useState<Partial<Lead>>({});
+  51 |   const [deleteModal, setDeleteModal] = useState<Lead | null>(null);
+  52 |   const [deleteConfirmText, setDeleteConfirmText] = useState('');
+  53 |   const [isAdmin, setIsAdmin] = useState(false);
+  54 |   const [showDeleted, setShowDeleted] = useState(false);
+  55 |   const [analizando, setAnalizando] = useState(false);
+  56 |   const [statusMsg, setStatusMsg] = useState('');
+  57 |   const [pdfPreview, setPdfPreview] = useState<string | null>(null);
+  58 |   const [tipoCambio, setTipoCambio] = useState<number>(18.5);
+  59 |   const [lineasModal, setLineasModal] = useState<{cotizacion: Cotizacion, lead: Lead, index: number} | null>(null);
+  60 |   const [lineasCotizacion, setLineasCotizacion] = useState<LineaCotizacion[]>([]);
+  61 | 
+  62 |   useEffect(() => { obtenerTipoCambio().then(tc => setTipoCambio(tc)); }, []);
+  63 |   useEffect(() => { if (editLead) setFormData(editLead); }, [editLead]);
+  64 | 
+  65 |   useEffect(() => { const cargarLeads = async () => { try { const session = localStorage.getItem('fx27-session'); let vendedorActual = '', esAdmin = false; if (session) { const { email } = JSON.parse(session); const usuarios = JSON.parse(localStorage.getItem('fx27-usuarios') || '[]'); const usuario = usuarios.find((u: any) => u.correo === email); if (usuario) { vendedorActual = usuario.nombre; esAdmin = usuario.rol === 'admin'; setIsAdmin(esAdmin); } } const url = esAdmin ? `https://${projectId}.supabase.co/functions/v1/make-server-d84b50bb/leads` : `https://${projectId}.supabase.co/functions/v1/make-server-d84b50bb/leads?vendedor=${encodeURIComponent(vendedorActual)}`; const response = await fetch(url, { headers: { 'Authorization': `Bearer ${publicAnonKey}` } }); const result = await response.json(); if (response.ok && result.success) { setLeads(result.leads); setFilteredLeads(result.leads.filter((l: Lead) => !l.eliminado)); } } catch (error) { console.error('Error:', error); } }; cargarLeads(); }, []);
+  66 | 
+  67 |   useEffect(() => { let resultado = [...leads]; if (!showDeleted) resultado = resultado.filter(lead => !lead.eliminado); if (searchTerm) resultado = resultado.filter(lead => lead.nombreEmpresa.toLowerCase().includes(searchTerm.toLowerCase()) || lead.nombreContacto.toLowerCase().includes(searchTerm.toLowerCase()) || lead.correoElectronico.toLowerCase().includes(searchTerm.toLowerCase())); if (filterVendedor) resultado = resultado.filter(lead => lead.vendedor === filterVendedor); if (filterFecha) resultado = resultado.filter(lead => { try { return lead.fechaCaptura && new Date(lead.fechaCaptura).toISOString().split('T')[0] === filterFecha; } catch { return false; } }); resultado.sort((a, b) => { let valueA: any = a[sortField], valueB: any = b[sortField]; if (sortField === 'viajesPorMes') { valueA = parseInt(valueA) || 0; valueB = parseInt(valueB) || 0; } if (sortField === 'fechaCaptura') { try { valueA = new Date(a.fechaCaptura || '').getTime() || 0; valueB = new Date(b.fechaCaptura || '').getTime() || 0; } catch { valueA = 0; valueB = 0; } } if (valueA < valueB) return sortDirection === 'asc' ? -1 : 1; if (valueA > valueB) return sortDirection === 'asc' ? 1 : -1; return 0; }); setFilteredLeads(resultado); }, [leads, searchTerm, filterVendedor, filterFecha, sortField, sortDirection, showDeleted]);
+  68 | 
+  69 |   const getAlertaLead = (lead: Lead): { tipo: 'amarillo' | 'rojo' | 'critico' | null; mensaje: string; dias: number } => { if (lead.etapaLead === 'Cerrado') return { tipo: null, mensaje: '', dias: 0 }; const diasCreacion = diasDesdeCreacion(lead.fechaCaptura); const diasSinMov = diasSinMovimiento(lead.fechaActualizacion, lead.fechaCaptura); if (diasCreacion >= 90) { const diasRestantes = 15 - (diasCreacion - 90); return { tipo: 'critico', mensaje: `Lead será liberado en ${diasRestantes > 0 ? diasRestantes : 0} días.`, dias: diasRestantes > 0 ? diasRestantes : 0 }; } if (diasSinMov >= 30) return { tipo: 'rojo', mensaje: `${diasSinMov} días sin movimiento. ¡Urge!`, dias: diasSinMov }; if (diasSinMov >= 15) return { tipo: 'amarillo', mensaje: `${diasSinMov} días sin movimiento.`, dias: diasSinMov }; return { tipo: null, mensaje: '', dias: 0 }; };
+  70 | 
+  71 |   const handleSort = (field: SortField) => { if (sortField === field) setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc'); else { setSortField(field); setSortDirection('asc'); } };
+  72 |   const handleExportExcel = () => { const headers = ['Empresa', 'Contacto', 'Email', 'Servicio', 'Viaje', 'Rutas', 'Viajes/Mes', 'Potencial MXN', 'Vendedor', 'Fecha']; const rows = filteredLeads.map(lead => { const potencial = calcularPotencialDesdeCotizaciones(lead); return [lead.nombreEmpresa, lead.nombreContacto, lead.correoElectronico, (lead.tipoServicio||[]).join(', '), (lead.tipoViaje||[]).join(', '), lead.principalesRutas, lead.viajesPorMes, potencial > 0 ? `$${potencial.toLocaleString('es-MX')}` : '', lead.vendedor, formatDate(lead.fechaCaptura)]; }); const csvContent = [headers.join(','), ...rows.map(row => row.map(cell => `"${cell}"`).join(','))].join('\n'); const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' }); const link = document.createElement('a'); link.href = URL.createObjectURL(blob); link.download = `leads_fx27_${new Date().toISOString().split('T')[0]}.csv`; link.click(); };
+  73 |   const getVendedoresUnicos = () => Array.from(new Set(leads.map(lead => lead.vendedor)));
+  74 | 
+  75 |   const handleSubirCotizaciones = async (files: FileList, lead: Lead) => { setAnalizando(true); setStatusMsg('Leyendo PDF...'); const archivos = Array.from(files).filter(f => f.type === 'application/pdf'); if (archivos.length === 0) { alert('Solo PDFs'); setAnalizando(false); setStatusMsg(''); return; } for (const file of archivos) { try { setStatusMsg('Extrayendo contenido...'); const base64 = await new Promise<string>((resolve, reject) => { const reader = new FileReader(); reader.onload = () => resolve(reader.result as string); reader.onerror = () => reject('Error'); reader.readAsDataURL(file); }); setStatusMsg('Extrayendo texto...'); const textoPDF = await extraerTextoPDF(base64); setStatusMsg('🤖 Analizando con IA...'); let rutas = await analizarPDFConClaude(textoPDF, base64); if (rutas.length === 0) { rutas = parsearCotizacionPDF(textoPDF); } if (rutas.length === 0) { rutas.push({ origen: '', destino: '', servicio: 'Seco', tarifa: 0, moneda: 'USD', viajes: 0, tipoViaje: 'Nacional', subtotalMXN: 0 }); } const nuevaCot: Cotizacion = { nombre: file.name, url: base64, fecha: new Date().toISOString(), eliminado: false }; const leadTemp = { ...lead, cotizaciones: [...(lead.cotizaciones || []), nuevaCot] }; setLeads(leads.map(l => l.id === lead.id ? leadTemp : l)); setCotizacionesModal(leadTemp); setLineasCotizacion(rutas); setLineasModal({ cotizacion: nuevaCot, lead: leadTemp, index: (lead.cotizaciones || []).length }); setAnalizando(false); setStatusMsg(''); return; } catch (e) { console.error('Error:', e); alert('Error al procesar'); } } setAnalizando(false); setStatusMsg(''); };
+  76 | 
+  77 |   const calcularSubtotal = (linea: LineaCotizacion): number => { const tarifaMXN = linea.moneda === 'USD' ? linea.tarifa * tipoCambio : linea.tarifa; return linea.viajes * tarifaMXN; };
+  78 |   const calcularTotalMXN = (): number => lineasCotizacion.reduce((sum, linea) => sum + calcularSubtotal(linea), 0);
+  79 |   const todosViajesCapturados = (): boolean => lineasCotizacion.every(l => l.viajes > 0 && l.origen && l.destino && l.tarifa > 0);
+  80 |   const handleCambioLinea = (idx: number, campo: keyof LineaCotizacion, valor: any) => { const arr = [...lineasCotizacion]; (arr[idx] as any)[campo] = valor; if (campo === 'origen' || campo === 'destino') arr[idx].tipoViaje = detectarTipoViaje(arr[idx].origen, arr[idx].destino, arr[idx].servicio); setLineasCotizacion(arr); };
+  81 | 
+  82 |   const handleGuardarCotizacion = async () => { if (!lineasModal || !todosViajesCapturados()) return; const { lead, index } = lineasModal; const cotizaciones = [...(lead.cotizaciones || [])]; const lineasConSubtotal = lineasCotizacion.map(l => ({ ...l, subtotalMXN: calcularSubtotal(l) })); const potencialMXN = calcularTotalMXN(); cotizaciones[index] = { ...cotizaciones[index], lineas: lineasConSubtotal, potencialMXN }; const tiposViaje = [...(lead.tipoViaje || [])]; const tiposServicio = [...(lead.tipoServicio || [])]; let rutas = lead.principalesRutas || ''; let totalViajes = parseInt(lead.viajesPorMes || '0'); lineasConSubtotal.forEach(l => { if (l.tipoViaje && !tiposViaje.includes(l.tipoViaje)) tiposViaje.push(l.tipoViaje); if (l.servicio && !tiposServicio.includes(l.servicio)) tiposServicio.push(l.servicio); const rutaStr = `${l.origen} → ${l.destino}`; if (!rutas.includes(rutaStr)) rutas = rutas ? `${rutas}, ${rutaStr}` : rutaStr; totalViajes += l.viajes; }); let potencialTotal = 0; cotizaciones.forEach(cot => { if (!cot.eliminado && cot.potencialMXN) potencialTotal += cot.potencialMXN; }); const historialNuevo: HistorialCambio = { fecha: new Date().toISOString(), campo: 'cotizaciones', valorAnterior: '', valorNuevo: `Nueva cotización: ${cotizaciones[index].nombre}`, usuario: lead.vendedor }; const leadActualizado = { ...lead, cotizaciones, tipoViaje: tiposViaje, tipoServicio: tiposServicio, principalesRutas: rutas, viajesPorMes: String(totalViajes), proyectadoVentaMensual: potencialTotal > 0 ? `$${potencialTotal.toLocaleString('es-MX')} MXN` : '', etapaLead: 'Cotizado', fechaActualizacion: new Date().toISOString(), historial: [...(lead.historial || []), historialNuevo] }; try { await fetch(`https://${projectId}.supabase.co/functions/v1/make-server-d84b50bb/leads/${lead.id}`, { method: 'PUT', headers: { 'Authorization': `Bearer ${publicAnonKey}`, 'Content-Type': 'application/json' }, body: JSON.stringify(leadActualizado) }); setLeads(leads.map(l => l.id === lead.id ? leadActualizado : l)); setCotizacionesModal(leadActualizado); setLineasModal(null); setLineasCotizacion([]); alert('Cotización guardada'); } catch { alert('Error'); } };
+  83 | 
+  84 |   const handleEliminarCotizacion = async (lead: Lead, index: number) => { const cotizaciones = lead.cotizaciones?.map((c, i) => i === index ? { ...c, eliminado: true } : c) || []; const potencialTotal = cotizaciones.filter(c => !c.eliminado && c.potencialMXN).reduce((sum, c) => sum + (c.potencialMXN || 0), 0); const leadActualizado = { ...lead, cotizaciones, proyectadoVentaMensual: potencialTotal > 0 ? `$${potencialTotal.toLocaleString('es-MX')} MXN` : '', fechaActualizacion: new Date().toISOString() }; try { await fetch(`https://${projectId}.supabase.co/functions/v1/make-server-d84b50bb/leads/${lead.id}`, { method: 'PUT', headers: { 'Authorization': `Bearer ${publicAnonKey}`, 'Content-Type': 'application/json' }, body: JSON.stringify(leadActualizado) }); setLeads(leads.map(l => l.id === lead.id ? leadActualizado : l)); setCotizacionesModal(leadActualizado); } catch { alert('Error'); } };
+  85 |   const handleConfirmarEliminacion = async () => { if (!deleteModal || deleteConfirmText !== 'DELETE') return; try { const leadActualizado = { ...deleteModal, eliminado: true, fechaEliminado: new Date().toISOString() }; await fetch(`https://${projectId}.supabase.co/functions/v1/make-server-d84b50bb/leads/${deleteModal.id}`, { method: 'PUT', headers: { 'Authorization': `Bearer ${publicAnonKey}`, 'Content-Type': 'application/json' }, body: JSON.stringify(leadActualizado) }); setLeads(leads.map(l => l.id === deleteModal.id ? leadActualizado : l)); setDeleteModal(null); setDeleteConfirmText(''); } catch { alert('Error'); } };
+  86 |   const handleRestaurarLead = async (lead: Lead) => { if (!isAdmin) return; try { const leadActualizado = { ...lead, eliminado: false, fechaEliminado: null }; await fetch(`https://${projectId}.supabase.co/functions/v1/make-server-d84b50bb/leads/${lead.id}`, { method: 'PUT', headers: { 'Authorization': `Bearer ${publicAnonKey}`, 'Content-Type': 'application/json' }, body: JSON.stringify(leadActualizado) }); setLeads(leads.map(l => l.id === lead.id ? leadActualizado : l)); } catch {} };
+  87 | 
+  88 |   const handleGuardarEdicion = async () => { if (!editLead || !formData?.nombreEmpresa?.trim() || !formData?.nombreContacto?.trim() || !formData?.correoElectronico?.trim()) { alert('Campos obligatorios'); return; } const { duplicadoExacto, similares } = buscarDuplicados(formData.nombreEmpresa || '', leads.filter(l => l.id !== editLead.id)); if (duplicadoExacto) { alert(`Error: "${formData.nombreEmpresa}" ya existe.`); return; } if (similares.length > 0 && !confirm(`Similares:\n${similares.join('\n')}\n\n¿Continuar?`)) return; try { const historialNuevo: HistorialCambio = { fecha: new Date().toISOString(), campo: 'edición', valorAnterior: editLead.nombreEmpresa, valorNuevo: formData.nombreEmpresa || '', usuario: editLead.vendedor }; const leadActualizado = { ...editLead, ...formData, tipoServicio: formData.tipoServicio || [], tipoViaje: formData.tipoViaje || [], fechaActualizacion: new Date().toISOString(), historial: [...(editLead.historial || []), historialNuevo] }; await fetch(`https://${projectId}.supabase.co/functions/v1/make-server-d84b50bb/leads/${editLead.id}`, { method: 'PUT', headers: { 'Authorization': `Bearer ${publicAnonKey}`, 'Content-Type': 'application/json' }, body: JSON.stringify(leadActualizado) }); setLeads(leads.map(l => l.id === editLead.id ? leadActualizado : l)); setEditLead(null); setFormData({}); } catch { alert('Error'); } };
+  89 | 
+  90 |   const handleInputChange = (field: keyof Lead, value: any) => { if (field === 'nombreContacto') setFormData({ ...formData, [field]: value.toLowerCase().split(' ').map((p: string) => p.charAt(0).toUpperCase() + p.slice(1)).join(' ') }); else if (field === 'correoElectronico') setFormData({ ...formData, [field]: value.toLowerCase() }); else setFormData({ ...formData, [field]: value }); };
+  91 |   const handleToggleServicio = (s: string) => { const arr = formData.tipoServicio || []; setFormData({ ...formData, tipoServicio: arr.includes(s) ? arr.filter(x => x !== s) : [...arr, s] }); };
+  92 |   const handleToggleViaje = (v: string) => { const arr = formData.tipoViaje || []; setFormData({ ...formData, tipoViaje: arr.includes(v) ? arr.filter(x => x !== v) : [...arr, v] }); };
+  93 |   const SortIcon = ({ field }: { field: SortField }) => sortField !== field ? <SortAsc className="w-4 h-4 opacity-30" /> : sortDirection === 'asc' ? <SortAsc className="w-4 h-4" /> : <SortDesc className="w-4 h-4" />;
+  94 |   const AlertBadge = ({ lead }: { lead: Lead }) => { const alerta = getAlertaLead(lead); if (!alerta.tipo) return null; const base = "inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs font-medium cursor-help shadow-[0_2px_8px_rgba(0,0,0,0.25)]"; if (alerta.tipo === 'amarillo') return <span title={alerta.mensaje} className={`${base} bg-amber-500/[0.12] text-amber-400/90 border border-amber-500/[0.20]`}><Zap className="w-3 h-3" />{alerta.dias}d</span>; if (alerta.tipo === 'rojo') return <span title={alerta.mensaje} className={`${base} bg-red-500/[0.12] text-red-400/90 border border-red-500/[0.20] animate-pulse`}><Flame className="w-3 h-3" />{alerta.dias}d</span>; if (alerta.tipo === 'critico') return <span title={alerta.mensaje} className={`${base} bg-red-500/[0.15] text-red-400 border border-red-500/[0.25] animate-pulse`}><Skull className="w-3 h-3" />{alerta.dias}d</span>; return null; };
+  95 | 
+  96 |   // ===== TOKENS VISUALES AAA =====
+  97 |   const T = {
+  98 |     surface: "rounded-2xl overflow-hidden bg-white/[0.03] border border-white/[0.08] shadow-[0_18px_40px_rgba(0,0,0,0.35),inset_0_1px_0_rgba(255,255,255,0.06)]",
+  99 |     surfaceHeader: "bg-white/[0.04] border-b border-white/[0.06]",
+ 100 |     input: "bg-white/[0.04] border border-white/[0.08] text-white placeholder:text-white/30 hover:border-white/[0.12] focus:outline-none focus:border-orange-400/35 focus:ring-1 focus:ring-orange-400/10 transition-all duration-150",
+ 101 |     btn: "bg-white/[0.04] border border-white/[0.08] text-white/60 hover:bg-white/[0.08] hover:text-white/80 transition-all duration-150",
+ 102 |     btnActive: "bg-white/[0.10] border border-white/[0.14] text-white/90",
+ 103 |     btnAction: "p-1.5 rounded-md bg-white/[0.04] border border-white/[0.08] text-white/60 hover:bg-white/[0.08] hover:text-white transition-all duration-150",
+ 104 |     btnEdit: "p-1.5 rounded-md bg-white/[0.04] border border-white/[0.08] text-white/60 hover:bg-amber-500/[0.14] hover:border-amber-500/[0.28] hover:text-amber-400 transition-all duration-150",
+ 105 |     btnDelete: "p-1.5 rounded-md bg-white/[0.04] border border-white/[0.08] text-white/60 hover:bg-red-500/[0.14] hover:border-red-500/[0.28] hover:text-red-400 transition-all duration-150",
+ 106 |     badge: "px-2 py-0.5 rounded text-xs font-medium bg-white/[0.08] border border-white/[0.10] text-white/75 shadow-[0_2px_8px_rgba(0,0,0,0.25)]",
+ 107 |     badgeSuccess: "px-2 py-0.5 rounded text-xs font-semibold bg-emerald-500/[0.12] border border-emerald-500/[0.18] text-emerald-400/90 shadow-[0_2px_8px_rgba(0,0,0,0.25)]",
+ 108 |     row: "border-b border-white/[0.04] border-l-2 border-l-transparent hover:border-l-blue-500/50 hover:bg-white/[0.04] transition-all duration-150",
+ 109 |     rowZebra: "bg-white/[0.025]",
+ 110 |   };
+ 111 | 
+ 112 |   return (
+ 113 |     <ModuleTemplate title="Panel de Oportunidades" onBack={onBack}>
+ 114 |       <div className="fx-opps flex flex-col h-full min-h-0 overflow-hidden">
+ 115 |         {/* FILTROS con línea divisoria */}
+ 116 |         <div className="flex-shrink-0 p-4 pb-3 border-b border-white/[0.06]">
+ 117 |           <div className="flex flex-wrap gap-3 items-center justify-between">
+ 118 |             <div className="flex-1 min-w-[300px]"><div className="relative"><Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" /><input type="text" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder="Buscar leads..." className={`w-full pl-10 pr-4 py-1.5 rounded-lg ${T.input}`} style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '13px' }} /></div></div>
+ 119 |             <div className="flex gap-3">
+ 120 |               <select value={filterVendedor} onChange={(e) => setFilterVendedor(e.target.value)} className={`px-3 py-1.5 rounded-lg ${T.input}`} style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '13px' }}><option value="">Todos los vendedores</option>{getVendedoresUnicos().map(v => <option key={v} value={v}>{v}</option>)}</select>
+ 121 |               <input type="date" value={filterFecha} onChange={(e) => setFilterFecha(e.target.value)} className={`px-3 py-1.5 rounded-lg ${T.input}`} style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '13px' }} />
+ 122 |             </div>
+ 123 |             <div className="flex gap-3">
+ 124 |               {isAdmin && <button onClick={() => setShowDeleted(!showDeleted)} className={`flex items-center gap-2 px-3 py-1.5 rounded-lg ${showDeleted ? T.btnActive : T.btn}`} style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '13px', fontWeight: 500 }}><Trash2 className="w-4 h-4" />{showDeleted ? 'Ocultar' : 'Ver eliminados'}</button>}
+ 125 |               <button onClick={() => setShowFunnel(!showFunnel)} className={`flex items-center gap-2 px-3 py-1.5 rounded-lg ${showFunnel ? T.btnActive : T.btn}`} style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '13px', fontWeight: 500 }}><BarChart3 className="w-4 h-4" />Funnel</button>
+ 126 |               <button onClick={handleExportExcel} className={`flex items-center gap-2 px-3 py-1.5 rounded-lg ${T.btn}`} style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '13px', fontWeight: 500 }}><Download className="w-4 h-4" />Exportar</button>
+ 127 |             </div>
+ 128 |           </div>
+ 129 |         </div>
+ 130 | 
+ 131 |         {/* FUNNEL */}
+ 132 |         {showFunnel && (
+ 133 |           <div className={`flex-shrink-0 mx-4 mt-3 mb-2 p-4 rounded-2xl ${T.surface}`}>
+ 134 |             <h3 className="text-white/90 mb-3" style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '18px', fontWeight: 600 }}>Funnel de Ventas</h3>
+ 135 |             <div className="grid grid-cols-5 gap-3">
+ 136 |               <div className="p-3 rounded-lg bg-white/[0.04] border border-white/[0.08]"><div className="text-white/40 mb-1 uppercase tracking-wide" style={{ fontSize: '10px' }}>Total</div><div className="text-white" style={{ fontFamily: "'Orbitron', sans-serif", fontSize: '28px', fontWeight: 700 }}>{leads.filter(l => !l.eliminado).length}</div></div>
+ 137 |               <div className="p-3 rounded-lg bg-white/[0.04] border border-white/[0.08]"><div className="text-white/40 mb-1 uppercase tracking-wide" style={{ fontSize: '10px' }}>Cotizados</div><div className="text-white" style={{ fontFamily: "'Orbitron', sans-serif", fontSize: '28px', fontWeight: 700 }}>{leads.filter(l => !l.eliminado && l.etapaLead === 'Cotizado').length}</div></div>
+ 138 |               <div className="p-3 rounded-lg bg-white/[0.04] border border-white/[0.08]"><div className="text-white/40 mb-1 uppercase tracking-wide" style={{ fontSize: '10px' }}>Cerrados</div><div className="text-white" style={{ fontFamily: "'Orbitron', sans-serif", fontSize: '28px', fontWeight: 700 }}>{leads.filter(l => !l.eliminado && l.etapaLead === 'Cerrado').length}</div></div>
+ 139 |               <div className="p-3 rounded-lg bg-white/[0.04] border border-white/[0.08]"><div className="text-white/40 mb-1 uppercase tracking-wide" style={{ fontSize: '10px' }}>$ Potencial</div><div className="text-emerald-400/90" style={{ fontFamily: "'Orbitron', sans-serif", fontSize: '18px', fontWeight: 700 }}>${leads.filter(l => !l.eliminado).reduce((sum, l) => sum + calcularPotencialDesdeCotizaciones(l), 0).toLocaleString('es-MX')}</div></div>
+ 140 |               <div className="p-3 rounded-lg bg-white/[0.04] border border-white/[0.08]"><div className="text-white/40 mb-1 uppercase tracking-wide" style={{ fontSize: '10px' }}>En Riesgo</div><div className="text-white" style={{ fontFamily: "'Orbitron', sans-serif", fontSize: '28px', fontWeight: 700 }}>{leads.filter(l => !l.eliminado && getAlertaLead(l).tipo !== null).length}</div></div>
+ 141 |             </div>
+ 142 |           </div>
+ 143 |         )}
+ 144 | 
+ 145 |         {/* TABLA = SURFACE PREMIUM */}
+ 146 |         <div className={`flex-1 mx-4 my-3 rounded-2xl overflow-hidden flex flex-col ${T.surface}`}>
+ 147 |           {/* Header tabla */}
+ 148 |           <div className={`flex-shrink-0 ${T.surfaceHeader}`}>
+ 149 |             <table className="w-full"><thead><tr>
+ 150 |               <th className="px-2 py-3 text-center text-white/40 uppercase tracking-wider" style={{ fontSize: '10px', fontWeight: 600, width: '3%' }}>#</th>
+ 151 |               <th onClick={() => handleSort('nombreEmpresa')} className="px-2 py-3 text-left text-white/40 uppercase tracking-wider cursor-pointer hover:text-white/60 transition-colors" style={{ fontSize: '10px', fontWeight: 600, width: '18%' }}><div className="flex items-center gap-1"><Building2 className="w-3 h-3" />Empresa<SortIcon field="nombreEmpresa" /></div></th>
+ 152 |               <th className="px-1.5 py-3 text-left text-white/40 uppercase tracking-wider" style={{ fontSize: '10px', fontWeight: 600, width: '7%' }}>Etapa</th>
+ 153 |               <th className="px-2 py-3 text-left text-white/40 uppercase tracking-wider" style={{ fontSize: '10px', fontWeight: 600, width: '14%' }}>Contacto</th>
+ 154 |               <th className="px-2 py-3 text-left text-white/40 uppercase tracking-wider" style={{ fontSize: '10px', fontWeight: 600, width: '10%' }}>Servicio</th>
+ 155 |               <th className="px-1.5 py-3 text-left text-white/40 uppercase tracking-wider" style={{ fontSize: '10px', fontWeight: 600, width: '10%' }}>Viaje</th>
+ 156 |               <th className="px-1.5 py-3 text-left text-white/40 uppercase tracking-wider" style={{ fontSize: '10px', fontWeight: 600, width: '12%' }}>$ Potencial</th>
+ 157 |               <th onClick={() => handleSort('vendedor')} className="px-2 py-3 text-left text-white/40 uppercase tracking-wider cursor-pointer hover:text-white/60 transition-colors" style={{ fontSize: '10px', fontWeight: 600, width: '10%' }}><div className="flex items-center gap-1"><User className="w-3 h-3" />Vendedor<SortIcon field="vendedor" /></div></th>
+ 158 |               <th onClick={() => handleSort('fechaCaptura')} className="px-2 py-3 text-left text-white/40 uppercase tracking-wider cursor-pointer hover:text-white/60 transition-colors" style={{ fontSize: '10px', fontWeight: 600, width: '8%' }}><div className="flex items-center gap-1"><Calendar className="w-3 h-3" />Creado<SortIcon field="fechaCaptura" /></div></th>
+ 159 |               <th className="px-2 py-3 text-center text-white/40 uppercase tracking-wider" style={{ fontSize: '10px', fontWeight: 600, width: '8%' }}>Acciones</th>
+ 160 |             </tr></thead></table>
+ 161 |           </div>
+ 162 |           
+ 163 |           {/* Filas con zebra + hover */}
+ 164 |           <div className="flex-1 min-h-0 overflow-y-auto">
+ 165 |             <table className="w-full"><tbody>
+ 166 |               {filteredLeads.length === 0 ? (<tr><td colSpan={10} className="px-6 py-12 text-center text-white/30">No se encontraron leads.</td></tr>) : (
+ 167 |                 filteredLeads.map((lead, index) => {
+ 168 |                   const alerta = getAlertaLead(lead);
+ 169 |                   const potencial = calcularPotencialDesdeCotizaciones(lead);
+ 170 |                   return (
+ 171 |                     <tr key={lead.id} className={`${T.row} ${index % 2 === 0 ? T.rowZebra : ''} ${lead.eliminado ? 'opacity-50' : ''} ${alerta.tipo === 'critico' ? 'bg-red-500/[0.03]' : ''}`} style={{ height: '52px' }}>
+ 172 |                       <td className="px-2 py-2 text-center" style={{ fontFamily: "'Orbitron', monospace", fontSize: '11px', fontWeight: 600, color: lead.eliminado || alerta.tipo === 'critico' ? 'rgba(239,68,68,0.7)' : 'rgba(59,130,246,0.7)', width: '3%' }}>{index + 1}</td>
+ 173 |                       <td className="px-2 py-2" style={{ width: '18%' }}><div className="flex items-center justify-between gap-2"><span className="text-white/90 truncate" style={{ fontSize: '11px', fontWeight: 600 }}>{lead.nombreEmpresa}</span><AlertBadge lead={lead} /></div></td>
+ 174 |                       <td className="px-1.5 py-2" style={{ width: '7%' }}><span className={T.badge} style={{ fontSize: '10px' }}>{lead.etapaLead || 'Prospecto'}</span></td>
+ 175 |                       <td className="px-2 py-2" style={{ width: '14%' }}><div style={{ fontSize: '11px' }}><div className="text-white/85 font-medium truncate">{lead.nombreContacto}</div><div className="text-white/40 truncate" style={{ fontSize: '10px' }}>{lead.correoElectronico}</div></div></td>
+ 176 |                       <td className="px-2 py-2" style={{ width: '10%' }}><div className="flex flex-wrap gap-0.5">{(lead.tipoServicio || []).slice(0,2).map((t, i) => <span key={i} className={T.badge} style={{ fontSize: '9px' }}>{t}</span>)}</div></td>
+ 177 |                       <td className="px-1.5 py-2" style={{ width: '10%' }}><div className="flex flex-wrap gap-0.5">{(lead.tipoViaje || []).slice(0,2).map((t, i) => <span key={i} className={T.badge} style={{ fontSize: '9px' }}>{t}</span>)}</div></td>
+ 178 |                       <td className="px-1.5 py-2" style={{ width: '12%' }}>{potencial > 0 ? <span className={T.badgeSuccess} style={{ fontFamily: "'Orbitron', monospace", fontSize: '10px' }}>${potencial.toLocaleString('es-MX')}</span> : <span className="text-white/20" style={{ fontSize: '10px' }}>-</span>}</td>
+ 179 |                       <td className="px-2 py-2 text-white/50" style={{ fontSize: '11px', width: '10%' }}>{lead.vendedor}</td>
+ 180 |                       <td className="px-2 py-2" style={{ width: '8%' }}><span className="text-white/50" style={{ fontSize: '10px' }}>{formatDate(lead.fechaCaptura)}</span></td>
+ 181 |                       <td className="px-2 py-2" style={{ width: '8%' }}>
+ 182 |                         <div className="flex items-center justify-center gap-1">
+ 183 |                           <button onClick={() => setSelectedLead(lead)} className={T.btnAction} title="Ver"><Eye className="w-3.5 h-3.5" /></button>
+ 184 |                           <button onClick={() => setEditLead(lead)} className={T.btnEdit} disabled={lead.eliminado} title="Editar"><Pencil className="w-3.5 h-3.5" /></button>
+ 185 |                           <div className="relative"><button onClick={() => setCotizacionesModal(lead)} className={T.btnAction} title="Cotizaciones"><FileText className="w-3.5 h-3.5" /></button>{lead.cotizaciones?.filter(c => !c.eliminado).length ? <div className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-blue-500/80 flex items-center justify-center text-white" style={{ fontSize: '9px', fontWeight: 700 }}>{lead.cotizaciones.filter(c => !c.eliminado).length}</div> : null}</div>
+ 186 |                           {lead.eliminado && isAdmin ? <button onClick={() => handleRestaurarLead(lead)} className={T.btnAction} title="Restaurar"><TrendingUp className="w-3.5 h-3.5" /></button> : <button onClick={() => setDeleteModal(lead)} className={T.btnDelete} disabled={lead.eliminado} title="Eliminar"><Trash2 className="w-3.5 h-3.5" /></button>}
+ 187 |                         </div>
+ 188 |                       </td>
+ 189 |                     </tr>
+ 190 |                   );
+ 191 |                 })
+ 192 |               )}
+ 193 |             </tbody></table>
+ 194 |           </div>
+ 195 |           {/* Footer tabla */}
+ 196 |           <div className={`flex-shrink-0 px-4 py-2 ${T.surfaceHeader}`}><span className="text-white/30" style={{ fontSize: '12px' }}>Mostrando {filteredLeads.length} de {leads.filter(l => !l.eliminado).length} leads</span></div>
+ 197 |         </div>
+ 198 |       </div>
+ 199 | 
+ 200 |       {/* MODALES */}
+ 201 |       {selectedLead && (<div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setSelectedLead(null)}><div className={`bg-slate-900 rounded-2xl w-[95vw] max-w-[1100px] max-h-[90vh] overflow-y-auto p-6 ${T.surface}`} onClick={(e) => e.stopPropagation()}><div className="flex items-center justify-between mb-4"><h3 className="text-white text-xl font-bold flex items-center gap-2"><Building2 className="w-6 h-6 text-blue-400/70" />{selectedLead.nombreEmpresa}</h3><button onClick={() => setSelectedLead(null)} className="p-2 rounded-lg hover:bg-white/[0.08] transition-colors"><X className="w-5 h-5 text-white/60" /></button></div><div className="grid grid-cols-2 gap-4 mb-4"><div className="p-3 rounded-lg bg-white/[0.04] border border-white/[0.08]"><div className="flex items-center gap-2 text-white/40 text-xs mb-1"><Calendar className="w-3 h-3" />Creación</div><div className="text-white font-semibold">{formatDateTime(selectedLead.fechaCaptura)}</div></div><div className="p-3 rounded-lg bg-white/[0.04] border border-white/[0.08]"><div className="flex items-center gap-2 text-white/40 text-xs mb-1"><Clock className="w-3 h-3" />Última Modificación</div><div className="text-white font-semibold">{formatDateTime(selectedLead.fechaActualizacion) || formatDateTime(selectedLead.fechaCaptura)}</div></div></div><div className="grid grid-cols-3 gap-4 text-sm mb-4"><div className="p-3 rounded-lg bg-white/[0.04] border border-white/[0.08]"><div className="text-white/40 text-xs mb-1">Contacto</div><div className="text-white font-semibold">{selectedLead.nombreContacto}</div><div className="text-white/40">{selectedLead.correoElectronico}</div></div><div className="p-3 rounded-lg bg-white/[0.04] border border-white/[0.08]"><div className="text-white/40 text-xs mb-1">Servicio</div><div className="flex flex-wrap gap-1">{(selectedLead.tipoServicio||[]).map((t,i)=><span key={i} className={T.badge}>{t}</span>)}</div></div><div className="p-3 rounded-lg bg-white/[0.04] border border-white/[0.08]"><div className="text-white/40 text-xs mb-1">Viaje</div><div className="flex flex-wrap gap-1">{(selectedLead.tipoViaje||[]).map((t,i)=><span key={i} className={T.badge}>{t}</span>)}</div></div><div className="p-3 rounded-lg bg-white/[0.04] border border-white/[0.08] col-span-2"><div className="text-white/40 text-xs mb-1">Rutas</div><div className="text-white text-sm">{selectedLead.principalesRutas || '-'}</div></div><div className="p-3 rounded-lg bg-white/[0.04] border border-white/[0.08]"><div className="text-white/40 text-xs mb-1">Viajes/Mes</div><div className="text-white font-bold text-lg">{selectedLead.viajesPorMes || '-'}</div></div></div>{(() => { const pot = calcularPotencialDesdeCotizaciones(selectedLead); return pot > 0 ? <div className="p-4 rounded-lg bg-emerald-500/[0.08] border border-emerald-500/[0.15] mb-4"><div className="text-emerald-400/60 text-xs mb-1">$ Potencial Mensual</div><div className="text-emerald-400/90 font-bold text-3xl">${pot.toLocaleString('es-MX')} MXN</div></div> : null; })()}{selectedLead.cotizaciones && selectedLead.cotizaciones.filter(c => !c.eliminado).length > 0 && (<div className="mb-4"><h4 className="text-white font-semibold mb-2 flex items-center gap-2"><FileText className="w-4 h-4 text-white/50" />Cotizaciones</h4><div className="space-y-2">{selectedLead.cotizaciones.filter(c => !c.eliminado).map((cot, i) => (<div key={i} className="p-3 rounded-lg bg-white/[0.04] border border-white/[0.08]"><div className="flex justify-between items-center mb-2"><span className="text-white font-medium">{cot.nombre}</span><span className="text-white/30 text-xs">{formatDate(cot.fecha)}</span></div>{cot.lineas && cot.lineas.length > 0 && (<div className="space-y-1">{cot.lineas.map((linea, idx) => (<div key={idx} className="flex justify-between text-xs text-white/40"><span>{linea.origen} → {linea.destino} ({linea.tipoViaje})</span><span>{linea.viajes} × ${linea.tarifa.toLocaleString('es-MX')} {linea.moneda} = <span className="text-emerald-400/80">${linea.subtotalMXN.toLocaleString('es-MX')}</span></span></div>))}<div className="pt-2 border-t border-white/[0.06] flex justify-between text-sm"><span className="text-emerald-400/50">Total:</span><span className="text-emerald-400/90 font-bold">${cot.potencialMXN?.toLocaleString('es-MX')}</span></div></div>)}</div>))}</div></div>)}{selectedLead.historial && selectedLead.historial.length > 0 && (<div className="mb-4"><h4 className="text-white font-semibold mb-2 flex items-center gap-2"><Clock className="w-4 h-4 text-white/40" />Historial</h4><div className="max-h-40 overflow-y-auto space-y-1">{selectedLead.historial.slice().reverse().map((h, i) => (<div key={i} className="flex items-center gap-3 text-xs p-2 rounded bg-white/[0.04]"><span className="text-white/25">{formatDateTime(h.fecha)}</span><span className="text-white/50">{h.campo}</span><span className="text-white/40">{h.valorNuevo}</span><span className="text-white/25 ml-auto">{h.usuario}</span></div>))}</div></div>)}<div className="flex justify-between items-center text-sm text-white/30"><span>Vendedor: {selectedLead.vendedor}</span><span>Etapa: {selectedLead.etapaLead || 'Prospecto'}</span></div></div></div>)}
+ 202 | 
+ 203 |       {deleteModal && (<div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => { setDeleteModal(null); setDeleteConfirmText(''); }}><div className={`bg-slate-900 rounded-2xl w-[400px] p-6 border border-red-500/[0.20] shadow-[0_18px_40px_rgba(0,0,0,0.4)]`} onClick={(e) => e.stopPropagation()}><div className="flex items-center gap-3 mb-4"><AlertTriangle className="w-8 h-8 text-red-400/70" /><h3 className="text-white text-lg font-bold">Eliminar Lead</h3></div><p className="text-white mb-2">¿Eliminar <strong>{deleteModal.nombreEmpresa}</strong>?</p><p className="text-white/40 text-sm mb-4">Escribe DELETE:</p><input type="text" value={deleteConfirmText} onChange={(e) => setDeleteConfirmText(e.target.value.toUpperCase())} className={`w-full px-4 py-2 rounded-lg text-center mb-4 ${T.input}`} /><div className="flex gap-3"><button onClick={() => { setDeleteModal(null); setDeleteConfirmText(''); }} className={`flex-1 px-4 py-2 rounded-lg ${T.btn}`}>Cancelar</button><button onClick={handleConfirmarEliminacion} disabled={deleteConfirmText !== 'DELETE'} className={`flex-1 px-4 py-2 rounded-lg transition-colors ${deleteConfirmText === 'DELETE' ? 'bg-red-500/[0.18] border border-red-500/[0.28] text-red-400 hover:bg-red-500/[0.25]' : 'bg-white/[0.04] border border-white/[0.08] text-white/25 cursor-not-allowed'}`}>Eliminar</button></div></div></div>)}
+ 204 | 
+ 205 |       {cotizacionesModal && (<div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setCotizacionesModal(null)}><div className={`bg-slate-900 rounded-2xl w-[900px] max-h-[85vh] overflow-y-auto p-6 ${T.surface}`} onClick={(e) => e.stopPropagation()}><div className="flex items-center justify-between mb-4"><h3 className="text-white text-xl font-bold flex items-center gap-2"><FileText className="w-5 h-5 text-white/50" />Cotizaciones - {cotizacionesModal.nombreEmpresa}</h3><button onClick={() => setCotizacionesModal(null)} className="p-2 rounded-lg hover:bg-white/[0.08] transition-colors"><X className="w-5 h-5 text-white/60" /></button></div><div className="mb-4"><label className={`flex items-center justify-center gap-2 px-4 py-3 rounded-xl cursor-pointer transition-colors ${analizando ? 'bg-blue-500/[0.18] text-blue-400' : 'bg-white/[0.06] border border-white/[0.10] text-white/70 hover:bg-white/[0.10]'}`}>{analizando ? <><Loader2 className="w-5 h-5 animate-spin" /><span>{statusMsg}</span></> : <><Upload className="w-5 h-5" /><span className="font-semibold">Subir Cotización (PDF)</span></>}<input type="file" accept="application/pdf" className="hidden" disabled={analizando} onChange={(e) => { if (e.target.files?.length) handleSubirCotizaciones(e.target.files, cotizacionesModal); e.target.value = ''; }} /></label></div><div className="space-y-3">{(!cotizacionesModal.cotizaciones || !cotizacionesModal.cotizaciones.filter(c => !c.eliminado).length) ? (<div className="text-center py-6 text-white/30">No hay cotizaciones.</div>) : (cotizacionesModal.cotizaciones.filter(c => !c.eliminado).map((cot, i) => (<div key={i} className="p-4 rounded-lg bg-white/[0.04] border border-white/[0.08]"><div className="flex items-center justify-between mb-2"><div className="flex items-center gap-2"><FileText className="w-4 h-4 text-white/40" /><span className="text-white font-semibold">{cot.nombre}</span><span className="text-white/25 text-xs">{formatDate(cot.fecha)}</span></div><div className="flex gap-2">{cot.url && <button onClick={() => setPdfPreview(cot.url)} className={T.btnAction}><Eye className="w-3 h-3" /></button>}{cot.url && <a href={cot.url} download={cot.nombre} className={T.btnAction}><Download className="w-3 h-3" /></a>}<button onClick={() => handleEliminarCotizacion(cotizacionesModal, cotizacionesModal.cotizaciones?.indexOf(cot) || i)} className={T.btnDelete}><Trash2 className="w-3 h-3" /></button></div></div>{cot.lineas && cot.lineas.length > 0 && (<div className="mt-3 p-3 rounded bg-emerald-500/[0.06] border border-emerald-500/[0.12]"><div className="flex items-center gap-1 mb-2"><CheckCircle className="w-3 h-3 text-emerald-400/60" /><span className="text-emerald-400/60 text-xs font-semibold">Líneas Cotizadas</span></div><div className="space-y-2">{cot.lineas.map((linea, idx) => (<div key={idx} className="flex justify-between items-center text-xs p-2 rounded bg-white/[0.04]"><div className="flex-1 flex items-center gap-2"><MapPin className="w-3 h-3 text-white/25" /><span className="text-white/70">{linea.origen}</span><ArrowRight className="w-3 h-3 text-white/25" /><span className="text-white/70">{linea.destino}</span><span className={T.badge}>{linea.tipoViaje}</span></div><div className="text-white/40">{linea.viajes} × ${linea.tarifa.toLocaleString('es-MX')} {linea.moneda}</div><div className="text-emerald-400/80 font-semibold ml-4">${linea.subtotalMXN.toLocaleString('es-MX')}</div></div>))}</div><div className="mt-3 pt-3 border-t border-emerald-500/[0.12] flex justify-between items-center"><span className="text-emerald-400/50 font-semibold">TOTAL:</span><span className="text-emerald-400/90 font-bold text-xl">${cot.potencialMXN?.toLocaleString('es-MX')}</span></div></div>)}</div>)))}</div><button onClick={() => setCotizacionesModal(null)} className={`mt-4 w-full px-4 py-2 rounded-lg ${T.btn}`}>Cerrar</button></div></div>)}
+ 206 | 
+ 207 |       {lineasModal && (<div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-[60] p-4"><div className={`bg-slate-900 rounded-2xl w-[800px] max-h-[90vh] overflow-y-auto p-6 ${T.surface}`}><div className="flex items-center justify-between mb-4"><h3 className="text-white text-lg font-bold flex items-center gap-2"><DollarSign className="w-5 h-5 text-white/50" />Capturar Viajes por Ruta</h3><button onClick={() => { setLineasModal(null); setLineasCotizacion([]); }} className="p-2 rounded-lg hover:bg-white/[0.08] transition-colors"><X className="w-5 h-5 text-white/60" /></button></div><div className="mb-4 p-3 rounded-lg bg-white/[0.04] border border-white/[0.08]"><p className="text-white/50 text-sm">Captura los <strong className="text-white/70">viajes potenciales por mes</strong> para cada ruta.</p></div><div className="space-y-3 mb-4">{lineasCotizacion.map((linea, idx) => (<div key={idx} className="p-4 rounded-xl bg-white/[0.04] border border-white/[0.08]"><div className="flex items-center justify-between mb-3"><div className="flex items-center gap-2"><MapPin className="w-4 h-4 text-white/40" /><span className="text-white font-semibold">{linea.origen || 'Sin origen'}</span><span className="text-white/25">→</span><span className="text-white font-semibold">{linea.destino || 'Sin destino'}</span></div><span className={T.badge}>{linea.tipoViaje}</span></div><div className="flex items-center justify-between"><div className="flex items-center gap-4 text-sm"><span className="text-white/40"><Truck className="w-4 h-4 inline mr-1" />{linea.servicio}</span><span className="text-white/60 font-bold">${linea.tarifa?.toLocaleString('es-MX')} {linea.moneda}</span></div><div className="flex items-center gap-2"><label className="text-white/40 text-sm">Viajes/mes:</label><input type="number" min="0" value={linea.viajes || ''} onChange={(e) => handleCambioLinea(idx, 'viajes', parseInt(e.target.value) || 0)} placeholder="0" className={`w-20 px-3 py-2 rounded-lg text-center font-bold text-lg ${linea.viajes > 0 ? 'bg-white/[0.08] border-white/[0.18] text-white' : 'bg-white/[0.04] border-white/[0.08] text-white/40'} border focus:outline-none`} style={{ MozAppearance: 'textfield' }} /></div></div></div>))}</div><div className="p-4 rounded-xl bg-emerald-500/[0.08] border border-emerald-500/[0.15] mb-4"><div className="flex justify-between items-center"><span className="text-emerald-400/60 font-semibold text-lg">POTENCIAL MENSUAL:</span><span className="text-emerald-400/90 font-bold text-3xl" style={{ fontFamily: "'Orbitron', monospace" }}>${calcularTotalMXN().toLocaleString('es-MX')} MXN</span></div></div><div className="flex gap-3"><button onClick={() => { setLineasModal(null); setLineasCotizacion([]); }} className={`flex-1 px-4 py-3 rounded-lg ${T.btn}`}>Cancelar</button><button onClick={handleGuardarCotizacion} disabled={!todosViajesCapturados()} className={`flex-1 px-4 py-3 rounded-lg font-bold text-lg transition-colors ${todosViajesCapturados() ? 'bg-white/[0.10] border border-white/[0.14] text-white hover:bg-white/[0.14]' : 'bg-white/[0.04] border border-white/[0.08] text-white/25 cursor-not-allowed'}`}>{todosViajesCapturados() ? '✓ Guardar' : 'Captura viajes'}</button></div></div></div>)}
+ 208 | 
+ 209 |       {pdfPreview && (<div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-[60] p-4" onClick={() => setPdfPreview(null)}><div className="bg-white rounded-2xl w-[90vw] h-[90vh] overflow-hidden flex flex-col" onClick={(e) => e.stopPropagation()}><div className="flex items-center justify-between p-3 bg-slate-100 border-b"><span className="text-slate-700 font-semibold">Vista previa</span><button onClick={() => setPdfPreview(null)} className="p-2 rounded-lg hover:bg-slate-200 transition-colors"><X className="w-5 h-5 text-slate-600" /></button></div><iframe src={pdfPreview} className="flex-1 w-full" title="PDF" /></div></div>)}
+ 210 | 
+ 211 |       {editLead && (<div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setEditLead(null)}><div className={`bg-slate-900 rounded-2xl w-[700px] max-h-[80vh] overflow-y-auto p-6 ${T.surface}`} onClick={(e) => e.stopPropagation()}><div className="flex items-center justify-between mb-4"><h3 className="text-white text-xl font-bold flex items-center gap-2"><Pencil className="w-5 h-5 text-white/50" />Editar - {editLead.nombreEmpresa}</h3><button onClick={() => setEditLead(null)} className="p-2 rounded-lg hover:bg-white/[0.08] transition-colors"><X className="w-5 h-5 text-white/60" /></button></div><div className="grid grid-cols-2 gap-3 text-sm"><div><label className="text-white/40 text-xs">Empresa</label><input type="text" value={formData.nombreEmpresa || ''} onChange={(e) => setFormData({ ...formData, nombreEmpresa: e.target.value })} className={`w-full mt-1 px-3 py-2 rounded-lg ${T.input}`} /></div><div><label className="text-white/40 text-xs">Web</label><input type="text" value={formData.paginaWeb || ''} onChange={(e) => setFormData({ ...formData, paginaWeb: e.target.value })} className={`w-full mt-1 px-3 py-2 rounded-lg ${T.input}`} /></div><div><label className="text-white/40 text-xs">Contacto</label><input type="text" value={formData.nombreContacto || ''} onChange={(e) => handleInputChange('nombreContacto', e.target.value)} className={`w-full mt-1 px-3 py-2 rounded-lg ${T.input}`} /></div><div><label className="text-white/40 text-xs">Email</label><input type="email" value={formData.correoElectronico || ''} onChange={(e) => handleInputChange('correoElectronico', e.target.value)} className={`w-full mt-1 px-3 py-2 rounded-lg ${T.input}`} /></div><div className="col-span-2"><label className="text-white/40 text-xs">Servicio</label><div className="flex flex-wrap gap-2 mt-1">{['Seco', 'Refrigerado', 'Seco Hazmat', 'Refrigerado Hazmat'].map(s => <button key={s} onClick={() => handleToggleServicio(s)} className={`px-3 py-1 rounded text-xs transition-all ${formData.tipoServicio?.includes(s) ? 'bg-white/[0.12] border border-white/[0.18] text-white/90' : 'bg-white/[0.04] border border-white/[0.08] text-white/40 hover:text-white/60'}`}>{s}</button>)}</div></div><div className="col-span-2"><label className="text-white/40 text-xs">Viaje</label><div className="flex flex-wrap gap-2 mt-1">{['Impo', 'Expo', 'Nacional', 'DTD', 'Dedicado'].map(v => <button key={v} onClick={() => handleToggleViaje(v)} className={`px-3 py-1 rounded text-xs transition-all ${formData.tipoViaje?.includes(v) ? 'bg-white/[0.12] border border-white/[0.18] text-white/90' : 'bg-white/[0.04] border border-white/[0.08] text-white/40 hover:text-white/60'}`}>{v}</button>)}</div></div><div className="col-span-2"><label className="text-white/40 text-xs">Rutas</label><input type="text" value={formData.principalesRutas || ''} onChange={(e) => setFormData({ ...formData, principalesRutas: e.target.value })} className={`w-full mt-1 px-3 py-2 rounded-lg ${T.input}`} /></div><div><label className="text-white/40 text-xs">Viajes/Mes</label><input type="number" value={formData.viajesPorMes || ''} onChange={(e) => setFormData({ ...formData, viajesPorMes: e.target.value })} className={`w-full mt-1 px-3 py-2 rounded-lg ${T.input}`} /></div><div><label className="text-white/40 text-xs">Etapa</label><select value={formData.etapaLead || 'Prospecto'} onChange={(e) => setFormData({ ...formData, etapaLead: e.target.value })} className={`w-full mt-1 px-3 py-2 rounded-lg ${T.input}`}><option>Prospecto</option><option>Cotizado</option><option>Negociación</option><option>Cerrado</option></select></div><div className="col-span-2"><label className="text-white/40 text-xs">Próximos Pasos</label><input type="text" value={formData.proximosPasos || ''} onChange={(e) => setFormData({ ...formData, proximosPasos: e.target.value })} className={`w-full mt-1 px-3 py-2 rounded-lg ${T.input}`} /></div></div><div className="flex gap-3 mt-4"><button onClick={() => setEditLead(null)} className={`flex-1 px-4 py-2 rounded-lg ${T.btn}`}>Cancelar</button><button onClick={handleGuardarEdicion} className="flex-1 px-4 py-2 rounded-lg bg-white/[0.10] border border-white/[0.14] text-white font-semibold hover:bg-white/[0.14] transition-colors">Guardar</button></div></div></div>)}
+ 212 |     </ModuleTemplate>
+ 213 |   );
+ 214 | };
+
+## ASSET CLUES (svg/png)
+Asset files found: 3
+No SVG contains the subtitle text.
+

@@ -1,0 +1,237 @@
+
+
+===============================================================================================
+FX27 UI DEEP MAP - 20251213_134138
+===============================================================================================
+Root: C:\Users\timon\Downloads\izzi_sync
+
+===============================================================================================
+ENV
+===============================================================================================
+PowerShell: 7.5.4
+Node: v24.11.0
+NPM: 11.6.1
+
+===============================================================================================
+GIT
+===============================================================================================
+Branch: main
+Commit: fbbcd5c622a4afa49055857b6f5d843941762682
+Remote:
+origin	https://github.com/vivercan/izzi.git (fetch)
+origin	https://github.com/vivercan/izzi.git (push)
+Status:
+M archivosjjdescomprimidos
+?? fx27_ui_audit_20251213_132714.txt
+?? fx27_ui_deepmap_20251213_134138.txt
+
+===============================================================================================
+ALL package.json (possible roots)
+===============================================================================================
+package.json found: 6
+- C:\Users\timon\Downloads\izzi_sync\package.json
+- C:\Users\timon\Downloads\izzi_sync\archivosjjdescomprimidos\package.json
+- C:\Users\timon\Downloads\izzi_sync\archivosjjdescomprimidos\src\package.json
+- C:\Users\timon\Downloads\izzi_sync\izzi_descarga_nueva\package.json
+- C:\Users\timon\Downloads\izzi_sync\izzi_descarga_nueva\src\package.json
+- C:\Users\timon\Downloads\izzi_sync\src\package.json
+
+===============================================================================================
+ROOT package.json (current folder) - scripts/deps
+===============================================================================================
+name: Login and Dashboard Screens
+scripts:
+  dev: vite
+  build: vite build
+
+deps signals:
+  react: ^18.3.1
+  react-dom: ^18.3.1
+  vite: 6.3.5
+  tailwindcss: *
+  autoprefixer: ^10.4.22
+
+===============================================================================================
+DUPLICATE FOLDERS CHECK
+===============================================================================================
+- archivosjjdescomprimidos exists: YES | approx bytes: 212150139
+  contains package.json? True
+  contains index.html? True
+  contains src\main.tsx? True
+- izzi_descarga_nueva exists: YES | approx bytes: 1627009
+  contains package.json? True
+  contains index.html? True
+  contains src\main.tsx? True
+
+===============================================================================================
+ENTRYPOINT DETECTION (createRoot / ReactDOM / index.html)
+===============================================================================================
+Scanned files: 367
+Entry matches: 6
+- C:\Users\timon\Downloads\izzi_sync\archivosjjdescomprimidos\src\main.tsx
+- C:\Users\timon\Downloads\izzi_sync\archivosjjdescomprimidos\src\src\main.tsx
+- C:\Users\timon\Downloads\izzi_sync\izzi_descarga_nueva\src\main.tsx
+- C:\Users\timon\Downloads\izzi_sync\izzi_descarga_nueva\src\src\main.tsx
+- C:\Users\timon\Downloads\izzi_sync\src\main.tsx
+- C:\Users\timon\Downloads\izzi_sync\src\src\main.tsx
+
+index.html found: 6
+- C:\Users\timon\Downloads\izzi_sync\index.html
+- C:\Users\timon\Downloads\izzi_sync\archivosjjdescomprimidos\index.html
+- C:\Users\timon\Downloads\izzi_sync\archivosjjdescomprimidos\src\index.html
+- C:\Users\timon\Downloads\izzi_sync\izzi_descarga_nueva\index.html
+- C:\Users\timon\Downloads\izzi_sync\izzi_descarga_nueva\src\index.html
+- C:\Users\timon\Downloads\izzi_sync\src\index.html
+
+===============================================================================================
+WHERE CSS IS IMPORTED (globals.css / index.css / app.css)
+===============================================================================================
+Matches: 7
+- C:\Users\timon\Downloads\izzi_sync\App.tsx
+- C:\Users\timon\Downloads\izzi_sync\archivosjjdescomprimidos\src\App.tsx
+- C:\Users\timon\Downloads\izzi_sync\archivosjjdescomprimidos\src\main.tsx
+- C:\Users\timon\Downloads\izzi_sync\izzi_descarga_nueva\src\App.tsx
+- C:\Users\timon\Downloads\izzi_sync\izzi_descarga_nueva\src\main.tsx
+- C:\Users\timon\Downloads\izzi_sync\src\App.tsx
+- C:\Users\timon\Downloads\izzi_sync\src\main.tsx
+
+===============================================================================================
+FIND: Panel de Oportunidades (render owner)
+===============================================================================================
+Matches: 48
+--- File: C:\Users\timon\Downloads\izzi_sync\archivosjjdescomprimidos\src\components\fx27\AgregarLeadModule_LIGHT.tsx | Line: 195
+Text: alert(`❌ EMPRESA DUPLICADA\n\nLa empresa "${formData.nombreEmpresa}" ya existe en el sistema.\n\n📋 Detalles:\n• Registrada por: ${empresaExistente.vendedor}\n• Fecha: ${new Date(empresaExistente.fechaCaptura).toLocaleDateString('es-MX')}\n• Contacto: ${empresaExistente.nombreContacto || 'Sin contacto'}\n\n💡 Verifica en el Panel de Oportunidades.`);
+--- File: C:\Users\timon\Downloads\izzi_sync\archivosjjdescomprimidos\src\components\fx27\AgregarLeadModule.tsx | Line: 213
+Text: alert(`❌ EMPRESA DUPLICADA\n\nLa empresa "${formData.nombreEmpresa}" ya existe en el sistema.\n\n📋 Detalles:\n• Registrada por: ${empresaExistente.vendedor}\n• Fecha: ${new Date(empresaExistente.fechaCaptura).toLocaleDateString('es-MX')}\n• Contacto: ${empresaExistente.nombreContacto || 'Sin contacto'}\n\n💡 Verifica en el Panel de Oportunidades.`);
+--- File: C:\Users\timon\Downloads\izzi_sync\archivosjjdescomprimidos\src\components\fx27\AIAssistant.tsx | Line: 76
+Text: return 'Desde el **Dashboard principal** puedes acceder a todos los módulos:\n\n🔹 **Módulos principales:**\n• Agregar Lead\n• Panel de Oportunidades\n• Operaciones\n• Despacho Inteligente\n• Control de Equipo\n• KPIs\n• Configuración\n• Cotizaciones\n• Ventas\n• Utilerías\n• Servicio a Clientes\n• Dedicados\n\nSimplemente haz clic en cualquier tarjeta para acceder. ¿Qué módulo te interesa?';
+--- File: C:\Users\timon\Downloads\izzi_sync\archivosjjdescomprimidos\src\components\fx27\DashboardScreen.tsx | Line: 80
+Text: { id: 'panel-oportunidades', name: 'Panel de Oportunidades', icon: BarChart3 },
+--- File: C:\Users\timon\Downloads\izzi_sync\archivosjjdescomprimidos\src\components\fx27\PanelOportunidadesModule.tsx | Line: 7
+Text: interface PanelOportunidadesModuleProps {
+--- File: C:\Users\timon\Downloads\izzi_sync\archivosjjdescomprimidos\src\components\fx27\PanelOportunidadesModule.tsx | Line: 47
+Text: export const PanelOportunidadesModule = ({ onBack }: PanelOportunidadesModuleProps) => {
+--- File: C:\Users\timon\Downloads\izzi_sync\archivosjjdescomprimidos\src\components\fx27\PanelOportunidadesModule.tsx | Line: 125
+Text: console.log(`[PanelOportunidades] Leads cargados: ${result.leads.length} (Admin: ${esAdmin})`);
+--- File: C:\Users\timon\Downloads\izzi_sync\archivosjjdescomprimidos\src\components\fx27\PanelOportunidadesModule.tsx | Line: 129
+Text: console.error('[PanelOportunidades] Error al cargar leads:', result.error);
+--- File: C:\Users\timon\Downloads\izzi_sync\archivosjjdescomprimidos\src\components\fx27\PanelOportunidadesModule.tsx | Line: 132
+Text: console.error('[PanelOportunidades] Error al conectar con la base de datos:', error);
+--- File: C:\Users\timon\Downloads\izzi_sync\archivosjjdescomprimidos\src\components\fx27\PanelOportunidadesModule.tsx | Line: 250
+Text: console.log('[PanelOportunidades] Lead eliminado exitosamente');
+--- File: C:\Users\timon\Downloads\izzi_sync\archivosjjdescomprimidos\src\components\fx27\PanelOportunidadesModule.tsx | Line: 258
+Text: console.error('[PanelOportunidades] Error al eliminar lead:', error);
+--- File: C:\Users\timon\Downloads\izzi_sync\archivosjjdescomprimidos\src\components\fx27\PanelOportunidadesModule.tsx | Line: 321
+Text: console.log('[PanelOportunidades] Lead actualizado exitosamente');
+--- File: C:\Users\timon\Downloads\izzi_sync\archivosjjdescomprimidos\src\components\fx27\PanelOportunidadesModule.tsx | Line: 331
+Text: console.error('[PanelOportunidades] Error al actualizar lead:', error);
+--- File: C:\Users\timon\Downloads\izzi_sync\archivosjjdescomprimidos\src\components\fx27\PanelOportunidadesModule.tsx | Line: 404
+Text: console.error('[PanelOportunidades] Error al reformatear leads:', error);
+--- File: C:\Users\timon\Downloads\izzi_sync\archivosjjdescomprimidos\src\components\fx27\PanelOportunidadesModule.tsx | Line: 464
+Text: Panel de Oportunidades
+--- File: C:\Users\timon\Downloads\izzi_sync\archivosjjdescomprimidos\src\components\fx27\UsuariosModule.tsx | Line: 23
+Text: { id: 'panel-oportunidades', nombre: 'Panel de Oportunidades' },
+--- File: C:\Users\timon\Downloads\izzi_sync\archivosjjdescomprimidos\src\App.tsx | Line: 5
+Text: import { PanelOportunidadesModule } from './components/fx27/PanelOportunidadesModule';
+--- File: C:\Users\timon\Downloads\izzi_sync\archivosjjdescomprimidos\src\App.tsx | Line: 336
+Text: {currentModule === 'panel-oportunidades' && <PanelOportunidadesModule onBack={handleBack} />}
+--- File: C:\Users\timon\Downloads\izzi_sync\izzi_descarga_nueva\src\components\fx27\AgregarLeadModule_LIGHT.tsx | Line: 195
+Text: alert(`❌ EMPRESA DUPLICADA\n\nLa empresa "${formData.nombreEmpresa}" ya existe en el sistema.\n\n📋 Detalles:\n• Registrada por: ${empresaExistente.vendedor}\n• Fecha: ${new Date(empresaExistente.fechaCaptura).toLocaleDateString('es-MX')}\n• Contacto: ${empresaExistente.nombreContacto || 'Sin contacto'}\n\n💡 Verifica en el Panel de Oportunidades.`);
+--- File: C:\Users\timon\Downloads\izzi_sync\izzi_descarga_nueva\src\components\fx27\AgregarLeadModule.tsx | Line: 213
+Text: alert(`❌ EMPRESA DUPLICADA\n\nLa empresa "${formData.nombreEmpresa}" ya existe en el sistema.\n\n📋 Detalles:\n• Registrada por: ${empresaExistente.vendedor}\n• Fecha: ${new Date(empresaExistente.fechaCaptura).toLocaleDateString('es-MX')}\n• Contacto: ${empresaExistente.nombreContacto || 'Sin contacto'}\n\n💡 Verifica en el Panel de Oportunidades.`);
+--- File: C:\Users\timon\Downloads\izzi_sync\izzi_descarga_nueva\src\components\fx27\AIAssistant.tsx | Line: 76
+Text: return 'Desde el **Dashboard principal** puedes acceder a todos los módulos:\n\n🔹 **Módulos principales:**\n• Agregar Lead\n• Panel de Oportunidades\n• Operaciones\n• Despacho Inteligente\n• Control de Equipo\n• KPIs\n• Configuración\n• Cotizaciones\n• Ventas\n• Utilerías\n• Servicio a Clientes\n• Dedicados\n\nSimplemente haz clic en cualquier tarjeta para acceder. ¿Qué módulo te interesa?';
+--- File: C:\Users\timon\Downloads\izzi_sync\izzi_descarga_nueva\src\components\fx27\DashboardScreen.tsx | Line: 80
+Text: { id: 'panel-oportunidades', name: 'Panel de Oportunidades', icon: BarChart3 },
+--- File: C:\Users\timon\Downloads\izzi_sync\izzi_descarga_nueva\src\components\fx27\PanelOportunidadesModule.tsx | Line: 7
+Text: interface PanelOportunidadesModuleProps {
+--- File: C:\Users\timon\Downloads\izzi_sync\izzi_descarga_nueva\src\components\fx27\PanelOportunidadesModule.tsx | Line: 47
+Text: export const PanelOportunidadesModule = ({ onBack }: PanelOportunidadesModuleProps) => {
+--- File: C:\Users\timon\Downloads\izzi_sync\izzi_descarga_nueva\src\components\fx27\PanelOportunidadesModule.tsx | Line: 125
+Text: console.log(`[PanelOportunidades] Leads cargados: ${result.leads.length} (Admin: ${esAdmin})`);
+--- File: C:\Users\timon\Downloads\izzi_sync\izzi_descarga_nueva\src\components\fx27\PanelOportunidadesModule.tsx | Line: 129
+Text: console.error('[PanelOportunidades] Error al cargar leads:', result.error);
+--- File: C:\Users\timon\Downloads\izzi_sync\izzi_descarga_nueva\src\components\fx27\PanelOportunidadesModule.tsx | Line: 132
+Text: console.error('[PanelOportunidades] Error al conectar con la base de datos:', error);
+--- File: C:\Users\timon\Downloads\izzi_sync\izzi_descarga_nueva\src\components\fx27\PanelOportunidadesModule.tsx | Line: 250
+Text: console.log('[PanelOportunidades] Lead eliminado exitosamente');
+--- File: C:\Users\timon\Downloads\izzi_sync\izzi_descarga_nueva\src\components\fx27\PanelOportunidadesModule.tsx | Line: 258
+Text: console.error('[PanelOportunidades] Error al eliminar lead:', error);
+--- File: C:\Users\timon\Downloads\izzi_sync\izzi_descarga_nueva\src\components\fx27\PanelOportunidadesModule.tsx | Line: 321
+Text: console.log('[PanelOportunidades] Lead actualizado exitosamente');
+--- File: C:\Users\timon\Downloads\izzi_sync\izzi_descarga_nueva\src\components\fx27\PanelOportunidadesModule.tsx | Line: 331
+Text: console.error('[PanelOportunidades] Error al actualizar lead:', error);
+--- File: C:\Users\timon\Downloads\izzi_sync\izzi_descarga_nueva\src\components\fx27\PanelOportunidadesModule.tsx | Line: 404
+Text: console.error('[PanelOportunidades] Error al reformatear leads:', error);
+--- File: C:\Users\timon\Downloads\izzi_sync\izzi_descarga_nueva\src\components\fx27\PanelOportunidadesModule.tsx | Line: 464
+Text: Panel de Oportunidades
+--- File: C:\Users\timon\Downloads\izzi_sync\izzi_descarga_nueva\src\components\fx27\UsuariosModule.tsx | Line: 23
+Text: { id: 'panel-oportunidades', nombre: 'Panel de Oportunidades' },
+--- File: C:\Users\timon\Downloads\izzi_sync\izzi_descarga_nueva\src\App.tsx | Line: 5
+Text: import { PanelOportunidadesModule } from './components/fx27/PanelOportunidadesModule';
+--- File: C:\Users\timon\Downloads\izzi_sync\izzi_descarga_nueva\src\App.tsx | Line: 336
+Text: {currentModule === 'panel-oportunidades' && <PanelOportunidadesModule onBack={handleBack} />}
+--- File: C:\Users\timon\Downloads\izzi_sync\src\components\fx27\AgregarLeadModule_LIGHT.tsx | Line: 195
+Text: alert(`❌ EMPRESA DUPLICADA\n\nLa empresa "${formData.nombreEmpresa}" ya existe en el sistema.\n\n📋 Detalles:\n• Registrada por: ${empresaExistente.vendedor}\n• Fecha: ${new Date(empresaExistente.fechaCaptura).toLocaleDateString('es-MX')}\n• Contacto: ${empresaExistente.nombreContacto || 'Sin contacto'}\n\n💡 Verifica en el Panel de Oportunidades.`);
+--- File: C:\Users\timon\Downloads\izzi_sync\src\components\fx27\AgregarLeadModule.tsx | Line: 202
+Text: alert(`❌ EMPRESA DUPLICADA\n\nLa empresa "${formData.nombreEmpresa}" ya existe en el sistema.\n\n📋 Detalles:\n• Registrada por: ${empresaExistente.vendedor}\n• Fecha: ${new Date(empresaExistente.fechaCaptura).toLocaleDateString('es-MX')}\n• Contacto: ${empresaExistente.nombreContacto || 'Sin contacto'}\n\n💡 Verifica en el Panel de Oportunidades.`);
+--- File: C:\Users\timon\Downloads\izzi_sync\src\components\fx27\AIAssistant.tsx | Line: 76
+Text: return 'Desde el **Dashboard principal** puedes acceder a todos los módulos:\n\n🔹 **Módulos principales:**\n• Agregar Lead\n• Panel de Oportunidades\n• Operaciones\n• Despacho Inteligente\n• Control de Equipo\n• KPIs\n• Configuración\n• Cotizaciones\n• Ventas\n• Utilerías\n• Servicio a Clientes\n• Dedicados\n\nSimplemente haz clic en cualquier tarjeta para acceder. ¿Qué módulo te interesa?';
+--- File: C:\Users\timon\Downloads\izzi_sync\src\components\fx27\DashboardScreen.tsx | Line: 80
+Text: { id: 'panel-oportunidades', name: 'Panel de Oportunidades', icon: BarChart3 },
+--- File: C:\Users\timon\Downloads\izzi_sync\src\components\fx27\PanelOportunidadesModule.tsx | Line: 9
+Text: interface PanelOportunidadesModuleProps { onBack: () => void; }
+--- File: C:\Users\timon\Downloads\izzi_sync\src\components\fx27\PanelOportunidadesModule.tsx | Line: 38
+Text: export const PanelOportunidadesModule = ({ onBack }: PanelOportunidadesModuleProps) => {
+--- File: C:\Users\timon\Downloads\izzi_sync\src\components\fx27\PanelOportunidadesModule.tsx | Line: 113
+Text: <ModuleTemplate title="Panel de Oportunidades" onBack={onBack}>
+--- File: C:\Users\timon\Downloads\izzi_sync\src\components\fx27\UsuariosModule.tsx | Line: 23
+Text: { id: 'panel-oportunidades', nombre: 'Panel de Oportunidades' },
+--- File: C:\Users\timon\Downloads\izzi_sync\src\App.tsx | Line: 5
+Text: import { PanelOportunidadesModule } from './components/fx27/PanelOportunidadesModule';
+--- File: C:\Users\timon\Downloads\izzi_sync\src\App.tsx | Line: 336
+Text: {currentModule === 'panel-oportunidades' && <PanelOportunidadesModule onBack={handleBack} />}
+--- File: C:\Users\timon\Downloads\izzi_sync\App.tsx | Line: 5
+Text: import { PanelOportunidadesModule } from './components/fx27/PanelOportunidadesModule';
+--- File: C:\Users\timon\Downloads\izzi_sync\App.tsx | Line: 336
+Text: {currentModule === 'panel-oportunidades' && <PanelOportunidadesModule onBack={handleBack} />}
+
+===============================================================================================
+FIND: Future Experience 27 / Experiencie (logo subtitle)
+===============================================================================================
+Matches found: 14
+--- File: C:\Users\timon\Downloads\izzi_sync\archivosjjdescomprimidos\src\components\fx27\AgregarLeadModule.tsx | Line: 359
+Text: Future Experience 27
+--- File: C:\Users\timon\Downloads\izzi_sync\archivosjjdescomprimidos\src\components\fx27\DashboardScreen.tsx | Line: 157
+Text: Future Experience 27
+--- File: C:\Users\timon\Downloads\izzi_sync\archivosjjdescomprimidos\src\components\fx27\LoginScreen.tsx | Line: 56
+Text: Future Experiencie 27
+--- File: C:\Users\timon\Downloads\izzi_sync\archivosjjdescomprimidos\src\components\fx27\ModuleTemplate.tsx | Line: 86
+Text: Future Experiencie 27
+--- File: C:\Users\timon\Downloads\izzi_sync\archivosjjdescomprimidos\src\components\fx27\PanelOportunidadesModule.tsx | Line: 482
+Text: Future Experience 27
+--- File: C:\Users\timon\Downloads\izzi_sync\izzi_descarga_nueva\src\components\fx27\AgregarLeadModule.tsx | Line: 359
+Text: Future Experience 27
+--- File: C:\Users\timon\Downloads\izzi_sync\izzi_descarga_nueva\src\components\fx27\DashboardScreen.tsx | Line: 157
+Text: Future Experience 27
+--- File: C:\Users\timon\Downloads\izzi_sync\izzi_descarga_nueva\src\components\fx27\LoginScreen.tsx | Line: 56
+Text: Future Experiencie 27
+--- File: C:\Users\timon\Downloads\izzi_sync\izzi_descarga_nueva\src\components\fx27\ModuleTemplate.tsx | Line: 86
+Text: Future Experiencie 27
+--- File: C:\Users\timon\Downloads\izzi_sync\izzi_descarga_nueva\src\components\fx27\PanelOportunidadesModule.tsx | Line: 482
+Text: Future Experience 27
+--- File: C:\Users\timon\Downloads\izzi_sync\src\components\fx27\DashboardScreen.tsx | Line: 157
+Text: Future Experience 27
+--- File: C:\Users\timon\Downloads\izzi_sync\src\components\fx27\LoginScreen.tsx | Line: 62
+Text: Future Experiencie 27
+--- File: C:\Users\timon\Downloads\izzi_sync\src\components\fx27\ModuleTemplate.tsx | Line: 81
+Text: Future Experiencie 27
+--- File: C:\Users\timon\Downloads\izzi_sync\index.html | Line: 7
+Text: <title>JJCRM27 | Future Experience 27</title>
+
+===============================================================================================
+FIND: fx-* TOKENS USAGE (are we even loading them?)
+===============================================================================================
+Matches: 34
+- C:\Users\timon\Downloads\izzi_sync\src\components\fx27\PanelOportunidadesModule.tsx
+- C:\Users\timon\Downloads\izzi_sync\src\styles\globals.css
