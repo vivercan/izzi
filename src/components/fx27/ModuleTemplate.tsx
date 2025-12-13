@@ -171,7 +171,7 @@ export const ModuleTemplate = ({ title, onBack, children, headerImage }: ModuleT
       >
         {/* Header */}
         <div className="flex items-center gap-6 relative z-20" style={{ paddingTop: '25px', marginBottom: '65px' }}>
-          {/* BOTÓN NARANJA #fe5000 con flecha blanca */}
+          {/* BOTÓN NARANJA #fe5000 con flecha SVG blanca */}
           <button
             onClick={onBack}
             className="group flex items-center justify-center w-12 h-12 rounded-xl transition-all duration-200 hover:scale-105"
@@ -189,31 +189,20 @@ export const ModuleTemplate = ({ title, onBack, children, headerImage }: ModuleT
               e.currentTarget.style.boxShadow = '0 4px 12px rgba(254, 80, 0, 0.4), inset 0 1px 0 rgba(255,255,255,0.2)';
             }}
           >
-            {/* Flecha blanca usando la imagen */}
-            <img 
-              src="/src/flecha-correcta.png" 
-              alt="Volver"
-              className="w-6 h-6"
-              style={{ filter: 'brightness(0) invert(1)' }}
-              onError={(e) => {
-                // Fallback: si no carga la imagen, usar el ícono
-                e.currentTarget.style.display = 'none';
-                const parent = e.currentTarget.parentElement;
-                if (parent) {
-                  const fallback = document.createElement('div');
-                  fallback.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>';
-                  parent.appendChild(fallback.firstChild as Node);
-                }
-              }}
-            />
-            {/* Fallback icon si la imagen no existe */}
-            <ArrowLeft
-              className="w-6 h-6 absolute"
-              style={{
-                color: 'white',
-                opacity: 0
-              }}
-            />
+            {/* Flecha SVG blanca */}
+            <svg 
+              width="24" 
+              height="24" 
+              viewBox="0 0 24 24" 
+              fill="none" 
+              stroke="white" 
+              strokeWidth="2.5" 
+              strokeLinecap="round" 
+              strokeLinejoin="round"
+            >
+              <path d="m12 19-7-7 7-7"/>
+              <path d="M19 12H5"/>
+            </svg>
           </button>
 
           <h1

@@ -59,18 +59,16 @@ export const LoginScreen = ({
             FX27
           </div>
           
-          {/* Slogan - TAMAÑO MITAD (12px), ALINEADO A LA DERECHA donde termina FX27 */}
+          {/* Slogan - GRIS AZULADO ELEGANTE */}
           <div
             className="uppercase"
             style={{ 
               fontFamily: "Exo 2, sans-serif",
-              fontSize: '12px',
+              fontSize: '14px',
               fontWeight: 500,
-              letterSpacing: '0.25em',
-              marginTop: '8px',
-              color: '#fe5000',
-              opacity: 0.9,
-              textShadow: '0 1px 4px rgba(254, 80, 0, 0.3)',
+              letterSpacing: '0.3em',
+              marginTop: '12px',
+              color: 'rgba(200, 220, 240, 0.6)',
               textAlign: 'right',
             }}
           >
