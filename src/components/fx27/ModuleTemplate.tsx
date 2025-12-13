@@ -72,31 +72,44 @@ export const ModuleTemplate = ({ title, onBack, children, headerImage }: ModuleT
         }}
       />
 
-      {/* Logo FX27 - ESTILO DASHBOARD (gradiente metálico) */}
-      <div className="absolute z-50 flex flex-col items-end" style={{ top: '18px', right: '24px' }}>
+      {/* Logo FX27 - IDENTICO AL DASHBOARD */}
+      <div className="absolute z-50 flex flex-col items-end" style={{ top: '20px', right: '28px' }}>
+        {/* FX27 con gradiente metálico gris */}
         <div 
           className="leading-none"
           style={{ 
             fontFamily: "'Exo 2', sans-serif",
-            fontSize: '52px',
-            fontWeight: 800,
-            background: 'linear-gradient(180deg, rgba(255,255,255,0.9) 0%, rgba(255,255,255,0.5) 50%, rgba(255,255,255,0.3) 100%)',
+            fontSize: '48px',
+            fontWeight: 700,
+            background: 'linear-gradient(180deg, #8899aa 0%, #667788 40%, #556677 70%, #445566 100%)',
             WebkitBackgroundClip: 'text',
             WebkitTextFillColor: 'transparent',
             backgroundClip: 'text',
-            letterSpacing: '2px'
+            letterSpacing: '1px'
           }}
         >
           FX27
         </div>
+        
+        {/* Línea separadora horizontal */}
+        <div 
+          style={{ 
+            width: '100%',
+            height: '1px',
+            background: 'linear-gradient(90deg, transparent 0%, rgba(100,120,140,0.5) 20%, rgba(100,120,140,0.6) 50%, rgba(100,120,140,0.5) 80%, transparent 100%)',
+            marginTop: '6px',
+            marginBottom: '6px'
+          }}
+        />
+        
+        {/* Future Experience 27 */}
         <div 
           style={{ 
             fontFamily: "'Exo 2', sans-serif",
-            fontSize: '11px',
+            fontSize: '10px',
             fontWeight: 400,
-            color: 'rgba(255,255,255,0.45)',
-            letterSpacing: '3px',
-            marginTop: '2px',
+            color: 'rgba(130,150,170,0.85)',
+            letterSpacing: '2.5px',
             textTransform: 'uppercase'
           }}
         >
