@@ -191,7 +191,7 @@ export const ModuleTemplate = ({ title, onBack, children, headerImage }: ModuleT
         {/* Workstage */}
         <div style={{ height: 'calc(100vh - 167px)' }}>
           <div 
-            className="w-full h-full rounded-[18px]"
+            className="w-full h-full rounded-[18px] overflow-hidden"
             style={{
               background: 'rgba(15, 23, 42, 0.35)',
               backdropFilter: 'blur(32px) saturate(180%)',

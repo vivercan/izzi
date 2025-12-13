@@ -95,9 +95,9 @@ export const PanelOportunidadesModule = ({ onBack }: PanelOportunidadesModulePro
 
   // ===== TOKENS VISUALES AAA =====
   const T = {
-    surface: "bg-white/[0.03] border border-white/[0.08] shadow-[0_18px_40px_rgba(0,0,0,0.35),inset_0_1px_0_rgba(255,255,255,0.06)]",
+    surface: "rounded-2xl overflow-hidden bg-white/[0.03] border border-white/[0.08] shadow-[0_18px_40px_rgba(0,0,0,0.35),inset_0_1px_0_rgba(255,255,255,0.06)]",
     surfaceHeader: "bg-white/[0.04] border-b border-white/[0.06]",
-    input: "bg-white/[0.04] border border-white/[0.08] text-white placeholder:text-white/30 focus:outline-none focus:border-white/[0.16] transition-all duration-150",
+    input: "bg-white/[0.04] border border-white/[0.08] text-white placeholder:text-white/30 hover:border-white/[0.12] focus:outline-none focus:border-orange-400/35 focus:ring-1 focus:ring-orange-400/10 transition-all duration-150",
     btn: "bg-white/[0.04] border border-white/[0.08] text-white/60 hover:bg-white/[0.08] hover:text-white/80 transition-all duration-150",
     btnActive: "bg-white/[0.10] border border-white/[0.14] text-white/90",
     btnAction: "p-1.5 rounded-md bg-white/[0.04] border border-white/[0.08] text-white/60 hover:bg-white/[0.08] hover:text-white transition-all duration-150",
@@ -111,7 +111,7 @@ export const PanelOportunidadesModule = ({ onBack }: PanelOportunidadesModulePro
 
   return (
     <ModuleTemplate title="Panel de Oportunidades" onBack={onBack}>
-      <div className="flex flex-col h-[calc(100vh-120px)]">
+      <div className="flex flex-col h-full min-h-0 overflow-hidden">
         {/* FILTROS con línea divisoria */}
         <div className="flex-shrink-0 p-4 pb-3 border-b border-white/[0.06]">
           <div className="flex flex-wrap gap-3 items-center justify-between">
@@ -161,7 +161,7 @@ export const PanelOportunidadesModule = ({ onBack }: PanelOportunidadesModulePro
           </div>
           
           {/* Filas con zebra + hover */}
-          <div className="flex-1 overflow-y-auto">
+          <div className="flex-1 min-h-0 overflow-y-auto">
             <table className="w-full"><tbody>
               {filteredLeads.length === 0 ? (<tr><td colSpan={10} className="px-6 py-12 text-center text-white/30">No se encontraron leads.</td></tr>) : (
                 filteredLeads.map((lead, index) => {
