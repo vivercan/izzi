@@ -111,7 +111,7 @@ export const PanelOportunidadesModule = ({ onBack }: PanelOportunidadesModulePro
 
   return (
     <ModuleTemplate title="Panel de Oportunidades" onBack={onBack}>
-      <div className="fx-opps flex flex-col h-full min-h-0 overflow-hidden">
+      <div className="flex flex-col h-full min-h-0 overflow-hidden">
         {/* FILTROS con línea divisoria */}
         <div className="flex-shrink-0 p-4 pb-3 border-b border-white/[0.06]">
           <div className="flex flex-wrap gap-3 items-center justify-between">
