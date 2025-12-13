@@ -15,7 +15,7 @@ export const ModuleTemplate = ({ title, onBack, children, headerImage }: ModuleT
       <div className="absolute inset-0 bg-gradient-to-br from-[#0B1220] via-[#0F172A] to-[#1E66F5]/20"></div>
 
       {/* Vignette ultra sutil */}
-      <div 
+      <div
         className="absolute pointer-events-none"
         style={{
           top: '119px',
@@ -27,7 +27,7 @@ export const ModuleTemplate = ({ title, onBack, children, headerImage }: ModuleT
       />
 
       {/* Spotlight de trabajo */}
-      <div 
+      <div
         className="absolute pointer-events-none"
         style={{
           top: '380px',
@@ -41,7 +41,7 @@ export const ModuleTemplate = ({ title, onBack, children, headerImage }: ModuleT
       />
 
       {/* Ruido fino premium 4% */}
-      <svg 
+      <svg
         className="absolute w-full pointer-events-none opacity-[0.04]"
         style={{
           top: '119px',
@@ -59,7 +59,7 @@ export const ModuleTemplate = ({ title, onBack, children, headerImage }: ModuleT
       </svg>
 
       {/* Sheen diagonal lento */}
-      <div 
+      <div
         className="absolute pointer-events-none"
         style={{
           top: '119px',
@@ -72,18 +72,40 @@ export const ModuleTemplate = ({ title, onBack, children, headerImage }: ModuleT
         }}
       />
 
-      {/* Logo FX27 - INAMOVIBLE */}
-      <div className="absolute z-50 opacity-25 flex flex-col items-center" style={{ top: '-4px', right: '8px' }}>
-        <div className="text-[80px] font-black text-white leading-none" style={{ fontFamily: 'Exo 2, sans-serif' }}>
+      {/* Logo FX27 - ESTILO DASHBOARD (gradiente metálico) */}
+      <div className="absolute z-50 flex flex-col items-end" style={{ top: '18px', right: '24px' }}>
+        <div 
+          className="leading-none"
+          style={{ 
+            fontFamily: "'Exo 2', sans-serif",
+            fontSize: '52px',
+            fontWeight: 800,
+            background: 'linear-gradient(180deg, rgba(255,255,255,0.9) 0%, rgba(255,255,255,0.5) 50%, rgba(255,255,255,0.3) 100%)',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+            backgroundClip: 'text',
+            letterSpacing: '2px'
+          }}
+        >
           FX27
         </div>
-        <div className="text-[16px] text-white tracking-wider mt-1" style={{ fontFamily: 'Exo 2, sans-serif' }}>
-          Future Experiencie 27
+        <div 
+          style={{ 
+            fontFamily: "'Exo 2', sans-serif",
+            fontSize: '11px',
+            fontWeight: 400,
+            color: 'rgba(255,255,255,0.45)',
+            letterSpacing: '3px',
+            marginTop: '2px',
+            textTransform: 'uppercase'
+          }}
+        >
+          Future Experience 27
         </div>
       </div>
 
       {/* Barra superior PREMIUM - Gradiente navy/petroleo + noise */}
-      <div 
+      <div
         className="absolute top-0 left-0 right-0 z-10"
         style={{
           height: '119px',
@@ -91,15 +113,15 @@ export const ModuleTemplate = ({ title, onBack, children, headerImage }: ModuleT
         }}
       >
         {/* Base: Gradiente oscuro navy -> petroleo */}
-        <div 
+        <div
           className="absolute inset-0"
           style={{
             background: 'linear-gradient(135deg, #0a1628 0%, #0d1f35 25%, #0f2847 50%, #0a1e38 75%, #081420 100%)'
           }}
         />
-        
+
         {/* Capa 2: Gradiente horizontal sutil para profundidad */}
-        <div 
+        <div
           className="absolute inset-0"
           style={{
             background: 'linear-gradient(90deg, rgba(15,30,56,0.9) 0%, rgba(20,45,75,0.6) 30%, rgba(15,35,60,0.7) 70%, rgba(10,20,40,0.9) 100%)'
@@ -107,7 +129,7 @@ export const ModuleTemplate = ({ title, onBack, children, headerImage }: ModuleT
         />
 
         {/* Capa 3: Acento azul muy sutil en centro */}
-        <div 
+        <div
           className="absolute inset-0"
           style={{
             background: 'radial-gradient(ellipse 80% 100% at 50% 100%, rgba(59,130,246,0.08) 0%, transparent 60%)'
@@ -115,7 +137,7 @@ export const ModuleTemplate = ({ title, onBack, children, headerImage }: ModuleT
         />
 
         {/* Capa 4: Overlay oscuro homogeneizador */}
-        <div 
+        <div
           className="absolute inset-0"
           style={{
             background: 'linear-gradient(180deg, rgba(8,15,28,0.4) 0%, rgba(8,15,28,0.2) 50%, rgba(8,15,28,0.5) 100%)'
@@ -132,7 +154,7 @@ export const ModuleTemplate = ({ title, onBack, children, headerImage }: ModuleT
         </svg>
 
         {/* Linea inferior sutil */}
-        <div 
+        <div
           className="absolute bottom-0 left-0 right-0 h-px"
           style={{
             background: 'linear-gradient(90deg, transparent 0%, rgba(59,130,246,0.2) 20%, rgba(59,130,246,0.3) 50%, rgba(59,130,246,0.2) 80%, transparent 100%)'
@@ -141,7 +163,7 @@ export const ModuleTemplate = ({ title, onBack, children, headerImage }: ModuleT
       </div>
 
       {/* Main Content */}
-      <div 
+      <div
         className="relative z-10 w-full h-full flex flex-col"
         style={{
           animation: 'moduleEnter 150ms ease-out',
@@ -158,9 +180,9 @@ export const ModuleTemplate = ({ title, onBack, children, headerImage }: ModuleT
               WebkitBackdropFilter: 'blur(12px)'
             }}
           >
-            <ArrowLeft 
-              className="w-6 h-6 transition-all duration-200" 
-              style={{ 
+            <ArrowLeft
+              className="w-6 h-6 transition-all duration-200"
+              style={{
                 color: 'rgba(255, 255, 255, 0.92)',
                 filter: 'drop-shadow(0 0 0 transparent)'
               }}
@@ -175,7 +197,7 @@ export const ModuleTemplate = ({ title, onBack, children, headerImage }: ModuleT
             />
           </button>
 
-          <h1 
+          <h1
             style={{
               fontFamily: "'Exo 2', sans-serif",
               fontWeight: 600,
@@ -190,7 +212,7 @@ export const ModuleTemplate = ({ title, onBack, children, headerImage }: ModuleT
 
         {/* Workstage */}
         <div style={{ height: 'calc(100vh - 167px)' }}>
-          <div 
+          <div
             className="w-full h-full rounded-[18px] overflow-hidden"
             style={{
               background: 'rgba(15, 23, 42, 0.35)',
