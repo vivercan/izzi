@@ -84,7 +84,7 @@ export const AgregarLeadModule = ({ onBack }: AgregarLeadModuleProps) => {
 
   // Checkbox Premium
   const Chk = ({ ck, set, lb, cl }: { ck: boolean; set: (v: boolean) => void; lb: string; cl: string }) => (
-    <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
+    <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
       <div onClick={e => { e.preventDefault(); set(!ck); }} style={{ width: '15px', height: '15px', borderRadius: '4px', background: ck ? cl : 'rgba(15,23,42,0.50)', border: `1.5px solid ${ck ? cl : 'rgba(255,255,255,0.15)'}`, boxShadow: ck ? `0 2px 6px ${cl}50` : 'inset 0 1px 2px rgba(0,0,0,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         {ck && <Check style={{ width: '10px', height: '10px', color: 'white', strokeWidth: 3 }} />}
       </div>
@@ -93,33 +93,32 @@ export const AgregarLeadModule = ({ onBack }: AgregarLeadModuleProps) => {
   );
 
   // Estilos compactos
-  const card: React.CSSProperties = { ...FX27.card, padding: '8px 10px' };
-  const inp: React.CSSProperties = { width: '100%', height: '30px', padding: '0 10px', borderRadius: '10px', background: FX27.input.background, border: FX27.input.border, boxShadow: FX27.input.boxShadow, color: 'rgba(255,255,255,0.95)', fontSize: '12px', outline: 'none' };
+  const card: React.CSSProperties = { ...FX27.card, padding: '10px 12px' };
+  const inp: React.CSSProperties = { width: '100%', height: '34px', padding: '0 12px', borderRadius: '10px', background: FX27.input.background, border: FX27.input.border, boxShadow: FX27.input.boxShadow, color: 'rgba(255,255,255,0.95)', fontSize: '13px', outline: 'none' };
   const lbl: React.CSSProperties = { color: 'rgba(148,163,184,0.90)', fontSize: '11px', fontWeight: 600, marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '4px' };
 
   const Chip = ({ t, sel, onClick, viaje }: { t: string; sel: boolean; onClick: () => void; viaje: boolean }) => {
     const s = getChipStyle(t, sel, viaje);
-    return <button type="button" onClick={onClick} style={{ height: '28px', padding: '0 10px', borderRadius: '10px', background: s.bg, border: `1px solid ${s.border}`, color: s.color, fontSize: '11px', fontWeight: sel ? 600 : 500, boxShadow: sel ? '0 3px 10px rgba(0,0,0,0.18)' : 'none', cursor: 'pointer', transition: 'all 0.15s' }}>{t}</button>;
+    return <button type="button" onClick={onClick} style={{ height: '32px', padding: '0 14px', borderRadius: '10px', background: s.bg, border: `1px solid ${s.border}`, color: s.color, fontSize: '12px', fontWeight: sel ? 600 : 500, boxShadow: sel ? '0 3px 10px rgba(0,0,0,0.18)' : 'none', cursor: 'pointer', transition: 'all 0.15s' }}>{t}</button>;
   };
 
   const SectionHead = ({ icon: Icon, label, color }: { icon: any; label: string; color: string }) => (
-    <div style={{ display: 'flex', alignItems: 'center', gap: '5px', marginBottom: '6px', paddingLeft: '6px', borderLeft: `3px solid ${color}` }}>
-      <Icon style={{ width: '11px', height: '11px', color }} />
-      <span style={{ color: 'rgba(255,255,255,0.92)', fontSize: '11px', fontWeight: 600, letterSpacing: '0.3px' }}>{label}</span>
+    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', paddingLeft: '8px', borderLeft: `3px solid ${color}` }}>
+      <Icon style={{ width: '13px', height: '13px', color }} />
+      <span style={{ color: 'rgba(255,255,255,0.92)', fontSize: '12px', fontWeight: 600, letterSpacing: '0.3px' }}>{label}</span>
     </div>
   );
 
   return (
     <ModuleTemplate title="Agregar Lead" onBack={onBack} headerImage={MODULE_IMAGES.AGREGAR_LEAD}>
       {/* ═══════════════════════════════════════════════════════════════
-          WRAPPER PRINCIPAL - ALTURA REDUCIDA PARA CABER EN 1080p
+          WRAPPER PRINCIPAL - APROVECHA TODO EL ESPACIO
           ═══════════════════════════════════════════════════════════════ */}
       <div style={{
-        height: 'calc(100vh - 160px)',
-        maxHeight: '680px',
+        height: 'calc(100vh - 140px)',
         display: 'flex',
         flexDirection: 'column',
-        padding: '10px',
+        padding: '12px',
         boxSizing: 'border-box',
         background: `
           radial-gradient(ellipse 120% 80% at 50% 20%, rgba(37,99,235,0.95) 0%, rgba(30,64,175,0.98) 40%, rgba(15,23,42,1) 100%),
@@ -146,14 +145,14 @@ export const AgregarLeadModule = ({ onBack }: AgregarLeadModuleProps) => {
           {/* ═══════════════════════════════════════════════════════════════
               CONTENIDO - 3 COLUMNAS COMPACTAS
               ═══════════════════════════════════════════════════════════════ */}
-          <div style={{ flex: 1, padding: '10px', display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px', minHeight: 0 }}>
+          <div style={{ flex: 1, padding: '14px', display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '14px', minHeight: 0 }}>
             
             {/* COL 1: EMPRESA + CONTACTO */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
               {/* N1 EMPRESA */}
               <div style={card}>
                 <SectionHead icon={Building2} label="N1 • EMPRESA" color="#22C55E" />
-                <input type="text" value={formData.nombreEmpresa} onChange={e => handleInput('nombreEmpresa', e.target.value)} placeholder="EMPRESA S.A. DE C.V." style={{ ...inp, fontSize: '13px', fontWeight: 700, height: '34px' }} />
+                <input type="text" value={formData.nombreEmpresa} onChange={e => handleInput('nombreEmpresa', e.target.value)} placeholder="EMPRESA S.A. DE C.V." style={{ ...inp, fontSize: '14px', fontWeight: 700, height: '38px' }} />
               </div>
 
               {/* Web + Contacto */}
@@ -186,11 +185,11 @@ export const AgregarLeadModule = ({ onBack }: AgregarLeadModuleProps) => {
             </div>
 
             {/* COL 2: SERVICIOS + VIAJE + NOTAS */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
               {/* TIPO SERVICIO */}
               <div style={card}>
                 <SectionHead icon={TrendingUp} label="TIPO DE SERVICIO" color="#3B82F6" />
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
                   {TIPOS_SERVICIO.map(t => <Chip key={t} t={t} sel={formData.tipoServicio?.includes(t) || false} onClick={() => toggleServ(t)} viaje={false} />)}
                 </div>
               </div>
@@ -198,7 +197,7 @@ export const AgregarLeadModule = ({ onBack }: AgregarLeadModuleProps) => {
               {/* TIPO VIAJE */}
               <div style={card}>
                 <SectionHead icon={MapPin} label="TIPO DE VIAJE" color="#22C55E" />
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
                   {TIPOS_VIAJE.map(t => <Chip key={t} t={t} sel={formData.tipoViaje?.includes(t) || false} onClick={() => toggleViaje(t)} viaje={true} />)}
                 </div>
                 <div style={{ display: 'flex', gap: '16px', marginTop: '10px', paddingTop: '10px', borderTop: '1px solid rgba(255,255,255,0.08)' }}>
@@ -215,13 +214,13 @@ export const AgregarLeadModule = ({ onBack }: AgregarLeadModuleProps) => {
             </div>
 
             {/* COL 3: FINANZAS + HITOS */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
               {/* N3 FINANZAS */}
               <div style={card}>
                 <SectionHead icon={TrendingUp} label="N3 • FINANZAS" color="#F97316" />
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                   <input type="text" value={formData.principalesRutas} onChange={e => handleInput('principalesRutas', e.target.value)} placeholder="CDMX - MTY - GDL" style={inp} />
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
                     <input type="number" value={formData.viajesPorMes} onChange={e => handleInput('viajesPorMes', e.target.value)} placeholder="Viajes/Mes" style={inp} />
                     <input type="text" value={formData.tarifa} onChange={e => handleInput('tarifa', e.target.value)} placeholder="Tarifa" style={inp} />
                   </div>
@@ -232,7 +231,7 @@ export const AgregarLeadModule = ({ onBack }: AgregarLeadModuleProps) => {
               {/* HITOS */}
               <div style={card}>
                 <SectionHead icon={TrendingUp} label="HITOS DEL CLIENTE" color="#06B6D4" />
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                   <Chk ck={formData.altaCliente || false} set={v => setFormData({ ...formData, altaCliente: v })} lb="N4 • Alta de Cliente" cl="#06B6D4" />
                   <Chk ck={formData.generacionSOP || false} set={v => setFormData({ ...formData, generacionSOP: v })} lb="N5 • Generación SOP" cl="#A855F7" />
                   <Chk ck={formData.juntaArranque || false} set={v => setFormData({ ...formData, juntaArranque: v })} lb="N6 • Junta de Arranque" cl="#EC4899" />
@@ -250,20 +249,20 @@ export const AgregarLeadModule = ({ onBack }: AgregarLeadModuleProps) => {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            padding: '8px 12px',
+            padding: '10px 14px',
             background: 'linear-gradient(180deg, rgba(30,58,138,0.35) 0%, rgba(30,64,175,0.30) 100%)',
             borderTop: '1px solid rgba(255,255,255,0.08)',
             borderRadius: '0 0 16px 16px'
           }}>
             {/* Vendedor + Fecha */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '5px 12px', borderRadius: '8px', background: 'rgba(15,23,42,0.50)', border: '1px solid rgba(255,255,255,0.08)' }}>
-              <span style={{ color: 'rgba(148,163,184,0.90)', fontSize: '11px' }}>Vendedor: <span style={{ color: 'rgba(255,255,255,0.95)', fontWeight: 600 }}>{formData.vendedor || '...'}</span></span>
-              <div style={{ width: '1px', height: '12px', background: 'rgba(255,255,255,0.15)' }} />
-              <span style={{ color: 'rgba(147,197,253,0.90)', fontSize: '10px', fontFamily: 'monospace' }}>{new Date().toLocaleDateString('es-MX')}</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '7px 14px', borderRadius: '10px', background: 'rgba(15,23,42,0.50)', border: '1px solid rgba(255,255,255,0.08)' }}>
+              <span style={{ color: 'rgba(148,163,184,0.90)', fontSize: '13px' }}>Vendedor: <span style={{ color: 'rgba(255,255,255,0.95)', fontWeight: 600 }}>{formData.vendedor || '...'}</span></span>
+              <div style={{ width: '1px', height: '14px', background: 'rgba(255,255,255,0.15)' }} />
+              <span style={{ color: 'rgba(147,197,253,0.90)', fontSize: '12px', fontFamily: 'monospace' }}>{new Date().toLocaleDateString('es-MX')}</span>
             </div>
 
             {/* BOTÓN GUARDAR - Premium 3D */}
-            <button type="button" onClick={handleSubmit} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 18px', borderRadius: '10px', background: 'linear-gradient(180deg, rgba(59,130,246,0.35) 0%, rgba(37,99,235,0.30) 100%)', border: '1px solid rgba(59,130,246,0.45)', boxShadow: '0 4px 14px rgba(0,0,0,0.22), inset 0 1px 0 rgba(255,255,255,0.12)', color: 'rgba(147,197,253,0.98)', fontSize: '12px', fontWeight: 600, cursor: 'pointer', transition: 'all 0.15s' }}
+            <button type="button" onClick={handleSubmit} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 22px', borderRadius: '12px', background: 'linear-gradient(180deg, rgba(59,130,246,0.35) 0%, rgba(37,99,235,0.30) 100%)', border: '1px solid rgba(59,130,246,0.45)', boxShadow: '0 4px 14px rgba(0,0,0,0.22), inset 0 1px 0 rgba(255,255,255,0.12)', color: 'rgba(147,197,253,0.98)', fontSize: '14px', fontWeight: 600, cursor: 'pointer', transition: 'all 0.15s' }}
               onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 6px 18px rgba(0,0,0,0.28), inset 0 1px 0 rgba(255,255,255,0.15)'; }}
               onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 4px 14px rgba(0,0,0,0.22), inset 0 1px 0 rgba(255,255,255,0.12)'; }}>
               <Save style={{ width: '15px', height: '15px' }} />
