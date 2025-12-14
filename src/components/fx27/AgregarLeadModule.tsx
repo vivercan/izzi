@@ -93,13 +93,13 @@ export const AgregarLeadModule = ({ onBack }: AgregarLeadModuleProps) => {
   );
 
   // Estilos compactos
-  const card: React.CSSProperties = { ...FX27.card, padding: '10px 12px' };
-  const inp: React.CSSProperties = { width: '100%', height: '34px', padding: '0 12px', borderRadius: '10px', background: FX27.input.background, border: FX27.input.border, boxShadow: FX27.input.boxShadow, color: 'rgba(255,255,255,0.95)', fontSize: '13px', outline: 'none' };
+  const card: React.CSSProperties = { ...FX27.card, padding: '8px 10px' };
+  const inp: React.CSSProperties = { width: '100%', height: '32px', padding: '0 10px', borderRadius: '10px', background: FX27.input.background, border: FX27.input.border, boxShadow: FX27.input.boxShadow, color: 'rgba(255,255,255,0.95)', fontSize: '13px', outline: 'none' };
   const lbl: React.CSSProperties = { color: 'rgba(148,163,184,0.90)', fontSize: '11px', fontWeight: 600, marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '4px' };
 
   const Chip = ({ t, sel, onClick, viaje }: { t: string; sel: boolean; onClick: () => void; viaje: boolean }) => {
     const s = getChipStyle(t, sel, viaje);
-    return <button type="button" onClick={onClick} style={{ height: '32px', padding: '0 14px', borderRadius: '10px', background: s.bg, border: `1px solid ${s.border}`, color: s.color, fontSize: '12px', fontWeight: sel ? 600 : 500, boxShadow: sel ? '0 3px 10px rgba(0,0,0,0.18)' : 'none', cursor: 'pointer', transition: 'all 0.15s' }}>{t}</button>;
+    return <button type="button" onClick={onClick} style={{ height: '30px', padding: '0 12px', borderRadius: '10px', background: s.bg, border: `1px solid ${s.border}`, color: s.color, fontSize: '12px', fontWeight: sel ? 600 : 500, boxShadow: sel ? '0 3px 10px rgba(0,0,0,0.18)' : 'none', cursor: 'pointer', transition: 'all 0.15s' }}>{t}</button>;
   };
 
   const SectionHead = ({ icon: Icon, label, color }: { icon: any; label: string; color: string }) => (
@@ -112,10 +112,10 @@ export const AgregarLeadModule = ({ onBack }: AgregarLeadModuleProps) => {
   return (
     <ModuleTemplate title="Agregar Lead" onBack={onBack} headerImage={MODULE_IMAGES.AGREGAR_LEAD}>
       {/* ═══════════════════════════════════════════════════════════════
-          WRAPPER PRINCIPAL - APROVECHA TODO EL ESPACIO
+          WRAPPER PRINCIPAL - ALTURA SEGURA PARA 1080p CON TASKBAR
           ═══════════════════════════════════════════════════════════════ */}
       <div style={{
-        height: 'calc(100vh - 140px)',
+        height: 'calc(100vh - 180px)',
         display: 'flex',
         flexDirection: 'column',
         padding: '12px 24px 12px 12px',
@@ -146,14 +146,14 @@ export const AgregarLeadModule = ({ onBack }: AgregarLeadModuleProps) => {
           {/* ═══════════════════════════════════════════════════════════════
               CONTENIDO - 3 COLUMNAS COMPACTAS
               ═══════════════════════════════════════════════════════════════ */}
-          <div style={{ flex: 1, padding: '14px', display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '14px', minHeight: 0 }}>
+          <div style={{ flex: 1, padding: '12px', display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px', minHeight: 0 }}>
             
             {/* COL 1: EMPRESA + CONTACTO */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
               {/* N1 EMPRESA */}
               <div style={card}>
                 <SectionHead icon={Building2} label="N1 • EMPRESA" color="#22C55E" />
-                <input type="text" value={formData.nombreEmpresa} onChange={e => handleInput('nombreEmpresa', e.target.value)} placeholder="EMPRESA S.A. DE C.V." style={{ ...inp, fontSize: '14px', fontWeight: 700, height: '38px' }} />
+                <input type="text" value={formData.nombreEmpresa} onChange={e => handleInput('nombreEmpresa', e.target.value)} placeholder="EMPRESA S.A. DE C.V." style={{ ...inp, fontSize: '14px', fontWeight: 700, height: '36px' }} />
               </div>
 
               {/* Web + Contacto */}
@@ -186,7 +186,7 @@ export const AgregarLeadModule = ({ onBack }: AgregarLeadModuleProps) => {
             </div>
 
             {/* COL 2: SERVICIOS + VIAJE + NOTAS */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
               {/* TIPO SERVICIO */}
               <div style={card}>
                 <SectionHead icon={TrendingUp} label="TIPO DE SERVICIO" color="#3B82F6" />
@@ -215,7 +215,7 @@ export const AgregarLeadModule = ({ onBack }: AgregarLeadModuleProps) => {
             </div>
 
             {/* COL 3: FINANZAS + HITOS */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
               {/* N3 FINANZAS */}
               <div style={card}>
                 <SectionHead icon={TrendingUp} label="N3 • FINANZAS" color="#F97316" />
