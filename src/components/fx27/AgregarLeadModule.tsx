@@ -52,7 +52,7 @@ export const AgregarLeadModule = ({ onBack }: AgregarLeadModuleProps) => {
       <div onClick={e => { e.preventDefault(); set(!ck); }} style={{ width: '14px', height: '14px', borderRadius: '3px', background: ck ? cl : 'rgba(255,255,255,0.08)', border: `1.5px solid ${ck ? cl : 'rgba(255,255,255,0.30)'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: ck ? `0 2px 8px ${cl}60` : 'inset 0 1px 2px rgba(0,0,0,0.3)' }}>
         {ck && <Check style={{ width: '10px', height: '10px', color: 'white', strokeWidth: 3 }} />}
       </div>
-      <span style={{ color: ck ? '#F1F5F9' : '#94A3B8', fontSize: '11px', fontWeight: ck ? 600 : 500 }}>{lb}</span>
+      <span style={{ color: ck ? '#F1F5F9' : '#CBD5E1', fontSize: '13px', fontWeight: ck ? 600 : 500 }}>{lb}</span>
     </label>
   );
 
@@ -76,7 +76,7 @@ export const AgregarLeadModule = ({ onBack }: AgregarLeadModuleProps) => {
     height: '34px',
     boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.30)'
   };
-  const lbl: React.CSSProperties = { color: '#CBD5E1', fontSize: '11px', fontWeight: 600, marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '5px' };
+  const lbl: React.CSSProperties = { color: '#CBD5E1', fontSize: '12px', fontWeight: 600, marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '5px' };
   const chip = (on: boolean, c: string): React.CSSProperties => ({ 
     background: on ? `linear-gradient(180deg, ${c} 0%, ${c}cc 100%)` : 'rgba(0,0,0,0.30)', 
     border: `1px solid ${on ? 'rgba(255,255,255,0.25)' : 'rgba(255,255,255,0.15)'}`, 
@@ -84,7 +84,7 @@ export const AgregarLeadModule = ({ onBack }: AgregarLeadModuleProps) => {
     padding: '0 12px', 
     height: '30px', 
     color: on ? 'white' : '#CBD5E1', 
-    fontSize: '11px', 
+    fontSize: '12px', 
     fontWeight: on ? 700 : 500, 
     boxShadow: on ? '0 4px 12px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.20)' : 'inset 0 1px 2px rgba(0,0,0,0.25)', 
     display: 'flex', 
@@ -296,7 +296,7 @@ export const AgregarLeadModule = ({ onBack }: AgregarLeadModuleProps) => {
 
               {/* Leyenda compacta */}
               <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '10px', padding: '8px 12px', textAlign: 'center' }}>
-                <div style={{ color: '#64748B', fontSize: '20px', display: 'flex', justifyContent: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                <div style={{ color: '#64748B', fontSize: '14px', display: 'flex', justifyContent: 'center', gap: '8px', flexWrap: 'wrap' }}>
                   <span><span style={{ color: '#22C55E' }}>●</span> N1</span>
                   <span><span style={{ color: '#3B82F6' }}>●</span> N2</span>
                   <span><span style={{ color: '#F97316' }}>●</span> N3</span>
