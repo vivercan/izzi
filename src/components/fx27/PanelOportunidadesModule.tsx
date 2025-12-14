@@ -1,3 +1,4 @@
+// Panel Oportunidades AAA v2
 import { ModuleTemplate } from './ModuleTemplate';
 import { useState, useEffect } from 'react';
 import { Search, Download, TrendingUp, X, BarChart3, Building2, User, Calendar, Eye, Trash2, SortAsc, SortDesc, FileText, Upload, Pencil, AlertTriangle, Loader2, CheckCircle, DollarSign, Clock, Zap, Flame, Skull, MapPin, ArrowRight, Truck } from 'lucide-react';
