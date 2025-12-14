@@ -598,23 +598,43 @@ export const PanelOportunidadesModule = ({ onBack }: PanelOportunidadesModulePro
                       {/* EMPRESA */}
                       <td className="px-3 py-2"><div className="flex items-center justify-between gap-2"><span className="text-white truncate" style={{ fontSize: '13px', fontWeight: 600 }}>{lead.nombreEmpresa}</span><AlertBadge lead={lead} /></div></td>
                       
-                      {/* ETAPA - Pill premium con tinte y acento */}
+                      {/* ETAPA - Pill premium con jerarquía alta */}
                       <td className="px-3 py-2">
                         <span 
-                          className="inline-flex items-center justify-center"
+                          className="inline-flex items-center justify-center transition-all duration-150 hover:-translate-y-0.5 cursor-default"
                           style={{ 
-                            fontSize: '10px', 
-                            fontWeight: 600,
-                            minWidth: '85px',
-                            height: '26px',
-                            padding: '0 10px',
-                            borderRadius: '8px',
-                            background: lead.etapaLead === 'Cotizado' ? 'rgba(251,191,36,0.12)' : lead.etapaLead === 'Negociacion' ? 'rgba(249,115,22,0.12)' : lead.etapaLead === 'Cerrado' ? 'rgba(34,197,94,0.12)' : 'rgba(96,165,250,0.10)',
-                            border: '1px solid rgba(255,255,255,0.10)',
-                            borderLeftWidth: '3px',
-                            borderLeftColor: lead.etapaLead === 'Cotizado' ? '#FBBF24' : lead.etapaLead === 'Negociacion' ? '#F97316' : lead.etapaLead === 'Cerrado' ? '#22C55E' : '#60A5FA',
-                            color: 'rgba(255,255,255,0.90)',
-                            textAlign: 'center'
+                            fontSize: '11px', 
+                            fontWeight: 700,
+                            letterSpacing: '0.3px',
+                            minWidth: '100px',
+                            height: '28px',
+                            padding: '0 12px',
+                            borderRadius: '9999px',
+                            background: lead.etapaLead === 'Cotizado' 
+                              ? 'rgba(251,191,36,0.16)' 
+                              : lead.etapaLead === 'Negociacion' 
+                                ? 'rgba(168,85,247,0.16)' 
+                                : lead.etapaLead === 'Cerrado' 
+                                  ? 'rgba(34,197,94,0.16)' 
+                                  : 'rgba(59,130,246,0.14)',
+                            border: lead.etapaLead === 'Cotizado' 
+                              ? '1px solid rgba(251,191,36,0.40)' 
+                              : lead.etapaLead === 'Negociacion' 
+                                ? '1px solid rgba(168,85,247,0.40)' 
+                                : lead.etapaLead === 'Cerrado' 
+                                  ? '1px solid rgba(34,197,94,0.40)' 
+                                  : '1px solid rgba(59,130,246,0.35)',
+                            borderLeftWidth: '4px',
+                            borderLeftColor: lead.etapaLead === 'Cotizado' 
+                              ? '#FBBF24' 
+                              : lead.etapaLead === 'Negociacion' 
+                                ? '#A855F7' 
+                                : lead.etapaLead === 'Cerrado' 
+                                  ? '#22C55E' 
+                                  : '#3B82F6',
+                            color: 'rgba(255,255,255,0.95)',
+                            textAlign: 'center',
+                            boxShadow: '0 6px 14px rgba(0,0,0,0.18), inset 0 1px 0 rgba(255,255,255,0.12)'
                           }}
                         >
                           {lead.etapaLead || 'Prospecto'}
@@ -629,49 +649,118 @@ export const PanelOportunidadesModule = ({ onBack }: PanelOportunidadesModulePro
                         </div>
                       </td>
                       
-                      {/* SERVICIO - Chips compactos OS */}
+                      {/* SERVICIO - Chips con paleta FRÍA diferenciada */}
                       <td className="px-3 py-2">
                         <div className="flex flex-wrap gap-1">
-                          {(lead.tipoServicio || []).slice(0,2).map((t, i) => (
-                            <span 
-                              key={i} 
-                              style={{ 
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                height: '22px',
-                                padding: '0 8px',
-                                borderRadius: '6px',
-                                fontSize: '9px', 
-                                fontWeight: 500,
-                                background: 'rgba(255,255,255,0.06)',
-                                border: '1px solid rgba(255,255,255,0.10)',
-                                color: 'rgba(255,255,255,0.85)'
-                              }}
-                            >{t}</span>
-                          ))}
+                          {(lead.tipoServicio || []).slice(0,2).map((t, i) => {
+                            // Paleta fría: Seco=azul/gris, Refrigerado=cian/teal, Hazmat=morado/rojo
+                            const isRefrigerado = t.toLowerCase().includes('refrigerado');
+                            const isHazmat = t.toLowerCase().includes('hazmat');
+                            const isSeco = t.toLowerCase().includes('seco') && !isHazmat;
+                            
+                            let bg, border, color;
+                            if (isRefrigerado && isHazmat) {
+                              // Refrigerado Hazmat - rojo/magenta
+                              bg = 'rgba(236,72,153,0.14)';
+                              border = '1px solid rgba(236,72,153,0.40)';
+                              color = 'rgba(251,207,232,0.95)';
+                            } else if (isHazmat) {
+                              // Seco Hazmat - morado
+                              bg = 'rgba(168,85,247,0.14)';
+                              border = '1px solid rgba(168,85,247,0.40)';
+                              color = 'rgba(233,213,255,0.95)';
+                            } else if (isRefrigerado) {
+                              // Refrigerado - cian/teal
+                              bg = 'rgba(6,182,212,0.14)';
+                              border = '1px solid rgba(6,182,212,0.40)';
+                              color = 'rgba(207,250,254,0.95)';
+                            } else {
+                              // Seco - azul/slate frío
+                              bg = 'rgba(100,116,139,0.16)';
+                              border = '1px solid rgba(148,163,184,0.35)';
+                              color = 'rgba(226,232,240,0.92)';
+                            }
+                            
+                            return (
+                              <span 
+                                key={i}
+                                className="transition-all duration-150 hover:-translate-y-0.5"
+                                style={{ 
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  height: '24px',
+                                  padding: '0 10px',
+                                  borderRadius: '9999px',
+                                  fontSize: '10px', 
+                                  fontWeight: 700,
+                                  letterSpacing: '0.2px',
+                                  background: bg,
+                                  border: border,
+                                  color: color,
+                                  boxShadow: '0 4px 10px rgba(0,0,0,0.15), inset 0 1px 0 rgba(255,255,255,0.10)'
+                                }}
+                              >{t}</span>
+                            );
+                          })}
                         </div>
                       </td>
                       
-                      {/* VIAJE - Chips compactos OS */}
+                      {/* VIAJE - Chips con paleta DIRECCIONAL diferenciada */}
                       <td className="px-3 py-2">
                         <div className="flex flex-wrap gap-1">
-                          {(lead.tipoViaje || []).slice(0,2).map((t, i) => (
-                            <span 
-                              key={i} 
-                              style={{ 
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                height: '22px',
-                                padding: '0 8px',
-                                borderRadius: '6px',
-                                fontSize: '9px', 
-                                fontWeight: 500,
-                                background: 'rgba(255,255,255,0.06)',
-                                border: '1px solid rgba(255,255,255,0.10)',
-                                color: 'rgba(255,255,255,0.85)'
-                              }}
-                            >{t}</span>
-                          ))}
+                          {(lead.tipoViaje || []).slice(0,2).map((t, i) => {
+                            // Paleta direccional: Nacional=verde, Expo=azul, Impo=ámbar, DTD=violeta
+                            const lower = t.toLowerCase();
+                            
+                            let bg, border, color;
+                            if (lower === 'nacional') {
+                              // Nacional - verde
+                              bg = 'rgba(34,197,94,0.14)';
+                              border = '1px solid rgba(34,197,94,0.40)';
+                              color = 'rgba(187,247,208,0.95)';
+                            } else if (lower === 'expo') {
+                              // Expo - azul
+                              bg = 'rgba(59,130,246,0.14)';
+                              border = '1px solid rgba(59,130,246,0.40)';
+                              color = 'rgba(191,219,254,0.95)';
+                            } else if (lower === 'impo') {
+                              // Impo - ámbar
+                              bg = 'rgba(245,158,11,0.14)';
+                              border = '1px solid rgba(245,158,11,0.40)';
+                              color = 'rgba(254,243,199,0.95)';
+                            } else if (lower === 'dtd' || lower === 'dedicado') {
+                              // DTD/Dedicado - violeta
+                              bg = 'rgba(139,92,246,0.14)';
+                              border = '1px solid rgba(139,92,246,0.40)';
+                              color = 'rgba(221,214,254,0.95)';
+                            } else {
+                              // Default - slate
+                              bg = 'rgba(100,116,139,0.14)';
+                              border = '1px solid rgba(148,163,184,0.30)';
+                              color = 'rgba(226,232,240,0.90)';
+                            }
+                            
+                            return (
+                              <span 
+                                key={i}
+                                className="transition-all duration-150 hover:-translate-y-0.5"
+                                style={{ 
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  height: '24px',
+                                  padding: '0 10px',
+                                  borderRadius: '9999px',
+                                  fontSize: '10px', 
+                                  fontWeight: 700,
+                                  letterSpacing: '0.2px',
+                                  background: bg,
+                                  border: border,
+                                  color: color,
+                                  boxShadow: '0 4px 10px rgba(0,0,0,0.15), inset 0 1px 0 rgba(255,255,255,0.10)'
+                                }}
+                              >{t}</span>
+                            );
+                          })}
                         </div>
                       </td>
                       
