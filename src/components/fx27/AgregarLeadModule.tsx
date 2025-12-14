@@ -48,158 +48,321 @@ export const AgregarLeadModule = ({ onBack }: AgregarLeadModuleProps) => {
 
   // Checkbox compacto
   const Chk = ({ ck, set, lb, cl = '#3B82F6' }: { ck: boolean; set: (v: boolean) => void; lb: string; cl?: string }) => (
-    <label className="flex items-center gap-1.5 cursor-pointer">
-      <div onClick={e => { e.preventDefault(); set(!ck); }} style={{ width: '14px', height: '14px', borderRadius: '3px', background: ck ? cl : 'rgba(255,255,255,0.08)', border: `1.5px solid ${ck ? cl : 'rgba(255,255,255,0.25)'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: ck ? `0 2px 6px ${cl}50` : 'none' }}>
-        {ck && <Check className="w-2 h-2 text-white" strokeWidth={3} />}
+    <label style={{ display: 'flex', alignItems: 'center', gap: '5px', cursor: 'pointer' }}>
+      <div onClick={e => { e.preventDefault(); set(!ck); }} style={{ width: '14px', height: '14px', borderRadius: '3px', background: ck ? cl : 'rgba(255,255,255,0.08)', border: `1.5px solid ${ck ? cl : 'rgba(255,255,255,0.30)'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: ck ? `0 2px 8px ${cl}60` : 'inset 0 1px 2px rgba(0,0,0,0.3)' }}>
+        {ck && <Check style={{ width: '10px', height: '10px', color: 'white', strokeWidth: 3 }} />}
       </div>
-      <span style={{ color: ck ? '#EAF2FF' : '#94A3B8', fontSize: '11px', fontWeight: ck ? 600 : 500 }}>{lb}</span>
+      <span style={{ color: ck ? '#F1F5F9' : '#94A3B8', fontSize: '11px', fontWeight: ck ? 600 : 500 }}>{lb}</span>
     </label>
   );
 
-  // Estilos compactos
-  const crd = { background: 'linear-gradient(180deg, rgba(10,24,46,0.50) 0%, rgba(10,24,46,0.35) 100%)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '10px', padding: '8px 10px', boxShadow: '0 4px 14px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.06)' };
-  const inp = { background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: '7px', padding: '5px 9px', color: '#EAF2FF', fontSize: '13px', width: '100%', outline: 'none', height: '32px', boxSizing: 'border-box' as const };
-  const lbl = { color: '#94A3B8', fontSize: '11px', fontWeight: 600, marginBottom: '3px', display: 'flex', alignItems: 'center', gap: '4px' };
-  const chip = (on: boolean, c: string) => ({ background: on ? `linear-gradient(180deg, ${c}dd 0%, ${c}99 100%)` : 'rgba(255,255,255,0.06)', border: `1px solid ${on ? 'rgba(255,255,255,0.22)' : 'rgba(255,255,255,0.12)'}`, borderRadius: '999px', padding: '5px 10px', height: '28px', color: on ? 'white' : '#94A3B8', fontSize: '11px', fontWeight: on ? 700 : 500, boxShadow: on ? '0 3px 10px rgba(0,0,0,0.28)' : 'none', display: 'flex', alignItems: 'center', justifyContent: 'center' });
+  // Estilos con PROFUNDIDAD REAL
+  const card: React.CSSProperties = { 
+    background: 'linear-gradient(180deg, rgba(15,25,45,0.80) 0%, rgba(10,20,40,0.70) 100%)', 
+    border: '1px solid rgba(255,255,255,0.10)', 
+    borderRadius: '12px', 
+    padding: '10px 12px', 
+    boxShadow: '0 8px 24px rgba(0,0,0,0.40), inset 0 1px 0 rgba(255,255,255,0.08)' 
+  };
+  const inp: React.CSSProperties = { 
+    background: 'rgba(0,0,0,0.25)', 
+    border: '1px solid rgba(255,255,255,0.15)', 
+    borderRadius: '8px', 
+    padding: '0 10px', 
+    color: '#F1F5F9', 
+    fontSize: '13px', 
+    width: '100%', 
+    outline: 'none', 
+    height: '34px',
+    boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.30)'
+  };
+  const lbl: React.CSSProperties = { color: '#CBD5E1', fontSize: '11px', fontWeight: 600, marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '5px' };
+  const chip = (on: boolean, c: string): React.CSSProperties => ({ 
+    background: on ? `linear-gradient(180deg, ${c} 0%, ${c}cc 100%)` : 'rgba(0,0,0,0.30)', 
+    border: `1px solid ${on ? 'rgba(255,255,255,0.25)' : 'rgba(255,255,255,0.15)'}`, 
+    borderRadius: '999px', 
+    padding: '0 12px', 
+    height: '30px', 
+    color: on ? 'white' : '#CBD5E1', 
+    fontSize: '11px', 
+    fontWeight: on ? 700 : 500, 
+    boxShadow: on ? '0 4px 12px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.20)' : 'inset 0 1px 2px rgba(0,0,0,0.25)', 
+    display: 'flex', 
+    alignItems: 'center', 
+    justifyContent: 'center',
+    cursor: 'pointer',
+    transition: 'all 0.15s ease'
+  });
 
   return (
     <ModuleTemplate title="Agregar Lead" onBack={onBack} headerImage={MODULE_IMAGES.AGREGAR_LEAD}>
-      {/* FONDO AAA - Idéntico al Panel */}
-      <div style={{ height: 'calc(100vh - 120px)', maxHeight: 'calc(100vh - 120px)', boxSizing: 'border-box', position: 'relative', background: `radial-gradient(ellipse 120% 80% at 50% 20%, rgba(37,99,235,0.95) 0%, rgba(30,64,175,0.98) 40%, rgba(15,23,42,1) 100%), linear-gradient(180deg, #1e3a8a 0%, #0f172a 100%)` }}>
-        {/* Noise + Glow + Vignette */}
-        <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")`, opacity: 0.03 }} />
-        <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', background: 'radial-gradient(ellipse 70% 50% at 50% 45%, rgba(59,130,246,0.10) 0%, transparent 60%)' }} />
-        <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', background: 'radial-gradient(ellipse 100% 100% at 50% 50%, transparent 40%, rgba(0,0,0,0.20) 100%)' }} />
-
-        {/* CONTENEDOR PRINCIPAL - GRID 2 FILAS */}
-        <div style={{ position: 'absolute', top: '12px', left: '12px', right: '12px', bottom: '12px', borderRadius: '16px', background: 'linear-gradient(180deg, rgba(15,23,42,0.95) 0%, rgba(15,23,42,0.98) 100%)', border: '1px solid rgba(255,255,255,0.08)', boxShadow: '0 16px 50px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.08)', backdropFilter: 'blur(16px)', display: 'grid', gridTemplateRows: '1fr auto', overflow: 'hidden' }}>
+      {/* WRAPPER - Altura fija sin overflow */}
+      <div style={{ 
+        height: 'calc(100vh - 140px)', 
+        padding: '16px', 
+        boxSizing: 'border-box',
+        overflow: 'hidden',
+        background: `
+          radial-gradient(ellipse 130% 70% at 50% 10%, rgba(37,99,235,0.50) 0%, rgba(30,64,175,0.40) 35%, transparent 70%),
+          linear-gradient(180deg, #0f172a 0%, #020617 100%)
+        `
+      }}>
+        {/* CONTENEDOR PRINCIPAL - Flex column */}
+        <div style={{ 
+          height: '100%',
+          borderRadius: '16px', 
+          background: 'linear-gradient(180deg, rgba(15,23,42,0.95) 0%, rgba(15,23,42,0.98) 100%)', 
+          border: '1px solid rgba(255,255,255,0.10)', 
+          boxShadow: '0 20px 60px rgba(0,0,0,0.50), inset 0 1px 0 rgba(255,255,255,0.08)', 
+          display: 'flex',
+          flexDirection: 'column',
+          overflow: 'hidden'
+        }}>
           
-          {/* FILA 1: CONTENIDO */}
-          <div style={{ minHeight: 0, padding: '12px', overflow: 'hidden' }}>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px', height: '100%' }}>
-              
-              {/* COL 1 */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                {/* N1 Empresa */}
-                <div style={crd}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '5px', marginBottom: '5px' }}>
-                    <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#22C55E', boxShadow: '0 0 5px #22C55E80' }} />
-                    <span style={{ color: '#4ADE80', fontSize: '11px', fontWeight: 700 }}>N1 • EMPRESA</span>
-                  </div>
-                  <input type="text" value={formData.nombreEmpresa} onChange={e => handleInput('nombreEmpresa', e.target.value)} placeholder="EMPRESA S.A. DE C.V." required style={{ ...inp, fontSize: '14px', fontWeight: 700, height: '34px' }} />
+          {/* CONTENIDO - 3 columnas */}
+          <div style={{ flex: 1, padding: '16px', display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px', minHeight: 0 }}>
+            
+            {/* COL 1: EMPRESA + CONTACTO */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              {/* N1 Empresa */}
+              <div style={card}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px' }}>
+                  <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#22C55E', boxShadow: '0 0 8px #22C55E' }} />
+                  <span style={{ color: '#4ADE80', fontSize: '12px', fontWeight: 700, letterSpacing: '0.5px' }}>N1 • EMPRESA</span>
                 </div>
-                {/* Web + Contacto */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-                  <div style={crd}><div style={lbl as any}><Globe className="w-3 h-3" />Web</div><input type="text" value={formData.paginaWeb} onChange={e => handleInput('paginaWeb', e.target.value)} placeholder="www.empresa.com" style={inp} /></div>
-                  <div style={crd}><div style={lbl as any}><User className="w-3 h-3" />Contacto</div><input type="text" value={formData.nombreContacto} onChange={e => handleInput('nombreContacto', e.target.value)} placeholder="Juan Pérez" style={inp} /></div>
+                <input type="text" value={formData.nombreEmpresa} onChange={e => handleInput('nombreEmpresa', e.target.value)} placeholder="EMPRESA S.A. DE C.V." style={{ ...inp, fontSize: '14px', fontWeight: 700, height: '38px' }} />
+              </div>
+
+              {/* Web + Contacto */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                <div style={card}>
+                  <div style={lbl}><Globe style={{ width: '12px', height: '12px' }} />Web</div>
+                  <input type="text" value={formData.paginaWeb} onChange={e => handleInput('paginaWeb', e.target.value)} placeholder="www.empresa.com" style={inp} />
                 </div>
-                {/* Tel + Email */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-                  <div style={crd}><div style={lbl as any}><Phone className="w-3 h-3" />Tel</div><input type="tel" value={formData.telefonoContacto} onChange={e => handleInput('telefonoContacto', e.target.value)} placeholder="55 1234 5678" style={inp} /></div>
-                  <div style={crd}><div style={lbl as any}><Mail className="w-3 h-3" />Email</div><input type="email" value={formData.correoElectronico} onChange={e => handleInput('correoElectronico', e.target.value)} placeholder="mail@empresa.com" style={inp} /></div>
-                </div>
-                {/* Tipo Empresa */}
-                <div style={crd}><div style={lbl as any}><Building2 className="w-3 h-3" />Tipo Empresa</div><select value={formData.tipoEmpresa} onChange={e => handleInput('tipoEmpresa', e.target.value)} style={{ ...inp, cursor: 'pointer' }}><option value="">Selecciona...</option>{TIPOS_EMPRESA.map(t => <option key={t} value={t}>{t}</option>)}</select></div>
-                {/* Ciudad + Estado */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-                  <div style={crd}><div style={lbl as any}><MapPinned className="w-3 h-3" />Ciudad</div><input type="text" value={formData.ciudad} onChange={e => handleInput('ciudad', e.target.value)} placeholder="Monterrey" style={inp} /></div>
-                  <div style={crd}><div style={lbl as any}><MapPin className="w-3 h-3" />Estado</div><input type="text" value={formData.estado} onChange={e => handleInput('estado', e.target.value)} placeholder="Nuevo León" style={inp} /></div>
-                </div>
-                {/* Prioridad + Tamaño + Fecha */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px' }}>
-                  <div style={crd}><div style={lbl as any}><AlertCircle className="w-3 h-3" />Prior.</div><select value={formData.prioridad} onChange={e => handleInput('prioridad', e.target.value)} style={{ ...inp, fontSize: '11px' }}>{PRIORIDADES.map(p => <option key={p} value={p}>{p}</option>)}</select></div>
-                  <div style={crd}><div style={lbl as any}><Users className="w-3 h-3" />Tamaño</div><select value={formData.tamanoEmpresa} onChange={e => handleInput('tamanoEmpresa', e.target.value)} style={{ ...inp, fontSize: '11px' }}><option value="">-</option>{TAMANOS.map(t => <option key={t} value={t}>{t}</option>)}</select></div>
-                  <div style={crd}><div style={lbl as any}><Calendar className="w-3 h-3" />Cierre</div><input type="date" value={formData.fechaEstimadaCierre} onChange={e => handleInput('fechaEstimadaCierre', e.target.value)} style={{ ...inp, fontSize: '10px', fontFamily: "'Orbitron', monospace" }} /></div>
+                <div style={card}>
+                  <div style={lbl}><User style={{ width: '12px', height: '12px' }} />Contacto</div>
+                  <input type="text" value={formData.nombreContacto} onChange={e => handleInput('nombreContacto', e.target.value)} placeholder="Juan Pérez" style={inp} />
                 </div>
               </div>
 
-              {/* COL 2 */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                {/* Servicio */}
-                <div style={crd}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '5px', marginBottom: '5px' }}>
-                    <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#3B82F6', boxShadow: '0 0 5px #3B82F680' }} />
-                    <span style={{ color: '#93C5FD', fontSize: '11px', fontWeight: 600 }}>Tipo Servicio</span>
-                  </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
-                    {TIPOS_SERVICIO.map(t => <button key={t} type="button" onClick={() => toggleServ(t)} style={chip(formData.tipoServicio?.includes(t) || false, '#3B82F6')}>{t}</button>)}
-                  </div>
+              {/* Tel + Email */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                <div style={card}>
+                  <div style={lbl}><Phone style={{ width: '12px', height: '12px' }} />Teléfono</div>
+                  <input type="tel" value={formData.telefonoContacto} onChange={e => handleInput('telefonoContacto', e.target.value)} placeholder="55 1234 5678" style={inp} />
                 </div>
-                {/* Viaje */}
-                <div style={crd}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '5px', marginBottom: '5px' }}>
-                    <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#22C55E', boxShadow: '0 0 5px #22C55E80' }} />
-                    <span style={{ color: '#86EFAC', fontSize: '11px', fontWeight: 600 }}>Tipo Viaje</span>
-                  </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
-                    {TIPOS_VIAJE.map(t => <button key={t} type="button" onClick={() => toggleViaje(t)} style={chip(formData.tipoViaje?.includes(t) || false, '#22C55E')}>{t}</button>)}
-                  </div>
-                  <div style={{ display: 'flex', gap: '12px', marginTop: '6px', paddingTop: '6px', borderTop: '1px solid rgba(255,255,255,0.08)' }}>
-                    <Chk ck={formData.transbordo || false} set={v => setFormData({ ...formData, transbordo: v })} lb="Transbordo" cl="#22C55E" />
-                    <Chk ck={formData.dtd || false} set={v => setFormData({ ...formData, dtd: v })} lb="DTD" cl="#22C55E" />
-                  </div>
-                </div>
-                {/* Próximos Pasos */}
-                <div style={{ ...crd, flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '5px', marginBottom: '5px' }}>
-                    <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#F59E0B', boxShadow: '0 0 5px #F59E0B80' }} />
-                    <span style={{ color: '#FCD34D', fontSize: '11px', fontWeight: 600 }}>Próximos Pasos</span>
-                  </div>
-                  <textarea value={formData.proximosPasos} onChange={e => handleInput('proximosPasos', e.target.value)} placeholder="Describe los próximos pasos..." style={{ flex: 1, minHeight: '80px', maxHeight: '120px', background: 'rgba(0,0,0,0.18)', border: '1px solid rgba(255,255,255,0.10)', borderRadius: '7px', padding: '7px 9px', color: '#EAF2FF', fontSize: '12px', lineHeight: 1.4, outline: 'none', resize: 'none' }} />
+                <div style={card}>
+                  <div style={lbl}><Mail style={{ width: '12px', height: '12px' }} />Email</div>
+                  <input type="email" value={formData.correoElectronico} onChange={e => handleInput('correoElectronico', e.target.value)} placeholder="mail@empresa.com" style={inp} />
                 </div>
               </div>
 
-              {/* COL 3 */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                {/* N3 Finanzas */}
-                <div style={crd}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '5px', marginBottom: '5px' }}>
-                    <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#F97316', boxShadow: '0 0 5px #F9731680' }} />
-                    <span style={{ color: '#FB923C', fontSize: '11px', fontWeight: 700 }}>N3 • FINANZAS</span>
+              {/* Tipo Empresa */}
+              <div style={card}>
+                <div style={lbl}><Building2 style={{ width: '12px', height: '12px' }} />Tipo de Empresa</div>
+                <select value={formData.tipoEmpresa} onChange={e => handleInput('tipoEmpresa', e.target.value)} style={{ ...inp, cursor: 'pointer' }}>
+                  <option value="">Selecciona...</option>
+                  {TIPOS_EMPRESA.map(t => <option key={t} value={t}>{t}</option>)}
+                </select>
+              </div>
+
+              {/* Ciudad + Estado */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                <div style={card}>
+                  <div style={lbl}><MapPinned style={{ width: '12px', height: '12px' }} />Ciudad</div>
+                  <input type="text" value={formData.ciudad} onChange={e => handleInput('ciudad', e.target.value)} placeholder="Monterrey" style={inp} />
+                </div>
+                <div style={card}>
+                  <div style={lbl}><MapPin style={{ width: '12px', height: '12px' }} />Estado</div>
+                  <input type="text" value={formData.estado} onChange={e => handleInput('estado', e.target.value)} placeholder="Nuevo León" style={inp} />
+                </div>
+              </div>
+
+              {/* Prioridad + Tamaño + Fecha */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px' }}>
+                <div style={card}>
+                  <div style={lbl}><AlertCircle style={{ width: '12px', height: '12px' }} />Prior.</div>
+                  <select value={formData.prioridad} onChange={e => handleInput('prioridad', e.target.value)} style={{ ...inp, fontSize: '12px' }}>
+                    {PRIORIDADES.map(p => <option key={p} value={p}>{p}</option>)}
+                  </select>
+                </div>
+                <div style={card}>
+                  <div style={lbl}><Users style={{ width: '12px', height: '12px' }} />Tamaño</div>
+                  <select value={formData.tamanoEmpresa} onChange={e => handleInput('tamanoEmpresa', e.target.value)} style={{ ...inp, fontSize: '12px' }}>
+                    <option value="">-</option>
+                    {TAMANOS.map(t => <option key={t} value={t}>{t}</option>)}
+                  </select>
+                </div>
+                <div style={card}>
+                  <div style={lbl}><Calendar style={{ width: '12px', height: '12px' }} />Cierre</div>
+                  <input type="date" value={formData.fechaEstimadaCierre} onChange={e => handleInput('fechaEstimadaCierre', e.target.value)} style={{ ...inp, fontSize: '11px' }} />
+                </div>
+              </div>
+            </div>
+
+            {/* COL 2: SERVICIOS + NOTAS */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              {/* Tipo Servicio */}
+              <div style={card}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px' }}>
+                  <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#3B82F6', boxShadow: '0 0 8px #3B82F6' }} />
+                  <span style={{ color: '#93C5FD', fontSize: '12px', fontWeight: 600 }}>Tipo de Servicio</span>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                  {TIPOS_SERVICIO.map(t => <button key={t} type="button" onClick={() => toggleServ(t)} style={chip(formData.tipoServicio?.includes(t) || false, '#3B82F6')}>{t}</button>)}
+                </div>
+              </div>
+
+              {/* Tipo Viaje */}
+              <div style={card}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px' }}>
+                  <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#22C55E', boxShadow: '0 0 8px #22C55E' }} />
+                  <span style={{ color: '#86EFAC', fontSize: '12px', fontWeight: 600 }}>Tipo de Viaje</span>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                  {TIPOS_VIAJE.map(t => <button key={t} type="button" onClick={() => toggleViaje(t)} style={chip(formData.tipoViaje?.includes(t) || false, '#22C55E')}>{t}</button>)}
+                </div>
+                <div style={{ display: 'flex', gap: '16px', marginTop: '10px', paddingTop: '10px', borderTop: '1px solid rgba(255,255,255,0.10)' }}>
+                  <Chk ck={formData.transbordo || false} set={v => setFormData({ ...formData, transbordo: v })} lb="Transbordo" cl="#22C55E" />
+                  <Chk ck={formData.dtd || false} set={v => setFormData({ ...formData, dtd: v })} lb="DTD" cl="#22C55E" />
+                </div>
+              </div>
+
+              {/* Próximos Pasos - ALTURA CONTROLADA */}
+              <div style={{ ...card, flex: 1, display: 'flex', flexDirection: 'column' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px' }}>
+                  <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#F59E0B', boxShadow: '0 0 8px #F59E0B' }} />
+                  <span style={{ color: '#FCD34D', fontSize: '12px', fontWeight: 600 }}>Próximos Pasos</span>
+                </div>
+                <textarea 
+                  value={formData.proximosPasos} 
+                  onChange={e => handleInput('proximosPasos', e.target.value)} 
+                  placeholder="Describe los próximos pasos a seguir con este lead..."
+                  style={{ 
+                    flex: 1,
+                    background: 'rgba(0,0,0,0.25)', 
+                    border: '1px solid rgba(255,255,255,0.12)', 
+                    borderRadius: '8px', 
+                    padding: '10px', 
+                    color: '#F1F5F9', 
+                    fontSize: '13px', 
+                    lineHeight: '1.5',
+                    outline: 'none', 
+                    resize: 'none',
+                    boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.25)'
+                  }} 
+                />
+              </div>
+            </div>
+
+            {/* COL 3: FINANZAS + HITOS */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              {/* N3 Finanzas */}
+              <div style={card}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px' }}>
+                  <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#F97316', boxShadow: '0 0 8px #F97316' }} />
+                  <span style={{ color: '#FB923C', fontSize: '12px', fontWeight: 700, letterSpacing: '0.5px' }}>N3 • FINANZAS</span>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <input type="text" value={formData.principalesRutas} onChange={e => handleInput('principalesRutas', e.target.value)} placeholder="CDMX - MTY - GDL" style={inp} />
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                    <input type="number" value={formData.viajesPorMes} onChange={e => handleInput('viajesPorMes', e.target.value)} placeholder="Viajes/Mes" style={inp} />
+                    <input type="text" value={formData.tarifa} onChange={e => handleInput('tarifa', e.target.value)} placeholder="Tarifa" style={inp} />
                   </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                    <input type="text" value={formData.principalesRutas} onChange={e => handleInput('principalesRutas', e.target.value)} placeholder="CDMX - MTY - GDL" style={inp} />
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
-                      <input type="number" value={formData.viajesPorMes} onChange={e => handleInput('viajesPorMes', e.target.value)} placeholder="Viajes/Mes" style={{ ...inp, fontFamily: "'Orbitron', monospace", fontSize: '12px' }} />
-                      <input type="text" value={formData.tarifa} onChange={e => handleInput('tarifa', e.target.value)} placeholder="Tarifa" style={{ ...inp, fontFamily: "'Orbitron', monospace", fontSize: '12px' }} />
+                  <input type="text" value={formData.proyectadoVentaMensual} onChange={e => handleInput('proyectadoVentaMensual', e.target.value)} placeholder="Proyectado USD: $50k-$100k" style={inp} />
+                </div>
+              </div>
+
+              {/* Hitos */}
+              <div style={card}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '10px' }}>
+                  <TrendingUp style={{ width: '14px', height: '14px', color: '#F1F5F9' }} />
+                  <span style={{ color: '#F1F5F9', fontSize: '12px', fontWeight: 700 }}>HITOS DEL CLIENTE</span>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                  {[
+                    { k: 'altaCliente', l: 'N4 • Alta Cliente', c: '#22D3EE' }, 
+                    { k: 'generacionSOP', l: 'N5 • Gen. SOP', c: '#A855F7' }, 
+                    { k: 'juntaArranque', l: 'N6 • Junta Arranque', c: '#EC4899' }, 
+                    { k: 'facturado', l: 'N7 • Facturado', c: '#F59E0B' }
+                  ].map(({ k, l, c }) => (
+                    <div key={k} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: c, boxShadow: `0 0 6px ${c}` }} />
+                      <Chk ck={formData[k as keyof Lead] as boolean || false} set={v => setFormData({ ...formData, [k]: v })} lb={l} cl={c} />
                     </div>
-                    <input type="text" value={formData.proyectadoVentaMensual} onChange={e => handleInput('proyectadoVentaMensual', e.target.value)} placeholder="Proyectado USD: $50k-$100k" style={{ ...inp, fontFamily: "'Orbitron', monospace", fontSize: '12px' }} />
-                  </div>
+                  ))}
                 </div>
-                {/* Hitos */}
-                <div style={crd}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '5px', marginBottom: '5px' }}>
-                    <TrendingUp className="w-3.5 h-3.5" style={{ color: '#EAF2FF' }} />
-                    <span style={{ color: '#EAF2FF', fontSize: '11px', fontWeight: 700 }}>HITOS</span>
-                  </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px 10px' }}>
-                    {[{ k: 'altaCliente', l: 'N4•Alta', c: '#22D3EE' }, { k: 'generacionSOP', l: 'N5•SOP', c: '#A855F7' }, { k: 'juntaArranque', l: 'N6•Junta', c: '#EC4899' }, { k: 'facturado', l: 'N7•Fact', c: '#F59E0B' }].map(({ k, l, c }) => (
-                      <div key={k} style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                        <div style={{ width: '4px', height: '4px', borderRadius: '50%', background: c }} />
-                        <Chk ck={formData[k as keyof Lead] as boolean || false} set={v => setFormData({ ...formData, [k]: v })} lb={l} cl={c} />
-                      </div>
-                    ))}
-                  </div>
-                </div>
-                {/* Leyenda */}
-                <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '7px', padding: '5px 7px', textAlign: 'center' }}>
-                  <span style={{ color: '#64748B', fontSize: '9px' }}><span style={{ color: '#22C55E' }}>●</span>N1 <span style={{ color: '#3B82F6' }}>●</span>N2 <span style={{ color: '#F97316' }}>●</span>N3 <span style={{ color: '#22D3EE' }}>●</span>N4 <span style={{ color: '#A855F7' }}>●</span>N5 <span style={{ color: '#EC4899' }}>●</span>N6 <span style={{ color: '#F59E0B' }}>●</span>N7</span>
+              </div>
+
+              {/* Leyenda compacta */}
+              <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '10px', padding: '8px 12px', textAlign: 'center' }}>
+                <div style={{ color: '#64748B', fontSize: '10px', display: 'flex', justifyContent: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                  <span><span style={{ color: '#22C55E' }}>●</span> N1</span>
+                  <span><span style={{ color: '#3B82F6' }}>●</span> N2</span>
+                  <span><span style={{ color: '#F97316' }}>●</span> N3</span>
+                  <span><span style={{ color: '#22D3EE' }}>●</span> N4</span>
+                  <span><span style={{ color: '#A855F7' }}>●</span> N5</span>
+                  <span><span style={{ color: '#EC4899' }}>●</span> N6</span>
+                  <span><span style={{ color: '#F59E0B' }}>●</span> N7</span>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* FILA 2: FOOTER - EN FLUJO NORMAL, NUNCA SE CORTA */}
-          <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 12px', background: 'linear-gradient(180deg, rgba(15,23,42,0.80) 0%, rgba(15,23,42,0.98) 100%)', borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+          {/* FOOTER - Siempre visible, en flujo */}
+          <div style={{ 
+            flexShrink: 0,
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'space-between', 
+            padding: '12px 16px',
+            background: 'linear-gradient(180deg, rgba(15,23,42,0.90) 0%, rgba(15,23,42,1) 100%)', 
+            borderTop: '1px solid rgba(255,255,255,0.10)'
+          }}>
             {/* Vendedor */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'rgba(59,130,246,0.12)', border: '1px solid rgba(59,130,246,0.25)', borderRadius: '8px', padding: '6px 12px' }}>
-              <span style={{ color: '#94A3B8', fontSize: '12px' }}>Vendedor: <span style={{ color: '#EAF2FF', fontWeight: 600 }}>{formData.vendedor || '...'}</span></span>
-              <div style={{ width: '1px', height: '12px', background: 'rgba(255,255,255,0.15)' }} />
-              <span style={{ color: '#93C5FD', fontFamily: "'Orbitron', monospace", fontSize: '11px' }}>{new Date().toLocaleDateString('es-MX')}</span>
+            <div style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: '12px', 
+              background: 'rgba(59,130,246,0.15)', 
+              border: '1px solid rgba(59,130,246,0.30)', 
+              borderRadius: '10px', 
+              padding: '8px 16px',
+              boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.05)'
+            }}>
+              <span style={{ color: '#94A3B8', fontSize: '13px' }}>
+                Vendedor: <span style={{ color: '#F1F5F9', fontWeight: 600 }}>{formData.vendedor || '...'}</span>
+              </span>
+              <div style={{ width: '1px', height: '16px', background: 'rgba(255,255,255,0.20)' }} />
+              <span style={{ color: '#93C5FD', fontSize: '12px', fontFamily: 'monospace' }}>
+                {new Date().toLocaleDateString('es-MX')}
+              </span>
             </div>
-            {/* GUARDAR */}
-            <button type="button" onClick={handleSubmit} style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'linear-gradient(180deg, #2F6BFF 0%, #1F4FD6 100%)', border: '1px solid rgba(255,255,255,0.18)', borderRadius: '10px', padding: '9px 22px', boxShadow: '0 8px 20px rgba(0,0,0,0.35), 0 3px 10px rgba(47,107,255,0.25), inset 0 1px 0 rgba(255,255,255,0.18)', fontSize: '13px', fontWeight: 700, color: 'white', cursor: 'pointer', transition: 'transform 0.15s' }} onMouseEnter={e => (e.currentTarget.style.transform = 'translateY(-1px)')} onMouseLeave={e => (e.currentTarget.style.transform = 'translateY(0)')}>
-              <Save className="w-4 h-4" />GUARDAR LEAD
+
+            {/* BOTÓN GUARDAR - Grande y visible */}
+            <button 
+              type="button" 
+              onClick={handleSubmit}
+              style={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: '8px', 
+                background: 'linear-gradient(180deg, #2F6BFF 0%, #1D4ED8 100%)', 
+                border: '1px solid rgba(255,255,255,0.20)', 
+                borderRadius: '12px', 
+                padding: '12px 28px', 
+                boxShadow: '0 10px 30px rgba(0,0,0,0.40), 0 4px 12px rgba(47,107,255,0.30), inset 0 1px 0 rgba(255,255,255,0.20)', 
+                fontSize: '14px', 
+                fontWeight: 700, 
+                color: 'white', 
+                cursor: 'pointer',
+                transition: 'all 0.15s ease'
+              }}
+              onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 14px 35px rgba(0,0,0,0.45), 0 6px 16px rgba(47,107,255,0.40), inset 0 1px 0 rgba(255,255,255,0.25)'; }}
+              onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 10px 30px rgba(0,0,0,0.40), 0 4px 12px rgba(47,107,255,0.30), inset 0 1px 0 rgba(255,255,255,0.20)'; }}
+            >
+              <Save style={{ width: '18px', height: '18px' }} />
+              GUARDAR LEAD
             </button>
           </div>
         </div>
