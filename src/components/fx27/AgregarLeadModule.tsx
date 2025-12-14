@@ -135,11 +135,12 @@ export const AgregarLeadModule = ({ onBack }: AgregarLeadModuleProps) => {
           flex: 1,
           display: 'flex',
           flexDirection: 'column',
-          borderRadius: '16px',
+          borderRadius: '14px',
           background: 'linear-gradient(180deg, rgba(15,23,42,0.94) 0%, rgba(15,23,42,0.97) 100%)',
           border: '1px solid rgba(255,255,255,0.08)',
           boxShadow: '0 16px 50px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.06)',
-          backdropFilter: 'blur(14px)'
+          backdropFilter: 'blur(14px)',
+          overflow: 'visible'
         }}>
           
           {/* ═══════════════════════════════════════════════════════════════
@@ -242,17 +243,17 @@ export const AgregarLeadModule = ({ onBack }: AgregarLeadModuleProps) => {
           </div>
 
           {/* ═══════════════════════════════════════════════════════════════
-              FOOTER - COMPACTO
+              FOOTER - CON ESPACIO SUFICIENTE PARA EL BOTÓN
               ═══════════════════════════════════════════════════════════════ */}
           <div style={{
             flexShrink: 0,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            padding: '10px 14px',
+            padding: '10px 20px',
             background: 'linear-gradient(180deg, rgba(30,58,138,0.35) 0%, rgba(30,64,175,0.30) 100%)',
             borderTop: '1px solid rgba(255,255,255,0.08)',
-            borderRadius: '0 0 16px 16px'
+            borderRadius: '0 0 14px 14px'
           }}>
             {/* Vendedor + Fecha */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '7px 14px', borderRadius: '10px', background: 'rgba(15,23,42,0.50)', border: '1px solid rgba(255,255,255,0.08)' }}>
