@@ -377,28 +377,32 @@ export const PanelOportunidadesModule = ({ onBack }: PanelOportunidadesModulePro
                         <div className="flex items-center justify-center gap-1">
                           {/* BOTONES SÓLIDOS APPLE/OS - SIN OJO */}
                           <button onClick={() => setEditLead(lead)} disabled={lead.eliminado} title="Editar"
-                            className="w-[32px] h-[32px] rounded-[10px] flex items-center justify-center transition-all duration-180 hover:-translate-y-0.5 hover:scale-[1.02] active:translate-y-0 active:scale-[0.98]"
-                            style={{ background: 'linear-gradient(180deg, #fb923c 0%, #f97316 50%, #ea580c 100%)', boxShadow: '0 8px 18px rgba(249,115,22,0.30), inset 0 1px 0 rgba(255,255,255,0.22), inset 0 -1px 0 rgba(0,0,0,0.18)' }}>
+                            className="w-8 h-8 rounded-[10px] flex items-center justify-center transition-all duration-150 hover:-translate-y-0.5 hover:scale-105 active:translate-y-0 active:scale-95"
+                            style={{ background: 'linear-gradient(180deg, #fb923c 0%, #f97316 50%, #ea580c 100%)', boxShadow: '0 4px 12px rgba(249,115,22,0.35)' }}>
                             <Pencil className="w-4 h-4 text-white" strokeWidth={2.5} />
                           </button>
                           <div className="relative">
                             <button onClick={() => setCotizacionesModal(lead)} title="Cotizaciones"
-                              className="w-[32px] h-[32px] rounded-[10px] flex items-center justify-center transition-all duration-180 hover:-translate-y-0.5 hover:scale-[1.02] active:translate-y-0 active:scale-[0.98]"
-                              style={{ background: 'linear-gradient(180deg, #60a5fa 0%, #3b82f6 50%, #1d4ed8 100%)', boxShadow: '0 8px 18px rgba(59,130,246,0.30), inset 0 1px 0 rgba(255,255,255,0.22), inset 0 -1px 0 rgba(0,0,0,0.18)' }}>
+                              className="w-8 h-8 rounded-[10px] flex items-center justify-center transition-all duration-150 hover:-translate-y-0.5 hover:scale-105 active:translate-y-0 active:scale-95"
+                              style={{ background: 'linear-gradient(180deg, #60a5fa 0%, #3b82f6 50%, #1d4ed8 100%)', boxShadow: '0 4px 12px rgba(59,130,246,0.35)' }}>
                               <FileText className="w-4 h-4 text-white" strokeWidth={2.5} />
                             </button>
-                            {lead.cotizaciones?.filter(c => !c.eliminado).length ? <div className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-white flex items-center justify-center text-blue-600" style={{ fontSize: '9px', fontWeight: 800 }}>{lead.cotizaciones.filter(c => !c.eliminado).length}</div> : null}
+                            {lead.cotizaciones?.filter(c => !c.eliminado).length ? (
+                              <div className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-white flex items-center justify-center text-blue-600" style={{ fontSize: '9px', fontWeight: 800 }}>
+                                {lead.cotizaciones.filter(c => !c.eliminado).length}
+                              </div>
+                            ) : null}
                           </div>
                           {lead.eliminado && isAdmin ? (
                             <button onClick={() => handleRestaurarLead(lead)} title="Restaurar"
-                              className="w-[32px] h-[32px] rounded-[10px] flex items-center justify-center transition-all duration-180 hover:-translate-y-0.5 hover:scale-[1.02] active:translate-y-0 active:scale-[0.98]"
-                              style={{ background: 'linear-gradient(180deg, #34d399 0%, #10b981 50%, #059669 100%)', boxShadow: '0 8px 18px rgba(16,185,129,0.30), inset 0 1px 0 rgba(255,255,255,0.22), inset 0 -1px 0 rgba(0,0,0,0.18)' }}>
+                              className="w-8 h-8 rounded-[10px] flex items-center justify-center transition-all duration-150 hover:-translate-y-0.5 hover:scale-105 active:translate-y-0 active:scale-95"
+                              style={{ background: 'linear-gradient(180deg, #34d399 0%, #10b981 50%, #059669 100%)', boxShadow: '0 4px 12px rgba(16,185,129,0.35)' }}>
                               <TrendingUp className="w-4 h-4 text-white" strokeWidth={2.5} />
                             </button>
                           ) : (
                             <button onClick={() => setDeleteModal(lead)} disabled={lead.eliminado} title="Eliminar"
-                              className="w-[32px] h-[32px] rounded-[10px] flex items-center justify-center transition-all duration-180 hover:-translate-y-0.5 hover:scale-[1.02] active:translate-y-0 active:scale-[0.98]"
-                              style={{ background: 'linear-gradient(180deg, #f87171 0%, #ef4444 50%, #dc2626 100%)', boxShadow: '0 8px 18px rgba(239,68,68,0.30), inset 0 1px 0 rgba(255,255,255,0.22), inset 0 -1px 0 rgba(0,0,0,0.18)' }}>
+                              className="w-8 h-8 rounded-[10px] flex items-center justify-center transition-all duration-150 hover:-translate-y-0.5 hover:scale-105 active:translate-y-0 active:scale-95"
+                              style={{ background: 'linear-gradient(180deg, #f87171 0%, #ef4444 50%, #dc2626 100%)', boxShadow: '0 4px 12px rgba(239,68,68,0.35)' }}>
                               <Trash2 className="w-4 h-4 text-white" strokeWidth={2.5} />
                             </button>
                           )}
@@ -466,21 +470,8 @@ export const PanelOportunidadesModule = ({ onBack }: PanelOportunidadesModulePro
           </div>
         </div>
       )}
-      )}
 
-      {pdfPreview && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-[60] p-4" onClick={() => setPdfPreview(null)}>
-          <div className="bg-white rounded-2xl w-[90vw] h-[90vh] overflow-hidden flex flex-col" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between p-3 bg-slate-100 border-b">
-              <span className="text-slate-700 font-semibold">Vista previa</span>
-              <button onClick={() => setPdfPreview(null)} className="p-2 rounded-lg hover:bg-slate-200 transition-colors">
-                <X className="w-5 h-5 text-slate-600" />
-              </button>
-            </div>
-            <iframe src={pdfPreview} className="flex-1 w-full" title="PDF" />
-          </div>
-        </div>
-      )}
+      {pdfPreview && (<div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-[60] p-4" onClick={() => setPdfPreview(null)}><div className="bg-white rounded-2xl w-[90vw] h-[90vh] overflow-hidden flex flex-col" onClick={(e) => e.stopPropagation()}><div className="flex items-center justify-between p-3 bg-slate-100 border-b"><span className="text-slate-700 font-semibold">Vista previa</span><button onClick={() => setPdfPreview(null)} className="p-2 rounded-lg hover:bg-slate-200 transition-colors"><X className="w-5 h-5 text-slate-600" /></button></div><iframe src={pdfPreview} className="flex-1 w-full" title="PDF" /></div></div>)}
 
       {editLead && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setEditLead(null)}>
