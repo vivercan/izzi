@@ -118,7 +118,7 @@ export const AgregarLeadModule = ({ onBack }: AgregarLeadModuleProps) => {
         height: 'calc(100vh - 140px)',
         display: 'flex',
         flexDirection: 'column',
-        padding: '12px',
+        padding: '12px 24px 12px 12px',
         boxSizing: 'border-box',
         background: `
           radial-gradient(ellipse 120% 80% at 50% 20%, rgba(37,99,235,0.95) 0%, rgba(30,64,175,0.98) 40%, rgba(15,23,42,1) 100%),
