@@ -307,6 +307,49 @@ export const PanelOportunidadesModule = ({ onBack }: PanelOportunidadesModulePro
     cargarLeads();
   }, []);
 
+  // DETECTAR DUPLICADOS EXISTENTES EN LA BASE DE DATOS
+  const detectarDuplicadosExistentes = (leadsArray: Lead[]): Map<string, Lead[]> => {
+    const duplicados = new Map<string, Lead[]>();
+    const nombresCounts = new Map<string, Lead[]>();
+    
+    // Agrupar leads por nombre normalizado
+    leadsArray.filter(l => !l.eliminado && !l.declinado).forEach(lead => {
+      const nombreNorm = lead.nombreEmpresa.toUpperCase().trim();
+      if (!nombresCounts.has(nombreNorm)) {
+        nombresCounts.set(nombreNorm, []);
+      }
+      nombresCounts.get(nombreNorm)!.push(lead);
+    });
+    
+    // Identificar los que tienen más de 1 entrada
+    nombresCounts.forEach((leads, nombre) => {
+      if (leads.length > 1) {
+        duplicados.set(nombre, leads);
+      }
+    });
+    
+    return duplicados;
+  };
+  
+  // Verificar si un lead específico es duplicado
+  const esLeadDuplicado = (lead: Lead): { esDuplicado: boolean; cantidad: number; otrosVendedores: string[] } => {
+    const nombreNorm = lead.nombreEmpresa.toUpperCase().trim();
+    const duplicados = allLeads.filter(l => 
+      l.nombreEmpresa.toUpperCase().trim() === nombreNorm && 
+      !l.eliminado && 
+      !l.declinado &&
+      l.id !== lead.id
+    );
+    
+    const otrosVendedores = [...new Set(duplicados.map(l => l.vendedor).filter(v => v !== lead.vendedor))];
+    
+    return {
+      esDuplicado: duplicados.length > 0,
+      cantidad: duplicados.length + 1, // +1 por el lead actual
+      otrosVendedores
+    };
+  };
+
   // Función para verificar y reactivar leads en Hold que cumplieron 30 días
   const verificarHoldsExpirados = async (leadsArray: Lead[]): Promise<Lead[]> => {
     const ahora = new Date();
@@ -408,7 +451,7 @@ export const PanelOportunidadesModule = ({ onBack }: PanelOportunidadesModulePro
         setStatusMsg('Extrayendo texto del PDF...');
         const textoPDF = await extraerTextoPDF(base64);
         console.log('Texto extraido:', textoPDF.substring(0, 1500));
-        setStatusMsg('Analizando rutas con IA...');
+        setStatusMsg('FX27 está analizando rutas...');
         let rutas = await analizarPDFConClaude(textoPDF, base64);
         console.log('Rutas encontradas:', rutas);
         if (rutas.length === 0) { rutas = parsearCotizacionPDF(textoPDF); console.log('Rutas con parser local:', rutas); }
@@ -655,6 +698,61 @@ export const PanelOportunidadesModule = ({ onBack }: PanelOportunidadesModulePro
             background: 'radial-gradient(ellipse 100% 100% at 50% 50%, transparent 40%, rgba(0,0,0,0.25) 100%)'
           }}
         />
+
+        {/* ALERTA DE DUPLICADOS - Solo si hay duplicados */}
+        {(() => {
+          const duplicados = detectarDuplicadosExistentes(allLeads);
+          if (duplicados.size === 0) return null;
+          
+          const totalDuplicados = Array.from(duplicados.values()).reduce((sum, arr) => sum + arr.length, 0);
+          
+          return (
+            <div 
+              className="mx-4 mt-4 mb-2 p-3 rounded-xl relative z-10 flex items-center justify-between"
+              style={{
+                background: 'linear-gradient(135deg, rgba(239,68,68,0.15) 0%, rgba(220,38,38,0.10) 100%)',
+                border: '1px solid rgba(239,68,68,0.30)',
+              }}
+            >
+              <div className="flex items-center gap-3">
+                <div 
+                  className="flex items-center justify-center"
+                  style={{
+                    width: '32px',
+                    height: '32px',
+                    borderRadius: '50%',
+                    background: 'rgba(239,68,68,0.20)',
+                    border: '1px solid rgba(239,68,68,0.40)'
+                  }}
+                >
+                  <AlertTriangle className="w-4 h-4 text-red-400" />
+                </div>
+                <div>
+                  <div className="text-red-400 font-semibold text-sm">
+                    ⚠️ {duplicados.size} empresas duplicadas detectadas ({totalDuplicados} leads)
+                  </div>
+                  <div className="text-red-400/60 text-xs">
+                    {Array.from(duplicados.keys()).slice(0, 3).join(', ')}
+                    {duplicados.size > 3 && ` y ${duplicados.size - 3} más...`}
+                  </div>
+                </div>
+              </div>
+              {isAdmin && (
+                <button
+                  onClick={() => {
+                    const lista = Array.from(duplicados.entries()).map(([nombre, leads]) => 
+                      `• ${nombre}: ${leads.length} registros (${leads.map(l => l.vendedor).join(', ')})`
+                    ).join('\n');
+                    alert(`📋 LEADS DUPLICADOS:\n\n${lista}\n\n💡 Revisa cada uno y elimina o declina los duplicados.`);
+                  }}
+                  className="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all bg-red-500/20 text-red-300 hover:bg-red-500/30 border border-red-500/30"
+                >
+                  Ver detalle
+                </button>
+              )}
+            </div>
+          );
+        })()}
 
         {/* ═══════════════════════════════════════════════════════════════
             BARRA DE FILTROS - Card flotante premium
@@ -950,8 +1048,40 @@ export const PanelOportunidadesModule = ({ onBack }: PanelOportunidadesModulePro
                       {/* # */}
                       <td className="px-2 py-2 text-center" style={{ fontFamily: "'Orbitron', monospace", fontSize: '11px', fontWeight: 600, color: lead.eliminado ? '#ef4444' : alerta.tipo === 'critico' ? '#ef4444' : '#60a5fa', fontVariantNumeric: 'tabular-nums' }}>{index + 1}</td>
                       
-                      {/* EMPRESA */}
-                      <td className="px-3 py-2"><div className="flex items-center justify-between gap-2"><span className="text-white truncate" style={{ fontSize: '13px', fontWeight: 600 }}>{lead.nombreEmpresa}</span><AlertBadge lead={lead} /></div></td>
+                      {/* EMPRESA - Con indicador de duplicado */}
+                      <td className="px-3 py-2">
+                        {(() => {
+                          const dupInfo = esLeadDuplicado(lead);
+                          return (
+                            <div className="flex items-center justify-between gap-2">
+                              <div className="flex items-center gap-2 min-w-0">
+                                <span className={`truncate ${dupInfo.esDuplicado ? 'text-red-400' : 'text-white'}`} style={{ fontSize: '13px', fontWeight: 600 }}>
+                                  {lead.nombreEmpresa}
+                                </span>
+                                {dupInfo.esDuplicado && (
+                                  <span 
+                                    title={`⚠️ DUPLICADO: Este lead aparece ${dupInfo.cantidad} veces${dupInfo.otrosVendedores.length > 0 ? `\nOtros vendedores: ${dupInfo.otrosVendedores.join(', ')}` : '\n(mismo vendedor)'}`}
+                                    className="flex-shrink-0 inline-flex items-center justify-center cursor-help"
+                                    style={{
+                                      width: '20px',
+                                      height: '20px',
+                                      borderRadius: '50%',
+                                      background: 'rgba(239,68,68,0.20)',
+                                      border: '1px solid rgba(239,68,68,0.40)',
+                                      color: '#EF4444',
+                                      fontSize: '10px',
+                                      fontWeight: 700
+                                    }}
+                                  >
+                                    {dupInfo.cantidad}
+                                  </span>
+                                )}
+                              </div>
+                              <AlertBadge lead={lead} />
+                            </div>
+                          );
+                        })()}
+                      </td>
                       
                       {/* ETAPA - Pill premium con jerarquía alta */}
                       <td className="px-3 py-2">
