@@ -1,7 +1,6 @@
-import { ModuleTemplate } from './ModuleTemplate';
 import { useState, useEffect } from 'react';
+import { ArrowLeft, Building2, Globe, User, Phone, Mail, MapPinned, MapPin, Users, Calendar, Truck, DollarSign, TrendingUp, AlertCircle, FileText, Save, Check } from 'lucide-react';
 import { MODULE_IMAGES } from '../../assets/module-images';
-import { Building2, Globe, User, Phone, Mail, MapPinned, MapPin, Users, Calendar, Truck, DollarSign, TrendingUp, AlertCircle, FileText, Save, Check } from 'lucide-react';
 import { projectId, publicAnonKey } from '../../utils/supabase/info';
 
 interface AgregarLeadModuleProps {
@@ -144,8 +143,8 @@ export const AgregarLeadModule = ({ onBack }: AgregarLeadModuleProps) => {
     setFormData({ ...formData, tipoViaje: nuevosViajes });
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     if (!formData.nombreEmpresa) {
       alert('❌ Nivel 1 mínimo: Debes ingresar el Nombre de la Empresa');
       return;
@@ -229,30 +228,31 @@ export const AgregarLeadModule = ({ onBack }: AgregarLeadModuleProps) => {
   };
 
   // ═══════════════════════════════════════════════════════════════
-  // COMPONENTE: Checkbox Moderno
+  // COMPONENTE: Checkbox Moderno OS
   // ═══════════════════════════════════════════════════════════════
   const ModernCheckbox = ({ checked, onChange, label, color = '#2F6BFF' }: { checked: boolean; onChange: (v: boolean) => void; label: string; color?: string }) => (
     <label className="flex items-center gap-3 cursor-pointer group">
       <div 
-        onClick={() => onChange(!checked)}
+        onClick={(e) => { e.preventDefault(); onChange(!checked); }}
         className="relative flex items-center justify-center transition-all duration-150"
         style={{
-          width: '20px',
-          height: '20px',
-          borderRadius: '6px',
-          background: checked ? color : 'rgba(255,255,255,0.04)',
-          border: `1px solid ${checked ? 'rgba(255,255,255,0.20)' : 'rgba(255,255,255,0.16)'}`,
-          boxShadow: checked ? `0 4px 12px ${color}40` : 'none'
+          width: '18px',
+          height: '18px',
+          borderRadius: '5px',
+          background: checked ? color : 'rgba(255,255,255,0.06)',
+          border: `1px solid ${checked ? 'rgba(255,255,255,0.25)' : 'rgba(255,255,255,0.16)'}`,
+          boxShadow: checked ? `0 4px 12px ${color}50` : 'none'
         }}
       >
-        {checked && <Check className="w-3.5 h-3.5 text-white" strokeWidth={3} />}
+        {checked && <Check className="w-3 h-3 text-white" strokeWidth={3} />}
       </div>
       <span 
         className="text-sm transition-colors"
         style={{ 
-          color: checked ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.62)',
+          color: checked ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.55)',
           fontFamily: "'Exo 2', sans-serif",
-          fontWeight: checked ? 600 : 500
+          fontWeight: checked ? 600 : 400,
+          fontSize: '12px'
         }}
       >
         {label}
@@ -260,26 +260,133 @@ export const AgregarLeadModule = ({ onBack }: AgregarLeadModuleProps) => {
     </label>
   );
 
+  // Estilos reutilizables
+  const cardStyle = {
+    background: 'linear-gradient(180deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.02) 100%)',
+    border: '1px solid rgba(255,255,255,0.08)',
+    borderRadius: '16px',
+    padding: '14px',
+    boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.06)'
+  };
+
+  const inputStyle = {
+    background: 'rgba(255,255,255,0.05)',
+    border: '1px solid rgba(255,255,255,0.10)',
+    borderRadius: '12px',
+    padding: '10px 14px',
+    color: 'rgba(255,255,255,0.92)',
+    fontFamily: "'Exo 2', sans-serif",
+    fontSize: '13px',
+    width: '100%',
+    outline: 'none',
+    transition: 'all 0.15s ease'
+  };
+
+  const labelStyle = {
+    color: 'rgba(255,255,255,0.55)',
+    fontFamily: "'Exo 2', sans-serif",
+    fontSize: '11px',
+    fontWeight: 600,
+    marginBottom: '6px',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '6px'
+  };
+
   return (
-    <ModuleTemplate title="Agregar Lead" onBack={onBack} headerImage={MODULE_IMAGES.AGREGAR_LEAD}>
+    <div className="relative w-full h-screen overflow-hidden">
       {/* ═══════════════════════════════════════════════════════════════
-          CONTENEDOR PRINCIPAL - MEGA CARD FLOTANTE AAA
+          FONDO AZUL CLARO GLOBAL - OBLIGATORIO
           ═══════════════════════════════════════════════════════════════ */}
       <div 
-        className="h-full overflow-hidden p-4"
+        className="absolute inset-0"
         style={{
-          background: 'linear-gradient(180deg, rgba(12,20,35,0.70) 0%, rgba(12,20,35,0.50) 100%)',
-          borderRadius: '22px',
-          border: '1px solid rgba(255,255,255,0.08)',
-          boxShadow: `
-            inset 0 0 0 1px rgba(255,255,255,0.05),
-            0 40px 120px rgba(0,0,0,0.55)
+          background: `
+            radial-gradient(1100px circle at 20% 10%, rgba(47,107,255,0.35), transparent 55%),
+            radial-gradient(900px circle at 85% 25%, rgba(34,211,238,0.16), transparent 55%),
+            linear-gradient(180deg, #0B4DB7 0%, #083A86 45%, #071426 100%)
           `
         }}
+      />
+
+      {/* Noise texture */}
+      <div 
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E")`,
+          opacity: 0.04,
+          mixBlendMode: 'overlay'
+        }}
+      />
+
+      {/* Logo FX27 */}
+      <div className="absolute z-50 opacity-30 flex flex-col items-center" style={{ top: '8px', right: '20px' }}>
+        <div className="text-[72px] font-black text-white leading-none" style={{ fontFamily: "'Exo 2', sans-serif", letterSpacing: '-2px' }}>
+          FX27
+        </div>
+        <div className="text-[13px] text-white/70 tracking-widest" style={{ fontFamily: "'Exo 2', sans-serif" }}>
+          FUTURE EXPERIENCE 27
+        </div>
+      </div>
+
+      {/* ═══════════════════════════════════════════════════════════════
+          HEADER GLASS OSCURO
+          ═══════════════════════════════════════════════════════════════ */}
+      <div 
+        className="absolute top-0 left-0 right-0 z-20"
+        style={{
+          height: '80px',
+          background: 'linear-gradient(180deg, rgba(9,16,30,0.92) 0%, rgba(9,16,30,0.75) 100%)',
+          backdropFilter: 'blur(16px)',
+          borderBottom: '1px solid rgba(255,255,255,0.08)',
+          boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.10), 0 20px 70px rgba(0,0,0,0.45)'
+        }}
       >
+        <div className="h-full px-6 flex items-center gap-5">
+          {/* Botón Back Naranja */}
+          <button
+            onClick={onBack}
+            className="flex items-center justify-center transition-all duration-150 hover:-translate-y-0.5 active:translate-y-0"
+            style={{
+              width: '48px',
+              height: '48px',
+              borderRadius: '14px',
+              background: 'linear-gradient(180deg, #FF7A1A 0%, #FF5500 100%)',
+              border: '1px solid rgba(255,255,255,0.15)',
+              boxShadow: '0 10px 26px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.20)'
+            }}
+          >
+            <ArrowLeft className="w-6 h-6 text-white" />
+          </button>
+
+          <h1 style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '28px', fontWeight: 600, color: 'white' }}>
+            Agregar Lead
+          </h1>
+        </div>
+      </div>
+
+      {/* ═══════════════════════════════════════════════════════════════
+          CONTENEDOR PRINCIPAL - MEGA CARD FLOTANTE
+          ═══════════════════════════════════════════════════════════════ */}
+      <div 
+        className="absolute z-10 flex flex-col"
+        style={{
+          top: '100px',
+          left: '24px',
+          right: '24px',
+          bottom: '24px',
+          background: 'linear-gradient(180deg, rgba(10,16,30,0.85) 0%, rgba(10,16,30,0.70) 100%)',
+          border: '1px solid rgba(255,255,255,0.10)',
+          borderRadius: '22px',
+          boxShadow: '0 40px 120px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.08)',
+          backdropFilter: 'blur(20px)'
+        }}
+      >
+        {/* ÁREA DE SCROLL - Formulario */}
         <div 
-          className="h-full overflow-y-auto pr-2"
+          className="flex-1 overflow-y-auto p-5"
           style={{ 
+            paddingBottom: '100px',
             scrollbarWidth: 'thin', 
             scrollbarColor: 'rgba(255,255,255,0.15) transparent' 
           }}
@@ -290,21 +397,13 @@ export const AgregarLeadModule = ({ onBack }: AgregarLeadModuleProps) => {
               {/* ═══════════════════════════════════════════════════════════════
                   COLUMNA 1: EMPRESA + CONTACTO + UBICACIÓN
                   ═══════════════════════════════════════════════════════════════ */}
-              <div className="space-y-4">
+              <div className="space-y-3">
                 
                 {/* 🏢 NIVEL 1: EMPRESA */}
-                <div 
-                  style={{
-                    background: 'linear-gradient(180deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.02) 100%)',
-                    border: '1px solid rgba(255,255,255,0.06)',
-                    borderRadius: '18px',
-                    padding: '16px',
-                    boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.06)'
-                  }}
-                >
+                <div style={cardStyle}>
                   <div className="flex items-center gap-2 mb-3">
                     <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#22C55E' }} />
-                    <span style={{ color: '#22C55E', fontFamily: "'Exo 2', sans-serif", fontSize: '12px', fontWeight: 700, letterSpacing: '0.05em' }}>
+                    <span style={{ color: '#22C55E', fontFamily: "'Exo 2', sans-serif", fontSize: '11px', fontWeight: 700, letterSpacing: '0.05em' }}>
                       NIVEL 1 • EMPRESA
                     </span>
                   </div>
@@ -314,185 +413,86 @@ export const AgregarLeadModule = ({ onBack }: AgregarLeadModuleProps) => {
                     onChange={(e) => handleInputChange('nombreEmpresa', e.target.value)}
                     placeholder="EMPRESA S.A. DE C.V."
                     required
-                    className="w-full transition-all duration-150 focus:outline-none"
-                    style={{
-                      background: 'rgba(255,255,255,0.04)',
-                      border: '1px solid rgba(255,255,255,0.08)',
-                      borderRadius: '14px',
-                      padding: '12px 16px',
-                      color: 'rgba(255,255,255,0.92)',
-                      fontFamily: "'Exo 2', sans-serif",
-                      fontSize: '15px',
-                      fontWeight: 700
-                    }}
+                    className="focus:ring-2 focus:ring-cyan-400/40"
+                    style={{ ...inputStyle, fontSize: '14px', fontWeight: 700 }}
                   />
                 </div>
 
                 {/* 🌐 Página Web */}
-                <div 
-                  style={{
-                    background: 'linear-gradient(180deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.02) 100%)',
-                    border: '1px solid rgba(255,255,255,0.06)',
-                    borderRadius: '18px',
-                    padding: '14px',
-                    boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.06)'
-                  }}
-                >
-                  <div className="flex items-center gap-2 mb-2">
-                    <Globe className="w-3.5 h-3.5" style={{ color: 'rgba(255,255,255,0.50)' }} />
-                    <span style={{ color: 'rgba(255,255,255,0.62)', fontFamily: "'Exo 2', sans-serif", fontSize: '11px', fontWeight: 600 }}>
-                      Página Web
-                    </span>
+                <div style={cardStyle}>
+                  <div style={labelStyle as any}>
+                    <Globe className="w-3.5 h-3.5" />
+                    Página Web
                   </div>
                   <input
                     type="text"
                     value={formData.paginaWeb}
                     onChange={(e) => handleInputChange('paginaWeb', e.target.value)}
                     placeholder="www.empresa.com"
-                    className="w-full transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-cyan-400/35"
-                    style={{
-                      background: 'rgba(255,255,255,0.04)',
-                      border: '1px solid rgba(255,255,255,0.08)',
-                      borderRadius: '14px',
-                      padding: '10px 14px',
-                      color: 'rgba(255,255,255,0.92)',
-                      fontFamily: "'Exo 2', sans-serif",
-                      fontSize: '14px'
-                    }}
+                    className="focus:ring-2 focus:ring-cyan-400/40"
+                    style={inputStyle}
                   />
                 </div>
 
                 {/* 👤 Nombre Contacto */}
-                <div 
-                  style={{
-                    background: 'linear-gradient(180deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.02) 100%)',
-                    border: '1px solid rgba(255,255,255,0.06)',
-                    borderRadius: '18px',
-                    padding: '14px',
-                    boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.06)'
-                  }}
-                >
-                  <div className="flex items-center gap-2 mb-2">
-                    <User className="w-3.5 h-3.5" style={{ color: 'rgba(255,255,255,0.50)' }} />
-                    <span style={{ color: 'rgba(255,255,255,0.62)', fontFamily: "'Exo 2', sans-serif", fontSize: '11px', fontWeight: 600 }}>
-                      Nombre Contacto
-                    </span>
+                <div style={cardStyle}>
+                  <div style={labelStyle as any}>
+                    <User className="w-3.5 h-3.5" />
+                    Nombre Contacto
                   </div>
                   <input
                     type="text"
                     value={formData.nombreContacto}
                     onChange={(e) => handleInputChange('nombreContacto', e.target.value)}
                     placeholder="Juan Pérez"
-                    className="w-full transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-cyan-400/35"
-                    style={{
-                      background: 'rgba(255,255,255,0.04)',
-                      border: '1px solid rgba(255,255,255,0.08)',
-                      borderRadius: '14px',
-                      padding: '10px 14px',
-                      color: 'rgba(255,255,255,0.92)',
-                      fontFamily: "'Exo 2', sans-serif",
-                      fontSize: '14px'
-                    }}
+                    className="focus:ring-2 focus:ring-cyan-400/40"
+                    style={inputStyle}
                   />
                 </div>
 
                 {/* 📱 Teléfono + ✉️ Email */}
                 <div className="grid grid-cols-2 gap-3">
-                  <div 
-                    style={{
-                      background: 'linear-gradient(180deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.02) 100%)',
-                      border: '1px solid rgba(255,255,255,0.06)',
-                      borderRadius: '18px',
-                      padding: '12px',
-                      boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.06)'
-                    }}
-                  >
-                    <div className="flex items-center gap-1.5 mb-2">
-                      <Phone className="w-3 h-3" style={{ color: 'rgba(255,255,255,0.50)' }} />
-                      <span style={{ color: 'rgba(255,255,255,0.62)', fontFamily: "'Exo 2', sans-serif", fontSize: '10px', fontWeight: 600 }}>
-                        Teléfono
-                      </span>
+                  <div style={cardStyle}>
+                    <div style={labelStyle as any}>
+                      <Phone className="w-3 h-3" />
+                      Teléfono
                     </div>
                     <input
                       type="tel"
                       value={formData.telefonoContacto}
                       onChange={(e) => handleInputChange('telefonoContacto', e.target.value)}
                       placeholder="55 1234 5678"
-                      className="w-full transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-cyan-400/35"
-                      style={{
-                        background: 'rgba(255,255,255,0.04)',
-                        border: '1px solid rgba(255,255,255,0.08)',
-                        borderRadius: '14px',
-                        padding: '8px 12px',
-                        color: 'rgba(255,255,255,0.92)',
-                        fontFamily: "'Exo 2', sans-serif",
-                        fontSize: '13px'
-                      }}
+                      className="focus:ring-2 focus:ring-cyan-400/40"
+                      style={{ ...inputStyle, fontSize: '12px' }}
                     />
                   </div>
-                  <div 
-                    style={{
-                      background: 'linear-gradient(180deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.02) 100%)',
-                      border: '1px solid rgba(255,255,255,0.06)',
-                      borderRadius: '18px',
-                      padding: '12px',
-                      boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.06)'
-                    }}
-                  >
-                    <div className="flex items-center gap-1.5 mb-2">
-                      <Mail className="w-3 h-3" style={{ color: 'rgba(255,255,255,0.50)' }} />
-                      <span style={{ color: 'rgba(255,255,255,0.62)', fontFamily: "'Exo 2', sans-serif", fontSize: '10px', fontWeight: 600 }}>
-                        Email
-                      </span>
+                  <div style={cardStyle}>
+                    <div style={labelStyle as any}>
+                      <Mail className="w-3 h-3" />
+                      Email
                     </div>
                     <input
                       type="email"
                       value={formData.correoElectronico}
                       onChange={(e) => handleInputChange('correoElectronico', e.target.value)}
                       placeholder="contacto@empresa.com"
-                      className="w-full transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-cyan-400/35"
-                      style={{
-                        background: 'rgba(255,255,255,0.04)',
-                        border: '1px solid rgba(255,255,255,0.08)',
-                        borderRadius: '14px',
-                        padding: '8px 12px',
-                        color: 'rgba(255,255,255,0.92)',
-                        fontFamily: "'Exo 2', sans-serif",
-                        fontSize: '13px'
-                      }}
+                      className="focus:ring-2 focus:ring-cyan-400/40"
+                      style={{ ...inputStyle, fontSize: '12px' }}
                     />
                   </div>
                 </div>
 
                 {/* 🏭 Tipo de Empresa */}
-                <div 
-                  style={{
-                    background: 'linear-gradient(180deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.02) 100%)',
-                    border: '1px solid rgba(255,255,255,0.06)',
-                    borderRadius: '18px',
-                    padding: '14px',
-                    boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.06)'
-                  }}
-                >
-                  <div className="flex items-center gap-2 mb-2">
-                    <Building2 className="w-3.5 h-3.5" style={{ color: 'rgba(255,255,255,0.50)' }} />
-                    <span style={{ color: 'rgba(255,255,255,0.62)', fontFamily: "'Exo 2', sans-serif", fontSize: '11px', fontWeight: 600 }}>
-                      Tipo de Empresa
-                    </span>
+                <div style={cardStyle}>
+                  <div style={labelStyle as any}>
+                    <Building2 className="w-3.5 h-3.5" />
+                    Tipo de Empresa
                   </div>
                   <select
                     value={formData.tipoEmpresa}
                     onChange={(e) => handleInputChange('tipoEmpresa', e.target.value)}
-                    className="w-full cursor-pointer transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-cyan-400/35"
-                    style={{
-                      background: 'rgba(255,255,255,0.04)',
-                      border: '1px solid rgba(255,255,255,0.08)',
-                      borderRadius: '14px',
-                      padding: '10px 14px',
-                      color: 'rgba(255,255,255,0.92)',
-                      fontFamily: "'Exo 2', sans-serif",
-                      fontSize: '13px'
-                    }}
+                    className="cursor-pointer focus:ring-2 focus:ring-cyan-400/40"
+                    style={inputStyle}
                   >
                     <option value="">Selecciona...</option>
                     {TIPOS_EMPRESA.map(tipo => <option key={tipo} value={tipo}>{tipo}</option>)}
@@ -501,134 +501,62 @@ export const AgregarLeadModule = ({ onBack }: AgregarLeadModuleProps) => {
 
                 {/* 📍 Ciudad + Estado */}
                 <div className="grid grid-cols-2 gap-3">
-                  <div 
-                    style={{
-                      background: 'linear-gradient(180deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.02) 100%)',
-                      border: '1px solid rgba(255,255,255,0.06)',
-                      borderRadius: '18px',
-                      padding: '12px',
-                      boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.06)'
-                    }}
-                  >
-                    <div className="flex items-center gap-1.5 mb-2">
-                      <MapPinned className="w-3 h-3" style={{ color: 'rgba(255,255,255,0.50)' }} />
-                      <span style={{ color: 'rgba(255,255,255,0.62)', fontFamily: "'Exo 2', sans-serif", fontSize: '10px', fontWeight: 600 }}>
-                        Ciudad
-                      </span>
+                  <div style={cardStyle}>
+                    <div style={labelStyle as any}>
+                      <MapPinned className="w-3 h-3" />
+                      Ciudad
                     </div>
                     <input
                       type="text"
                       value={formData.ciudad}
                       onChange={(e) => handleInputChange('ciudad', e.target.value)}
                       placeholder="Monterrey"
-                      className="w-full transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-cyan-400/35"
-                      style={{
-                        background: 'rgba(255,255,255,0.04)',
-                        border: '1px solid rgba(255,255,255,0.08)',
-                        borderRadius: '14px',
-                        padding: '8px 12px',
-                        color: 'rgba(255,255,255,0.92)',
-                        fontFamily: "'Exo 2', sans-serif",
-                        fontSize: '13px'
-                      }}
+                      className="focus:ring-2 focus:ring-cyan-400/40"
+                      style={{ ...inputStyle, fontSize: '12px' }}
                     />
                   </div>
-                  <div 
-                    style={{
-                      background: 'linear-gradient(180deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.02) 100%)',
-                      border: '1px solid rgba(255,255,255,0.06)',
-                      borderRadius: '18px',
-                      padding: '12px',
-                      boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.06)'
-                    }}
-                  >
-                    <div className="flex items-center gap-1.5 mb-2">
-                      <MapPin className="w-3 h-3" style={{ color: 'rgba(255,255,255,0.50)' }} />
-                      <span style={{ color: 'rgba(255,255,255,0.62)', fontFamily: "'Exo 2', sans-serif", fontSize: '10px', fontWeight: 600 }}>
-                        Estado
-                      </span>
+                  <div style={cardStyle}>
+                    <div style={labelStyle as any}>
+                      <MapPin className="w-3 h-3" />
+                      Estado
                     </div>
                     <input
                       type="text"
                       value={formData.estado}
                       onChange={(e) => handleInputChange('estado', e.target.value)}
                       placeholder="Nuevo León"
-                      className="w-full transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-cyan-400/35"
-                      style={{
-                        background: 'rgba(255,255,255,0.04)',
-                        border: '1px solid rgba(255,255,255,0.08)',
-                        borderRadius: '14px',
-                        padding: '8px 12px',
-                        color: 'rgba(255,255,255,0.92)',
-                        fontFamily: "'Exo 2', sans-serif",
-                        fontSize: '13px'
-                      }}
+                      className="focus:ring-2 focus:ring-cyan-400/40"
+                      style={{ ...inputStyle, fontSize: '12px' }}
                     />
                   </div>
                 </div>
 
                 {/* 🎯 Prioridad + 🏢 Tamaño */}
                 <div className="grid grid-cols-2 gap-3">
-                  <div 
-                    style={{
-                      background: 'linear-gradient(180deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.02) 100%)',
-                      border: '1px solid rgba(255,255,255,0.06)',
-                      borderRadius: '18px',
-                      padding: '12px',
-                      boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.06)'
-                    }}
-                  >
-                    <div className="flex items-center gap-1.5 mb-2">
-                      <AlertCircle className="w-3 h-3" style={{ color: 'rgba(255,255,255,0.50)' }} />
-                      <span style={{ color: 'rgba(255,255,255,0.62)', fontFamily: "'Exo 2', sans-serif", fontSize: '10px', fontWeight: 600 }}>
-                        Prioridad
-                      </span>
+                  <div style={cardStyle}>
+                    <div style={labelStyle as any}>
+                      <AlertCircle className="w-3 h-3" />
+                      Prioridad
                     </div>
                     <select
                       value={formData.prioridad}
                       onChange={(e) => handleInputChange('prioridad', e.target.value)}
-                      className="w-full cursor-pointer transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-cyan-400/35"
-                      style={{
-                        background: 'rgba(255,255,255,0.04)',
-                        border: '1px solid rgba(255,255,255,0.08)',
-                        borderRadius: '14px',
-                        padding: '8px 12px',
-                        color: 'rgba(255,255,255,0.92)',
-                        fontFamily: "'Exo 2', sans-serif",
-                        fontSize: '13px'
-                      }}
+                      className="cursor-pointer focus:ring-2 focus:ring-cyan-400/40"
+                      style={{ ...inputStyle, fontSize: '12px' }}
                     >
                       {PRIORIDADES.map(p => <option key={p} value={p}>{p}</option>)}
                     </select>
                   </div>
-                  <div 
-                    style={{
-                      background: 'linear-gradient(180deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.02) 100%)',
-                      border: '1px solid rgba(255,255,255,0.06)',
-                      borderRadius: '18px',
-                      padding: '12px',
-                      boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.06)'
-                    }}
-                  >
-                    <div className="flex items-center gap-1.5 mb-2">
-                      <Users className="w-3 h-3" style={{ color: 'rgba(255,255,255,0.50)' }} />
-                      <span style={{ color: 'rgba(255,255,255,0.62)', fontFamily: "'Exo 2', sans-serif", fontSize: '10px', fontWeight: 600 }}>
-                        Tamaño
-                      </span>
+                  <div style={cardStyle}>
+                    <div style={labelStyle as any}>
+                      <Users className="w-3 h-3" />
+                      Tamaño
                     </div>
                     <select
                       value={formData.tamanoEmpresa}
                       onChange={(e) => handleInputChange('tamanoEmpresa', e.target.value)}
-                      className="w-full cursor-pointer transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-cyan-400/35"
-                      style={{
-                        background: 'rgba(255,255,255,0.04)',
-                        border: '1px solid rgba(255,255,255,0.08)',
-                        borderRadius: '14px',
-                        padding: '8px 12px',
-                        color: 'rgba(255,255,255,0.92)',
-                        fontFamily: "'Exo 2', sans-serif",
-                        fontSize: '13px'
-                      }}
+                      className="cursor-pointer focus:ring-2 focus:ring-cyan-400/40"
+                      style={{ ...inputStyle, fontSize: '12px' }}
                     >
                       <option value="">Selecciona...</option>
                       {TAMANOS_EMPRESA.map(t => <option key={t} value={t}>{t}</option>)}
@@ -637,36 +565,17 @@ export const AgregarLeadModule = ({ onBack }: AgregarLeadModuleProps) => {
                 </div>
 
                 {/* 📅 Fecha Estimada de Cierre */}
-                <div 
-                  style={{
-                    background: 'linear-gradient(180deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.02) 100%)',
-                    border: '1px solid rgba(255,255,255,0.06)',
-                    borderRadius: '18px',
-                    padding: '14px',
-                    boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.06)'
-                  }}
-                >
-                  <div className="flex items-center gap-2 mb-2">
-                    <Calendar className="w-3.5 h-3.5" style={{ color: 'rgba(255,255,255,0.50)' }} />
-                    <span style={{ color: 'rgba(255,255,255,0.62)', fontFamily: "'Exo 2', sans-serif", fontSize: '11px', fontWeight: 600 }}>
-                      Fecha Estimada de Cierre
-                    </span>
+                <div style={cardStyle}>
+                  <div style={labelStyle as any}>
+                    <Calendar className="w-3.5 h-3.5" />
+                    Fecha Estimada de Cierre
                   </div>
                   <input
                     type="date"
                     value={formData.fechaEstimadaCierre}
                     onChange={(e) => handleInputChange('fechaEstimadaCierre', e.target.value)}
-                    className="w-full transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-cyan-400/35"
-                    style={{
-                      background: 'rgba(255,255,255,0.04)',
-                      border: '1px solid rgba(255,255,255,0.08)',
-                      borderRadius: '14px',
-                      padding: '10px 14px',
-                      color: 'rgba(255,255,255,0.92)',
-                      fontFamily: "'Orbitron', monospace",
-                      fontSize: '14px',
-                      fontVariantNumeric: 'tabular-nums'
-                    }}
+                    className="focus:ring-2 focus:ring-cyan-400/40"
+                    style={{ ...inputStyle, fontFamily: "'Orbitron', monospace", fontVariantNumeric: 'tabular-nums' }}
                   />
                 </div>
               </div>
@@ -674,21 +583,13 @@ export const AgregarLeadModule = ({ onBack }: AgregarLeadModuleProps) => {
               {/* ═══════════════════════════════════════════════════════════════
                   COLUMNA 2: SERVICIOS + NOTAS
                   ═══════════════════════════════════════════════════════════════ */}
-              <div className="space-y-4">
+              <div className="space-y-3">
                 
                 {/* 🚛 Tipo de Servicio - TOGGLES OS */}
-                <div 
-                  style={{
-                    background: 'linear-gradient(180deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.02) 100%)',
-                    border: '1px solid rgba(255,255,255,0.06)',
-                    borderRadius: '18px',
-                    padding: '16px',
-                    boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.06)'
-                  }}
-                >
+                <div style={cardStyle}>
                   <div className="flex items-center gap-2 mb-3">
                     <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#2F6BFF' }} />
-                    <span style={{ color: 'rgba(255,255,255,0.80)', fontFamily: "'Exo 2', sans-serif", fontSize: '12px', fontWeight: 600 }}>
+                    <span style={{ color: 'rgba(255,255,255,0.80)', fontFamily: "'Exo 2', sans-serif", fontSize: '11px', fontWeight: 600 }}>
                       Tipo de Servicio
                     </span>
                   </div>
@@ -703,16 +604,16 @@ export const AgregarLeadModule = ({ onBack }: AgregarLeadModuleProps) => {
                           className="transition-all duration-150 hover:-translate-y-0.5 active:translate-y-0"
                           style={{
                             background: isActive 
-                              ? 'linear-gradient(180deg, rgba(47,107,255,0.90) 0%, rgba(47,107,255,0.55) 100%)'
-                              : 'rgba(255,255,255,0.04)',
-                            border: `1px solid ${isActive ? 'rgba(255,255,255,0.14)' : 'rgba(255,255,255,0.08)'}`,
+                              ? 'linear-gradient(180deg, rgba(47,107,255,0.95) 0%, rgba(47,107,255,0.60) 100%)'
+                              : 'rgba(255,255,255,0.05)',
+                            border: `1px solid ${isActive ? 'rgba(255,255,255,0.18)' : 'rgba(255,255,255,0.10)'}`,
                             borderRadius: '999px',
-                            padding: '10px 16px',
-                            color: isActive ? 'white' : 'rgba(255,255,255,0.62)',
+                            padding: '9px 14px',
+                            color: isActive ? 'white' : 'rgba(255,255,255,0.55)',
                             fontFamily: "'Exo 2', sans-serif",
-                            fontSize: '12px',
+                            fontSize: '11px',
                             fontWeight: isActive ? 700 : 500,
-                            boxShadow: isActive ? '0 10px 22px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.16)' : 'none'
+                            boxShadow: isActive ? '0 8px 20px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.18)' : 'none'
                           }}
                         >
                           {tipo}
@@ -723,18 +624,10 @@ export const AgregarLeadModule = ({ onBack }: AgregarLeadModuleProps) => {
                 </div>
 
                 {/* 🗺️ Tipo de Viaje - TOGGLES OS */}
-                <div 
-                  style={{
-                    background: 'linear-gradient(180deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.02) 100%)',
-                    border: '1px solid rgba(255,255,255,0.06)',
-                    borderRadius: '18px',
-                    padding: '16px',
-                    boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.06)'
-                  }}
-                >
+                <div style={cardStyle}>
                   <div className="flex items-center gap-2 mb-3">
                     <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#22C55E' }} />
-                    <span style={{ color: 'rgba(255,255,255,0.80)', fontFamily: "'Exo 2', sans-serif", fontSize: '12px', fontWeight: 600 }}>
+                    <span style={{ color: 'rgba(255,255,255,0.80)', fontFamily: "'Exo 2', sans-serif", fontSize: '11px', fontWeight: 600 }}>
                       Tipo de Viaje
                     </span>
                   </div>
@@ -749,16 +642,16 @@ export const AgregarLeadModule = ({ onBack }: AgregarLeadModuleProps) => {
                           className="transition-all duration-150 hover:-translate-y-0.5 active:translate-y-0"
                           style={{
                             background: isActive 
-                              ? 'linear-gradient(180deg, rgba(34,197,94,0.90) 0%, rgba(34,197,94,0.55) 100%)'
-                              : 'rgba(255,255,255,0.04)',
-                            border: `1px solid ${isActive ? 'rgba(255,255,255,0.14)' : 'rgba(255,255,255,0.08)'}`,
+                              ? 'linear-gradient(180deg, rgba(34,197,94,0.95) 0%, rgba(34,197,94,0.60) 100%)'
+                              : 'rgba(255,255,255,0.05)',
+                            border: `1px solid ${isActive ? 'rgba(255,255,255,0.18)' : 'rgba(255,255,255,0.10)'}`,
                             borderRadius: '999px',
-                            padding: '10px 16px',
-                            color: isActive ? 'white' : 'rgba(255,255,255,0.62)',
+                            padding: '9px 14px',
+                            color: isActive ? 'white' : 'rgba(255,255,255,0.55)',
                             fontFamily: "'Exo 2', sans-serif",
-                            fontSize: '12px',
+                            fontSize: '11px',
                             fontWeight: isActive ? 700 : 500,
-                            boxShadow: isActive ? '0 10px 22px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.16)' : 'none'
+                            boxShadow: isActive ? '0 8px 20px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.18)' : 'none'
                           }}
                         >
                           {tipo}
@@ -768,7 +661,7 @@ export const AgregarLeadModule = ({ onBack }: AgregarLeadModuleProps) => {
                   </div>
 
                   {/* Checkboxes Transbordo y DTD */}
-                  <div className="grid grid-cols-2 gap-4 mt-4 pt-4" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+                  <div className="grid grid-cols-2 gap-4 mt-4 pt-3" style={{ borderTop: '1px solid rgba(255,255,255,0.08)' }}>
                     <ModernCheckbox 
                       checked={formData.transbordo || false}
                       onChange={(v) => setFormData({ ...formData, transbordo: v })}
@@ -784,20 +677,11 @@ export const AgregarLeadModule = ({ onBack }: AgregarLeadModuleProps) => {
                   </div>
                 </div>
 
-                {/* 📝 Próximos Pasos - NOTE PREMIUM */}
-                <div 
-                  style={{
-                    background: 'linear-gradient(180deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.02) 100%)',
-                    border: '1px solid rgba(255,255,255,0.06)',
-                    borderRadius: '18px',
-                    padding: '16px',
-                    boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.06)',
-                    flex: 1
-                  }}
-                >
+                {/* 📝 Próximos Pasos */}
+                <div style={cardStyle}>
                   <div className="flex items-center gap-2 mb-3">
                     <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#F59E0B' }} />
-                    <span style={{ color: 'rgba(255,255,255,0.80)', fontFamily: "'Exo 2', sans-serif", fontSize: '12px', fontWeight: 600 }}>
+                    <span style={{ color: 'rgba(255,255,255,0.80)', fontFamily: "'Exo 2', sans-serif", fontSize: '11px', fontWeight: 600 }}>
                       Próximos Pasos
                     </span>
                   </div>
@@ -805,18 +689,13 @@ export const AgregarLeadModule = ({ onBack }: AgregarLeadModuleProps) => {
                     value={formData.proximosPasos}
                     onChange={(e) => handleInputChange('proximosPasos', e.target.value)}
                     placeholder="Describe los próximos pasos..."
-                    className="w-full resize-none transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-cyan-400/35"
+                    className="w-full resize-none focus:ring-2 focus:ring-cyan-400/40"
                     style={{
-                      background: 'rgba(0,0,0,0.18)',
-                      border: '1px solid rgba(255,255,255,0.08)',
-                      borderRadius: '14px',
-                      padding: '12px 14px',
-                      color: 'rgba(255,255,255,0.92)',
-                      fontFamily: "'Exo 2', sans-serif",
-                      fontSize: '14px',
+                      ...inputStyle,
+                      background: 'rgba(0,0,0,0.20)',
+                      minHeight: '140px',
                       lineHeight: '1.6',
-                      minHeight: '160px',
-                      boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.15)'
+                      boxShadow: 'inset 0 2px 6px rgba(0,0,0,0.20)'
                     }}
                   />
                 </div>
@@ -825,112 +704,61 @@ export const AgregarLeadModule = ({ onBack }: AgregarLeadModuleProps) => {
               {/* ═══════════════════════════════════════════════════════════════
                   COLUMNA 3: RUTAS, FINANZAS E HITOS
                   ═══════════════════════════════════════════════════════════════ */}
-              <div className="space-y-4 flex flex-col">
+              <div className="space-y-3">
                 
                 {/* 💰 NIVEL 3: RUTAS Y FINANZAS */}
-                <div 
-                  style={{
-                    background: 'linear-gradient(180deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.02) 100%)',
-                    border: '1px solid rgba(255,255,255,0.06)',
-                    borderRadius: '18px',
-                    padding: '16px',
-                    boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.06)'
-                  }}
-                >
+                <div style={cardStyle}>
                   <div className="flex items-center gap-2 mb-3">
                     <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#FF6A00' }} />
-                    <span style={{ color: '#FF6A00', fontFamily: "'Exo 2', sans-serif", fontSize: '12px', fontWeight: 700, letterSpacing: '0.05em' }}>
+                    <span style={{ color: '#FF6A00', fontFamily: "'Exo 2', sans-serif", fontSize: '11px', fontWeight: 700, letterSpacing: '0.05em' }}>
                       NIVEL 3 • RUTAS Y FINANZAS
                     </span>
                   </div>
-                  <div className="space-y-3">
+                  <div className="space-y-2">
                     <input
                       type="text"
                       value={formData.principalesRutas}
                       onChange={(e) => handleInputChange('principalesRutas', e.target.value)}
                       placeholder="CDMX - MTY - GDL"
-                      className="w-full transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-cyan-400/35"
-                      style={{
-                        background: 'rgba(255,255,255,0.04)',
-                        border: '1px solid rgba(255,255,255,0.08)',
-                        borderRadius: '14px',
-                        padding: '10px 14px',
-                        color: 'rgba(255,255,255,0.92)',
-                        fontFamily: "'Exo 2', sans-serif",
-                        fontSize: '14px'
-                      }}
+                      className="focus:ring-2 focus:ring-cyan-400/40"
+                      style={inputStyle}
                     />
                     <input
                       type="number"
                       value={formData.viajesPorMes}
                       onChange={(e) => handleInputChange('viajesPorMes', e.target.value)}
                       placeholder="Viajes/Mes: 15"
-                      className="w-full transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-cyan-400/35"
-                      style={{
-                        background: 'rgba(255,255,255,0.04)',
-                        border: '1px solid rgba(255,255,255,0.08)',
-                        borderRadius: '14px',
-                        padding: '10px 14px',
-                        color: 'rgba(255,255,255,0.92)',
-                        fontFamily: "'Orbitron', monospace",
-                        fontSize: '14px',
-                        fontVariantNumeric: 'tabular-nums'
-                      }}
+                      className="focus:ring-2 focus:ring-cyan-400/40"
+                      style={{ ...inputStyle, fontFamily: "'Orbitron', monospace", fontVariantNumeric: 'tabular-nums' }}
                     />
                     <input
                       type="text"
                       value={formData.tarifa}
                       onChange={(e) => handleInputChange('tarifa', e.target.value)}
                       placeholder="Tarifa MXN: $45k - $55k"
-                      className="w-full transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-cyan-400/35"
-                      style={{
-                        background: 'rgba(255,255,255,0.04)',
-                        border: '1px solid rgba(255,255,255,0.08)',
-                        borderRadius: '14px',
-                        padding: '10px 14px',
-                        color: 'rgba(255,255,255,0.92)',
-                        fontFamily: "'Orbitron', monospace",
-                        fontSize: '14px',
-                        fontVariantNumeric: 'tabular-nums'
-                      }}
+                      className="focus:ring-2 focus:ring-cyan-400/40"
+                      style={{ ...inputStyle, fontFamily: "'Orbitron', monospace", fontVariantNumeric: 'tabular-nums' }}
                     />
                     <input
                       type="text"
                       value={formData.proyectadoVentaMensual}
                       onChange={(e) => handleInputChange('proyectadoVentaMensual', e.target.value)}
                       placeholder="Proyectado USD: $50k - $100k"
-                      className="w-full transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-cyan-400/35"
-                      style={{
-                        background: 'rgba(255,255,255,0.04)',
-                        border: '1px solid rgba(255,255,255,0.08)',
-                        borderRadius: '14px',
-                        padding: '10px 14px',
-                        color: 'rgba(255,255,255,0.92)',
-                        fontFamily: "'Orbitron', monospace",
-                        fontSize: '14px',
-                        fontVariantNumeric: 'tabular-nums'
-                      }}
+                      className="focus:ring-2 focus:ring-cyan-400/40"
+                      style={{ ...inputStyle, fontFamily: "'Orbitron', monospace", fontVariantNumeric: 'tabular-nums' }}
                     />
                   </div>
                 </div>
 
                 {/* 🏆 HITOS DEL CLIENTE */}
-                <div 
-                  style={{
-                    background: 'linear-gradient(180deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.02) 100%)',
-                    border: '1px solid rgba(255,255,255,0.06)',
-                    borderRadius: '18px',
-                    padding: '16px',
-                    boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.06)'
-                  }}
-                >
-                  <div className="flex items-center gap-2 mb-4">
-                    <TrendingUp className="w-4 h-4" style={{ color: 'rgba(255,255,255,0.80)' }} />
-                    <span style={{ color: 'rgba(255,255,255,0.92)', fontFamily: "'Exo 2', sans-serif", fontSize: '12px', fontWeight: 700 }}>
+                <div style={cardStyle}>
+                  <div className="flex items-center gap-2 mb-3">
+                    <TrendingUp className="w-4 h-4" style={{ color: 'rgba(255,255,255,0.70)' }} />
+                    <span style={{ color: 'rgba(255,255,255,0.85)', fontFamily: "'Exo 2', sans-serif", fontSize: '11px', fontWeight: 700 }}>
                       HITOS DEL CLIENTE
                     </span>
                   </div>
-                  <div className="space-y-3">
+                  <div className="space-y-2.5">
                     {[
                       { key: 'altaCliente', label: 'Nivel 4 • Alta de Cliente', color: '#22D3EE' },
                       { key: 'generacionSOP', label: 'Nivel 5 • Generación SOP', color: '#A855F7' },
@@ -950,66 +778,24 @@ export const AgregarLeadModule = ({ onBack }: AgregarLeadModuleProps) => {
                   </div>
                 </div>
 
-                {/* Info Vendedor + Botón Guardar */}
-                <div className="mt-auto space-y-4">
-                  {/* Info Vendedor */}
-                  <div 
-                    className="flex items-center justify-between"
-                    style={{
-                      background: 'rgba(47,107,255,0.10)',
-                      border: '1px solid rgba(47,107,255,0.20)',
-                      borderRadius: '14px',
-                      padding: '12px 16px'
-                    }}
-                  >
-                    <span style={{ color: 'rgba(255,255,255,0.70)', fontFamily: "'Exo 2', sans-serif", fontSize: '13px' }}>
-                      Vendedor: <span style={{ color: 'white', fontWeight: 600 }}>{formData.vendedor}</span>
-                    </span>
-                    <span style={{ color: 'rgba(147,197,253,0.80)', fontFamily: "'Orbitron', monospace", fontSize: '13px', fontVariantNumeric: 'tabular-nums' }}>
-                      {new Date().toLocaleDateString('es-MX')}
-                    </span>
-                  </div>
-
-                  {/* BOTÓN GUARDAR - ESTILO OS PREMIUM */}
-                  <button
-                    type="submit"
-                    className="group w-full flex items-center justify-center gap-3 transition-all duration-150 hover:-translate-y-0.5 active:translate-y-0"
-                    style={{
-                      background: 'linear-gradient(180deg, rgba(47,107,255,1) 0%, rgba(47,107,255,0.70) 100%)',
-                      border: '1px solid rgba(255,255,255,0.14)',
-                      borderRadius: '14px',
-                      padding: '16px 24px',
-                      boxShadow: '0 18px 40px rgba(0,0,0,0.40), inset 0 1px 0 rgba(255,255,255,0.16)',
-                      fontFamily: "'Exo 2', sans-serif",
-                      fontSize: '15px',
-                      fontWeight: 700,
-                      letterSpacing: '0.5px',
-                      color: 'white'
-                    }}
-                  >
-                    <Save className="w-5 h-5" />
-                    GUARDAR LEAD
-                  </button>
-
-                  {/* Indicador de Niveles */}
-                  <div 
-                    className="text-center"
-                    style={{
-                      background: 'rgba(255,255,255,0.03)',
-                      border: '1px solid rgba(255,255,255,0.05)',
-                      borderRadius: '14px',
-                      padding: '10px 12px'
-                    }}
-                  >
-                    <div style={{ color: 'rgba(255,255,255,0.45)', fontFamily: "'Exo 2', sans-serif", fontSize: '10px', lineHeight: '1.6' }}>
-                      <span style={{ color: '#22C55E' }}>●</span> N1:Empresa • 
-                      <span style={{ color: '#2F6BFF' }}>●</span> N2:Contacto • 
-                      <span style={{ color: '#FF6A00' }}>●</span> N3:Rutas • 
-                      <span style={{ color: '#22D3EE' }}>●</span> N4:Alta • 
-                      <span style={{ color: '#A855F7' }}>●</span> N5:SOP • 
-                      <span style={{ color: '#EC4899' }}>●</span> N6:Junta • 
-                      <span style={{ color: '#F59E0B' }}>●</span> N7:Facturado
-                    </div>
+                {/* Indicador de Niveles */}
+                <div 
+                  className="text-center"
+                  style={{
+                    background: 'rgba(255,255,255,0.03)',
+                    border: '1px solid rgba(255,255,255,0.06)',
+                    borderRadius: '12px',
+                    padding: '10px'
+                  }}
+                >
+                  <div style={{ color: 'rgba(255,255,255,0.40)', fontFamily: "'Exo 2', sans-serif", fontSize: '9px', lineHeight: '1.5' }}>
+                    <span style={{ color: '#22C55E' }}>●</span> N1 • 
+                    <span style={{ color: '#2F6BFF' }}>●</span> N2 • 
+                    <span style={{ color: '#FF6A00' }}>●</span> N3 • 
+                    <span style={{ color: '#22D3EE' }}>●</span> N4 • 
+                    <span style={{ color: '#A855F7' }}>●</span> N5 • 
+                    <span style={{ color: '#EC4899' }}>●</span> N6 • 
+                    <span style={{ color: '#F59E0B' }}>●</span> N7
                   </div>
                 </div>
               </div>
@@ -1017,7 +803,62 @@ export const AgregarLeadModule = ({ onBack }: AgregarLeadModuleProps) => {
             </div>
           </form>
         </div>
+
+        {/* ═══════════════════════════════════════════════════════════════
+            BARRA INFERIOR STICKY - SIEMPRE VISIBLE
+            ═══════════════════════════════════════════════════════════════ */}
+        <div 
+          className="flex-shrink-0 flex items-center justify-between px-6"
+          style={{
+            height: '72px',
+            background: 'linear-gradient(180deg, rgba(10,16,30,0.60) 0%, rgba(10,16,30,0.95) 100%)',
+            backdropFilter: 'blur(12px)',
+            borderTop: '1px solid rgba(255,255,255,0.10)',
+            borderRadius: '0 0 22px 22px'
+          }}
+        >
+          {/* Izquierda: Vendedor + Fecha */}
+          <div 
+            className="flex items-center gap-4"
+            style={{
+              background: 'rgba(47,107,255,0.12)',
+              border: '1px solid rgba(47,107,255,0.25)',
+              borderRadius: '12px',
+              padding: '10px 18px'
+            }}
+          >
+            <span style={{ color: 'rgba(255,255,255,0.70)', fontFamily: "'Exo 2', sans-serif", fontSize: '13px' }}>
+              Vendedor: <span style={{ color: 'white', fontWeight: 600 }}>{formData.vendedor || 'Cargando...'}</span>
+            </span>
+            <div style={{ width: '1px', height: '20px', background: 'rgba(255,255,255,0.15)' }} />
+            <span style={{ color: 'rgba(147,197,253,0.85)', fontFamily: "'Orbitron', monospace", fontSize: '13px', fontVariantNumeric: 'tabular-nums' }}>
+              {new Date().toLocaleDateString('es-MX')}
+            </span>
+          </div>
+
+          {/* Derecha: BOTÓN GUARDAR LEAD */}
+          <button
+            type="button"
+            onClick={() => handleSubmit()}
+            className="flex items-center gap-3 transition-all duration-150 hover:-translate-y-0.5 active:translate-y-0"
+            style={{
+              background: 'linear-gradient(180deg, rgba(47,107,255,1) 0%, rgba(47,107,255,0.72) 100%)',
+              border: '1px solid rgba(255,255,255,0.18)',
+              borderRadius: '14px',
+              padding: '14px 28px',
+              boxShadow: '0 18px 40px rgba(0,0,0,0.40), inset 0 1px 0 rgba(255,255,255,0.18)',
+              fontFamily: "'Exo 2', sans-serif",
+              fontSize: '15px',
+              fontWeight: 700,
+              letterSpacing: '0.5px',
+              color: 'white'
+            }}
+          >
+            <Save className="w-5 h-5" />
+            GUARDAR LEAD
+          </button>
+        </div>
       </div>
-    </ModuleTemplate>
+    </div>
   );
 };
