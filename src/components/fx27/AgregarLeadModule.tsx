@@ -1,7 +1,7 @@
 import { ModuleTemplate } from './ModuleTemplate';
 import { useState, useEffect } from 'react';
 import { MODULE_IMAGES } from '../../assets/module-images';
-import { Building2, Globe, User, Phone, Mail, MapPinned, MapPin, Users, Calendar, Truck, DollarSign, TrendingUp, AlertCircle, FileText, Save, Check } from 'lucide-react';
+import { Building2, Globe, User, Phone, Mail, MapPinned, MapPin, Users, Calendar, TrendingUp, AlertCircle, Save, Check } from 'lucide-react';
 import { projectId, publicAnonKey } from '../../utils/supabase/info';
 
 interface AgregarLeadModuleProps {
@@ -232,42 +232,67 @@ export const AgregarLeadModule = ({ onBack }: AgregarLeadModuleProps) => {
   // COMPONENTE: Checkbox Moderno OS Style
   // ═══════════════════════════════════════════════════════════════
   const ModernCheckbox = ({ checked, onChange, label, color = '#3B82F6' }: { checked: boolean; onChange: (v: boolean) => void; label: string; color?: string }) => (
-    <label className="flex items-center gap-2.5 cursor-pointer group">
+    <label className="flex items-center gap-2 cursor-pointer group">
       <div 
         onClick={(e) => { e.preventDefault(); onChange(!checked); }}
-        className="relative flex items-center justify-center transition-all duration-150"
+        className="flex items-center justify-center transition-all duration-150"
         style={{
-          width: '18px',
-          height: '18px',
-          borderRadius: '5px',
-          background: checked ? color : 'rgba(255,255,255,0.04)',
-          border: `1.5px solid ${checked ? color : 'rgba(255,255,255,0.18)'}`,
-          boxShadow: checked ? `0 4px 12px ${color}40, inset 0 1px 0 rgba(255,255,255,0.15)` : 'inset 0 1px 2px rgba(0,0,0,0.15)'
+          width: '16px',
+          height: '16px',
+          borderRadius: '4px',
+          background: checked ? color : 'rgba(255,255,255,0.06)',
+          border: `1.5px solid ${checked ? color : 'rgba(255,255,255,0.20)'}`,
+          boxShadow: checked ? `0 3px 10px ${color}50` : 'inset 0 1px 2px rgba(0,0,0,0.20)'
         }}
       >
-        {checked && <Check className="w-3 h-3 text-white" strokeWidth={3} />}
+        {checked && <Check className="w-2.5 h-2.5 text-white" strokeWidth={3} />}
       </div>
-      <span 
-        className="transition-colors text-[12px]"
-        style={{ 
-          color: checked ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.60)',
-          fontFamily: "'Exo 2', sans-serif",
-          fontWeight: checked ? 600 : 500
-        }}
-      >
+      <span style={{ color: checked ? '#EAF2FF' : '#A9B7D0', fontFamily: "'Exo 2', sans-serif", fontSize: '12px', fontWeight: checked ? 600 : 500 }}>
         {label}
       </span>
     </label>
   );
 
+  // Estilos reutilizables - tipografía legible
+  const cardStyle = {
+    background: 'linear-gradient(180deg, rgba(10,24,46,0.55) 0%, rgba(10,24,46,0.40) 100%)',
+    border: '1px solid rgba(255,255,255,0.08)',
+    borderRadius: '14px',
+    padding: '12px',
+    boxShadow: '0 8px 24px rgba(0,0,0,0.30), inset 0 1px 0 rgba(255,255,255,0.06)'
+  };
+
+  const inputStyle = {
+    background: 'rgba(255,255,255,0.04)',
+    border: '1px solid rgba(255,255,255,0.10)',
+    borderRadius: '10px',
+    padding: '8px 12px',
+    color: '#EAF2FF',
+    fontFamily: "'Exo 2', sans-serif",
+    fontSize: '13px',
+    width: '100%',
+    outline: 'none',
+    boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.18)'
+  };
+
+  const labelStyle = {
+    color: '#A9B7D0',
+    fontFamily: "'Exo 2', sans-serif",
+    fontSize: '12px',
+    fontWeight: 600,
+    marginBottom: '6px',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '6px'
+  };
+
   return (
     <ModuleTemplate title="Agregar Lead" onBack={onBack} headerImage={MODULE_IMAGES.AGREGAR_LEAD}>
       {/* ═══════════════════════════════════════════════════════════════
-          FONDO GLOBAL AAA - IDÉNTICO AL PANEL DE OPORTUNIDADES
-          Radial gradient oscuro + noise + glow sutil + vignette
+          FONDO GLOBAL AAA - Idéntico al Panel de Oportunidades
           ═══════════════════════════════════════════════════════════════ */}
       <div 
-        className="flex flex-col h-[calc(100vh-120px)] relative"
+        className="flex flex-col h-[calc(100vh-120px)] relative overflow-hidden"
         style={{
           background: `
             radial-gradient(ellipse 120% 80% at 50% 20%, rgba(37,99,235,0.95) 0%, rgba(30,64,175,0.98) 40%, rgba(15,23,42,1) 100%),
@@ -275,82 +300,42 @@ export const AgregarLeadModule = ({ onBack }: AgregarLeadModuleProps) => {
           `
         }}
       >
-        {/* Noise texture overlay - muy sutil */}
-        <div 
-          className="absolute inset-0 pointer-events-none z-0"
-          style={{
-            backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E")`,
-            opacity: 0.035,
-            mixBlendMode: 'overlay'
-          }}
-        />
+        {/* Noise texture */}
+        <div className="absolute inset-0 pointer-events-none z-0" style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E")`, opacity: 0.035, mixBlendMode: 'overlay' }} />
         
-        {/* Radial glow behind main container - hace que "flote" */}
-        <div 
-          className="absolute inset-0 pointer-events-none z-0"
-          style={{
-            background: `
-              radial-gradient(ellipse 70% 50% at 50% 45%, rgba(59,130,246,0.12) 0%, transparent 60%),
-              radial-gradient(ellipse 90% 60% at 50% 50%, rgba(30,58,138,0.20) 0%, transparent 70%)
-            `
-          }}
-        />
+        {/* Radial glow */}
+        <div className="absolute inset-0 pointer-events-none z-0" style={{ background: `radial-gradient(ellipse 70% 50% at 50% 45%, rgba(59,130,246,0.12) 0%, transparent 60%), radial-gradient(ellipse 90% 60% at 50% 50%, rgba(30,58,138,0.20) 0%, transparent 70%)` }} />
         
-        {/* Vignette sutil en esquinas */}
-        <div 
-          className="absolute inset-0 pointer-events-none z-0"
-          style={{
-            background: 'radial-gradient(ellipse 100% 100% at 50% 50%, transparent 40%, rgba(0,0,0,0.25) 100%)'
-          }}
-        />
+        {/* Vignette */}
+        <div className="absolute inset-0 pointer-events-none z-0" style={{ background: 'radial-gradient(ellipse 100% 100% at 50% 50%, transparent 40%, rgba(0,0,0,0.25) 100%)' }} />
 
         {/* ═══════════════════════════════════════════════════════════════
-            CONTENEDOR PRINCIPAL - MEGA CARD FLOTANTE CON GLASS
+            CONTENEDOR PRINCIPAL - Sin scroll, todo cabe
             ═══════════════════════════════════════════════════════════════ */}
         <div 
-          className="flex-1 mx-4 mt-4 mb-4 rounded-2xl relative z-10 flex flex-col overflow-hidden"
+          className="flex-1 mx-4 my-4 rounded-2xl relative z-10 flex flex-col overflow-hidden"
           style={{
             background: 'linear-gradient(180deg, rgba(15,23,42,0.95) 0%, rgba(15,23,42,0.98) 100%)',
             border: '1px solid rgba(255,255,255,0.08)',
-            boxShadow: `
-              0 30px 80px rgba(0,0,0,0.45),
-              0 15px 35px rgba(0,0,0,0.30),
-              inset 0 1px 0 rgba(255,255,255,0.08),
-              inset 0 0 0 1px rgba(255,255,255,0.04)
-            `,
+            boxShadow: '0 24px 70px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.08), inset 0 0 0 1px rgba(255,255,255,0.04)',
             backdropFilter: 'blur(20px)'
           }}
         >
-          {/* ÁREA DE SCROLL */}
-          <div 
-            className="flex-1 overflow-y-auto p-5"
-            style={{ 
-              scrollbarWidth: 'thin', 
-              scrollbarColor: 'rgba(100,116,139,0.3) transparent' 
-            }}
-          >
-            <form onSubmit={handleSubmit}>
-              <div className="grid grid-cols-3 gap-5">
+          {/* CONTENIDO - Sin scroll */}
+          <div className="flex-1 p-4 flex flex-col">
+            <form onSubmit={handleSubmit} className="flex-1 flex flex-col">
+              <div className="grid grid-cols-3 gap-4 flex-1">
                 
                 {/* ═══════════════════════════════════════════════════════════════
                     COLUMNA 1: EMPRESA + CONTACTO + UBICACIÓN
                     ═══════════════════════════════════════════════════════════════ */}
-                <div className="space-y-3">
+                <div className="flex flex-col gap-2.5">
                   
-                  {/* 🏢 NIVEL 1: EMPRESA - Card con profundidad */}
-                  <div 
-                    className="transition-all duration-150 hover:-translate-y-0.5"
-                    style={{
-                      background: 'linear-gradient(180deg, rgba(10,24,46,0.60) 0%, rgba(10,24,46,0.45) 100%)',
-                      border: '1px solid rgba(255,255,255,0.08)',
-                      borderRadius: '16px',
-                      padding: '16px',
-                      boxShadow: '0 10px 30px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.06)'
-                    }}
-                  >
-                    <div className="flex items-center gap-2 mb-3">
+                  {/* NIVEL 1: EMPRESA */}
+                  <div style={cardStyle} className="hover:-translate-y-0.5 transition-transform">
+                    <div className="flex items-center gap-2 mb-2">
                       <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#22C55E', boxShadow: '0 0 8px rgba(34,197,94,0.50)' }} />
-                      <span style={{ color: '#4ADE80', fontFamily: "'Exo 2', sans-serif", fontSize: '11px', fontWeight: 700, letterSpacing: '0.08em' }}>
+                      <span style={{ color: '#4ADE80', fontFamily: "'Exo 2', sans-serif", fontSize: '12px', fontWeight: 700, letterSpacing: '0.06em' }}>
                         NIVEL 1 • EMPRESA
                       </span>
                     </div>
@@ -360,446 +345,161 @@ export const AgregarLeadModule = ({ onBack }: AgregarLeadModuleProps) => {
                       onChange={(e) => handleInputChange('nombreEmpresa', e.target.value)}
                       placeholder="EMPRESA S.A. DE C.V."
                       required
-                      className="w-full transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/50"
-                      style={{
-                        background: 'rgba(255,255,255,0.04)',
-                        border: '1px solid rgba(255,255,255,0.10)',
-                        borderRadius: '12px',
-                        padding: '12px 16px',
-                        color: '#EAF2FF',
-                        fontFamily: "'Exo 2', sans-serif",
-                        fontSize: '15px',
-                        fontWeight: 700,
-                        boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.20)'
-                      }}
+                      className="focus:ring-2 focus:ring-blue-500/40"
+                      style={{ ...inputStyle, fontSize: '14px', fontWeight: 700, padding: '10px 14px' }}
                     />
                   </div>
 
-                  {/* Cards restantes con profundidad */}
-                  {[
-                    { icon: Globe, label: 'Página Web', field: 'paginaWeb', placeholder: 'www.empresa.com' },
-                    { icon: User, label: 'Nombre Contacto', field: 'nombreContacto', placeholder: 'Juan Pérez' },
-                  ].map(({ icon: Icon, label, field, placeholder }) => (
-                    <div 
-                      key={field}
-                      className="transition-all duration-150 hover:-translate-y-0.5 hover:border-white/12"
-                      style={{
-                        background: 'linear-gradient(180deg, rgba(10,24,46,0.50) 0%, rgba(10,24,46,0.35) 100%)',
-                        border: '1px solid rgba(255,255,255,0.06)',
-                        borderRadius: '14px',
-                        padding: '14px',
-                        boxShadow: '0 8px 24px rgba(0,0,0,0.30), inset 0 1px 0 rgba(255,255,255,0.05)'
-                      }}
-                    >
-                      <div className="flex items-center gap-2 mb-2">
-                        <Icon className="w-3.5 h-3.5" style={{ color: 'rgba(148,163,184,0.80)' }} />
-                        <span style={{ color: 'rgba(148,163,184,0.90)', fontFamily: "'Exo 2', sans-serif", fontSize: '11px', fontWeight: 600 }}>
-                          {label}
-                        </span>
-                      </div>
-                      <input
-                        type="text"
-                        value={formData[field as keyof Lead] as string || ''}
-                        onChange={(e) => handleInputChange(field as keyof Lead, e.target.value)}
-                        placeholder={placeholder}
-                        className="w-full transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-blue-500/35 focus:border-blue-500/40"
-                        style={{
-                          background: 'rgba(255,255,255,0.04)',
-                          border: '1px solid rgba(255,255,255,0.08)',
-                          borderRadius: '10px',
-                          padding: '10px 14px',
-                          color: '#EAF2FF',
-                          fontFamily: "'Exo 2', sans-serif",
-                          fontSize: '13px',
-                          boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.15)'
-                        }}
-                      />
+                  {/* Página Web + Contacto */}
+                  <div className="grid grid-cols-2 gap-2">
+                    <div style={cardStyle} className="hover:-translate-y-0.5 transition-transform">
+                      <div style={labelStyle as any}><Globe className="w-3.5 h-3.5" /> Web</div>
+                      <input type="text" value={formData.paginaWeb} onChange={(e) => handleInputChange('paginaWeb', e.target.value)} placeholder="www.empresa.com" className="focus:ring-2 focus:ring-blue-500/35" style={inputStyle} />
                     </div>
-                  ))}
-
-                  {/* Grid 2 columnas: Teléfono + Email */}
-                  <div className="grid grid-cols-2 gap-3">
-                    {[
-                      { icon: Phone, label: 'Teléfono', field: 'telefonoContacto', placeholder: '55 1234 5678', type: 'tel' },
-                      { icon: Mail, label: 'Email', field: 'correoElectronico', placeholder: 'contacto@empresa.com', type: 'email' },
-                    ].map(({ icon: Icon, label, field, placeholder, type }) => (
-                      <div 
-                        key={field}
-                        className="transition-all duration-150 hover:-translate-y-0.5"
-                        style={{
-                          background: 'linear-gradient(180deg, rgba(10,24,46,0.50) 0%, rgba(10,24,46,0.35) 100%)',
-                          border: '1px solid rgba(255,255,255,0.06)',
-                          borderRadius: '14px',
-                          padding: '12px',
-                          boxShadow: '0 8px 24px rgba(0,0,0,0.30), inset 0 1px 0 rgba(255,255,255,0.05)'
-                        }}
-                      >
-                        <div className="flex items-center gap-1.5 mb-2">
-                          <Icon className="w-3 h-3" style={{ color: 'rgba(148,163,184,0.80)' }} />
-                          <span style={{ color: 'rgba(148,163,184,0.90)', fontFamily: "'Exo 2', sans-serif", fontSize: '10px', fontWeight: 600 }}>
-                            {label}
-                          </span>
-                        </div>
-                        <input
-                          type={type}
-                          value={formData[field as keyof Lead] as string || ''}
-                          onChange={(e) => handleInputChange(field as keyof Lead, e.target.value)}
-                          placeholder={placeholder}
-                          className="w-full transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-blue-500/35"
-                          style={{
-                            background: 'rgba(255,255,255,0.04)',
-                            border: '1px solid rgba(255,255,255,0.08)',
-                            borderRadius: '10px',
-                            padding: '8px 12px',
-                            color: '#EAF2FF',
-                            fontFamily: "'Exo 2', sans-serif",
-                            fontSize: '12px',
-                            boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.15)'
-                          }}
-                        />
-                      </div>
-                    ))}
+                    <div style={cardStyle} className="hover:-translate-y-0.5 transition-transform">
+                      <div style={labelStyle as any}><User className="w-3.5 h-3.5" /> Contacto</div>
+                      <input type="text" value={formData.nombreContacto} onChange={(e) => handleInputChange('nombreContacto', e.target.value)} placeholder="Juan Pérez" className="focus:ring-2 focus:ring-blue-500/35" style={inputStyle} />
+                    </div>
                   </div>
 
-                  {/* Tipo de Empresa - Select */}
-                  <div 
-                    className="transition-all duration-150 hover:-translate-y-0.5"
-                    style={{
-                      background: 'linear-gradient(180deg, rgba(10,24,46,0.50) 0%, rgba(10,24,46,0.35) 100%)',
-                      border: '1px solid rgba(255,255,255,0.06)',
-                      borderRadius: '14px',
-                      padding: '14px',
-                      boxShadow: '0 8px 24px rgba(0,0,0,0.30), inset 0 1px 0 rgba(255,255,255,0.05)'
-                    }}
-                  >
-                    <div className="flex items-center gap-2 mb-2">
-                      <Building2 className="w-3.5 h-3.5" style={{ color: 'rgba(148,163,184,0.80)' }} />
-                      <span style={{ color: 'rgba(148,163,184,0.90)', fontFamily: "'Exo 2', sans-serif", fontSize: '11px', fontWeight: 600 }}>
-                        Tipo de Empresa
-                      </span>
+                  {/* Teléfono + Email */}
+                  <div className="grid grid-cols-2 gap-2">
+                    <div style={cardStyle} className="hover:-translate-y-0.5 transition-transform">
+                      <div style={labelStyle as any}><Phone className="w-3.5 h-3.5" /> Teléfono</div>
+                      <input type="tel" value={formData.telefonoContacto} onChange={(e) => handleInputChange('telefonoContacto', e.target.value)} placeholder="55 1234 5678" className="focus:ring-2 focus:ring-blue-500/35" style={inputStyle} />
                     </div>
-                    <select
-                      value={formData.tipoEmpresa}
-                      onChange={(e) => handleInputChange('tipoEmpresa', e.target.value)}
-                      className="w-full cursor-pointer transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-blue-500/35"
-                      style={{
-                        background: 'rgba(255,255,255,0.04)',
-                        border: '1px solid rgba(255,255,255,0.08)',
-                        borderRadius: '10px',
-                        padding: '10px 14px',
-                        color: '#EAF2FF',
-                        fontFamily: "'Exo 2', sans-serif",
-                        fontSize: '12px'
-                      }}
-                    >
+                    <div style={cardStyle} className="hover:-translate-y-0.5 transition-transform">
+                      <div style={labelStyle as any}><Mail className="w-3.5 h-3.5" /> Email</div>
+                      <input type="email" value={formData.correoElectronico} onChange={(e) => handleInputChange('correoElectronico', e.target.value)} placeholder="contacto@empresa.com" className="focus:ring-2 focus:ring-blue-500/35" style={inputStyle} />
+                    </div>
+                  </div>
+
+                  {/* Tipo de Empresa */}
+                  <div style={cardStyle} className="hover:-translate-y-0.5 transition-transform">
+                    <div style={labelStyle as any}><Building2 className="w-3.5 h-3.5" /> Tipo de Empresa</div>
+                    <select value={formData.tipoEmpresa} onChange={(e) => handleInputChange('tipoEmpresa', e.target.value)} className="cursor-pointer focus:ring-2 focus:ring-blue-500/35" style={inputStyle}>
                       <option value="">Selecciona...</option>
                       {TIPOS_EMPRESA.map(tipo => <option key={tipo} value={tipo}>{tipo}</option>)}
                     </select>
                   </div>
 
-                  {/* Grid 2 columnas: Ciudad + Estado */}
-                  <div className="grid grid-cols-2 gap-3">
-                    {[
-                      { icon: MapPinned, label: 'Ciudad', field: 'ciudad', placeholder: 'Monterrey' },
-                      { icon: MapPin, label: 'Estado', field: 'estado', placeholder: 'Nuevo León' },
-                    ].map(({ icon: Icon, label, field, placeholder }) => (
-                      <div 
-                        key={field}
-                        className="transition-all duration-150 hover:-translate-y-0.5"
-                        style={{
-                          background: 'linear-gradient(180deg, rgba(10,24,46,0.50) 0%, rgba(10,24,46,0.35) 100%)',
-                          border: '1px solid rgba(255,255,255,0.06)',
-                          borderRadius: '14px',
-                          padding: '12px',
-                          boxShadow: '0 8px 24px rgba(0,0,0,0.30), inset 0 1px 0 rgba(255,255,255,0.05)'
-                        }}
-                      >
-                        <div className="flex items-center gap-1.5 mb-2">
-                          <Icon className="w-3 h-3" style={{ color: 'rgba(148,163,184,0.80)' }} />
-                          <span style={{ color: 'rgba(148,163,184,0.90)', fontFamily: "'Exo 2', sans-serif", fontSize: '10px', fontWeight: 600 }}>
-                            {label}
-                          </span>
-                        </div>
-                        <input
-                          type="text"
-                          value={formData[field as keyof Lead] as string || ''}
-                          onChange={(e) => handleInputChange(field as keyof Lead, e.target.value)}
-                          placeholder={placeholder}
-                          className="w-full transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-blue-500/35"
-                          style={{
-                            background: 'rgba(255,255,255,0.04)',
-                            border: '1px solid rgba(255,255,255,0.08)',
-                            borderRadius: '10px',
-                            padding: '8px 12px',
-                            color: '#EAF2FF',
-                            fontFamily: "'Exo 2', sans-serif",
-                            fontSize: '12px',
-                            boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.15)'
-                          }}
-                        />
-                      </div>
-                    ))}
+                  {/* Ciudad + Estado */}
+                  <div className="grid grid-cols-2 gap-2">
+                    <div style={cardStyle} className="hover:-translate-y-0.5 transition-transform">
+                      <div style={labelStyle as any}><MapPinned className="w-3.5 h-3.5" /> Ciudad</div>
+                      <input type="text" value={formData.ciudad} onChange={(e) => handleInputChange('ciudad', e.target.value)} placeholder="Monterrey" className="focus:ring-2 focus:ring-blue-500/35" style={inputStyle} />
+                    </div>
+                    <div style={cardStyle} className="hover:-translate-y-0.5 transition-transform">
+                      <div style={labelStyle as any}><MapPin className="w-3.5 h-3.5" /> Estado</div>
+                      <input type="text" value={formData.estado} onChange={(e) => handleInputChange('estado', e.target.value)} placeholder="Nuevo León" className="focus:ring-2 focus:ring-blue-500/35" style={inputStyle} />
+                    </div>
                   </div>
 
-                  {/* Grid 2 columnas: Prioridad + Tamaño */}
-                  <div className="grid grid-cols-2 gap-3">
-                    <div 
-                      className="transition-all duration-150 hover:-translate-y-0.5"
-                      style={{
-                        background: 'linear-gradient(180deg, rgba(10,24,46,0.50) 0%, rgba(10,24,46,0.35) 100%)',
-                        border: '1px solid rgba(255,255,255,0.06)',
-                        borderRadius: '14px',
-                        padding: '12px',
-                        boxShadow: '0 8px 24px rgba(0,0,0,0.30), inset 0 1px 0 rgba(255,255,255,0.05)'
-                      }}
-                    >
-                      <div className="flex items-center gap-1.5 mb-2">
-                        <AlertCircle className="w-3 h-3" style={{ color: 'rgba(148,163,184,0.80)' }} />
-                        <span style={{ color: 'rgba(148,163,184,0.90)', fontFamily: "'Exo 2', sans-serif", fontSize: '10px', fontWeight: 600 }}>
-                          Prioridad
-                        </span>
-                      </div>
-                      <select
-                        value={formData.prioridad}
-                        onChange={(e) => handleInputChange('prioridad', e.target.value)}
-                        className="w-full cursor-pointer transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-blue-500/35"
-                        style={{
-                          background: 'rgba(255,255,255,0.04)',
-                          border: '1px solid rgba(255,255,255,0.08)',
-                          borderRadius: '10px',
-                          padding: '8px 12px',
-                          color: '#EAF2FF',
-                          fontFamily: "'Exo 2', sans-serif",
-                          fontSize: '12px'
-                        }}
-                      >
+                  {/* Prioridad + Tamaño + Fecha */}
+                  <div className="grid grid-cols-3 gap-2">
+                    <div style={cardStyle} className="hover:-translate-y-0.5 transition-transform">
+                      <div style={labelStyle as any}><AlertCircle className="w-3 h-3" /> Prioridad</div>
+                      <select value={formData.prioridad} onChange={(e) => handleInputChange('prioridad', e.target.value)} className="cursor-pointer focus:ring-2 focus:ring-blue-500/35" style={{ ...inputStyle, fontSize: '12px' }}>
                         {PRIORIDADES.map(p => <option key={p} value={p}>{p}</option>)}
                       </select>
                     </div>
-                    <div 
-                      className="transition-all duration-150 hover:-translate-y-0.5"
-                      style={{
-                        background: 'linear-gradient(180deg, rgba(10,24,46,0.50) 0%, rgba(10,24,46,0.35) 100%)',
-                        border: '1px solid rgba(255,255,255,0.06)',
-                        borderRadius: '14px',
-                        padding: '12px',
-                        boxShadow: '0 8px 24px rgba(0,0,0,0.30), inset 0 1px 0 rgba(255,255,255,0.05)'
-                      }}
-                    >
-                      <div className="flex items-center gap-1.5 mb-2">
-                        <Users className="w-3 h-3" style={{ color: 'rgba(148,163,184,0.80)' }} />
-                        <span style={{ color: 'rgba(148,163,184,0.90)', fontFamily: "'Exo 2', sans-serif", fontSize: '10px', fontWeight: 600 }}>
-                          Tamaño
-                        </span>
-                      </div>
-                      <select
-                        value={formData.tamanoEmpresa}
-                        onChange={(e) => handleInputChange('tamanoEmpresa', e.target.value)}
-                        className="w-full cursor-pointer transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-blue-500/35"
-                        style={{
-                          background: 'rgba(255,255,255,0.04)',
-                          border: '1px solid rgba(255,255,255,0.08)',
-                          borderRadius: '10px',
-                          padding: '8px 12px',
-                          color: '#EAF2FF',
-                          fontFamily: "'Exo 2', sans-serif",
-                          fontSize: '12px'
-                        }}
-                      >
-                        <option value="">Selecciona...</option>
+                    <div style={cardStyle} className="hover:-translate-y-0.5 transition-transform">
+                      <div style={labelStyle as any}><Users className="w-3 h-3" /> Tamaño</div>
+                      <select value={formData.tamanoEmpresa} onChange={(e) => handleInputChange('tamanoEmpresa', e.target.value)} className="cursor-pointer focus:ring-2 focus:ring-blue-500/35" style={{ ...inputStyle, fontSize: '11px' }}>
+                        <option value="">-</option>
                         {TAMANOS_EMPRESA.map(t => <option key={t} value={t}>{t}</option>)}
                       </select>
                     </div>
-                  </div>
-
-                  {/* Fecha Estimada de Cierre */}
-                  <div 
-                    className="transition-all duration-150 hover:-translate-y-0.5"
-                    style={{
-                      background: 'linear-gradient(180deg, rgba(10,24,46,0.50) 0%, rgba(10,24,46,0.35) 100%)',
-                      border: '1px solid rgba(255,255,255,0.06)',
-                      borderRadius: '14px',
-                      padding: '14px',
-                      boxShadow: '0 8px 24px rgba(0,0,0,0.30), inset 0 1px 0 rgba(255,255,255,0.05)'
-                    }}
-                  >
-                    <div className="flex items-center gap-2 mb-2">
-                      <Calendar className="w-3.5 h-3.5" style={{ color: 'rgba(148,163,184,0.80)' }} />
-                      <span style={{ color: 'rgba(148,163,184,0.90)', fontFamily: "'Exo 2', sans-serif", fontSize: '11px', fontWeight: 600 }}>
-                        Fecha Estimada de Cierre
-                      </span>
+                    <div style={cardStyle} className="hover:-translate-y-0.5 transition-transform">
+                      <div style={labelStyle as any}><Calendar className="w-3 h-3" /> Cierre</div>
+                      <input type="date" value={formData.fechaEstimadaCierre} onChange={(e) => handleInputChange('fechaEstimadaCierre', e.target.value)} className="focus:ring-2 focus:ring-blue-500/35" style={{ ...inputStyle, fontFamily: "'Orbitron', monospace", fontSize: '11px' }} />
                     </div>
-                    <input
-                      type="date"
-                      value={formData.fechaEstimadaCierre}
-                      onChange={(e) => handleInputChange('fechaEstimadaCierre', e.target.value)}
-                      className="w-full transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-blue-500/35"
-                      style={{
-                        background: 'rgba(255,255,255,0.04)',
-                        border: '1px solid rgba(255,255,255,0.08)',
-                        borderRadius: '10px',
-                        padding: '10px 14px',
-                        color: '#EAF2FF',
-                        fontFamily: "'Orbitron', monospace",
-                        fontSize: '13px',
-                        fontVariantNumeric: 'tabular-nums'
-                      }}
-                    />
                   </div>
                 </div>
 
                 {/* ═══════════════════════════════════════════════════════════════
-                    COLUMNA 2: SERVICIOS + NOTAS
+                    COLUMNA 2: SERVICIOS + VIAJE + NOTAS
                     ═══════════════════════════════════════════════════════════════ */}
-                <div className="space-y-3">
+                <div className="flex flex-col gap-2.5">
                   
-                  {/* Tipo de Servicio - Toggles OS */}
-                  <div 
-                    className="transition-all duration-150 hover:-translate-y-0.5"
-                    style={{
-                      background: 'linear-gradient(180deg, rgba(10,24,46,0.60) 0%, rgba(10,24,46,0.45) 100%)',
-                      border: '1px solid rgba(255,255,255,0.08)',
-                      borderRadius: '16px',
-                      padding: '16px',
-                      boxShadow: '0 10px 30px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.06)'
-                    }}
-                  >
-                    <div className="flex items-center gap-2 mb-3">
+                  {/* Tipo de Servicio */}
+                  <div style={cardStyle} className="hover:-translate-y-0.5 transition-transform">
+                    <div className="flex items-center gap-2 mb-2">
                       <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#3B82F6', boxShadow: '0 0 8px rgba(59,130,246,0.50)' }} />
-                      <span style={{ color: 'rgba(147,197,253,0.95)', fontFamily: "'Exo 2', sans-serif", fontSize: '11px', fontWeight: 600 }}>
-                        Tipo de Servicio
-                      </span>
+                      <span style={{ color: 'rgba(147,197,253,0.95)', fontFamily: "'Exo 2', sans-serif", fontSize: '12px', fontWeight: 600 }}>Tipo de Servicio</span>
                     </div>
-                    <div className="grid grid-cols-2 gap-2">
+                    <div className="grid grid-cols-2 gap-1.5">
                       {TIPOS_SERVICIO.map(tipo => {
                         const isActive = formData.tipoServicio?.includes(tipo);
                         return (
-                          <button
-                            key={tipo}
-                            type="button"
-                            onClick={() => handleToggleTipoServicio(tipo)}
-                            className="transition-all duration-150 hover:-translate-y-0.5 active:translate-y-0"
+                          <button key={tipo} type="button" onClick={() => handleToggleTipoServicio(tipo)} className="transition-all duration-150 hover:-translate-y-0.5 active:translate-y-0"
                             style={{
-                              background: isActive 
-                                ? 'linear-gradient(180deg, rgba(59,130,246,0.95) 0%, rgba(59,130,246,0.70) 100%)'
-                                : 'rgba(255,255,255,0.04)',
-                              border: `1px solid ${isActive ? 'rgba(147,197,253,0.40)' : 'rgba(255,255,255,0.08)'}`,
-                              borderRadius: '999px',
-                              padding: '10px 14px',
-                              color: isActive ? 'white' : 'rgba(255,255,255,0.55)',
-                              fontFamily: "'Exo 2', sans-serif",
-                              fontSize: '11px',
-                              fontWeight: isActive ? 700 : 500,
-                              boxShadow: isActive 
-                                ? '0 8px 20px rgba(59,130,246,0.35), inset 0 1px 0 rgba(255,255,255,0.15)' 
-                                : 'inset 0 1px 2px rgba(0,0,0,0.15)'
+                              background: isActive ? 'linear-gradient(180deg, rgba(59,130,246,0.90) 0%, rgba(59,130,246,0.65) 100%)' : 'rgba(255,255,255,0.05)',
+                              border: `1px solid ${isActive ? 'rgba(147,197,253,0.45)' : 'rgba(255,255,255,0.10)'}`,
+                              borderRadius: '999px', padding: '8px 12px',
+                              color: isActive ? 'white' : '#A9B7D0',
+                              fontFamily: "'Exo 2', sans-serif", fontSize: '11px', fontWeight: isActive ? 700 : 500,
+                              boxShadow: isActive ? '0 6px 16px rgba(59,130,246,0.35), inset 0 1px 0 rgba(255,255,255,0.15)' : 'inset 0 1px 2px rgba(0,0,0,0.15)'
                             }}
-                          >
-                            {tipo}
-                          </button>
+                          >{tipo}</button>
                         );
                       })}
                     </div>
                   </div>
 
-                  {/* Tipo de Viaje - Toggles OS */}
-                  <div 
-                    className="transition-all duration-150 hover:-translate-y-0.5"
-                    style={{
-                      background: 'linear-gradient(180deg, rgba(10,24,46,0.60) 0%, rgba(10,24,46,0.45) 100%)',
-                      border: '1px solid rgba(255,255,255,0.08)',
-                      borderRadius: '16px',
-                      padding: '16px',
-                      boxShadow: '0 10px 30px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.06)'
-                    }}
-                  >
-                    <div className="flex items-center gap-2 mb-3">
+                  {/* Tipo de Viaje */}
+                  <div style={cardStyle} className="hover:-translate-y-0.5 transition-transform">
+                    <div className="flex items-center gap-2 mb-2">
                       <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#22C55E', boxShadow: '0 0 8px rgba(34,197,94,0.50)' }} />
-                      <span style={{ color: 'rgba(134,239,172,0.95)', fontFamily: "'Exo 2', sans-serif", fontSize: '11px', fontWeight: 600 }}>
-                        Tipo de Viaje
-                      </span>
+                      <span style={{ color: 'rgba(134,239,172,0.95)', fontFamily: "'Exo 2', sans-serif", fontSize: '12px', fontWeight: 600 }}>Tipo de Viaje</span>
                     </div>
-                    <div className="grid grid-cols-2 gap-2">
+                    <div className="grid grid-cols-2 gap-1.5">
                       {TIPOS_VIAJE.map(tipo => {
                         const isActive = formData.tipoViaje?.includes(tipo);
                         return (
-                          <button
-                            key={tipo}
-                            type="button"
-                            onClick={() => handleToggleTipoViaje(tipo)}
-                            className="transition-all duration-150 hover:-translate-y-0.5 active:translate-y-0"
+                          <button key={tipo} type="button" onClick={() => handleToggleTipoViaje(tipo)} className="transition-all duration-150 hover:-translate-y-0.5 active:translate-y-0"
                             style={{
-                              background: isActive 
-                                ? 'linear-gradient(180deg, rgba(34,197,94,0.95) 0%, rgba(34,197,94,0.70) 100%)'
-                                : 'rgba(255,255,255,0.04)',
-                              border: `1px solid ${isActive ? 'rgba(134,239,172,0.40)' : 'rgba(255,255,255,0.08)'}`,
-                              borderRadius: '999px',
-                              padding: '10px 14px',
-                              color: isActive ? 'white' : 'rgba(255,255,255,0.55)',
-                              fontFamily: "'Exo 2', sans-serif",
-                              fontSize: '11px',
-                              fontWeight: isActive ? 700 : 500,
-                              boxShadow: isActive 
-                                ? '0 8px 20px rgba(34,197,94,0.35), inset 0 1px 0 rgba(255,255,255,0.15)' 
-                                : 'inset 0 1px 2px rgba(0,0,0,0.15)'
+                              background: isActive ? 'linear-gradient(180deg, rgba(34,197,94,0.90) 0%, rgba(34,197,94,0.65) 100%)' : 'rgba(255,255,255,0.05)',
+                              border: `1px solid ${isActive ? 'rgba(134,239,172,0.45)' : 'rgba(255,255,255,0.10)'}`,
+                              borderRadius: '999px', padding: '8px 12px',
+                              color: isActive ? 'white' : '#A9B7D0',
+                              fontFamily: "'Exo 2', sans-serif", fontSize: '11px', fontWeight: isActive ? 700 : 500,
+                              boxShadow: isActive ? '0 6px 16px rgba(34,197,94,0.35), inset 0 1px 0 rgba(255,255,255,0.15)' : 'inset 0 1px 2px rgba(0,0,0,0.15)'
                             }}
-                          >
-                            {tipo}
-                          </button>
+                          >{tipo}</button>
                         );
                       })}
                     </div>
-
-                    {/* Checkboxes Transbordo y DTD */}
-                    <div className="grid grid-cols-2 gap-4 mt-4 pt-3" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
-                      <ModernCheckbox 
-                        checked={formData.transbordo || false}
-                        onChange={(v) => setFormData({ ...formData, transbordo: v })}
-                        label="Transbordo"
-                        color="#22C55E"
-                      />
-                      <ModernCheckbox 
-                        checked={formData.dtd || false}
-                        onChange={(v) => setFormData({ ...formData, dtd: v })}
-                        label="DTD"
-                        color="#22C55E"
-                      />
+                    {/* Checkboxes */}
+                    <div className="flex gap-6 mt-3 pt-2" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+                      <ModernCheckbox checked={formData.transbordo || false} onChange={(v) => setFormData({ ...formData, transbordo: v })} label="Transbordo" color="#22C55E" />
+                      <ModernCheckbox checked={formData.dtd || false} onChange={(v) => setFormData({ ...formData, dtd: v })} label="DTD" color="#22C55E" />
                     </div>
                   </div>
 
-                  {/* Próximos Pasos - Textarea premium */}
-                  <div 
-                    className="transition-all duration-150 hover:-translate-y-0.5"
-                    style={{
-                      background: 'linear-gradient(180deg, rgba(10,24,46,0.60) 0%, rgba(10,24,46,0.45) 100%)',
-                      border: '1px solid rgba(255,255,255,0.08)',
-                      borderRadius: '16px',
-                      padding: '16px',
-                      boxShadow: '0 10px 30px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.06)'
-                    }}
-                  >
-                    <div className="flex items-center gap-2 mb-3">
+                  {/* Próximos Pasos */}
+                  <div style={{ ...cardStyle, flex: 1, display: 'flex', flexDirection: 'column' }} className="hover:-translate-y-0.5 transition-transform">
+                    <div className="flex items-center gap-2 mb-2">
                       <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#F59E0B', boxShadow: '0 0 8px rgba(245,158,11,0.50)' }} />
-                      <span style={{ color: 'rgba(252,211,77,0.95)', fontFamily: "'Exo 2', sans-serif", fontSize: '11px', fontWeight: 600 }}>
-                        Próximos Pasos
-                      </span>
+                      <span style={{ color: 'rgba(252,211,77,0.95)', fontFamily: "'Exo 2', sans-serif", fontSize: '12px', fontWeight: 600 }}>Próximos Pasos</span>
                     </div>
                     <textarea
                       value={formData.proximosPasos}
                       onChange={(e) => handleInputChange('proximosPasos', e.target.value)}
                       placeholder="Describe los próximos pasos..."
-                      className="w-full resize-none transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-blue-500/35"
+                      className="flex-1 resize-none focus:ring-2 focus:ring-blue-500/35"
                       style={{
-                        background: 'rgba(0,0,0,0.20)',
+                        background: 'rgba(0,0,0,0.18)',
                         border: '1px solid rgba(255,255,255,0.08)',
-                        borderRadius: '12px',
-                        padding: '12px 14px',
+                        borderRadius: '10px',
+                        padding: '10px 12px',
                         color: '#EAF2FF',
                         fontFamily: "'Exo 2', sans-serif",
                         fontSize: '13px',
-                        lineHeight: '1.6',
-                        minHeight: '140px',
-                        boxShadow: 'inset 0 2px 6px rgba(0,0,0,0.25)'
+                        lineHeight: '1.5',
+                        outline: 'none',
+                        boxShadow: 'inset 0 2px 5px rgba(0,0,0,0.22)',
+                        minHeight: '80px'
                       }}
                     />
                   </div>
@@ -808,81 +508,41 @@ export const AgregarLeadModule = ({ onBack }: AgregarLeadModuleProps) => {
                 {/* ═══════════════════════════════════════════════════════════════
                     COLUMNA 3: RUTAS, FINANZAS E HITOS
                     ═══════════════════════════════════════════════════════════════ */}
-                <div className="space-y-3">
+                <div className="flex flex-col gap-2.5">
                   
                   {/* NIVEL 3: RUTAS Y FINANZAS */}
-                  <div 
-                    className="transition-all duration-150 hover:-translate-y-0.5"
-                    style={{
-                      background: 'linear-gradient(180deg, rgba(10,24,46,0.60) 0%, rgba(10,24,46,0.45) 100%)',
-                      border: '1px solid rgba(255,255,255,0.08)',
-                      borderRadius: '16px',
-                      padding: '16px',
-                      boxShadow: '0 10px 30px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.06)'
-                    }}
-                  >
-                    <div className="flex items-center gap-2 mb-3">
+                  <div style={cardStyle} className="hover:-translate-y-0.5 transition-transform">
+                    <div className="flex items-center gap-2 mb-2">
                       <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#F97316', boxShadow: '0 0 8px rgba(249,115,22,0.50)' }} />
-                      <span style={{ color: '#FB923C', fontFamily: "'Exo 2', sans-serif", fontSize: '11px', fontWeight: 700, letterSpacing: '0.08em' }}>
-                        NIVEL 3 • RUTAS Y FINANZAS
-                      </span>
+                      <span style={{ color: '#FB923C', fontFamily: "'Exo 2', sans-serif", fontSize: '12px', fontWeight: 700, letterSpacing: '0.06em' }}>NIVEL 3 • RUTAS Y FINANZAS</span>
                     </div>
-                    <div className="space-y-2.5">
-                      {[
-                        { field: 'principalesRutas', placeholder: 'CDMX - MTY - GDL', mono: false },
-                        { field: 'viajesPorMes', placeholder: 'Viajes/Mes: 15', mono: true, type: 'number' },
-                        { field: 'tarifa', placeholder: 'Tarifa MXN: $45k - $55k', mono: true },
-                        { field: 'proyectadoVentaMensual', placeholder: 'Proyectado USD: $50k - $100k', mono: true },
-                      ].map(({ field, placeholder, mono, type }) => (
-                        <input
-                          key={field}
-                          type={type || 'text'}
-                          value={formData[field as keyof Lead] as string || ''}
-                          onChange={(e) => handleInputChange(field as keyof Lead, e.target.value)}
-                          placeholder={placeholder}
-                          className="w-full transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-orange-500/35"
-                          style={{
-                            background: 'rgba(255,255,255,0.04)',
-                            border: '1px solid rgba(255,255,255,0.08)',
-                            borderRadius: '10px',
-                            padding: '10px 14px',
-                            color: '#EAF2FF',
-                            fontFamily: mono ? "'Orbitron', monospace" : "'Exo 2', sans-serif",
-                            fontSize: '13px',
-                            fontVariantNumeric: mono ? 'tabular-nums' : 'normal',
-                            boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.15)'
-                          }}
-                        />
-                      ))}
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="col-span-2">
+                        <input type="text" value={formData.principalesRutas} onChange={(e) => handleInputChange('principalesRutas', e.target.value)} placeholder="CDMX - MTY - GDL" className="focus:ring-2 focus:ring-orange-500/35" style={inputStyle} />
+                      </div>
+                      <input type="number" value={formData.viajesPorMes} onChange={(e) => handleInputChange('viajesPorMes', e.target.value)} placeholder="Viajes/Mes" className="focus:ring-2 focus:ring-orange-500/35" style={{ ...inputStyle, fontFamily: "'Orbitron', monospace" }} />
+                      <input type="text" value={formData.tarifa} onChange={(e) => handleInputChange('tarifa', e.target.value)} placeholder="Tarifa MXN" className="focus:ring-2 focus:ring-orange-500/35" style={{ ...inputStyle, fontFamily: "'Orbitron', monospace" }} />
+                      <div className="col-span-2">
+                        <input type="text" value={formData.proyectadoVentaMensual} onChange={(e) => handleInputChange('proyectadoVentaMensual', e.target.value)} placeholder="Proyectado USD: $50k - $100k" className="focus:ring-2 focus:ring-orange-500/35" style={{ ...inputStyle, fontFamily: "'Orbitron', monospace" }} />
+                      </div>
                     </div>
                   </div>
 
                   {/* HITOS DEL CLIENTE */}
-                  <div 
-                    className="transition-all duration-150 hover:-translate-y-0.5"
-                    style={{
-                      background: 'linear-gradient(180deg, rgba(10,24,46,0.60) 0%, rgba(10,24,46,0.45) 100%)',
-                      border: '1px solid rgba(255,255,255,0.08)',
-                      borderRadius: '16px',
-                      padding: '16px',
-                      boxShadow: '0 10px 30px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.06)'
-                    }}
-                  >
-                    <div className="flex items-center gap-2 mb-3">
-                      <TrendingUp className="w-4 h-4" style={{ color: 'rgba(255,255,255,0.80)' }} />
-                      <span style={{ color: 'rgba(255,255,255,0.95)', fontFamily: "'Exo 2', sans-serif", fontSize: '11px', fontWeight: 700 }}>
-                        HITOS DEL CLIENTE
-                      </span>
+                  <div style={cardStyle} className="hover:-translate-y-0.5 transition-transform">
+                    <div className="flex items-center gap-2 mb-2">
+                      <TrendingUp className="w-4 h-4" style={{ color: '#EAF2FF' }} />
+                      <span style={{ color: '#EAF2FF', fontFamily: "'Exo 2', sans-serif", fontSize: '12px', fontWeight: 700 }}>HITOS DEL CLIENTE</span>
                     </div>
-                    <div className="space-y-2.5">
+                    <div className="grid grid-cols-2 gap-x-4 gap-y-2">
                       {[
-                        { key: 'altaCliente', label: 'Nivel 4 • Alta de Cliente', color: '#22D3EE' },
-                        { key: 'generacionSOP', label: 'Nivel 5 • Generación SOP', color: '#A855F7' },
-                        { key: 'juntaArranque', label: 'Nivel 6 • Junta de Arranque', color: '#EC4899' },
-                        { key: 'facturado', label: 'Nivel 7 • Facturado', color: '#F59E0B' },
+                        { key: 'altaCliente', label: 'N4 • Alta Cliente', color: '#22D3EE' },
+                        { key: 'generacionSOP', label: 'N5 • Gen. SOP', color: '#A855F7' },
+                        { key: 'juntaArranque', label: 'N6 • Junta Arranque', color: '#EC4899' },
+                        { key: 'facturado', label: 'N7 • Facturado', color: '#F59E0B' },
                       ].map(({ key, label, color }) => (
-                        <div key={key} className="flex items-center gap-2">
-                          <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: color, boxShadow: `0 0 6px ${color}60` }} />
+                        <div key={key} className="flex items-center gap-1.5">
+                          <div style={{ width: '5px', height: '5px', borderRadius: '50%', background: color, boxShadow: `0 0 5px ${color}60` }} />
                           <ModernCheckbox 
                             checked={formData[key as keyof Lead] as boolean || false}
                             onChange={(v) => setFormData({ ...formData, [key]: v })}
@@ -894,23 +554,16 @@ export const AgregarLeadModule = ({ onBack }: AgregarLeadModuleProps) => {
                     </div>
                   </div>
 
-                  {/* Indicador de Niveles */}
-                  <div 
-                    style={{
-                      background: 'rgba(255,255,255,0.02)',
-                      border: '1px solid rgba(255,255,255,0.05)',
-                      borderRadius: '12px',
-                      padding: '10px'
-                    }}
-                  >
-                    <div className="text-center" style={{ color: 'rgba(148,163,184,0.50)', fontFamily: "'Exo 2', sans-serif", fontSize: '9px', lineHeight: '1.6' }}>
-                      <span style={{ color: '#22C55E' }}>●</span> N1 • 
-                      <span style={{ color: '#3B82F6' }}>●</span> N2 • 
-                      <span style={{ color: '#F97316' }}>●</span> N3 • 
-                      <span style={{ color: '#22D3EE' }}>●</span> N4 • 
-                      <span style={{ color: '#A855F7' }}>●</span> N5 • 
-                      <span style={{ color: '#EC4899' }}>●</span> N6 • 
-                      <span style={{ color: '#F59E0B' }}>●</span> N7
+                  {/* Leyenda de Niveles - Compacta */}
+                  <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '10px', padding: '8px 10px' }}>
+                    <div className="flex flex-wrap gap-x-3 gap-y-1 justify-center" style={{ color: '#7F93B2', fontFamily: "'Exo 2', sans-serif", fontSize: '10px' }}>
+                      <span><span style={{ color: '#22C55E' }}>●</span> N1</span>
+                      <span><span style={{ color: '#3B82F6' }}>●</span> N2</span>
+                      <span><span style={{ color: '#F97316' }}>●</span> N3</span>
+                      <span><span style={{ color: '#22D3EE' }}>●</span> N4</span>
+                      <span><span style={{ color: '#A855F7' }}>●</span> N5</span>
+                      <span><span style={{ color: '#EC4899' }}>●</span> N6</span>
+                      <span><span style={{ color: '#F59E0B' }}>●</span> N7</span>
                     </div>
                   </div>
                 </div>
@@ -920,57 +573,56 @@ export const AgregarLeadModule = ({ onBack }: AgregarLeadModuleProps) => {
           </div>
 
           {/* ═══════════════════════════════════════════════════════════════
-              BARRA INFERIOR STICKY - SIEMPRE VISIBLE
+              BARRA INFERIOR - Siempre visible, sin scroll
               ═══════════════════════════════════════════════════════════════ */}
           <div 
-            className="flex-shrink-0 flex items-center justify-between px-5"
+            className="flex-shrink-0 flex items-center justify-between px-4"
             style={{
-              height: '72px',
-              background: 'linear-gradient(180deg, rgba(15,23,42,0.75) 0%, rgba(15,23,42,0.98) 100%)',
-              backdropFilter: 'blur(12px)',
+              height: '60px',
+              background: 'linear-gradient(180deg, rgba(15,23,42,0.80) 0%, rgba(15,23,42,0.98) 100%)',
               borderTop: '1px solid rgba(255,255,255,0.08)',
-              boxShadow: '0 -10px 40px rgba(0,0,0,0.30)'
+              boxShadow: '0 -8px 30px rgba(0,0,0,0.25)'
             }}
           >
-            {/* Izquierda: Vendedor + Fecha */}
+            {/* Vendedor + Fecha */}
             <div 
-              className="flex items-center gap-4"
+              className="flex items-center gap-3"
               style={{
                 background: 'rgba(59,130,246,0.10)',
                 border: '1px solid rgba(59,130,246,0.20)',
-                borderRadius: '12px',
-                padding: '10px 18px',
+                borderRadius: '10px',
+                padding: '8px 14px',
                 boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.05)'
               }}
             >
-              <span style={{ color: 'rgba(255,255,255,0.70)', fontFamily: "'Exo 2', sans-serif", fontSize: '13px' }}>
-                Vendedor: <span style={{ color: 'white', fontWeight: 600 }}>{formData.vendedor || 'Cargando...'}</span>
+              <span style={{ color: '#A9B7D0', fontFamily: "'Exo 2', sans-serif", fontSize: '13px' }}>
+                Vendedor: <span style={{ color: '#EAF2FF', fontWeight: 600 }}>{formData.vendedor || '...'}</span>
               </span>
-              <div style={{ width: '1px', height: '18px', background: 'rgba(255,255,255,0.12)' }} />
-              <span style={{ color: 'rgba(147,197,253,0.80)', fontFamily: "'Orbitron', monospace", fontSize: '12px', fontVariantNumeric: 'tabular-nums' }}>
+              <div style={{ width: '1px', height: '16px', background: 'rgba(255,255,255,0.12)' }} />
+              <span style={{ color: 'rgba(147,197,253,0.80)', fontFamily: "'Orbitron', monospace", fontSize: '12px' }}>
                 {new Date().toLocaleDateString('es-MX')}
               </span>
             </div>
 
-            {/* Derecha: BOTÓN GUARDAR LEAD - CTA Principal */}
+            {/* BOTÓN GUARDAR - CTA Principal */}
             <button
               type="button"
               onClick={() => handleSubmit()}
-              className="flex items-center gap-3 transition-all duration-150 hover:-translate-y-0.5 active:translate-y-0"
+              className="flex items-center gap-2.5 transition-all duration-150 hover:-translate-y-0.5 hover:shadow-xl active:translate-y-0"
               style={{
                 background: 'linear-gradient(180deg, #2F6BFF 0%, #1F4FD6 100%)',
                 border: '1px solid rgba(255,255,255,0.15)',
-                borderRadius: '14px',
-                padding: '14px 32px',
-                boxShadow: '0 18px 40px rgba(0,0,0,0.45), 0 8px 20px rgba(47,107,255,0.30), inset 0 1px 0 rgba(255,255,255,0.18)',
+                borderRadius: '12px',
+                padding: '12px 28px',
+                boxShadow: '0 12px 30px rgba(0,0,0,0.40), 0 6px 16px rgba(47,107,255,0.30), inset 0 1px 0 rgba(255,255,255,0.18)',
                 fontFamily: "'Exo 2', sans-serif",
-                fontSize: '15px',
+                fontSize: '14px',
                 fontWeight: 700,
-                letterSpacing: '0.5px',
+                letterSpacing: '0.4px',
                 color: 'white'
               }}
             >
-              <Save className="w-5 h-5" />
+              <Save className="w-4.5 h-4.5" />
               GUARDAR LEAD
             </button>
           </div>
