@@ -296,7 +296,7 @@ export const AgregarLeadModule = ({ onBack }: AgregarLeadModuleProps) => {
 
               {/* Leyenda compacta */}
               <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '10px', padding: '8px 12px', textAlign: 'center' }}>
-                <div style={{ color: '#64748B', fontSize: '10px', display: 'flex', justifyContent: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                <div style={{ color: '#64748B', fontSize: '20px', display: 'flex', justifyContent: 'center', gap: '8px', flexWrap: 'wrap' }}>
                   <span><span style={{ color: '#22C55E' }}>●</span> N1</span>
                   <span><span style={{ color: '#3B82F6' }}>●</span> N2</span>
                   <span><span style={{ color: '#F97316' }}>●</span> N3</span>
