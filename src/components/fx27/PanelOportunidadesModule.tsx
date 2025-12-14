@@ -309,101 +309,200 @@ export const PanelOportunidadesModule = ({ onBack }: PanelOportunidadesModulePro
   const SortIcon = ({ field }: { field: SortField }) => sortField !== field ? <SortAsc className="w-4 h-4 opacity-30" /> : sortDirection === 'asc' ? <SortAsc className="w-4 h-4" /> : <SortDesc className="w-4 h-4" />;
   const AlertBadge = ({ lead }: { lead: Lead }) => { const alerta = getAlertaLead(lead); if (!alerta.tipo) return null; if (alerta.tipo === 'amarillo') return <span title={alerta.mensaje} className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-amber-500/8 text-amber-500/70 text-xs font-medium cursor-help border border-amber-500/15"><Zap className="w-3 h-3" />{alerta.dias}d</span>; if (alerta.tipo === 'rojo') return <span title={alerta.mensaje} className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-red-500/8 text-red-400/80 text-xs font-medium cursor-help border border-red-500/15 animate-pulse"><Flame className="w-3 h-3" />{alerta.dias}d</span>; if (alerta.tipo === 'critico') return <span title={alerta.mensaje} className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-red-500/12 text-red-400 text-xs font-semibold cursor-help border border-red-500/25 animate-pulse"><Skull className="w-3 h-3" />{alerta.dias}d</span>; return null; };
 
+  // Icono PDF inline SVG
+  const PdfIcon = () => (
+    <svg viewBox="0 0 24 24" className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+      <polyline points="14 2 14 8 20 8" />
+      <path d="M9 15v-2h1.5a1.5 1.5 0 1 1 0 3H9" />
+      <path d="M12 13h1.5a1.5 1.5 0 0 1 0 3H12v-5" />
+      <path d="M17 13v4" />
+    </svg>
+  );
+
   return (
-    <ModuleTemplate title="Panel de Oportunidades" onBack={onBack} headerImage={MODULE_IMAGES.PANEL_OPORTUNIDADES}>
-      <div className="flex flex-col h-[calc(100vh-120px)]">
-        <div className="flex-shrink-0 p-4 pb-2">
+    <ModuleTemplate title="Panel de Oportunidades" onBack={onBack}>
+      {/* FONDO AZUL EXTERNO - Cubre toda la pantalla */}
+      <div 
+        className="flex flex-col h-[calc(100vh-120px)]"
+        style={{
+          background: 'linear-gradient(135deg, #1e40af 0%, #1d4ed8 25%, #2563eb 50%, #1d4ed8 75%, #1e40af 100%)',
+          position: 'relative'
+        }}
+      >
+        {/* Radial halo sutil detrás del contenido */}
+        <div 
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            background: 'radial-gradient(ellipse 80% 50% at 50% 30%, rgba(59,130,246,0.15) 0%, transparent 70%)'
+          }}
+        />
+        {/* CONTROLES - Área de filtros */}
+        <div className="flex-shrink-0 p-4 pb-2 relative z-10">
           <div className="flex flex-wrap gap-3 items-center justify-between">
-            <div className="flex-1 min-w-[300px]"><div className="relative"><Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" /><input type="text" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder="Buscar leads..." className="w-full pl-10 pr-4 py-1.5 rounded-lg bg-slate-900/70 border border-slate-700/40 text-white placeholder:text-slate-500 focus:outline-none focus:border-blue-500/40 transition-colors duration-200" style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '13px' }} /></div></div>
-            <div className="flex gap-3">
-              <select value={filterVendedor} onChange={(e) => setFilterVendedor(e.target.value)} className="px-3 py-1.5 rounded-lg bg-slate-900/70 border border-slate-700/40 text-white focus:outline-none focus:border-blue-500/40 transition-colors duration-200" style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '13px' }}><option value="">Todos los vendedores</option>{getVendedoresUnicos().map(v => <option key={v} value={v}>{v}</option>)}</select>
-              <input type="date" value={filterFecha} onChange={(e) => setFilterFecha(e.target.value)} className="px-3 py-1.5 rounded-lg bg-slate-900/70 border border-slate-700/40 text-white focus:outline-none focus:border-blue-500/40 transition-colors duration-200" style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '13px' }} />
+            <div className="flex-1 min-w-[300px]">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                <input type="text" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder="Buscar leads..." 
+                  className="w-full pl-10 pr-4 py-2 rounded-xl bg-slate-900/80 border border-white/10 text-white placeholder:text-slate-500 focus:outline-none focus:border-blue-400/50 transition-all duration-200 backdrop-blur-sm" 
+                  style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '13px' }} />
+              </div>
             </div>
             <div className="flex gap-3">
-              {isAdmin && <button onClick={() => setShowDeleted(!showDeleted)} className={`flex items-center gap-2 px-3 py-1.5 rounded-lg transition-all duration-200 ${showDeleted ? 'bg-red-500/10 text-red-400/80 border border-red-500/20' : 'bg-slate-800/50 text-slate-400 border border-slate-700/40 hover:text-slate-300 hover:border-slate-600/50'}`} style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '13px', fontWeight: 500 }}><Trash2 className="w-4 h-4" />{showDeleted ? 'Ocultar eliminados' : 'Ver eliminados'}</button>}
-              <button onClick={() => setShowFunnel(!showFunnel)} className={`flex items-center gap-2 px-3 py-1.5 rounded-lg transition-all duration-200 ${showFunnel ? 'bg-blue-500/15 text-blue-400 border border-blue-500/25' : 'bg-slate-800/50 text-slate-400 border border-slate-700/40 hover:text-blue-400 hover:border-blue-500/25'}`} style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '13px', fontWeight: 500 }}><BarChart3 className="w-4 h-4" />Funnel</button>
-              <button onClick={handleExportExcel} className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-800/50 text-slate-400 border border-slate-700/40 hover:text-blue-400 hover:border-blue-500/25 transition-all duration-200" style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '13px', fontWeight: 500 }}><Download className="w-4 h-4" />Exportar</button>
+              <select value={filterVendedor} onChange={(e) => setFilterVendedor(e.target.value)} className="px-3 py-2 rounded-xl bg-slate-900/80 border border-white/10 text-white focus:outline-none focus:border-blue-400/50 transition-all duration-200 backdrop-blur-sm" style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '13px' }}><option value="">Todos los vendedores</option>{getVendedoresUnicos().map(v => <option key={v} value={v}>{v}</option>)}</select>
+              <input type="date" value={filterFecha} onChange={(e) => setFilterFecha(e.target.value)} className="px-3 py-2 rounded-xl bg-slate-900/80 border border-white/10 text-white focus:outline-none focus:border-blue-400/50 transition-all duration-200 backdrop-blur-sm" style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '13px' }} />
+            </div>
+            <div className="flex gap-3">
+              {isAdmin && <button onClick={() => setShowDeleted(!showDeleted)} className={`flex items-center gap-2 px-4 py-2 rounded-xl transition-all duration-200 backdrop-blur-sm ${showDeleted ? 'bg-red-500/20 text-red-300 border border-red-500/30' : 'bg-slate-900/60 text-slate-300 border border-white/10 hover:bg-slate-800/80 hover:border-white/20'}`} style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '13px', fontWeight: 500 }}><Trash2 className="w-4 h-4" />{showDeleted ? 'Ocultar eliminados' : 'Ver eliminados'}</button>}
+              <button onClick={() => setShowFunnel(!showFunnel)} className={`flex items-center gap-2 px-4 py-2 rounded-xl transition-all duration-200 backdrop-blur-sm ${showFunnel ? 'bg-blue-500/25 text-blue-200 border border-blue-400/40' : 'bg-slate-900/60 text-slate-300 border border-white/10 hover:bg-slate-800/80 hover:border-white/20'}`} style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '13px', fontWeight: 500 }}><BarChart3 className="w-4 h-4" />Funnel</button>
+              <button onClick={handleExportExcel} className="flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-900/60 text-slate-300 border border-white/10 hover:bg-slate-800/80 hover:border-white/20 transition-all duration-200 backdrop-blur-sm" style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '13px', fontWeight: 500 }}><Download className="w-4 h-4" />Exportar</button>
             </div>
           </div>
         </div>
 
         {showFunnel && (
-          <div className="flex-shrink-0 mx-4 mb-2 p-4 rounded-2xl bg-slate-900/50 border border-slate-700/30">
-            <h3 className="text-white/90 mb-3" style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '18px', fontWeight: 600 }}>Funnel de Ventas</h3>
+          <div className="flex-shrink-0 mx-4 mb-3 p-4 rounded-2xl relative z-10 backdrop-blur-md"
+            style={{
+              background: 'rgba(15, 23, 42, 0.85)',
+              border: '1px solid rgba(255,255,255,0.08)',
+              boxShadow: '0 8px 32px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.05)'
+            }}>
+            <h3 className="text-white/90 mb-3" style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '18px', fontWeight: 600, letterSpacing: '0.02em' }}>Funnel de Ventas</h3>
             <div className="grid grid-cols-5 gap-3">
-              <div className="p-3 rounded-lg bg-blue-500/5 border border-blue-500/15"><div className="text-blue-400/70 mb-1" style={{ fontSize: '12px' }}>Total</div><div className="text-white" style={{ fontFamily: "'Orbitron', sans-serif", fontSize: '28px', fontWeight: 700 }}>{leads.filter(l => !l.eliminado).length}</div></div>
-              <div className="p-3 rounded-lg bg-amber-500/5 border border-amber-500/15"><div className="text-amber-400/70 mb-1" style={{ fontSize: '12px' }}>Cotizados</div><div className="text-white" style={{ fontFamily: "'Orbitron', sans-serif", fontSize: '28px', fontWeight: 700 }}>{leads.filter(l => !l.eliminado && l.etapaLead === 'Cotizado').length}</div></div>
-              <div className="p-3 rounded-lg bg-teal-500/5 border border-teal-500/15"><div className="text-teal-400/70 mb-1" style={{ fontSize: '12px' }}>Cerrados</div><div className="text-white" style={{ fontFamily: "'Orbitron', sans-serif", fontSize: '28px', fontWeight: 700 }}>{leads.filter(l => !l.eliminado && l.etapaLead === 'Cerrado').length}</div></div>
-              <div className="p-3 rounded-lg bg-teal-500/5 border border-teal-500/15"><div className="text-teal-400/70 mb-1" style={{ fontSize: '12px' }}>$ Potencial</div><div className="text-teal-400/90" style={{ fontFamily: "'Orbitron', sans-serif", fontSize: '18px', fontWeight: 700 }}>${leads.filter(l => !l.eliminado).reduce((sum, l) => sum + calcularPotencialDesdeCotizaciones(l), 0).toLocaleString('es-MX')}</div></div>
-              <div className="p-3 rounded-lg bg-red-500/5 border border-red-500/15"><div className="text-red-400/70 mb-1" style={{ fontSize: '12px' }}>En Riesgo</div><div className="text-white" style={{ fontFamily: "'Orbitron', sans-serif", fontSize: '28px', fontWeight: 700 }}>{leads.filter(l => !l.eliminado && getAlertaLead(l).tipo !== null).length}</div></div>
+              <div className="p-3 rounded-xl bg-blue-500/8 border border-blue-500/20"><div className="text-blue-300/80 mb-1" style={{ fontSize: '12px', letterSpacing: '0.03em' }}>Total</div><div className="text-white" style={{ fontFamily: "'Orbitron', sans-serif", fontSize: '28px', fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{leads.filter(l => !l.eliminado).length}</div></div>
+              <div className="p-3 rounded-xl bg-amber-500/8 border border-amber-500/20"><div className="text-amber-300/80 mb-1" style={{ fontSize: '12px', letterSpacing: '0.03em' }}>Cotizados</div><div className="text-white" style={{ fontFamily: "'Orbitron', sans-serif", fontSize: '28px', fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{leads.filter(l => !l.eliminado && l.etapaLead === 'Cotizado').length}</div></div>
+              <div className="p-3 rounded-xl bg-teal-500/8 border border-teal-500/20"><div className="text-teal-300/80 mb-1" style={{ fontSize: '12px', letterSpacing: '0.03em' }}>Cerrados</div><div className="text-white" style={{ fontFamily: "'Orbitron', sans-serif", fontSize: '28px', fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{leads.filter(l => !l.eliminado && l.etapaLead === 'Cerrado').length}</div></div>
+              <div className="p-3 rounded-xl bg-teal-500/8 border border-teal-500/20"><div className="text-teal-300/80 mb-1" style={{ fontSize: '12px', letterSpacing: '0.03em' }}>$ Potencial</div><div className="text-teal-400" style={{ fontFamily: "'Orbitron', sans-serif", fontSize: '18px', fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>${leads.filter(l => !l.eliminado).reduce((sum, l) => sum + calcularPotencialDesdeCotizaciones(l), 0).toLocaleString('es-MX')}</div></div>
+              <div className="p-3 rounded-xl bg-red-500/8 border border-red-500/20"><div className="text-red-300/80 mb-1" style={{ fontSize: '12px', letterSpacing: '0.03em' }}>En Riesgo</div><div className="text-white" style={{ fontFamily: "'Orbitron', sans-serif", fontSize: '28px', fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{leads.filter(l => !l.eliminado && getAlertaLead(l).tipo !== null).length}</div></div>
             </div>
           </div>
         )}
 
-        <div className="flex-1 mx-4 mb-4 rounded-2xl bg-slate-900/50 border border-slate-700/30 overflow-hidden flex flex-col">
-          <div className="flex-shrink-0 border-b border-slate-700/30 bg-slate-900/70">
+        {/* CARD PRINCIPAL - Surface premium flotante */}
+        <div 
+          className="flex-1 mx-4 mb-4 rounded-2xl overflow-hidden flex flex-col relative z-10 backdrop-blur-md"
+          style={{
+            background: 'rgba(15, 23, 42, 0.92)',
+            border: '1px solid rgba(255,255,255,0.10)',
+            boxShadow: '0 18px 45px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.06)'
+          }}
+        >
+          {/* HEADER TABLA - Con fondo distintivo */}
+          <div 
+            className="flex-shrink-0"
+            style={{
+              background: 'rgba(30, 41, 59, 0.6)',
+              borderBottom: '1px solid rgba(255,255,255,0.08)'
+            }}
+          >
             <table className="w-full"><thead><tr>
-              <th className="px-2 py-3 text-center text-slate-500" style={{ fontSize: '11px', fontWeight: 600, width: '3%' }}>#</th>
-              <th onClick={() => handleSort('nombreEmpresa')} className="px-2 py-3 text-left text-slate-500 cursor-pointer hover:text-slate-300 transition-colors" style={{ fontSize: '11px', fontWeight: 600, width: '18%' }}><div className="flex items-center gap-1"><Building2 className="w-3 h-3" />EMPRESA<SortIcon field="nombreEmpresa" /></div></th>
-              <th className="px-1.5 py-3 text-left text-slate-500" style={{ fontSize: '11px', fontWeight: 600, width: '7%' }}>ETAPA</th>
-              <th className="px-2 py-3 text-left text-slate-500" style={{ fontSize: '11px', fontWeight: 600, width: '14%' }}>CONTACTO</th>
-              <th className="px-2 py-3 text-left text-slate-500" style={{ fontSize: '11px', fontWeight: 600, width: '10%' }}>SERVICIO</th>
-              <th className="px-1.5 py-3 text-left text-slate-500" style={{ fontSize: '11px', fontWeight: 600, width: '10%' }}>VIAJE</th>
-              <th className="px-1.5 py-3 text-left text-slate-500" style={{ fontSize: '11px', fontWeight: 600, width: '12%' }}>$ POTENCIAL</th>
-              <th onClick={() => handleSort('vendedor')} className="px-2 py-3 text-left text-slate-500 cursor-pointer hover:text-slate-300 transition-colors" style={{ fontSize: '11px', fontWeight: 600, width: '10%' }}><div className="flex items-center gap-1"><User className="w-3 h-3" />VENDEDOR<SortIcon field="vendedor" /></div></th>
-              <th onClick={() => handleSort('fechaCaptura')} className="px-2 py-3 text-left text-slate-500 cursor-pointer hover:text-slate-300 transition-colors" style={{ fontSize: '11px', fontWeight: 600, width: '8%' }}><div className="flex items-center gap-1"><Calendar className="w-3 h-3" />CREADO<SortIcon field="fechaCaptura" /></div></th>
-              <th className="px-2 py-3 text-center text-slate-500" style={{ fontSize: '11px', fontWeight: 600, width: '8%' }}>ACCIONES</th>
+              <th className="px-2 py-3.5 text-center" style={{ fontSize: '11px', fontWeight: 600, width: '3%', color: 'rgba(148,163,184,0.9)', letterSpacing: '0.05em' }}>#</th>
+              <th onClick={() => handleSort('nombreEmpresa')} className="px-2 py-3.5 text-left cursor-pointer hover:text-slate-200 transition-colors" style={{ fontSize: '11px', fontWeight: 600, width: '18%', color: 'rgba(148,163,184,0.9)', letterSpacing: '0.05em' }}><div className="flex items-center gap-1"><Building2 className="w-3 h-3" />EMPRESA<SortIcon field="nombreEmpresa" /></div></th>
+              <th className="px-1.5 py-3.5 text-left" style={{ fontSize: '11px', fontWeight: 600, width: '7%', color: 'rgba(148,163,184,0.9)', letterSpacing: '0.05em' }}>ETAPA</th>
+              <th className="px-2 py-3.5 text-left" style={{ fontSize: '11px', fontWeight: 600, width: '14%', color: 'rgba(148,163,184,0.9)', letterSpacing: '0.05em' }}>CONTACTO</th>
+              <th className="px-2 py-3.5 text-left" style={{ fontSize: '11px', fontWeight: 600, width: '10%', color: 'rgba(148,163,184,0.9)', letterSpacing: '0.05em' }}>SERVICIO</th>
+              <th className="px-1.5 py-3.5 text-left" style={{ fontSize: '11px', fontWeight: 600, width: '10%', color: 'rgba(148,163,184,0.9)', letterSpacing: '0.05em' }}>VIAJE</th>
+              <th className="px-1.5 py-3.5 text-left" style={{ fontSize: '11px', fontWeight: 600, width: '12%', color: 'rgba(148,163,184,0.9)', letterSpacing: '0.05em' }}>$ POTENCIAL</th>
+              <th onClick={() => handleSort('vendedor')} className="px-2 py-3.5 text-left cursor-pointer hover:text-slate-200 transition-colors" style={{ fontSize: '11px', fontWeight: 600, width: '10%', color: 'rgba(148,163,184,0.9)', letterSpacing: '0.05em' }}><div className="flex items-center gap-1"><User className="w-3 h-3" />VENDEDOR<SortIcon field="vendedor" /></div></th>
+              <th onClick={() => handleSort('fechaCaptura')} className="px-2 py-3.5 text-left cursor-pointer hover:text-slate-200 transition-colors" style={{ fontSize: '11px', fontWeight: 600, width: '8%', color: 'rgba(148,163,184,0.9)', letterSpacing: '0.05em' }}><div className="flex items-center gap-1"><Calendar className="w-3 h-3" />CREADO<SortIcon field="fechaCaptura" /></div></th>
+              <th className="px-2 py-3.5 text-center" style={{ fontSize: '11px', fontWeight: 600, width: '8%', color: 'rgba(148,163,184,0.9)', letterSpacing: '0.05em' }}>ACCIONES</th>
             </tr></thead></table>
           </div>
           
-          <div className="flex-1 overflow-y-auto">
+          {/* BODY TABLA - Con scrollbar estilizado */}
+          <div 
+            className="flex-1 overflow-y-auto"
+            style={{
+              scrollbarWidth: 'thin',
+              scrollbarColor: 'rgba(100,116,139,0.4) transparent'
+            }}
+          >
+            <style>{`
+              .table-scroll::-webkit-scrollbar { width: 6px; }
+              .table-scroll::-webkit-scrollbar-track { background: transparent; }
+              .table-scroll::-webkit-scrollbar-thumb { background: rgba(100,116,139,0.4); border-radius: 3px; }
+              .table-scroll::-webkit-scrollbar-thumb:hover { background: rgba(100,116,139,0.6); }
+            `}</style>
             <table className="w-full"><tbody>
-              {filteredLeads.length === 0 ? (<tr><td colSpan={10} className="px-6 py-12 text-center text-slate-500">No se encontraron leads.</td></tr>) : (
+              {filteredLeads.length === 0 ? (<tr><td colSpan={10} className="px-6 py-12 text-center text-slate-400">No se encontraron leads.</td></tr>) : (
                 filteredLeads.map((lead, index) => {
                   const alerta = getAlertaLead(lead);
                   const potencial = calcularPotencialDesdeCotizaciones(lead);
                   return (
-                    <tr key={lead.id} className={`border-b border-slate-800/40 transition-all duration-200 hover:bg-white/[0.02] hover:border-l-2 hover:border-l-blue-500/50 ${index % 2 === 0 ? 'bg-slate-800/10' : ''} ${lead.eliminado ? 'opacity-50 bg-red-500/5' : ''} ${alerta.tipo === 'critico' ? 'bg-red-500/5' : ''}`} style={{ height: '52px' }}>
-                      <td className="px-2 py-2 text-center" style={{ fontFamily: "'Orbitron', monospace", fontSize: '11px', fontWeight: 600, color: lead.eliminado ? '#ef4444' : alerta.tipo === 'critico' ? '#ef4444' : '#3B82F6', width: '3%' }}>{index + 1}</td>
-                      <td className="px-2 py-2" style={{ width: '18%' }}><div className="flex items-center justify-between gap-2"><span className="text-white/90 truncate" style={{ fontSize: '11px', fontWeight: 600 }}>{lead.nombreEmpresa}</span><AlertBadge lead={lead} /></div></td>
-                      <td className="px-1.5 py-2" style={{ width: '7%' }}><span className={`px-2 py-0.5 rounded text-xs font-medium border ${lead.etapaLead === 'Cotizado' ? 'bg-amber-500/8 text-amber-400/80 border-amber-500/15' : lead.etapaLead === 'Negociacion' ? 'bg-orange-500/8 text-orange-400/80 border-orange-500/15' : lead.etapaLead === 'Cerrado' ? 'bg-teal-500/8 text-teal-400/90 border-teal-500/15' : 'bg-slate-500/8 text-slate-400/70 border-slate-500/15'}`} style={{ fontSize: '10px' }}>{lead.etapaLead || 'Prospecto'}</span></td>
-                      <td className="px-2 py-2" style={{ width: '14%' }}><div style={{ fontSize: '11px' }}><div className="text-white/85 font-medium truncate">{lead.nombreContacto}</div><div className="text-slate-400/80 truncate" style={{ fontSize: '10px' }}>{lead.correoElectronico}</div></div></td>
-                      <td className="px-2 py-2" style={{ width: '10%' }}><div className="flex flex-wrap gap-0.5">{(lead.tipoServicio || []).slice(0,2).map((t, i) => <span key={i} className="px-1.5 py-0.5 rounded bg-slate-600/20 text-slate-300/80 border border-slate-500/15" style={{ fontSize: '9px', fontWeight: 500 }}>{t}</span>)}</div></td>
-                      <td className="px-1.5 py-2" style={{ width: '10%' }}><div className="flex flex-wrap gap-0.5">{(lead.tipoViaje || []).slice(0,2).map((t, i) => <span key={i} className="px-1.5 py-0.5 rounded bg-blue-500/8 text-blue-400/80 border border-blue-500/15" style={{ fontSize: '9px', fontWeight: 500 }}>{t}</span>)}</div></td>
-                      <td className="px-1.5 py-2" style={{ width: '12%' }}>{potencial > 0 ? <span className="px-2 py-0.5 rounded bg-teal-500/8 text-teal-400/90 border border-teal-500/15" style={{ fontFamily: "'Orbitron', monospace", fontSize: '10px', fontWeight: 600 }}>${potencial.toLocaleString('es-MX')}</span> : <span className="text-slate-600" style={{ fontSize: '10px' }}>-</span>}</td>
-                      <td className="px-2 py-2 text-slate-400/80" style={{ fontSize: '11px', width: '10%' }}>{lead.vendedor}</td>
-                      <td className="px-2 py-2" style={{ width: '8%' }}><span className="text-slate-300/80" style={{ fontSize: '10px' }}>{formatDate(lead.fechaCaptura)}</span></td>
+                    <tr 
+                      key={lead.id} 
+                      className={`transition-all duration-180 ${lead.eliminado ? 'opacity-50' : ''}`}
+                      style={{ 
+                        height: '54px',
+                        background: index % 2 === 0 ? 'rgba(30,41,59,0.25)' : 'transparent',
+                        borderBottom: '1px solid rgba(71,85,105,0.25)',
+                        borderLeft: '2px solid transparent'
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.background = 'rgba(59,130,246,0.06)';
+                        e.currentTarget.style.borderLeftColor = 'rgba(249,115,22,0.6)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.background = index % 2 === 0 ? 'rgba(30,41,59,0.25)' : 'transparent';
+                        e.currentTarget.style.borderLeftColor = 'transparent';
+                      }}
+                    >
+                      <td className="px-2 py-2 text-center" style={{ fontFamily: "'Orbitron', monospace", fontSize: '11px', fontWeight: 600, color: lead.eliminado ? '#ef4444' : alerta.tipo === 'critico' ? '#ef4444' : '#60a5fa', width: '3%', fontVariantNumeric: 'tabular-nums' }}>{index + 1}</td>
+                      <td className="px-2 py-2" style={{ width: '18%' }}><div className="flex items-center justify-between gap-2"><span className="text-white truncate" style={{ fontSize: '14px', fontWeight: 600 }}>{lead.nombreEmpresa}</span><AlertBadge lead={lead} /></div></td>
+                      <td className="px-1.5 py-2" style={{ width: '7%' }}><span className={`px-2 py-0.5 rounded-md text-xs font-medium border ${lead.etapaLead === 'Cotizado' ? 'bg-amber-500/10 text-amber-300 border-amber-500/25' : lead.etapaLead === 'Negociacion' ? 'bg-orange-500/10 text-orange-300 border-orange-500/25' : lead.etapaLead === 'Cerrado' ? 'bg-teal-500/10 text-teal-300 border-teal-500/25' : 'bg-slate-500/10 text-slate-400 border-slate-500/20'}`} style={{ fontSize: '10px' }}>{lead.etapaLead || 'Prospecto'}</span></td>
+                      <td className="px-2 py-2" style={{ width: '14%' }}><div><div className="text-white/90 font-medium truncate" style={{ fontSize: '13px' }}>{lead.nombreContacto}</div><div className="text-slate-400 truncate" style={{ fontSize: '12px' }}>{lead.correoElectronico}</div></div></td>
+                      <td className="px-2 py-2" style={{ width: '10%' }}><div className="flex flex-wrap gap-0.5">{(lead.tipoServicio || []).slice(0,2).map((t, i) => <span key={i} className="px-1.5 py-0.5 rounded bg-slate-600/25 text-slate-300 border border-slate-500/20" style={{ fontSize: '9px', fontWeight: 500 }}>{t}</span>)}</div></td>
+                      <td className="px-1.5 py-2" style={{ width: '10%' }}><div className="flex flex-wrap gap-0.5">{(lead.tipoViaje || []).slice(0,2).map((t, i) => <span key={i} className="px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-300 border border-blue-500/20" style={{ fontSize: '9px', fontWeight: 500 }}>{t}</span>)}</div></td>
+                      <td className="px-1.5 py-2" style={{ width: '12%' }}>{potencial > 0 ? <span className="px-2 py-0.5 rounded-md bg-teal-500/12 text-teal-300 border border-teal-500/25" style={{ fontFamily: "'Orbitron', monospace", fontSize: '11px', fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>${potencial.toLocaleString('es-MX')}</span> : <span className="text-slate-600" style={{ fontSize: '10px' }}>-</span>}</td>
+                      <td className="px-2 py-2 text-slate-400" style={{ fontSize: '12px', width: '10%' }}>{lead.vendedor}</td>
+                      <td className="px-2 py-2" style={{ width: '8%' }}><span className="text-slate-300" style={{ fontSize: '11px', fontVariantNumeric: 'tabular-nums' }}>{formatDate(lead.fechaCaptura)}</span></td>
                       <td className="px-2 py-2" style={{ width: '8%' }}>
-                        <div className="flex items-center justify-center gap-1">
-                          {/* BOTONES SÓLIDOS APPLE/OS - SIN OJO */}
+                        <div className="flex items-center justify-center gap-1.5">
+                          {/* BOTÓN EDITAR - Naranja FX */}
                           <button onClick={() => setEditLead(lead)} disabled={lead.eliminado} title="Editar"
-                            className="w-8 h-8 rounded-[10px] flex items-center justify-center transition-all duration-150 hover:-translate-y-0.5 hover:scale-105 active:translate-y-0 active:scale-95"
-                            style={{ background: 'linear-gradient(180deg, #fb923c 0%, #f97316 50%, #ea580c 100%)', boxShadow: '0 4px 12px rgba(249,115,22,0.35)' }}>
-                            <Pencil className="w-4 h-4 text-white" strokeWidth={2.5} />
+                            className="w-[34px] h-[34px] rounded-[11px] flex items-center justify-center transition-all duration-180 hover:-translate-y-0.5 hover:scale-[1.02] active:translate-y-0 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed"
+                            style={{ 
+                              background: 'linear-gradient(180deg, #fb923c 0%, #f97316 50%, #ea580c 100%)', 
+                              boxShadow: '0 8px 18px rgba(249,115,22,0.28), inset 0 1px 0 rgba(255,255,255,0.22), inset 0 -1px 0 rgba(0,0,0,0.18)' 
+                            }}>
+                            <Pencil className="w-4 h-4 text-white/95" strokeWidth={2.5} />
                           </button>
+                          
+                          {/* BOTÓN PDF - Rojo PDF */}
                           <div className="relative">
-                            <button onClick={() => setCotizacionesModal(lead)} title="Cotizaciones"
-                              className="w-8 h-8 rounded-[10px] flex items-center justify-center transition-all duration-150 hover:-translate-y-0.5 hover:scale-105 active:translate-y-0 active:scale-95"
-                              style={{ background: 'linear-gradient(180deg, #60a5fa 0%, #3b82f6 50%, #1d4ed8 100%)', boxShadow: '0 4px 12px rgba(59,130,246,0.35)' }}>
-                              <FileText className="w-4 h-4 text-white" strokeWidth={2.5} />
+                            <button onClick={() => setCotizacionesModal(lead)} title="PDF / Cotizaciones"
+                              className="w-[34px] h-[34px] rounded-[11px] flex items-center justify-center transition-all duration-180 hover:-translate-y-0.5 hover:scale-[1.02] active:translate-y-0 active:scale-[0.98]"
+                              style={{ 
+                                background: 'linear-gradient(180deg, #f87171 0%, #ef4444 50%, #dc2626 100%)', 
+                                boxShadow: '0 8px 18px rgba(239,68,68,0.28), inset 0 1px 0 rgba(255,255,255,0.22), inset 0 -1px 0 rgba(0,0,0,0.18)' 
+                              }}>
+                              <PdfIcon />
                             </button>
                             {lead.cotizaciones?.filter(c => !c.eliminado).length ? (
-                              <div className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-white flex items-center justify-center text-blue-600" style={{ fontSize: '9px', fontWeight: 800 }}>
+                              <div className="absolute -top-1.5 -right-1.5 w-[18px] h-[18px] rounded-full bg-white flex items-center justify-center shadow-sm" style={{ fontSize: '10px', fontWeight: 700, color: '#dc2626' }}>
                                 {lead.cotizaciones.filter(c => !c.eliminado).length}
                               </div>
                             ) : null}
                           </div>
+                          
+                          {/* BOTÓN ELIMINAR - Gris oscuro serio */}
                           {lead.eliminado && isAdmin ? (
                             <button onClick={() => handleRestaurarLead(lead)} title="Restaurar"
-                              className="w-8 h-8 rounded-[10px] flex items-center justify-center transition-all duration-150 hover:-translate-y-0.5 hover:scale-105 active:translate-y-0 active:scale-95"
-                              style={{ background: 'linear-gradient(180deg, #34d399 0%, #10b981 50%, #059669 100%)', boxShadow: '0 4px 12px rgba(16,185,129,0.35)' }}>
-                              <TrendingUp className="w-4 h-4 text-white" strokeWidth={2.5} />
+                              className="w-[34px] h-[34px] rounded-[11px] flex items-center justify-center transition-all duration-180 hover:-translate-y-0.5 hover:scale-[1.02] active:translate-y-0 active:scale-[0.98]"
+                              style={{ 
+                                background: 'linear-gradient(180deg, #34d399 0%, #10b981 50%, #059669 100%)', 
+                                boxShadow: '0 8px 18px rgba(16,185,129,0.28), inset 0 1px 0 rgba(255,255,255,0.22), inset 0 -1px 0 rgba(0,0,0,0.18)' 
+                              }}>
+                              <TrendingUp className="w-4 h-4 text-white/95" strokeWidth={2.5} />
                             </button>
                           ) : (
                             <button onClick={() => setDeleteModal(lead)} disabled={lead.eliminado} title="Eliminar"
-                              className="w-8 h-8 rounded-[10px] flex items-center justify-center transition-all duration-150 hover:-translate-y-0.5 hover:scale-105 active:translate-y-0 active:scale-95"
-                              style={{ background: 'linear-gradient(180deg, #f87171 0%, #ef4444 50%, #dc2626 100%)', boxShadow: '0 4px 12px rgba(239,68,68,0.35)' }}>
-                              <Trash2 className="w-4 h-4 text-white" strokeWidth={2.5} />
+                              className="w-[34px] h-[34px] rounded-[11px] flex items-center justify-center transition-all duration-180 hover:-translate-y-0.5 hover:scale-[1.02] active:translate-y-0 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed"
+                              style={{ 
+                                background: 'linear-gradient(180deg, #64748b 0%, #475569 50%, #334155 100%)', 
+                                boxShadow: '0 8px 18px rgba(51,65,85,0.35), inset 0 1px 0 rgba(255,255,255,0.15), inset 0 -1px 0 rgba(0,0,0,0.20)' 
+                              }}>
+                              <Trash2 className="w-4 h-4 text-white/90" strokeWidth={2.5} />
                             </button>
                           )}
                         </div>
@@ -414,7 +513,18 @@ export const PanelOportunidadesModule = ({ onBack }: PanelOportunidadesModulePro
               )}
             </tbody></table>
           </div>
-          <div className="flex-shrink-0 px-4 py-2 border-t border-slate-700/30 bg-slate-900/70"><span className="text-slate-500" style={{ fontSize: '12px' }}>Mostrando {filteredLeads.length} de {leads.filter(l => !l.eliminado).length} leads</span></div>
+          {/* FOOTER TABLA */}
+          <div 
+            className="flex-shrink-0 px-4 py-3"
+            style={{
+              background: 'rgba(30, 41, 59, 0.5)',
+              borderTop: '1px solid rgba(255,255,255,0.06)'
+            }}
+          >
+            <span className="text-slate-400" style={{ fontSize: '12px', fontFamily: "'Exo 2', sans-serif" }}>
+              Mostrando {filteredLeads.length} de {leads.filter(l => !l.eliminado).length} leads
+            </span>
+          </div>
         </div>
       </div>
 
