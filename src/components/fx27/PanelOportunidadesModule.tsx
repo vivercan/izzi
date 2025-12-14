@@ -340,22 +340,89 @@ export const PanelOportunidadesModule = ({ onBack }: PanelOportunidadesModulePro
         {/* CONTROLES - Área de filtros */}
         <div className="flex-shrink-0 p-4 pb-2 relative z-10">
           <div className="flex flex-wrap gap-3 items-center justify-between">
+            {/* BÚSQUEDA */}
             <div className="flex-1 min-w-[300px]">
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/60" />
                 <input type="text" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder="Buscar leads..." 
-                  className="w-full pl-10 pr-4 py-2 rounded-xl bg-slate-900/80 border border-white/10 text-white placeholder:text-slate-500 focus:outline-none focus:border-blue-400/50 transition-all duration-200 backdrop-blur-sm" 
-                  style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '13px' }} />
+                  className="w-full pl-10 pr-4 py-2.5 rounded-2xl text-white placeholder:text-white/40 focus:outline-none transition-all duration-200" 
+                  style={{ 
+                    fontFamily: "'Exo 2', sans-serif", 
+                    fontSize: '13px',
+                    background: 'rgba(255,255,255,0.08)',
+                    border: '1px solid rgba(255,255,255,0.10)',
+                    boxShadow: '0 10px 24px rgba(0,0,0,0.20), inset 0 1px 0 rgba(255,255,255,0.10)'
+                  }} />
               </div>
             </div>
+            
+            {/* FILTRO VENDEDOR - Estilo pill OS */}
             <div className="flex gap-3">
-              <select value={filterVendedor} onChange={(e) => setFilterVendedor(e.target.value)} className="px-3 py-2 rounded-xl bg-slate-900/80 border border-white/10 text-white focus:outline-none focus:border-blue-400/50 transition-all duration-200 backdrop-blur-sm" style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '13px' }}><option value="">Todos los vendedores</option>{getVendedoresUnicos().map(v => <option key={v} value={v}>{v}</option>)}</select>
-              <input type="date" value={filterFecha} onChange={(e) => setFilterFecha(e.target.value)} className="px-3 py-2 rounded-xl bg-slate-900/80 border border-white/10 text-white focus:outline-none focus:border-blue-400/50 transition-all duration-200 backdrop-blur-sm" style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '13px' }} />
+              <select 
+                value={filterVendedor} 
+                onChange={(e) => setFilterVendedor(e.target.value)} 
+                className="px-4 py-2.5 rounded-2xl text-white/90 focus:outline-none transition-all duration-200 cursor-pointer hover:-translate-y-0.5 active:translate-y-0"
+                style={{ 
+                  fontFamily: "'Exo 2', sans-serif", 
+                  fontSize: '13px',
+                  background: 'rgba(255,255,255,0.08)',
+                  border: '1px solid rgba(255,255,255,0.10)',
+                  boxShadow: '0 10px 24px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.10)'
+                }}>
+                <option value="">Todos los vendedores</option>
+                {getVendedoresUnicos().map(v => <option key={v} value={v}>{v}</option>)}
+              </select>
             </div>
+            
+            {/* BOTONES PILL OS */}
             <div className="flex gap-3">
-              {isAdmin && <button onClick={() => setShowDeleted(!showDeleted)} className={`flex items-center gap-2 px-4 py-2 rounded-xl transition-all duration-200 backdrop-blur-sm ${showDeleted ? 'bg-red-500/20 text-red-300 border border-red-500/30' : 'bg-slate-900/60 text-slate-300 border border-white/10 hover:bg-slate-800/80 hover:border-white/20'}`} style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '13px', fontWeight: 500 }}><Trash2 className="w-4 h-4" />{showDeleted ? 'Ocultar eliminados' : 'Ver eliminados'}</button>}
-              <button onClick={() => setShowFunnel(!showFunnel)} className={`flex items-center gap-2 px-4 py-2 rounded-xl transition-all duration-200 backdrop-blur-sm ${showFunnel ? 'bg-blue-500/25 text-blue-200 border border-blue-400/40' : 'bg-slate-900/60 text-slate-300 border border-white/10 hover:bg-slate-800/80 hover:border-white/20'}`} style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '13px', fontWeight: 500 }}><BarChart3 className="w-4 h-4" />Funnel</button>
-              <button onClick={handleExportExcel} className="flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-900/60 text-slate-300 border border-white/10 hover:bg-slate-800/80 hover:border-white/20 transition-all duration-200 backdrop-blur-sm" style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '13px', fontWeight: 500 }}><Download className="w-4 h-4" />Exportar</button>
+              {isAdmin && (
+                <button 
+                  onClick={() => setShowDeleted(!showDeleted)} 
+                  className="flex items-center gap-2 px-4 py-2.5 rounded-2xl transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0"
+                  style={{ 
+                    fontFamily: "'Exo 2', sans-serif", 
+                    fontSize: '13px', 
+                    fontWeight: 500,
+                    background: showDeleted ? 'rgba(239,68,68,0.15)' : 'rgba(255,255,255,0.08)',
+                    border: showDeleted ? '1px solid rgba(239,68,68,0.25)' : '1px solid rgba(255,255,255,0.10)',
+                    boxShadow: '0 10px 24px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.10)',
+                    color: showDeleted ? 'rgba(252,165,165,0.95)' : 'rgba(255,255,255,0.90)'
+                  }}>
+                  <Trash2 className="w-4 h-4" />
+                  {showDeleted ? 'Ocultar eliminados' : 'Ver eliminados'}
+                </button>
+              )}
+              <button 
+                onClick={() => setShowFunnel(!showFunnel)} 
+                className="flex items-center gap-2 px-4 py-2.5 rounded-2xl transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0"
+                style={{ 
+                  fontFamily: "'Exo 2', sans-serif", 
+                  fontSize: '13px', 
+                  fontWeight: 500,
+                  background: showFunnel ? 'rgba(59,130,246,0.20)' : 'rgba(255,255,255,0.08)',
+                  border: showFunnel ? '1px solid rgba(59,130,246,0.35)' : '1px solid rgba(255,255,255,0.10)',
+                  boxShadow: '0 10px 24px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.10)',
+                  color: showFunnel ? 'rgba(147,197,253,0.95)' : 'rgba(255,255,255,0.90)'
+                }}>
+                <BarChart3 className="w-4 h-4" />
+                Funnel
+              </button>
+              <button 
+                onClick={handleExportExcel} 
+                className="flex items-center gap-2 px-4 py-2.5 rounded-2xl transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0"
+                style={{ 
+                  fontFamily: "'Exo 2', sans-serif", 
+                  fontSize: '13px', 
+                  fontWeight: 500,
+                  background: 'rgba(255,255,255,0.08)',
+                  border: '1px solid rgba(255,255,255,0.10)',
+                  boxShadow: '0 10px 24px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.10)',
+                  color: 'rgba(255,255,255,0.90)'
+                }}>
+                <Download className="w-4 h-4" />
+                Exportar
+              </button>
             </div>
           </div>
         </div>
@@ -449,11 +516,69 @@ export const PanelOportunidadesModule = ({ onBack }: PanelOportunidadesModulePro
                     >
                       <td className="px-2 py-2 text-center" style={{ fontFamily: "'Orbitron', monospace", fontSize: '11px', fontWeight: 600, color: lead.eliminado ? '#ef4444' : alerta.tipo === 'critico' ? '#ef4444' : '#60a5fa', width: '3%', fontVariantNumeric: 'tabular-nums' }}>{index + 1}</td>
                       <td className="px-2 py-2" style={{ width: '18%' }}><div className="flex items-center justify-between gap-2"><span className="text-white truncate" style={{ fontSize: '14px', fontWeight: 600 }}>{lead.nombreEmpresa}</span><AlertBadge lead={lead} /></div></td>
-                      <td className="px-1.5 py-2" style={{ width: '7%' }}><span className={`px-2 py-0.5 rounded-md text-xs font-medium border ${lead.etapaLead === 'Cotizado' ? 'bg-amber-500/10 text-amber-300 border-amber-500/25' : lead.etapaLead === 'Negociacion' ? 'bg-orange-500/10 text-orange-300 border-orange-500/25' : lead.etapaLead === 'Cerrado' ? 'bg-teal-500/10 text-teal-300 border-teal-500/25' : 'bg-slate-500/10 text-slate-400 border-slate-500/20'}`} style={{ fontSize: '10px' }}>{lead.etapaLead || 'Prospecto'}</span></td>
+                      <td className="px-1.5 py-2" style={{ width: '7%' }}>
+                        <span 
+                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg"
+                          style={{ 
+                            fontSize: '10px', 
+                            fontWeight: 500,
+                            background: 'rgba(255,255,255,0.06)',
+                            border: '1px solid rgba(255,255,255,0.10)',
+                            color: 'rgba(255,255,255,0.85)',
+                            borderLeftWidth: '2px',
+                            borderLeftColor: lead.etapaLead === 'Cotizado' ? 'rgba(251,191,36,0.7)' : lead.etapaLead === 'Negociacion' ? 'rgba(249,115,22,0.7)' : lead.etapaLead === 'Cerrado' ? 'rgba(34,197,94,0.7)' : 'rgba(96,165,250,0.5)'
+                          }}
+                        >
+                          {lead.etapaLead || 'Prospecto'}
+                        </span>
+                      </td>
                       <td className="px-2 py-2" style={{ width: '14%' }}><div><div className="text-white/90 font-medium truncate" style={{ fontSize: '13px' }}>{lead.nombreContacto}</div><div className="text-slate-400 truncate" style={{ fontSize: '12px' }}>{lead.correoElectronico}</div></div></td>
-                      <td className="px-2 py-2" style={{ width: '10%' }}><div className="flex flex-wrap gap-0.5">{(lead.tipoServicio || []).slice(0,2).map((t, i) => <span key={i} className="px-1.5 py-0.5 rounded bg-slate-600/25 text-slate-300 border border-slate-500/20" style={{ fontSize: '9px', fontWeight: 500 }}>{t}</span>)}</div></td>
-                      <td className="px-1.5 py-2" style={{ width: '10%' }}><div className="flex flex-wrap gap-0.5">{(lead.tipoViaje || []).slice(0,2).map((t, i) => <span key={i} className="px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-300 border border-blue-500/20" style={{ fontSize: '9px', fontWeight: 500 }}>{t}</span>)}</div></td>
-                      <td className="px-1.5 py-2" style={{ width: '12%' }}>{potencial > 0 ? <span className="px-2 py-0.5 rounded-md bg-teal-500/12 text-teal-300 border border-teal-500/25" style={{ fontFamily: "'Orbitron', monospace", fontSize: '11px', fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>${potencial.toLocaleString('es-MX')}</span> : <span className="text-slate-600" style={{ fontSize: '10px' }}>-</span>}</td>
+                      <td className="px-2 py-2" style={{ width: '10%' }}>
+                        <div className="flex flex-wrap gap-1">
+                          {(lead.tipoServicio || []).slice(0,2).map((t, i) => (
+                            <span key={i} className="px-2 py-0.5 rounded-lg" style={{ 
+                              fontSize: '9px', 
+                              fontWeight: 500,
+                              background: 'rgba(255,255,255,0.06)',
+                              border: '1px solid rgba(255,255,255,0.10)',
+                              color: 'rgba(255,255,255,0.80)'
+                            }}>{t}</span>
+                          ))}
+                        </div>
+                      </td>
+                      <td className="px-1.5 py-2" style={{ width: '10%' }}>
+                        <div className="flex flex-wrap gap-1">
+                          {(lead.tipoViaje || []).slice(0,2).map((t, i) => (
+                            <span key={i} className="px-2 py-0.5 rounded-lg" style={{ 
+                              fontSize: '9px', 
+                              fontWeight: 500,
+                              background: 'rgba(255,255,255,0.06)',
+                              border: '1px solid rgba(255,255,255,0.10)',
+                              color: 'rgba(255,255,255,0.85)'
+                            }}>{t}</span>
+                          ))}
+                        </div>
+                      </td>
+                      <td className="px-1.5 py-2" style={{ width: '12%' }}>
+                        {potencial > 0 ? (
+                          <span 
+                            className="inline-block px-2.5 py-1 rounded-lg"
+                            style={{ 
+                              fontFamily: "'Exo 2', sans-serif", 
+                              fontSize: '11px', 
+                              fontWeight: 600, 
+                              fontVariantNumeric: 'tabular-nums',
+                              background: 'rgba(255,255,255,0.06)',
+                              border: '1px solid rgba(255,255,255,0.12)',
+                              color: 'rgba(255,255,255,0.92)'
+                            }}
+                          >
+                            ${potencial.toLocaleString('es-MX')}
+                          </span>
+                        ) : (
+                          <span style={{ fontSize: '10px', color: 'rgba(100,116,139,0.6)' }}>—</span>
+                        )}
+                      </td>
                       <td className="px-2 py-2 text-slate-400" style={{ fontSize: '12px', width: '10%' }}>{lead.vendedor}</td>
                       <td className="px-2 py-2" style={{ width: '8%' }}><span className="text-slate-300" style={{ fontSize: '11px', fontVariantNumeric: 'tabular-nums' }}>{formatDate(lead.fechaCaptura)}</span></td>
                       <td className="px-2 py-2" style={{ width: '8%' }}>
@@ -468,18 +593,34 @@ export const PanelOportunidadesModule = ({ onBack }: PanelOportunidadesModulePro
                             <Pencil className="w-4 h-4 text-white/95" strokeWidth={2.5} />
                           </button>
                           
-                          {/* BOTÓN PDF - Rojo PDF */}
+                          {/* BOTÓN PDF - BLANCO SÓLIDO OS */}
                           <div className="relative">
                             <button onClick={() => setCotizacionesModal(lead)} title="PDF / Cotizaciones"
                               className="w-[34px] h-[34px] rounded-[11px] flex items-center justify-center transition-all duration-180 hover:-translate-y-0.5 hover:scale-[1.02] active:translate-y-0 active:scale-[0.98]"
                               style={{ 
-                                background: 'linear-gradient(180deg, #f87171 0%, #ef4444 50%, #dc2626 100%)', 
-                                boxShadow: '0 8px 18px rgba(239,68,68,0.28), inset 0 1px 0 rgba(255,255,255,0.22), inset 0 -1px 0 rgba(0,0,0,0.18)' 
+                                background: 'linear-gradient(180deg, #ffffff 0%, #f8fafc 50%, #f1f5f9 100%)', 
+                                border: '1px solid rgba(0,0,0,0.08)',
+                                boxShadow: '0 8px 18px rgba(0,0,0,0.18), inset 0 1px 0 rgba(255,255,255,0.90), inset 0 -1px 0 rgba(0,0,0,0.05)' 
                               }}>
-                              <PdfIcon />
+                              {/* Icono PDF rojo */}
+                              <svg viewBox="0 0 24 24" className="w-[18px] h-[18px]" fill="none">
+                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" fill="#dc2626" opacity="0.15"/>
+                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z" stroke="#dc2626" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                                <polyline points="14 2 14 8 20 8" stroke="#dc2626" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                                <text x="7" y="17" fill="#dc2626" fontSize="5" fontWeight="700" fontFamily="system-ui">PDF</text>
+                              </svg>
                             </button>
                             {lead.cotizaciones?.filter(c => !c.eliminado).length ? (
-                              <div className="absolute -top-1.5 -right-1.5 w-[18px] h-[18px] rounded-full bg-white flex items-center justify-center shadow-sm" style={{ fontSize: '10px', fontWeight: 700, color: '#dc2626' }}>
+                              <div 
+                                className="absolute -top-1.5 -right-1.5 w-[18px] h-[18px] rounded-full flex items-center justify-center" 
+                                style={{ 
+                                  fontSize: '10px', 
+                                  fontWeight: 700, 
+                                  color: '#ffffff',
+                                  background: '#dc2626',
+                                  boxShadow: '0 2px 6px rgba(220,38,38,0.4)'
+                                }}
+                              >
                                 {lead.cotizaciones.filter(c => !c.eliminado).length}
                               </div>
                             ) : null}
