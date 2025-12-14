@@ -8,12 +8,16 @@ import * as pdfjsLib from 'pdfjs-dist';
 pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
 
 interface PanelOportunidadesModuleProps { onBack: () => void; }
-interface LineaCotizacion { origen: string; destino: string; servicio: string; tarifa: number; moneda: string; viajes: number; tipoViaje: string; subtotalMXN: number; }
+interface LineaCotizacion { origen: string; destino: string; servicio: string; tarifa: number; moneda: string; viajes: number; tipoViaje: string; subtotalMXN: number; omitida?: boolean; }
 interface Cotizacion { nombre: string; url: string; fecha: string; analisis?: any; eliminado?: boolean; lineas?: LineaCotizacion[]; potencialMXN?: number; }
 interface HistorialCambio { fecha: string; campo: string; valorAnterior: string; valorNuevo: string; usuario: string; }
-interface Lead { id: string; nombreEmpresa: string; paginaWeb: string; nombreContacto: string; telefonoContacto?: string; correoElectronico: string; tipoServicio: string[]; tipoViaje: string[]; principalesRutas: string; viajesPorMes: string; tarifa: string; proyectadoVentaMensual?: string; proximosPasos: string; etapaLead?: string; altaCliente?: boolean; generacionSOP?: boolean; juntaArranque?: boolean; facturado?: boolean; vendedor: string; fechaCaptura?: string; fechaActualizacion?: string; cotizaciones?: Cotizacion[]; eliminado?: boolean; fechaEliminado?: string; historial?: HistorialCambio[]; fechaLiberacion?: string; }
+interface HoldInfo { fechaInicio: string; fechaFin: string; contador: number; }
+interface Lead { id: string; nombreEmpresa: string; paginaWeb: string; nombreContacto: string; telefonoContacto?: string; correoElectronico: string; tipoServicio: string[]; tipoViaje: string[]; principalesRutas: string; viajesPorMes: string; tarifa: string; proyectadoVentaMensual?: string; proximosPasos: string; etapaLead?: string; altaCliente?: boolean; generacionSOP?: boolean; juntaArranque?: boolean; facturado?: boolean; vendedor: string; fechaCaptura?: string; fechaActualizacion?: string; cotizaciones?: Cotizacion[]; eliminado?: boolean; fechaEliminado?: string; historial?: HistorialCambio[]; fechaLiberacion?: string; holdInfo?: HoldInfo; declinado?: boolean; fechaDeclinado?: string; }
 type SortField = 'nombreEmpresa' | 'vendedor' | 'fechaCaptura' | 'viajesPorMes';
 type SortDirection = 'asc' | 'desc';
+
+// Estatus disponibles para leads
+const ETAPAS_LEAD = ['Prospecto', 'Cotizado', 'Negociacion', 'Cerrado', 'En Hold', 'Declinado'] as const;
 
 const CLIENTES_EXISTENTES = ['ABASTECEDORA DE MATERIAS PRIMAS','AGROINDUSTRIAL AGRILEG DE TEHUACAN','AGROPECUARIA MARLEE','AGROS','ALIANZA CARNICA','ALIMENTOS FINOS DE OCCIDENTE','ALIMENTOS Y SAZONADORES REGIOS','ALL CARRIERS, INC.','ARCBEST II INC','ARCH MEAT','ATLAS EXPEDITORS','AVICOLA PILGRIM\'S PRIDE DE MEXICO','BAKERY MACHINERY AND ENGINEERING LLC','BARCEL','BARRY CALLEBAUT MEXICO','BBA LOGISTCS LLC','BERRIES PARADISE','BIMBO','BISON TRANSPORT INC','C H ROBINSON DE MEXICO','CADENA COMERCIAL OXXO','CARNES SELECTAS TANGAMANGA','CAROLINA LOGISTICS INC','CFI LOGISTICA','CH ROBINSON WORLDWIDE, INC','COMERCIALIZADORA DE LACTEOS Y DERIVADOS','COMERCIALIZADORA GAB','COMERCIALIZADORA KEES','DEACERO','DISTRIBUCION Y EMBARQUES FRESH','EA LOGISTICA','EMPACADORA DE CARNES UNIDAD GANADERA','ENLACES TERRESTRES DEL BOSQUE','FRIGORIFICO Y EMPACADORA DE AGUASCALIENTES','FWD LOGISTICA','GANADEROS PRODUCTORES DE LECHE PURA','GRANJAS CARROLL DE MEXICO','GRANJERO FELIZ','GRUPO MELANGE DE MEXICO','HEXPOL COMPOUNDING','HIGH TECH FARMS','HONDA TRADING DE MEXICO','HORTIFRUT','IMPORTADORA DE PRODUCTOS CARNICOS APODACA','INDUSTRIALIZADORA DE CARNICOS STRATTEGA','INDUSTRIAS ACROS WHIRLPOOL','INTERCARNES','INTERLAND TRANSPORT','INTERLAND USA','JOHNSON CONTROLS ENTERPRISES MEXICO','KGL INTERNATIONAL NETWORK MEXICO','KONEKT INTERSERVICE','KRONUS LOGISTICS LLC','LOGISTEED MEXICO','LONGHORN WAREHOUSES, INC','MAR BRAN','MARBRAN USA, LTD','MARTICO MEX','MCALLEN MEAT PURVEYORS, LLC','MCCAIN MEXICO','NATURESWEET COMERCIALIZADORA','NATURESWEET INVERNADEROS','NS BRANDS, LTD','NUVOCARGO','ONE SOLUTION GROUP, INC','P.A.C. INTERNATIONAL','PERFORMER LOGISTICS','PILGRIM\'S PRIDE','PIPER TRADING LLC','POLLO Y HUEVO TRIUNFO','PRODUCTORA AGRICOLA DE AGUASCALIENTES','PRODUCTORA DE BOCADOS CARNICOS','PRODUCTOS CAREY','PRODUCTOS FRUGO','PROMOTORA DE MERCADOS','R.H. SHIPPING & CHARTERING','RANCHO ACUICOLA ELIXIR','RED ROAD LOGISTICS INC','SCHENKER INTERNATIONAL','SERVI CARNES DE OCCIDENTE','SIGMA ALIMENTOS CENTRO','SIGMA ALIMENTOS COMERCIAL','SPEEDYHAUL INTERNATIONAL','STEERINGMEX','SUMMIT PLASTICS GUANAJUATO','SUN CHEMICAL','TEU LOGISTICA','TITAN MEATS LLC','TRANSPLACE MEXICO LLC','TRAXION TECHNOLOGIES','TROB TRANSPORTES','TROB USA, LLC','UNITED FC DE MEXICO','VALLE REDONDO','VDT LOGISTICA','VEGGIE PRIME','VICTUX','VISCERAS SELECTAS DEL BAJIO','WEXPRESS','WHIRLPOOL INTERNACIONAL','ZEBRA LOGISTICS','ZEBRA LOGISTICS, INC'];
 
@@ -140,6 +144,78 @@ const calcularPotencialDesdeCotizaciones = (lead: Lead): number => {
   return lead.cotizaciones.filter(c => !c.eliminado && c.potencialMXN).reduce((sum, c) => sum + (c.potencialMXN || 0), 0);
 };
 
+// VALIDACIÓN DE DUPLICADOS MEJORADA
+// Detecta: cliente existente, lead de otro vendedor, lead propio, similares
+interface DuplicadoInfo {
+  esClienteExistente: boolean;
+  esLeadOtroVendedor: boolean;
+  vendedorActual: string;
+  esLeadPropio: boolean;
+  duplicadoExacto: boolean;
+  similares: { nombre: string; tipo: 'cliente' | 'lead'; vendedor?: string }[];
+}
+
+const buscarDuplicadosCompleto = (
+  nombre: string, 
+  todosLosLeads: Lead[], 
+  vendedorActual: string
+): DuplicadoInfo => {
+  const nombreNorm = nombre.toUpperCase().trim();
+  
+  // 1. Verificar si es cliente existente
+  const esClienteExistente = CLIENTES_EXISTENTES.some(c => c.toUpperCase() === nombreNorm);
+  
+  // 2. Verificar si es lead de otro vendedor
+  const leadOtroVendedor = todosLosLeads.find(l => 
+    l.nombreEmpresa.toUpperCase() === nombreNorm && 
+    l.vendedor !== vendedorActual &&
+    !l.eliminado
+  );
+  
+  // 3. Verificar si es lead propio
+  const leadPropio = todosLosLeads.find(l => 
+    l.nombreEmpresa.toUpperCase() === nombreNorm && 
+    l.vendedor === vendedorActual &&
+    !l.eliminado
+  );
+  
+  // 4. Buscar similares
+  const similares: { nombre: string; tipo: 'cliente' | 'lead'; vendedor?: string }[] = [];
+  const palabras = nombreNorm.split(' ').filter(p => p.length > 3);
+  
+  // Similares en clientes existentes
+  CLIENTES_EXISTENTES.forEach(c => { 
+    const cNorm = c.toUpperCase(); 
+    if (cNorm !== nombreNorm && palabras.some(p => cNorm.includes(p))) {
+      similares.push({ nombre: c, tipo: 'cliente' });
+    }
+  });
+  
+  // Similares en leads (de cualquier vendedor)
+  todosLosLeads.forEach(l => { 
+    const lNorm = l.nombreEmpresa.toUpperCase(); 
+    if (lNorm !== nombreNorm && !l.eliminado && palabras.some(p => lNorm.includes(p))) {
+      if (!similares.find(s => s.nombre.toUpperCase() === lNorm)) {
+        similares.push({ 
+          nombre: l.nombreEmpresa, 
+          tipo: 'lead', 
+          vendedor: l.vendedor 
+        });
+      }
+    }
+  });
+  
+  return { 
+    esClienteExistente,
+    esLeadOtroVendedor: !!leadOtroVendedor,
+    vendedorActual: leadOtroVendedor?.vendedor || '',
+    esLeadPropio: !!leadPropio,
+    duplicadoExacto: esClienteExistente || !!leadOtroVendedor || !!leadPropio,
+    similares: similares.slice(0, 5)
+  };
+};
+
+// Mantener función legacy para compatibilidad
 const buscarDuplicados = (nombre: string, leadsExistentes: Lead[]): { duplicadoExacto: boolean; similares: string[] } => {
   const nombreNorm = nombre.toUpperCase().trim();
   const duplicadoExacto = CLIENTES_EXISTENTES.some(c => c.toUpperCase() === nombreNorm) || leadsExistentes.some(l => l.nombreEmpresa.toUpperCase() === nombreNorm);
@@ -161,10 +237,13 @@ const getTipoViajeColor = (tipo: string) => {
 
 export const PanelOportunidadesModule = ({ onBack }: PanelOportunidadesModuleProps) => {
   const [leads, setLeads] = useState<Lead[]>([]);
+  const [allLeads, setAllLeads] = useState<Lead[]>([]); // TODOS los leads para validación de duplicados
   const [filteredLeads, setFilteredLeads] = useState<Lead[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterVendedor, setFilterVendedor] = useState('');
   const [filterFecha, setFilterFecha] = useState('');
+  const [funnelVendedor, setFunnelVendedor] = useState(''); // Filtro de vendedor para Funnel
+  const [vendedorActual, setVendedorActual] = useState(''); // Nombre del vendedor logueado
   const [sortField, setSortField] = useState<SortField>('fechaCaptura');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
   const [showFunnel, setShowFunnel] = useState(false);
@@ -190,26 +269,119 @@ export const PanelOportunidadesModule = ({ onBack }: PanelOportunidadesModulePro
     const cargarLeads = async () => {
       try {
         const session = localStorage.getItem('fx27-session');
-        let vendedorActual = '', esAdmin = false;
-        if (session) { const { email } = JSON.parse(session); const usuarios = JSON.parse(localStorage.getItem('fx27-usuarios') || '[]'); const usuario = usuarios.find((u: any) => u.correo === email); if (usuario) { vendedorActual = usuario.nombre; esAdmin = usuario.rol === 'admin'; setIsAdmin(esAdmin); } }
-        const url = esAdmin ? `https://${projectId}.supabase.co/functions/v1/make-server-d84b50bb/leads` : `https://${projectId}.supabase.co/functions/v1/make-server-d84b50bb/leads?vendedor=${encodeURIComponent(vendedorActual)}`;
+        let vendedor = '', esAdmin = false;
+        if (session) { 
+          const { email } = JSON.parse(session); 
+          const usuarios = JSON.parse(localStorage.getItem('fx27-usuarios') || '[]'); 
+          const usuario = usuarios.find((u: any) => u.correo === email); 
+          if (usuario) { 
+            vendedor = usuario.nombre; 
+            esAdmin = usuario.rol === 'admin'; 
+            setIsAdmin(esAdmin); 
+            setVendedorActual(vendedor);
+          } 
+        }
+        
+        // Admin ve todos los leads, usuarios solo los suyos
+        const url = esAdmin 
+          ? `https://${projectId}.supabase.co/functions/v1/make-server-d84b50bb/leads` 
+          : `https://${projectId}.supabase.co/functions/v1/make-server-d84b50bb/leads?vendedor=${encodeURIComponent(vendedor)}`;
         const response = await fetch(url, { headers: { 'Authorization': `Bearer ${publicAnonKey}` } });
         const result = await response.json();
-        if (response.ok && result.success) { setLeads(result.leads); setFilteredLeads(result.leads.filter((l: Lead) => !l.eliminado)); }
+        
+        if (response.ok && result.success) { 
+          setLeads(result.leads); 
+          setFilteredLeads(result.leads.filter((l: Lead) => !l.eliminado)); 
+        }
+        
+        // SIEMPRE cargar TODOS los leads para validación de duplicados (incluso para usuarios normales)
+        const allLeadsUrl = `https://${projectId}.supabase.co/functions/v1/make-server-d84b50bb/leads`;
+        const allResponse = await fetch(allLeadsUrl, { headers: { 'Authorization': `Bearer ${publicAnonKey}` } });
+        const allResult = await allResponse.json();
+        if (allResponse.ok && allResult.success) {
+          setAllLeads(allResult.leads);
+        }
+        
       } catch (error) { console.error('Error:', error); }
     };
     cargarLeads();
   }, []);
 
+  // Función para verificar y reactivar leads en Hold que cumplieron 30 días
+  const verificarHoldsExpirados = async (leadsArray: Lead[]): Promise<Lead[]> => {
+    const ahora = new Date();
+    const leadsActualizados: Lead[] = [];
+    
+    for (const lead of leadsArray) {
+      if (lead.etapaLead === 'En Hold' && lead.holdInfo?.fechaFin) {
+        const fechaFin = new Date(lead.holdInfo.fechaFin);
+        if (ahora >= fechaFin) {
+          // Hold expirado - reactivar lead
+          const leadReactivado = {
+            ...lead,
+            etapaLead: 'Prospecto',
+            fechaActualizacion: ahora.toISOString(),
+            historial: [
+              ...(lead.historial || []),
+              {
+                fecha: ahora.toISOString(),
+                campo: 'etapaLead',
+                valorAnterior: 'En Hold',
+                valorNuevo: 'Prospecto (reactivado automático)',
+                usuario: 'Sistema'
+              }
+            ]
+          };
+          leadsActualizados.push(leadReactivado);
+          
+          // Actualizar en servidor
+          try {
+            await fetch(`https://${projectId}.supabase.co/functions/v1/make-server-d84b50bb/leads/${lead.id}`, {
+              method: 'PUT',
+              headers: { 'Authorization': `Bearer ${publicAnonKey}`, 'Content-Type': 'application/json' },
+              body: JSON.stringify(leadReactivado)
+            });
+          } catch (e) { console.error('Error reactivando lead:', e); }
+        }
+      }
+    }
+    
+    return leadsActualizados;
+  };
+
   useEffect(() => {
     let resultado = [...leads];
-    if (!showDeleted) resultado = resultado.filter(lead => !lead.eliminado);
+    
+    // Verificar holds expirados al cargar
+    verificarHoldsExpirados(resultado).then(reactivados => {
+      if (reactivados.length > 0) {
+        setLeads(prevLeads => prevLeads.map(l => {
+          const reactivado = reactivados.find(r => r.id === l.id);
+          return reactivado || l;
+        }));
+      }
+    });
+    
+    // Filtrar según permisos
+    if (!showDeleted) {
+      resultado = resultado.filter(lead => {
+        // Declinados solo visibles para admin en modo "Ver eliminados"
+        if (lead.declinado) return false;
+        // Eliminados normales
+        if (lead.eliminado) return false;
+        return true;
+      });
+    } else if (isAdmin) {
+      // Admin en modo "Ver eliminados" ve TODO incluyendo declinados
+      resultado = resultado;
+    }
+    
     if (searchTerm) resultado = resultado.filter(lead => lead.nombreEmpresa.toLowerCase().includes(searchTerm.toLowerCase()) || lead.nombreContacto.toLowerCase().includes(searchTerm.toLowerCase()) || lead.correoElectronico.toLowerCase().includes(searchTerm.toLowerCase()));
     if (filterVendedor) resultado = resultado.filter(lead => lead.vendedor === filterVendedor);
     if (filterFecha) resultado = resultado.filter(lead => { try { return lead.fechaCaptura && new Date(lead.fechaCaptura).toISOString().split('T')[0] === filterFecha; } catch { return false; } });
     resultado.sort((a, b) => { let valueA: any = a[sortField], valueB: any = b[sortField]; if (sortField === 'viajesPorMes') { valueA = parseInt(valueA) || 0; valueB = parseInt(valueB) || 0; } if (sortField === 'fechaCaptura') { try { valueA = new Date(a.fechaCaptura || '').getTime() || 0; valueB = new Date(b.fechaCaptura || '').getTime() || 0; } catch { valueA = 0; valueB = 0; } } if (valueA < valueB) return sortDirection === 'asc' ? -1 : 1; if (valueA > valueB) return sortDirection === 'asc' ? 1 : -1; return 0; });
     setFilteredLeads(resultado);
-  }, [leads, searchTerm, filterVendedor, filterFecha, sortField, sortDirection, showDeleted]);
+  }, [leads, searchTerm, filterVendedor, filterFecha, sortField, sortDirection, showDeleted, isAdmin]);
 
   const getAlertaLead = (lead: Lead): { tipo: 'amarillo' | 'rojo' | 'critico' | null; mensaje: string; dias: number } => {
     if (lead.etapaLead === 'Cerrado') return { tipo: null, mensaje: '', dias: 0 };
@@ -254,9 +426,41 @@ export const PanelOportunidadesModule = ({ onBack }: PanelOportunidadesModulePro
     setAnalizando(false); setStatusMsg('');
   };
 
-  const calcularSubtotal = (linea: LineaCotizacion): number => { const tarifaMXN = linea.moneda === 'USD' ? linea.tarifa * tipoCambio : linea.tarifa; return linea.viajes * tarifaMXN; };
-  const calcularTotalMXN = (): number => lineasCotizacion.reduce((sum, linea) => sum + calcularSubtotal(linea), 0);
-  const todosViajesCapturados = (): boolean => lineasCotizacion.every(l => l.viajes > 0 && l.origen && l.destino && l.tarifa > 0);
+  const calcularSubtotal = (linea: LineaCotizacion): number => { 
+    if (linea.omitida) return 0; // Rutas omitidas no suman
+    const tarifaMXN = linea.moneda === 'USD' ? linea.tarifa * tipoCambio : linea.tarifa; 
+    return linea.viajes * tarifaMXN; 
+  };
+  
+  const calcularTotalMXN = (): number => lineasCotizacion
+    .filter(l => !l.omitida) // Solo contar rutas activas
+    .reduce((sum, linea) => sum + calcularSubtotal(linea), 0);
+  
+  // Validar solo rutas NO omitidas
+  const todosViajesCapturados = (): boolean => {
+    const rutasActivas = lineasCotizacion.filter(l => !l.omitida);
+    if (rutasActivas.length === 0) return false; // Al menos una ruta activa
+    return rutasActivas.every(l => l.viajes > 0 && l.origen && l.destino && l.tarifa > 0);
+  };
+  
+  // Contar rutas activas vs omitidas
+  const contarRutas = () => {
+    const activas = lineasCotizacion.filter(l => !l.omitida).length;
+    const omitidas = lineasCotizacion.filter(l => l.omitida).length;
+    return { activas, omitidas, total: lineasCotizacion.length };
+  };
+  
+  // Toggle omitir/incluir ruta
+  const handleToggleOmitirRuta = (idx: number) => {
+    const arr = [...lineasCotizacion];
+    arr[idx].omitida = !arr[idx].omitida;
+    // Si se omite, limpiar viajes para evitar confusión
+    if (arr[idx].omitida) {
+      arr[idx].viajes = 0;
+      arr[idx].subtotalMXN = 0;
+    }
+    setLineasCotizacion(arr);
+  };
 
   const handleCambioLinea = (idx: number, campo: keyof LineaCotizacion, valor: any) => {
     const arr = [...lineasCotizacion];
@@ -269,7 +473,9 @@ export const PanelOportunidadesModule = ({ onBack }: PanelOportunidadesModulePro
     if (!lineasModal || !todosViajesCapturados()) return;
     const { lead, index } = lineasModal;
     const cotizaciones = [...(lead.cotizaciones || [])];
-    const lineasConSubtotal = lineasCotizacion.map(l => ({ ...l, subtotalMXN: calcularSubtotal(l) }));
+    // Solo guardar rutas activas (no omitidas)
+    const lineasActivas = lineasCotizacion.filter(l => !l.omitida);
+    const lineasConSubtotal = lineasActivas.map(l => ({ ...l, subtotalMXN: calcularSubtotal(l) }));
     const potencialMXN = calcularTotalMXN();
     cotizaciones[index] = { ...cotizaciones[index], lineas: lineasConSubtotal, potencialMXN };
     const tiposViaje = [...(lead.tipoViaje || [])]; const tiposServicio = [...(lead.tipoServicio || [])];
@@ -291,16 +497,54 @@ export const PanelOportunidadesModule = ({ onBack }: PanelOportunidadesModulePro
   const handleRestaurarLead = async (lead: Lead) => { if (!isAdmin) return; try { const leadActualizado = { ...lead, eliminado: false, fechaEliminado: null }; await fetch(`https://${projectId}.supabase.co/functions/v1/make-server-d84b50bb/leads/${lead.id}`, { method: 'PUT', headers: { 'Authorization': `Bearer ${publicAnonKey}`, 'Content-Type': 'application/json' }, body: JSON.stringify(leadActualizado) }); setLeads(leads.map(l => l.id === lead.id ? leadActualizado : l)); } catch {} };
 
   const handleGuardarEdicion = async () => {
-    if (!editLead || !formData?.nombreEmpresa?.trim() || !formData?.nombreContacto?.trim() || !formData?.correoElectronico?.trim()) { alert('Campos obligatorios'); return; }
-    const { duplicadoExacto, similares } = buscarDuplicados(formData.nombreEmpresa || '', leads.filter(l => l.id !== editLead.id));
-    if (duplicadoExacto) { alert(`Error: El cliente "${formData.nombreEmpresa}" ya existe.`); return; }
-    if (similares.length > 0 && !confirm(`Clientes similares:\n${similares.join('\n')}\n\nContinuar?`)) return;
+    if (!editLead || !formData?.nombreEmpresa?.trim() || !formData?.nombreContacto?.trim() || !formData?.correoElectronico?.trim()) { 
+      alert('Campos obligatorios: Empresa, Contacto y Email'); 
+      return; 
+    }
+    
+    // VALIDACIÓN DE DUPLICADOS MEJORADA
+    const nombreNuevo = formData.nombreEmpresa || '';
+    const nombreCambio = nombreNuevo.toUpperCase() !== editLead.nombreEmpresa.toUpperCase();
+    
+    if (nombreCambio) {
+      const duplicados = buscarDuplicadosCompleto(nombreNuevo, allLeads, vendedorActual);
+      
+      // 1. Es cliente existente
+      if (duplicados.esClienteExistente) {
+        alert(`❌ ERROR: "${nombreNuevo}" ya es un CLIENTE EXISTENTE.\n\nNo se puede crear un lead para un cliente que ya tenemos.`);
+        return;
+      }
+      
+      // 2. Es lead de otro vendedor
+      if (duplicados.esLeadOtroVendedor) {
+        alert(`❌ ERROR: "${nombreNuevo}" ya es un lead asignado a ${duplicados.vendedorActual}.\n\nNo se permiten leads duplicados entre vendedores.`);
+        return;
+      }
+      
+      // 3. Similares encontrados - mostrar advertencia
+      if (duplicados.similares.length > 0) {
+        const listaSimlares = duplicados.similares.map(s => 
+          s.tipo === 'cliente' 
+            ? `• ${s.nombre} (CLIENTE EXISTENTE)` 
+            : `• ${s.nombre} (Lead de ${s.vendedor})`
+        ).join('\n');
+        
+        if (!confirm(`⚠️ ADVERTENCIA: Se encontraron empresas similares:\n\n${listaSimlares}\n\n¿Deseas continuar de todas formas?`)) {
+          return;
+        }
+      }
+    }
+    
     try {
       const historialNuevo: HistorialCambio = { fecha: new Date().toISOString(), campo: 'edicion', valorAnterior: editLead.nombreEmpresa, valorNuevo: formData.nombreEmpresa || '', usuario: editLead.vendedor };
       const leadActualizado = { ...editLead, ...formData, tipoServicio: formData.tipoServicio || [], tipoViaje: formData.tipoViaje || [], fechaActualizacion: new Date().toISOString(), historial: [...(editLead.historial || []), historialNuevo] };
       await fetch(`https://${projectId}.supabase.co/functions/v1/make-server-d84b50bb/leads/${editLead.id}`, { method: 'PUT', headers: { 'Authorization': `Bearer ${publicAnonKey}`, 'Content-Type': 'application/json' }, body: JSON.stringify(leadActualizado) });
-      setLeads(leads.map(l => l.id === editLead.id ? leadActualizado : l)); setEditLead(null); setFormData({});
-    } catch { alert('Error'); }
+      setLeads(leads.map(l => l.id === editLead.id ? leadActualizado : l)); 
+      // Actualizar también allLeads
+      setAllLeads(allLeads.map(l => l.id === editLead.id ? leadActualizado : l));
+      setEditLead(null); 
+      setFormData({});
+    } catch { alert('Error al guardar'); }
   };
 
   const handleInputChange = (field: keyof Lead, value: any) => { if (field === 'nombreContacto') setFormData({ ...formData, [field]: value.toLowerCase().split(' ').map((p: string) => p.charAt(0).toUpperCase() + p.slice(1)).join(' ') }); else if (field === 'correoElectronico') setFormData({ ...formData, [field]: value.toLowerCase() }); else setFormData({ ...formData, [field]: value }); };
@@ -502,26 +746,29 @@ export const PanelOportunidadesModule = ({ onBack }: PanelOportunidadesModulePro
                 <BarChart3 className="w-4 h-4" />
                 Funnel
               </button>
-              <button 
-                onClick={handleExportExcel} 
-                className="flex items-center gap-2 px-4 py-2.5 rounded-xl transition-all duration-150 hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98]"
-                style={{ 
-                  fontFamily: "'Exo 2', sans-serif", 
-                  fontSize: '13px', 
-                  fontWeight: 600,
-                  background: 'linear-gradient(180deg, rgba(255,255,255,0.12) 0%, rgba(255,255,255,0.06) 100%)',
-                  border: '1px solid rgba(255,255,255,0.10)',
-                  boxShadow: '0 4px 12px rgba(0,0,0,0.20), inset 0 1px 0 rgba(255,255,255,0.10)',
-                  color: 'rgba(255,255,255,0.90)'
-                }}>
-                <Download className="w-4 h-4" />
-                Exportar
-              </button>
+              {/* EXPORTAR - Solo Admin */}
+              {isAdmin && (
+                <button 
+                  onClick={handleExportExcel} 
+                  className="flex items-center gap-2 px-4 py-2.5 rounded-xl transition-all duration-150 hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98]"
+                  style={{ 
+                    fontFamily: "'Exo 2', sans-serif", 
+                    fontSize: '13px', 
+                    fontWeight: 600,
+                    background: 'linear-gradient(180deg, rgba(255,255,255,0.12) 0%, rgba(255,255,255,0.06) 100%)',
+                    border: '1px solid rgba(255,255,255,0.10)',
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.20), inset 0 1px 0 rgba(255,255,255,0.10)',
+                    color: 'rgba(255,255,255,0.90)'
+                  }}>
+                  <Download className="w-4 h-4" />
+                  Exportar
+                </button>
+              )}
             </div>
           </div>
         </div>
 
-        {/* FUNNEL CARD - Premium glass */}
+        {/* FUNNEL CARD - Premium glass con filtro por vendedor */}
         {showFunnel && (
           <div 
             className="flex-shrink-0 mx-4 mb-3 p-4 rounded-2xl relative z-10"
@@ -532,14 +779,65 @@ export const PanelOportunidadesModule = ({ onBack }: PanelOportunidadesModulePro
               backdropFilter: 'blur(16px)'
             }}
           >
-            <h3 className="text-white/95 mb-3" style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '16px', fontWeight: 600, letterSpacing: '-0.01em' }}>Funnel de Ventas</h3>
-            <div className="grid grid-cols-5 gap-3">
-              <div className="p-3 rounded-xl" style={{ background: 'rgba(59,130,246,0.10)', border: '1px solid rgba(59,130,246,0.20)' }}><div className="text-blue-300/80 mb-1" style={{ fontSize: '11px', letterSpacing: '0.04em', textTransform: 'uppercase' }}>Total</div><div className="text-white" style={{ fontFamily: "'Orbitron', sans-serif", fontSize: '26px', fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{leads.filter(l => !l.eliminado).length}</div></div>
-              <div className="p-3 rounded-xl" style={{ background: 'rgba(251,191,36,0.10)', border: '1px solid rgba(251,191,36,0.20)' }}><div className="text-amber-300/80 mb-1" style={{ fontSize: '11px', letterSpacing: '0.04em', textTransform: 'uppercase' }}>Cotizados</div><div className="text-white" style={{ fontFamily: "'Orbitron', sans-serif", fontSize: '26px', fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{leads.filter(l => !l.eliminado && l.etapaLead === 'Cotizado').length}</div></div>
-              <div className="p-3 rounded-xl" style={{ background: 'rgba(34,197,94,0.10)', border: '1px solid rgba(34,197,94,0.20)' }}><div className="text-green-300/80 mb-1" style={{ fontSize: '11px', letterSpacing: '0.04em', textTransform: 'uppercase' }}>Cerrados</div><div className="text-white" style={{ fontFamily: "'Orbitron', sans-serif", fontSize: '26px', fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{leads.filter(l => !l.eliminado && l.etapaLead === 'Cerrado').length}</div></div>
-              <div className="p-3 rounded-xl" style={{ background: 'rgba(20,184,166,0.10)', border: '1px solid rgba(20,184,166,0.20)' }}><div className="text-teal-300/80 mb-1" style={{ fontSize: '11px', letterSpacing: '0.04em', textTransform: 'uppercase' }}>$ Potencial</div><div className="text-teal-400" style={{ fontFamily: "'Orbitron', sans-serif", fontSize: '17px', fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>${leads.filter(l => !l.eliminado).reduce((sum, l) => sum + calcularPotencialDesdeCotizaciones(l), 0).toLocaleString('es-MX')}</div></div>
-              <div className="p-3 rounded-xl" style={{ background: 'rgba(239,68,68,0.10)', border: '1px solid rgba(239,68,68,0.20)' }}><div className="text-red-300/80 mb-1" style={{ fontSize: '11px', letterSpacing: '0.04em', textTransform: 'uppercase' }}>En Riesgo</div><div className="text-white" style={{ fontFamily: "'Orbitron', sans-serif", fontSize: '26px', fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{leads.filter(l => !l.eliminado && getAlertaLead(l).tipo !== null).length}</div></div>
+            {/* Header del Funnel con filtro */}
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-white/95" style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '16px', fontWeight: 600, letterSpacing: '-0.01em' }}>
+                Funnel de Ventas {!isAdmin && <span className="text-blue-400/70 text-sm ml-2">({vendedorActual})</span>}
+              </h3>
+              {/* Filtro de vendedor - Solo Admin */}
+              {isAdmin && (
+                <select 
+                  value={funnelVendedor} 
+                  onChange={(e) => setFunnelVendedor(e.target.value)} 
+                  className="px-3 py-1.5 rounded-lg text-white/90 focus:outline-none transition-all duration-150 cursor-pointer text-sm"
+                  style={{ 
+                    fontFamily: "'Exo 2', sans-serif",
+                    background: 'rgba(15,23,42,0.60)',
+                    border: '1px solid rgba(255,255,255,0.10)',
+                  }}>
+                  <option value="">Todos los vendedores</option>
+                  {getVendedoresUnicos().map(v => <option key={v} value={v}>{v}</option>)}
+                </select>
+              )}
             </div>
+            {/* Métricas del Funnel - Filtradas según vendedor */}
+            {(() => {
+              // Filtrar leads según contexto
+              const leadsFunnel = isAdmin 
+                ? (funnelVendedor ? leads.filter(l => l.vendedor === funnelVendedor) : leads)
+                : leads.filter(l => l.vendedor === vendedorActual);
+              
+              const total = leadsFunnel.filter(l => !l.eliminado).length;
+              const cotizados = leadsFunnel.filter(l => !l.eliminado && l.etapaLead === 'Cotizado').length;
+              const cerrados = leadsFunnel.filter(l => !l.eliminado && l.etapaLead === 'Cerrado').length;
+              const potencial = leadsFunnel.filter(l => !l.eliminado).reduce((sum, l) => sum + calcularPotencialDesdeCotizaciones(l), 0);
+              const enRiesgo = leadsFunnel.filter(l => !l.eliminado && getAlertaLead(l).tipo !== null).length;
+              
+              return (
+                <div className="grid grid-cols-5 gap-3">
+                  <div className="p-3 rounded-xl" style={{ background: 'rgba(59,130,246,0.10)', border: '1px solid rgba(59,130,246,0.20)' }}>
+                    <div className="text-blue-300/80 mb-1" style={{ fontSize: '11px', letterSpacing: '0.04em', textTransform: 'uppercase' }}>Total</div>
+                    <div className="text-white" style={{ fontFamily: "'Orbitron', sans-serif", fontSize: '26px', fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{total}</div>
+                  </div>
+                  <div className="p-3 rounded-xl" style={{ background: 'rgba(251,191,36,0.10)', border: '1px solid rgba(251,191,36,0.20)' }}>
+                    <div className="text-amber-300/80 mb-1" style={{ fontSize: '11px', letterSpacing: '0.04em', textTransform: 'uppercase' }}>Cotizados</div>
+                    <div className="text-white" style={{ fontFamily: "'Orbitron', sans-serif", fontSize: '26px', fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{cotizados}</div>
+                  </div>
+                  <div className="p-3 rounded-xl" style={{ background: 'rgba(34,197,94,0.10)', border: '1px solid rgba(34,197,94,0.20)' }}>
+                    <div className="text-green-300/80 mb-1" style={{ fontSize: '11px', letterSpacing: '0.04em', textTransform: 'uppercase' }}>Cerrados</div>
+                    <div className="text-white" style={{ fontFamily: "'Orbitron', sans-serif", fontSize: '26px', fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{cerrados}</div>
+                  </div>
+                  <div className="p-3 rounded-xl" style={{ background: 'rgba(20,184,166,0.10)', border: '1px solid rgba(20,184,166,0.20)' }}>
+                    <div className="text-teal-300/80 mb-1" style={{ fontSize: '11px', letterSpacing: '0.04em', textTransform: 'uppercase' }}>$ Potencial</div>
+                    <div className="text-teal-400" style={{ fontFamily: "'Orbitron', sans-serif", fontSize: '17px', fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>${potencial.toLocaleString('es-MX')}</div>
+                  </div>
+                  <div className="p-3 rounded-xl" style={{ background: 'rgba(239,68,68,0.10)', border: '1px solid rgba(239,68,68,0.20)' }}>
+                    <div className="text-red-300/80 mb-1" style={{ fontSize: '11px', letterSpacing: '0.04em', textTransform: 'uppercase' }}>En Riesgo</div>
+                    <div className="text-white" style={{ fontFamily: "'Orbitron', sans-serif", fontSize: '26px', fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{enRiesgo}</div>
+                  </div>
+                </div>
+              );
+            })()}
           </div>
         )}
 
@@ -673,14 +971,22 @@ export const PanelOportunidadesModule = ({ onBack }: PanelOportunidadesModulePro
                                 ? 'rgba(168,85,247,0.16)' 
                                 : lead.etapaLead === 'Cerrado' 
                                   ? 'rgba(34,197,94,0.16)' 
-                                  : 'rgba(59,130,246,0.14)',
+                                  : lead.etapaLead === 'En Hold'
+                                    ? 'rgba(251,191,36,0.12)'
+                                    : lead.etapaLead === 'Declinado'
+                                      ? 'rgba(239,68,68,0.16)'
+                                      : 'rgba(59,130,246,0.14)',
                             border: lead.etapaLead === 'Cotizado' 
                               ? '1px solid rgba(251,191,36,0.40)' 
                               : lead.etapaLead === 'Negociacion' 
                                 ? '1px solid rgba(168,85,247,0.40)' 
                                 : lead.etapaLead === 'Cerrado' 
                                   ? '1px solid rgba(34,197,94,0.40)' 
-                                  : '1px solid rgba(59,130,246,0.35)',
+                                  : lead.etapaLead === 'En Hold'
+                                    ? '1px solid rgba(251,191,36,0.30)'
+                                    : lead.etapaLead === 'Declinado'
+                                      ? '1px solid rgba(239,68,68,0.40)'
+                                      : '1px solid rgba(59,130,246,0.35)',
                             borderLeftWidth: '4px',
                             borderLeftColor: lead.etapaLead === 'Cotizado' 
                               ? '#FBBF24' 
@@ -688,14 +994,25 @@ export const PanelOportunidadesModule = ({ onBack }: PanelOportunidadesModulePro
                                 ? '#A855F7' 
                                 : lead.etapaLead === 'Cerrado' 
                                   ? '#22C55E' 
-                                  : '#3B82F6',
-                            color: 'rgba(255,255,255,0.95)',
+                                  : lead.etapaLead === 'En Hold'
+                                    ? '#F59E0B'
+                                    : lead.etapaLead === 'Declinado'
+                                      ? '#EF4444'
+                                      : '#3B82F6',
+                            color: lead.etapaLead === 'Declinado' ? 'rgba(252,165,165,0.95)' : 'rgba(255,255,255,0.95)',
                             textAlign: 'center',
-                            boxShadow: '0 6px 14px rgba(0,0,0,0.18), inset 0 1px 0 rgba(255,255,255,0.12)'
+                            boxShadow: '0 6px 14px rgba(0,0,0,0.18), inset 0 1px 0 rgba(255,255,255,0.12)',
+                            opacity: lead.etapaLead === 'En Hold' ? 0.75 : 1
                           }}
                         >
-                          {lead.etapaLead || 'Prospecto'}
+                          {lead.etapaLead === 'En Hold' ? `⏸️ Hold` : lead.etapaLead === 'Declinado' ? '❌ Declinado' : (lead.etapaLead || 'Prospecto')}
                         </span>
+                        {/* Mostrar días restantes de Hold */}
+                        {lead.etapaLead === 'En Hold' && lead.holdInfo?.fechaFin && (
+                          <div className="text-amber-400/70 text-[9px] mt-0.5">
+                            {Math.ceil((new Date(lead.holdInfo.fechaFin).getTime() - Date.now()) / (1000*60*60*24))}d restantes
+                          </div>
+                        )}
                       </td>
                       
                       {/* CONTACTO */}
@@ -950,48 +1267,111 @@ export const PanelOportunidadesModule = ({ onBack }: PanelOportunidadesModulePro
 
       {lineasModal && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
-          <div className="bg-slate-900 rounded-2xl border border-blue-500/25 w-[800px] max-h-[90vh] overflow-y-auto p-6">
+          <div className="bg-slate-900 rounded-2xl border border-blue-500/25 w-[850px] max-h-[90vh] overflow-y-auto p-6">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-white text-lg font-bold flex items-center gap-2"><DollarSign className="w-5 h-5 text-blue-400" />Capturar Viajes por Ruta</h3>
               <button onClick={() => { setLineasModal(null); setLineasCotizacion([]); }} className="p-2 rounded-lg hover:bg-slate-800 transition-colors"><X className="w-5 h-5 text-white" /></button>
             </div>
+            
+            {/* Instrucciones y contador de rutas */}
             <div className="mb-4 p-3 rounded-lg bg-blue-500/5 border border-blue-500/15">
-              <p className="text-blue-400/70 text-sm">Captura los <strong>viajes potenciales por mes</strong> para cada ruta detectada.</p>
+              <p className="text-blue-400/70 text-sm mb-2">Captura los <strong>viajes potenciales por mes</strong> para cada ruta. Si el cliente no acepta una ruta, puedes <strong>omitirla</strong>.</p>
+              <div className="flex gap-4 text-xs">
+                <span className="text-green-400">✓ {contarRutas().activas} rutas activas</span>
+                {contarRutas().omitidas > 0 && <span className="text-slate-500">⊘ {contarRutas().omitidas} omitidas</span>}
+                <span className="text-slate-400">Total: {contarRutas().total}</span>
+              </div>
             </div>
+            
             <div className="space-y-3 mb-4">
               {lineasCotizacion.map((linea, idx) => (
-                <div key={idx} className="p-4 rounded-xl bg-slate-800/40 border border-slate-700/25">
+                <div 
+                  key={idx} 
+                  className={`p-4 rounded-xl border transition-all ${
+                    linea.omitida 
+                      ? 'bg-slate-800/20 border-slate-700/15 opacity-50' 
+                      : 'bg-slate-800/40 border-slate-700/25'
+                  }`}
+                >
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-2">
-                      <MapPin className="w-4 h-4 text-blue-400" />
-                      <span className="text-white font-semibold">{linea.origen || 'Sin origen'}</span>
-                      <span className="text-slate-600">-&gt;</span>
-                      <span className="text-white font-semibold">{linea.destino || 'Sin destino'}</span>
-                    </div>
-                    <span className={`px-2 py-1 rounded text-xs font-bold border ${getTipoViajeColor(linea.tipoViaje)}`}>{linea.tipoViaje}</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-4 text-sm">
-                      <span className="text-slate-400"><Truck className="w-4 h-4 inline mr-1" />{linea.servicio}</span>
-                      <span className="text-blue-400 font-bold">${linea.tarifa?.toLocaleString('es-MX')} {linea.moneda}</span>
+                      <MapPin className={`w-4 h-4 ${linea.omitida ? 'text-slate-600' : 'text-blue-400'}`} />
+                      <span className={`font-semibold ${linea.omitida ? 'text-slate-500 line-through' : 'text-white'}`}>
+                        {linea.origen || 'Sin origen'}
+                      </span>
+                      <span className="text-slate-600">→</span>
+                      <span className={`font-semibold ${linea.omitida ? 'text-slate-500 line-through' : 'text-white'}`}>
+                        {linea.destino || 'Sin destino'}
+                      </span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <label className="text-slate-400 text-sm">Viajes/mes:</label>
-                      <input type="number" min="0" value={linea.viajes || ''} onChange={(e) => handleCambioLinea(idx, 'viajes', parseInt(e.target.value) || 0)} placeholder="0" style={{ MozAppearance: 'textfield' }} className={`w-20 px-3 py-2 rounded-lg text-center font-bold text-lg [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${linea.viajes > 0 ? 'bg-blue-500/10 border-blue-500/40 text-blue-300' : 'bg-red-500/8 border-red-500/30 text-white'} border-2 focus:outline-none transition-colors`} />
+                      <span className={`px-2 py-1 rounded text-xs font-bold border ${linea.omitida ? 'bg-slate-800/30 text-slate-600 border-slate-700/20' : getTipoViajeColor(linea.tipoViaje)}`}>
+                        {linea.tipoViaje}
+                      </span>
+                      {/* Botón Omitir/Incluir */}
+                      <button
+                        onClick={() => handleToggleOmitirRuta(idx)}
+                        className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all ${
+                          linea.omitida
+                            ? 'bg-green-500/15 text-green-400 hover:bg-green-500/25 border border-green-500/30'
+                            : 'bg-red-500/10 text-red-400/80 hover:bg-red-500/20 border border-red-500/20'
+                        }`}
+                      >
+                        {linea.omitida ? '+ Incluir' : '⊘ Omitir'}
+                      </button>
                     </div>
                   </div>
+                  
+                  {!linea.omitida && (
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-4 text-sm">
+                        <span className="text-slate-400"><Truck className="w-4 h-4 inline mr-1" />{linea.servicio}</span>
+                        <span className="text-blue-400 font-bold">${linea.tarifa?.toLocaleString('es-MX')} {linea.moneda}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <label className="text-slate-400 text-sm">Viajes/mes:</label>
+                        <input 
+                          type="number" 
+                          min="0" 
+                          value={linea.viajes || ''} 
+                          onChange={(e) => handleCambioLinea(idx, 'viajes', parseInt(e.target.value) || 0)} 
+                          placeholder="0" 
+                          style={{ MozAppearance: 'textfield' }} 
+                          className={`w-20 px-3 py-2 rounded-lg text-center font-bold text-lg [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${linea.viajes > 0 ? 'bg-blue-500/10 border-blue-500/40 text-blue-300' : 'bg-red-500/8 border-red-500/30 text-white'} border-2 focus:outline-none transition-colors`} 
+                        />
+                      </div>
+                    </div>
+                  )}
+                  
+                  {linea.omitida && (
+                    <div className="text-center text-slate-500 text-sm py-2">
+                      Esta ruta no será incluida en la cotización
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
+            
+            {/* Total - Solo rutas activas */}
             <div className="p-4 rounded-xl bg-teal-500/5 border border-teal-500/15 mb-4">
               <div className="flex justify-between items-center">
-                <span className="text-teal-400/70 font-semibold text-lg">POTENCIAL MENSUAL:</span>
+                <div>
+                  <span className="text-teal-400/70 font-semibold text-lg">POTENCIAL MENSUAL:</span>
+                  <span className="text-teal-400/50 text-sm ml-2">({contarRutas().activas} rutas)</span>
+                </div>
                 <span className="text-teal-400 font-bold text-3xl" style={{ fontFamily: "'Orbitron', monospace" }}>${calcularTotalMXN().toLocaleString('es-MX')} MXN</span>
               </div>
             </div>
+            
             <div className="flex gap-3">
               <button onClick={() => { setLineasModal(null); setLineasCotizacion([]); }} className="flex-1 px-4 py-3 rounded-lg bg-slate-700 hover:bg-slate-600 text-white font-semibold transition-colors">Cancelar</button>
-              <button onClick={handleGuardarCotizacion} disabled={!todosViajesCapturados()} className={`flex-1 px-4 py-3 rounded-lg font-bold text-lg transition-colors ${todosViajesCapturados() ? 'bg-blue-500 hover:bg-blue-600 text-white' : 'bg-slate-800 text-slate-600 cursor-not-allowed'}`}>{todosViajesCapturados() ? '✓ Guardar Cotizacion' : 'Captura los viajes'}</button>
+              <button 
+                onClick={handleGuardarCotizacion} 
+                disabled={!todosViajesCapturados()} 
+                className={`flex-1 px-4 py-3 rounded-lg font-bold text-lg transition-colors ${todosViajesCapturados() ? 'bg-blue-500 hover:bg-blue-600 text-white' : 'bg-slate-800 text-slate-600 cursor-not-allowed'}`}
+              >
+                {todosViajesCapturados() ? `✓ Guardar (${contarRutas().activas} rutas)` : 'Captura viajes en rutas activas'}
+              </button>
             </div>
           </div>
         </div>
@@ -1053,12 +1433,77 @@ export const PanelOportunidadesModule = ({ onBack }: PanelOportunidadesModulePro
               </div>
               <div>
                 <label className="text-slate-400 text-xs">Etapa</label>
-                <select value={formData.etapaLead || 'Prospecto'} onChange={(e) => setFormData({ ...formData, etapaLead: e.target.value })} className="w-full mt-1 px-3 py-2 rounded-lg bg-slate-800 border border-slate-700/50 text-white focus:outline-none focus:border-blue-500/50 transition-colors">
-                  <option>Prospecto</option>
-                  <option>Cotizado</option>
-                  <option>Negociacion</option>
-                  <option>Cerrado</option>
+                <select 
+                  value={formData.etapaLead || 'Prospecto'} 
+                  onChange={(e) => {
+                    const nuevaEtapa = e.target.value;
+                    
+                    // Lógica especial para "En Hold"
+                    if (nuevaEtapa === 'En Hold') {
+                      const holdActual = formData.holdInfo || editLead?.holdInfo;
+                      const contadorHold = (holdActual?.contador || 0) + 1;
+                      
+                      if (contadorHold > 3) {
+                        alert('⚠️ Este lead ya fue puesto en Hold 3 veces.\n\nNo se puede poner en Hold nuevamente. El lead quedará libre.');
+                        // Liberar lead (quitar vendedor)
+                        setFormData({ 
+                          ...formData, 
+                          etapaLead: 'Prospecto',
+                          vendedor: '',
+                          fechaLiberacion: new Date().toISOString()
+                        });
+                        return;
+                      }
+                      
+                      const fechaInicio = new Date();
+                      const fechaFin = new Date(fechaInicio.getTime() + (30 * 24 * 60 * 60 * 1000)); // +30 días
+                      
+                      setFormData({ 
+                        ...formData, 
+                        etapaLead: 'En Hold',
+                        holdInfo: {
+                          fechaInicio: fechaInicio.toISOString(),
+                          fechaFin: fechaFin.toISOString(),
+                          contador: contadorHold
+                        }
+                      });
+                      
+                      alert(`📋 Lead puesto En Hold (${contadorHold}/3)\n\nSe reactivará automáticamente el ${fechaFin.toLocaleDateString('es-MX')}`);
+                      return;
+                    }
+                    
+                    // Lógica especial para "Declinado"
+                    if (nuevaEtapa === 'Declinado') {
+                      if (!confirm('⚠️ ¿Marcar como DECLINADO?\n\nEl lead será removido del panel pero quedará en el archivo histórico para el Admin.')) {
+                        return;
+                      }
+                      setFormData({ 
+                        ...formData, 
+                        etapaLead: 'Declinado',
+                        declinado: true,
+                        fechaDeclinado: new Date().toISOString()
+                      });
+                      return;
+                    }
+                    
+                    setFormData({ ...formData, etapaLead: nuevaEtapa });
+                  }} 
+                  className="w-full mt-1 px-3 py-2 rounded-lg bg-slate-800 border border-slate-700/50 text-white focus:outline-none focus:border-blue-500/50 transition-colors"
+                >
+                  <option value="Prospecto">Prospecto</option>
+                  <option value="Cotizado">Cotizado</option>
+                  <option value="Negociacion">Negociación</option>
+                  <option value="Cerrado">Cerrado</option>
+                  <option value="En Hold" style={{ color: '#FBBF24' }}>⏸️ En Hold (30 días)</option>
+                  <option value="Declinado" style={{ color: '#EF4444' }}>❌ Declinado</option>
                 </select>
+                {/* Mostrar info de Hold si está activo */}
+                {formData.etapaLead === 'En Hold' && formData.holdInfo && (
+                  <div className="mt-2 p-2 rounded-lg bg-amber-500/10 border border-amber-500/20 text-xs">
+                    <div className="text-amber-400">⏸️ En Hold ({formData.holdInfo.contador}/3 usos)</div>
+                    <div className="text-amber-300/70">Se reactiva: {new Date(formData.holdInfo.fechaFin).toLocaleDateString('es-MX')}</div>
+                  </div>
+                )}
               </div>
               <div className="col-span-2">
                 <label className="text-slate-400 text-xs">Proximos Pasos</label>
