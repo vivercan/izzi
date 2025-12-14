@@ -1,6 +1,6 @@
-// Panel Oportunidades AAA v2
 import { ModuleTemplate } from './ModuleTemplate';
 import { useState, useEffect } from 'react';
+import { MODULE_IMAGES } from '../../assets/module-images';
 import { Search, Download, TrendingUp, X, BarChart3, Building2, User, Calendar, Eye, Trash2, SortAsc, SortDesc, FileText, Upload, Pencil, AlertTriangle, Loader2, CheckCircle, DollarSign, Clock, Zap, Flame, Skull, MapPin, ArrowRight, Truck } from 'lucide-react';
 import { projectId, publicAnonKey } from '../../utils/supabase/info';
 import * as pdfjsLib from 'pdfjs-dist';
@@ -310,7 +310,7 @@ export const PanelOportunidadesModule = ({ onBack }: PanelOportunidadesModulePro
   const AlertBadge = ({ lead }: { lead: Lead }) => { const alerta = getAlertaLead(lead); if (!alerta.tipo) return null; if (alerta.tipo === 'amarillo') return <span title={alerta.mensaje} className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-amber-500/8 text-amber-500/70 text-xs font-medium cursor-help border border-amber-500/15"><Zap className="w-3 h-3" />{alerta.dias}d</span>; if (alerta.tipo === 'rojo') return <span title={alerta.mensaje} className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-red-500/8 text-red-400/80 text-xs font-medium cursor-help border border-red-500/15 animate-pulse"><Flame className="w-3 h-3" />{alerta.dias}d</span>; if (alerta.tipo === 'critico') return <span title={alerta.mensaje} className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-red-500/12 text-red-400 text-xs font-semibold cursor-help border border-red-500/25 animate-pulse"><Skull className="w-3 h-3" />{alerta.dias}d</span>; return null; };
 
   return (
-    <ModuleTemplate title="Panel de Oportunidades" onBack={onBack}>
+    <ModuleTemplate title="Panel de Oportunidades" onBack={onBack} headerImage={MODULE_IMAGES.PANEL_OPORTUNIDADES}>
       <div className="flex flex-col h-[calc(100vh-120px)]">
         <div className="flex-shrink-0 p-4 pb-2">
           <div className="flex flex-wrap gap-3 items-center justify-between">
@@ -340,7 +340,7 @@ export const PanelOportunidadesModule = ({ onBack }: PanelOportunidadesModulePro
           </div>
         )}
 
-        <div className="flex-1 mx-4 mb-4 rounded-2xl bg-slate-900/50 border border-slate-700/30 overflow-hidden flex flex-col" style={{ boxShadow: '0 18px 45px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.06)' }}>
+        <div className="flex-1 mx-4 mb-4 rounded-2xl bg-slate-900/50 border border-slate-700/30 overflow-hidden flex flex-col">
           <div className="flex-shrink-0 border-b border-slate-700/30 bg-slate-900/70">
             <table className="w-full"><thead><tr>
               <th className="px-2 py-3 text-center text-slate-500" style={{ fontSize: '11px', fontWeight: 600, width: '3%' }}>#</th>
@@ -363,22 +363,45 @@ export const PanelOportunidadesModule = ({ onBack }: PanelOportunidadesModulePro
                   const alerta = getAlertaLead(lead);
                   const potencial = calcularPotencialDesdeCotizaciones(lead);
                   return (
-                    <tr key={lead.id} className={`border-b border-slate-800/40 border-l-2 border-l-transparent hover:border-l-orange-400/50 hover:bg-white/[0.04] transition-all duration-180 ${index % 2 === 0 ? 'bg-slate-800/10' : ''} ${lead.eliminado ? 'opacity-50 bg-red-500/5' : ''} ${alerta.tipo === 'critico' ? 'bg-red-500/5' : ''}`} style={{ height: '52px' }}>
-                      <td className="px-2 py-2 text-center" style={{ fontFamily: "'Orbitron', monospace", fontSize: '11px', fontWeight: 600, color: lead.eliminado ? '#ef4444' : alerta.tipo === 'critico' ? '#ef4444' : '#3B82F6', width: '3%', fontVariantNumeric: 'tabular-nums' }}>{index + 1}</td>
+                    <tr key={lead.id} className={`border-b border-slate-800/40 transition-all duration-200 hover:bg-white/[0.02] hover:border-l-2 hover:border-l-blue-500/50 ${index % 2 === 0 ? 'bg-slate-800/10' : ''} ${lead.eliminado ? 'opacity-50 bg-red-500/5' : ''} ${alerta.tipo === 'critico' ? 'bg-red-500/5' : ''}`} style={{ height: '52px' }}>
+                      <td className="px-2 py-2 text-center" style={{ fontFamily: "'Orbitron', monospace", fontSize: '11px', fontWeight: 600, color: lead.eliminado ? '#ef4444' : alerta.tipo === 'critico' ? '#ef4444' : '#3B82F6', width: '3%' }}>{index + 1}</td>
                       <td className="px-2 py-2" style={{ width: '18%' }}><div className="flex items-center justify-between gap-2"><span className="text-white/90 truncate" style={{ fontSize: '11px', fontWeight: 600 }}>{lead.nombreEmpresa}</span><AlertBadge lead={lead} /></div></td>
                       <td className="px-1.5 py-2" style={{ width: '7%' }}><span className={`px-2 py-0.5 rounded text-xs font-medium border ${lead.etapaLead === 'Cotizado' ? 'bg-amber-500/8 text-amber-400/80 border-amber-500/15' : lead.etapaLead === 'Negociacion' ? 'bg-orange-500/8 text-orange-400/80 border-orange-500/15' : lead.etapaLead === 'Cerrado' ? 'bg-teal-500/8 text-teal-400/90 border-teal-500/15' : 'bg-slate-500/8 text-slate-400/70 border-slate-500/15'}`} style={{ fontSize: '10px' }}>{lead.etapaLead || 'Prospecto'}</span></td>
                       <td className="px-2 py-2" style={{ width: '14%' }}><div style={{ fontSize: '11px' }}><div className="text-white/85 font-medium truncate">{lead.nombreContacto}</div><div className="text-slate-400/80 truncate" style={{ fontSize: '10px' }}>{lead.correoElectronico}</div></div></td>
                       <td className="px-2 py-2" style={{ width: '10%' }}><div className="flex flex-wrap gap-0.5">{(lead.tipoServicio || []).slice(0,2).map((t, i) => <span key={i} className="px-1.5 py-0.5 rounded bg-slate-600/20 text-slate-300/80 border border-slate-500/15" style={{ fontSize: '9px', fontWeight: 500 }}>{t}</span>)}</div></td>
                       <td className="px-1.5 py-2" style={{ width: '10%' }}><div className="flex flex-wrap gap-0.5">{(lead.tipoViaje || []).slice(0,2).map((t, i) => <span key={i} className="px-1.5 py-0.5 rounded bg-blue-500/8 text-blue-400/80 border border-blue-500/15" style={{ fontSize: '9px', fontWeight: 500 }}>{t}</span>)}</div></td>
-                      <td className="px-1.5 py-2" style={{ width: '12%' }}>{potencial > 0 ? <span className="px-2 py-0.5 rounded bg-teal-500/8 text-teal-400/90 border border-teal-500/15" style={{ fontFamily: "'Orbitron', monospace", fontSize: '10px', fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>${potencial.toLocaleString('es-MX')}</span> : <span className="text-slate-600" style={{ fontSize: '10px' }}>-</span>}</td>
+                      <td className="px-1.5 py-2" style={{ width: '12%' }}>{potencial > 0 ? <span className="px-2 py-0.5 rounded bg-teal-500/8 text-teal-400/90 border border-teal-500/15" style={{ fontFamily: "'Orbitron', monospace", fontSize: '10px', fontWeight: 600 }}>${potencial.toLocaleString('es-MX')}</span> : <span className="text-slate-600" style={{ fontSize: '10px' }}>-</span>}</td>
                       <td className="px-2 py-2 text-slate-400/80" style={{ fontSize: '11px', width: '10%' }}>{lead.vendedor}</td>
-                      <td className="px-2 py-2" style={{ width: '8%' }}><span className="text-slate-300/80" style={{ fontSize: '10px', fontVariantNumeric: 'tabular-nums' }}>{formatDate(lead.fechaCaptura)}</span></td>
+                      <td className="px-2 py-2" style={{ width: '8%' }}><span className="text-slate-300/80" style={{ fontSize: '10px' }}>{formatDate(lead.fechaCaptura)}</span></td>
                       <td className="px-2 py-2" style={{ width: '8%' }}>
                         <div className="flex items-center justify-center gap-1">
                           {/* BOTONES SÓLIDOS APPLE/OS - SIN OJO */}
-                          <button onClick={() => setEditLead(lead)} disabled={lead.eliminado} title="Editar" className="w-[32px] h-[32px] rounded-[10px] flex items-center justify-center transition-all duration-180 hover:-translate-y-0.5 hover:scale-[1.02] active:translate-y-0 active:scale-[0.98]" style={{ background: 'linear-gradient(180deg, #fb923c 0%, #f97316 50%, #ea580c 100%)', boxShadow: '0 8px 18px rgba(249,115,22,0.30), inset 0 1px 0 rgba(255,255,255,0.22), inset 0 -1px 0 rgba(0,0,0,0.18)' }}><Pencil className="w-4 h-4 text-white" strokeWidth={2.5} /></button>
-                          <div className="relative"><button onClick={() => setCotizacionesModal(lead)} title="Cotizaciones" className="w-[32px] h-[32px] rounded-[10px] flex items-center justify-center transition-all duration-180 hover:-translate-y-0.5 hover:scale-[1.02] active:translate-y-0 active:scale-[0.98]" style={{ background: 'linear-gradient(180deg, #60a5fa 0%, #3b82f6 50%, #1d4ed8 100%)', boxShadow: '0 8px 18px rgba(59,130,246,0.30), inset 0 1px 0 rgba(255,255,255,0.22), inset 0 -1px 0 rgba(0,0,0,0.18)' }}><FileText className="w-4 h-4 text-white" strokeWidth={2.5} /></button>{lead.cotizaciones?.filter(c => !c.eliminado).length ? <div className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-white flex items-center justify-center text-blue-600" style={{ fontSize: '9px', fontWeight: 800 }}>{lead.cotizaciones.filter(c => !c.eliminado).length}</div> : null}</div>
-                          {lead.eliminado && isAdmin ? <button onClick={() => handleRestaurarLead(lead)} title="Restaurar" className="w-[32px] h-[32px] rounded-[10px] flex items-center justify-center transition-all duration-180 hover:-translate-y-0.5 hover:scale-[1.02] active:translate-y-0 active:scale-[0.98]" style={{ background: 'linear-gradient(180deg, #34d399 0%, #10b981 50%, #059669 100%)', boxShadow: '0 8px 18px rgba(16,185,129,0.30), inset 0 1px 0 rgba(255,255,255,0.22), inset 0 -1px 0 rgba(0,0,0,0.18)' }}><TrendingUp className="w-4 h-4 text-white" strokeWidth={2.5} /></button> : <button onClick={() => setDeleteModal(lead)} disabled={lead.eliminado} title="Eliminar" className="w-[32px] h-[32px] rounded-[10px] flex items-center justify-center transition-all duration-180 hover:-translate-y-0.5 hover:scale-[1.02] active:translate-y-0 active:scale-[0.98]" style={{ background: 'linear-gradient(180deg, #f87171 0%, #ef4444 50%, #dc2626 100%)', boxShadow: '0 8px 18px rgba(239,68,68,0.30), inset 0 1px 0 rgba(255,255,255,0.22), inset 0 -1px 0 rgba(0,0,0,0.18)' }}><Trash2 className="w-4 h-4 text-white" strokeWidth={2.5} /></button>}
+                          <button onClick={() => setEditLead(lead)} disabled={lead.eliminado} title="Editar"
+                            className="w-[32px] h-[32px] rounded-[10px] flex items-center justify-center transition-all duration-180 hover:-translate-y-0.5 hover:scale-[1.02] active:translate-y-0 active:scale-[0.98]"
+                            style={{ background: 'linear-gradient(180deg, #fb923c 0%, #f97316 50%, #ea580c 100%)', boxShadow: '0 8px 18px rgba(249,115,22,0.30), inset 0 1px 0 rgba(255,255,255,0.22), inset 0 -1px 0 rgba(0,0,0,0.18)' }}>
+                            <Pencil className="w-4 h-4 text-white" strokeWidth={2.5} />
+                          </button>
+                          <div className="relative">
+                            <button onClick={() => setCotizacionesModal(lead)} title="Cotizaciones"
+                              className="w-[32px] h-[32px] rounded-[10px] flex items-center justify-center transition-all duration-180 hover:-translate-y-0.5 hover:scale-[1.02] active:translate-y-0 active:scale-[0.98]"
+                              style={{ background: 'linear-gradient(180deg, #60a5fa 0%, #3b82f6 50%, #1d4ed8 100%)', boxShadow: '0 8px 18px rgba(59,130,246,0.30), inset 0 1px 0 rgba(255,255,255,0.22), inset 0 -1px 0 rgba(0,0,0,0.18)' }}>
+                              <FileText className="w-4 h-4 text-white" strokeWidth={2.5} />
+                            </button>
+                            {lead.cotizaciones?.filter(c => !c.eliminado).length ? <div className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-white flex items-center justify-center text-blue-600" style={{ fontSize: '9px', fontWeight: 800 }}>{lead.cotizaciones.filter(c => !c.eliminado).length}</div> : null}
+                          </div>
+                          {lead.eliminado && isAdmin ? (
+                            <button onClick={() => handleRestaurarLead(lead)} title="Restaurar"
+                              className="w-[32px] h-[32px] rounded-[10px] flex items-center justify-center transition-all duration-180 hover:-translate-y-0.5 hover:scale-[1.02] active:translate-y-0 active:scale-[0.98]"
+                              style={{ background: 'linear-gradient(180deg, #34d399 0%, #10b981 50%, #059669 100%)', boxShadow: '0 8px 18px rgba(16,185,129,0.30), inset 0 1px 0 rgba(255,255,255,0.22), inset 0 -1px 0 rgba(0,0,0,0.18)' }}>
+                              <TrendingUp className="w-4 h-4 text-white" strokeWidth={2.5} />
+                            </button>
+                          ) : (
+                            <button onClick={() => setDeleteModal(lead)} disabled={lead.eliminado} title="Eliminar"
+                              className="w-[32px] h-[32px] rounded-[10px] flex items-center justify-center transition-all duration-180 hover:-translate-y-0.5 hover:scale-[1.02] active:translate-y-0 active:scale-[0.98]"
+                              style={{ background: 'linear-gradient(180deg, #f87171 0%, #ef4444 50%, #dc2626 100%)', boxShadow: '0 8px 18px rgba(239,68,68,0.30), inset 0 1px 0 rgba(255,255,255,0.22), inset 0 -1px 0 rgba(0,0,0,0.18)' }}>
+                              <Trash2 className="w-4 h-4 text-white" strokeWidth={2.5} />
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -387,7 +410,7 @@ export const PanelOportunidadesModule = ({ onBack }: PanelOportunidadesModulePro
               )}
             </tbody></table>
           </div>
-          <div className="flex-shrink-0 px-4 py-3 border-t border-slate-700/30" style={{ background: 'linear-gradient(180deg, rgba(15,23,42,0.85) 0%, rgba(15,23,42,0.95) 100%)' }}><span className="text-slate-400" style={{ fontSize: '12px', fontFamily: "'Exo 2', sans-serif" }}>Mostrando {filteredLeads.length} de {leads.filter(l => !l.eliminado).length} leads</span></div>
+          <div className="flex-shrink-0 px-4 py-2 border-t border-slate-700/30 bg-slate-900/70"><span className="text-slate-500" style={{ fontSize: '12px' }}>Mostrando {filteredLeads.length} de {leads.filter(l => !l.eliminado).length} leads</span></div>
 
       {selectedLead && (<div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setSelectedLead(null)}><div className="bg-slate-900 rounded-2xl border border-slate-700/40 w-[95vw] max-w-[1100px] max-h-[90vh] overflow-y-auto p-6" onClick={(e) => e.stopPropagation()}><div className="flex items-center justify-between mb-4"><h3 className="text-white text-xl font-bold flex items-center gap-2"><Building2 className="w-6 h-6 text-blue-400" />{selectedLead.nombreEmpresa}</h3><button onClick={() => setSelectedLead(null)} className="p-2 rounded-lg hover:bg-slate-800 transition-colors"><X className="w-5 h-5 text-white" /></button></div><div className="grid grid-cols-2 gap-4 mb-4"><div className="p-3 rounded-lg bg-blue-500/5 border border-blue-500/15"><div className="flex items-center gap-2 text-blue-400/70 text-xs mb-1"><Calendar className="w-3 h-3" />Creacion</div><div className="text-white font-semibold">{formatDateTime(selectedLead.fechaCaptura)}</div></div><div className="p-3 rounded-lg bg-orange-500/5 border border-orange-500/15"><div className="flex items-center gap-2 text-orange-400/70 text-xs mb-1"><Clock className="w-3 h-3" />Ultima Modificacion</div><div className="text-white font-semibold">{formatDateTime(selectedLead.fechaActualizacion) || formatDateTime(selectedLead.fechaCaptura)}</div></div></div><div className="grid grid-cols-3 gap-4 text-sm mb-4"><div className="p-3 rounded-lg bg-slate-800/40 border border-slate-700/25"><div className="text-blue-400/70 text-xs mb-1">Contacto</div><div className="text-white font-semibold">{selectedLead.nombreContacto}</div><div className="text-slate-400">{selectedLead.correoElectronico}</div></div><div className="p-3 rounded-lg bg-slate-800/40 border border-slate-700/25"><div className="text-blue-400/70 text-xs mb-1">Servicio</div><div className="flex flex-wrap gap-1">{(selectedLead.tipoServicio||[]).map((t,i)=><span key={i} className="px-2 py-0.5 rounded bg-slate-700/40 text-slate-300 text-xs border border-slate-600/25">{t}</span>)}</div></div><div className="p-3 rounded-lg bg-slate-800/40 border border-slate-700/25"><div className="text-blue-400/70 text-xs mb-1">Viaje</div><div className="flex flex-wrap gap-1">{(selectedLead.tipoViaje||[]).map((t,i)=><span key={i} className="px-2 py-0.5 rounded bg-blue-500/10 text-blue-300 text-xs border border-blue-500/20">{t}</span>)}</div></div><div className="p-3 rounded-lg bg-slate-800/40 border border-slate-700/25 col-span-2"><div className="text-blue-400/70 text-xs mb-1">Rutas</div><div className="text-white text-sm">{selectedLead.principalesRutas || '-'}</div></div><div className="p-3 rounded-lg bg-slate-800/40 border border-slate-700/25"><div className="text-blue-400/70 text-xs mb-1">Viajes/Mes</div><div className="text-white font-bold text-lg">{selectedLead.viajesPorMes || '-'}</div></div></div>{(() => { const pot = calcularPotencialDesdeCotizaciones(selectedLead); return pot > 0 ? <div className="p-4 rounded-lg bg-teal-500/5 border border-teal-500/15 mb-4"><div className="text-teal-400/70 text-xs mb-1">$ Potencial Mensual</div><div className="text-teal-400 font-bold text-3xl">${pot.toLocaleString('es-MX')} MXN</div></div> : null; })()}<div className="flex justify-between items-center text-sm text-slate-500"><span>Vendedor: {selectedLead.vendedor}</span><span>Etapa: {selectedLead.etapaLead || 'Prospecto'}</span></div></div></div>)}
 
@@ -443,12 +466,95 @@ export const PanelOportunidadesModule = ({ onBack }: PanelOportunidadesModulePro
           </div>
         </div>
       )}
+      )}
 
-      {pdfPreview && (<div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-[60] p-4" onClick={() => setPdfPreview(null)}><div className="bg-white rounded-2xl w-[90vw] h-[90vh] overflow-hidden flex flex-col" onClick={(e) => e.stopPropagation()}><div className="flex items-center justify-between p-3 bg-slate-100 border-b"><span className="text-slate-700 font-semibold">Vista previa</span><button onClick={() => setPdfPreview(null)} className="p-2 rounded-lg hover:bg-slate-200 transition-colors"><X className="w-5 h-5 text-slate-600" /></button></div><iframe src={pdfPreview} className="flex-1 w-full" title="PDF" /></div></div>)}
+      {pdfPreview && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-[60] p-4" onClick={() => setPdfPreview(null)}>
+          <div className="bg-white rounded-2xl w-[90vw] h-[90vh] overflow-hidden flex flex-col" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between p-3 bg-slate-100 border-b">
+              <span className="text-slate-700 font-semibold">Vista previa</span>
+              <button onClick={() => setPdfPreview(null)} className="p-2 rounded-lg hover:bg-slate-200 transition-colors">
+                <X className="w-5 h-5 text-slate-600" />
+              </button>
+            </div>
+            <iframe src={pdfPreview} className="flex-1 w-full" title="PDF" />
+          </div>
+        </div>
+      )}
 
-      {editLead && (<div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setEditLead(null)}><div className="bg-slate-900 rounded-2xl border border-slate-700/50 w-[700px] max-h-[80vh] overflow-y-auto p-6" onClick={(e) => e.stopPropagation()}><div className="flex items-center justify-between mb-4"><h3 className="text-white text-xl font-bold flex items-center gap-2"><Pencil className="w-5 h-5 text-blue-400" />Editar - {editLead.nombreEmpresa}</h3><button onClick={() => setEditLead(null)} className="p-2 rounded-lg hover:bg-slate-800 transition-colors"><X className="w-5 h-5 text-white" /></button></div><div className="grid grid-cols-2 gap-3 text-sm"><div><label className="text-slate-400 text-xs">Empresa</label><input type="text" value={formData.nombreEmpresa || ''} onChange={(e) => setFormData({ ...formData, nombreEmpresa: e.target.value })} className="w-full mt-1 px-3 py-2 rounded-lg bg-slate-800 border border-slate-700/50 text-white focus:outline-none focus:border-blue-500/50 transition-colors" /></div><div><label className="text-slate-400 text-xs">Web</label><input type="text" value={formData.paginaWeb || ''} onChange={(e) => setFormData({ ...formData, paginaWeb: e.target.value })} className="w-full mt-1 px-3 py-2 rounded-lg bg-slate-800 border border-slate-700/50 text-white focus:outline-none focus:border-blue-500/50 transition-colors" /></div><div><label className="text-slate-400 text-xs">Contacto</label><input type="text" value={formData.nombreContacto || ''} onChange={(e) => handleInputChange('nombreContacto', e.target.value)} className="w-full mt-1 px-3 py-2 rounded-lg bg-slate-800 border border-slate-700/50 text-white focus:outline-none focus:border-blue-500/50 transition-colors" /></div><div><label className="text-slate-400 text-xs">Email</label><input type="email" value={formData.correoElectronico || ''} onChange={(e) => handleInputChange('correoElectronico', e.target.value)} className="w-full mt-1 px-3 py-2 rounded-lg bg-slate-800 border border-slate-700/50 text-white focus:outline-none focus:border-blue-500/50 transition-colors" /></div><div className="col-span-2"><label className="text-slate-400 text-xs">Servicio</label><div className="flex flex-wrap gap-2 mt-1">{['Seco', 'Refrigerado', 'Seco Hazmat', 'Refrigerado Hazmat'].map(s => <button key={s} onClick={() => handleToggleServicio(s)} className={`px-3 py-1 rounded text-xs transition-all ${formData.tipoServicio?.includes(s) ? 'bg-blue-500/20 text-blue-400 border border-blue-500/40' : 'bg-slate-800 border border-slate-700/50 text-slate-400 hover:text-slate-300'}`}>{s}</button>)}</div></div><div className="col-span-2"><label className="text-slate-400 text-xs">Viaje</label><div className="flex flex-wrap gap-2 mt-1">{['Impo', 'Expo', 'Nacional', 'DTD', 'Dedicado'].map(v => <button key={v} onClick={() => handleToggleViaje(v)} className={`px-3 py-1 rounded text-xs transition-all ${formData.tipoViaje?.includes(v) ? 'bg-blue-500/20 text-blue-400 border border-blue-500/40' : 'bg-slate-800 border border-slate-700/50 text-slate-400 hover:text-slate-300'}`}>{v}</button>)}</div></div><div className="col-span-2"><label className="text-slate-400 text-xs">Rutas</label><input type="text" value={formData.principalesRutas || ''} onChange={(e) => setFormData({ ...formData, principalesRutas: e.target.value })} className="w-full mt-1 px-3 py-2 rounded-lg bg-slate-800 border border-slate-700/50 text-white focus:outline-none focus:border-blue-500/50 transition-colors" /></div><div><label className="text-slate-400 text-xs">Viajes/Mes</label><input type="number" value={formData.viajesPorMes || ''} onChange={(e) => setFormData({ ...formData, viajesPorMes: e.target.value })} className="w-full mt-1 px-3 py-2 rounded-lg bg-slate-800 border border-slate-700/50 text-white focus:outline-none focus:border-blue-500/50 transition-colors" /></div><div><label className="text-slate-400 text-xs">Etapa</label><select value={formData.etapaLead || 'Prospecto'} onChange={(e) => setFormData({ ...formData, etapaLead: e.target.value })} className="w-full mt-1 px-3 py-2 rounded-lg bg-slate-800 border border-slate-700/50 text-white focus:outline-none focus:border-blue-500/50 transition-colors"><option>Prospecto</option><option>Cotizado</option><option>Negociacion</option><option>Cerrado</option></select></div><div className="col-span-2"><label className="text-slate-400 text-xs">Proximos Pasos</label><input type="text" value={formData.proximosPasos || ''} onChange={(e) => setFormData({ ...formData, proximosPasos: e.target.value })} className="w-full mt-1 px-3 py-2 rounded-lg bg-slate-800 border border-slate-700/50 text-white focus:outline-none focus:border-blue-500/50 transition-colors" /></div></div><div className="flex gap-3 mt-4"><button onClick={() => setEditLead(null)} className="flex-1 px-4 py-2 rounded-lg bg-slate-700 hover:bg-slate-600 text-white transition-colors">Cancelar</button><button onClick={handleGuardarEdicion} className="flex-1 px-4 py-2 rounded-lg bg-blue-500 hover:bg-blue-600 text-white font-semibold transition-colors">Guardar</button></div></div></div>)}
+      {editLead && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setEditLead(null)}>
+          <div className="bg-slate-900 rounded-2xl border border-slate-700/50 w-[700px] max-h-[80vh] overflow-y-auto p-6" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-white text-xl font-bold flex items-center gap-2">
+                <Pencil className="w-5 h-5 text-blue-400" />Editar - {editLead.nombreEmpresa}
+              </h3>
+              <button onClick={() => setEditLead(null)} className="p-2 rounded-lg hover:bg-slate-800 transition-colors">
+                <X className="w-5 h-5 text-white" />
+              </button>
+            </div>
+            <div className="grid grid-cols-2 gap-3 text-sm">
+              <div>
+                <label className="text-slate-400 text-xs">Empresa</label>
+                <input type="text" value={formData.nombreEmpresa || ''} onChange={(e) => setFormData({ ...formData, nombreEmpresa: e.target.value })} className="w-full mt-1 px-3 py-2 rounded-lg bg-slate-800 border border-slate-700/50 text-white focus:outline-none focus:border-blue-500/50 transition-colors" />
+              </div>
+              <div>
+                <label className="text-slate-400 text-xs">Web</label>
+                <input type="text" value={formData.paginaWeb || ''} onChange={(e) => setFormData({ ...formData, paginaWeb: e.target.value })} className="w-full mt-1 px-3 py-2 rounded-lg bg-slate-800 border border-slate-700/50 text-white focus:outline-none focus:border-blue-500/50 transition-colors" />
+              </div>
+              <div>
+                <label className="text-slate-400 text-xs">Contacto</label>
+                <input type="text" value={formData.nombreContacto || ''} onChange={(e) => handleInputChange('nombreContacto', e.target.value)} className="w-full mt-1 px-3 py-2 rounded-lg bg-slate-800 border border-slate-700/50 text-white focus:outline-none focus:border-blue-500/50 transition-colors" />
+              </div>
+              <div>
+                <label className="text-slate-400 text-xs">Email</label>
+                <input type="email" value={formData.correoElectronico || ''} onChange={(e) => handleInputChange('correoElectronico', e.target.value)} className="w-full mt-1 px-3 py-2 rounded-lg bg-slate-800 border border-slate-700/50 text-white focus:outline-none focus:border-blue-500/50 transition-colors" />
+              </div>
+              <div className="col-span-2">
+                <label className="text-slate-400 text-xs">Servicio</label>
+                <div className="flex flex-wrap gap-2 mt-1">
+                  {['Seco', 'Refrigerado', 'Seco Hazmat', 'Refrigerado Hazmat'].map(s => (
+                    <button key={s} onClick={() => handleToggleServicio(s)} className={`px-3 py-1 rounded text-xs transition-all ${formData.tipoServicio?.includes(s) ? 'bg-blue-500/20 text-blue-400 border border-blue-500/40' : 'bg-slate-800 border border-slate-700/50 text-slate-400 hover:text-slate-300'}`}>{s}</button>
+                  ))}
+                </div>
+              </div>
+              <div className="col-span-2">
+                <label className="text-slate-400 text-xs">Viaje</label>
+                <div className="flex flex-wrap gap-2 mt-1">
+                  {['Impo', 'Expo', 'Nacional', 'DTD', 'Dedicado'].map(v => (
+                    <button key={v} onClick={() => handleToggleViaje(v)} className={`px-3 py-1 rounded text-xs transition-all ${formData.tipoViaje?.includes(v) ? 'bg-blue-500/20 text-blue-400 border border-blue-500/40' : 'bg-slate-800 border border-slate-700/50 text-slate-400 hover:text-slate-300'}`}>{v}</button>
+                  ))}
+                </div>
+              </div>
+              <div className="col-span-2">
+                <label className="text-slate-400 text-xs">Rutas</label>
+                <input type="text" value={formData.principalesRutas || ''} onChange={(e) => setFormData({ ...formData, principalesRutas: e.target.value })} className="w-full mt-1 px-3 py-2 rounded-lg bg-slate-800 border border-slate-700/50 text-white focus:outline-none focus:border-blue-500/50 transition-colors" />
+              </div>
+              <div>
+                <label className="text-slate-400 text-xs">Viajes/Mes</label>
+                <input type="number" value={formData.viajesPorMes || ''} onChange={(e) => setFormData({ ...formData, viajesPorMes: e.target.value })} className="w-full mt-1 px-3 py-2 rounded-lg bg-slate-800 border border-slate-700/50 text-white focus:outline-none focus:border-blue-500/50 transition-colors" />
+              </div>
+              <div>
+                <label className="text-slate-400 text-xs">Etapa</label>
+                <select value={formData.etapaLead || 'Prospecto'} onChange={(e) => setFormData({ ...formData, etapaLead: e.target.value })} className="w-full mt-1 px-3 py-2 rounded-lg bg-slate-800 border border-slate-700/50 text-white focus:outline-none focus:border-blue-500/50 transition-colors">
+                  <option>Prospecto</option>
+                  <option>Cotizado</option>
+                  <option>Negociacion</option>
+                  <option>Cerrado</option>
+                </select>
+              </div>
+              <div className="col-span-2">
+                <label className="text-slate-400 text-xs">Proximos Pasos</label>
+                <input type="text" value={formData.proximosPasos || ''} onChange={(e) => setFormData({ ...formData, proximosPasos: e.target.value })} className="w-full mt-1 px-3 py-2 rounded-lg bg-slate-800 border border-slate-700/50 text-white focus:outline-none focus:border-blue-500/50 transition-colors" />
+              </div>
+            </div>
+            <div className="flex gap-3 mt-4">
+              <button onClick={() => setEditLead(null)} className="flex-1 px-4 py-2 rounded-lg bg-slate-700 hover:bg-slate-600 text-white transition-colors">Cancelar</button>
+              <button onClick={handleGuardarEdicion} className="flex-1 px-4 py-2 rounded-lg bg-blue-500 hover:bg-blue-600 text-white font-semibold transition-colors">Guardar</button>
+            </div>
+          </div>
+        </div>
+      )}
     </ModuleTemplate>
   );
 };
-
-
