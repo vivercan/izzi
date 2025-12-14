@@ -371,71 +371,114 @@ export const PanelOportunidadesModule = ({ onBack }: PanelOportunidadesModulePro
 
   return (
     <ModuleTemplate title="Panel de Oportunidades" onBack={onBack}>
-      {/* FONDO AZUL EXTERNO - Cubre toda la pantalla */}
+      {/* ═══════════════════════════════════════════════════════════════
+          FONDO GLOBAL AAA - Sistema de profundidad con radial gradient
+          ═══════════════════════════════════════════════════════════════ */}
       <div 
-        className="flex flex-col h-[calc(100vh-120px)]"
+        className="flex flex-col h-[calc(100vh-120px)] relative"
         style={{
-          background: 'linear-gradient(135deg, #1e40af 0%, #1d4ed8 25%, #2563eb 50%, #1d4ed8 75%, #1e40af 100%)',
-          position: 'relative'
+          background: `
+            radial-gradient(ellipse 120% 80% at 50% 20%, rgba(37,99,235,0.95) 0%, rgba(30,64,175,0.98) 40%, rgba(15,23,42,1) 100%),
+            linear-gradient(180deg, #1e3a8a 0%, #0f172a 100%)
+          `,
         }}
       >
-        {/* Radial halo sutil detrás del contenido */}
+        {/* Noise texture overlay - muy sutil */}
         <div 
-          className="absolute inset-0 pointer-events-none"
+          className="absolute inset-0 pointer-events-none z-0"
           style={{
-            background: 'radial-gradient(ellipse 80% 50% at 50% 30%, rgba(59,130,246,0.15) 0%, transparent 70%)'
+            backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E")`,
+            opacity: 0.035,
+            mixBlendMode: 'overlay'
           }}
         />
-        {/* CONTROLES - Área de filtros */}
-        <div className="flex-shrink-0 p-4 pb-2 relative z-10">
+        
+        {/* Radial glow behind main container - hace que "flote" */}
+        <div 
+          className="absolute inset-0 pointer-events-none z-0"
+          style={{
+            background: `
+              radial-gradient(ellipse 70% 50% at 50% 45%, rgba(59,130,246,0.12) 0%, transparent 60%),
+              radial-gradient(ellipse 90% 60% at 50% 50%, rgba(30,58,138,0.20) 0%, transparent 70%)
+            `
+          }}
+        />
+        
+        {/* Vignette sutil en esquinas */}
+        <div 
+          className="absolute inset-0 pointer-events-none z-0"
+          style={{
+            background: 'radial-gradient(ellipse 100% 100% at 50% 50%, transparent 40%, rgba(0,0,0,0.25) 100%)'
+          }}
+        />
+
+        {/* ═══════════════════════════════════════════════════════════════
+            BARRA DE FILTROS - Card flotante premium
+            ═══════════════════════════════════════════════════════════════ */}
+        <div 
+          className="flex-shrink-0 mx-4 mt-4 mb-3 p-4 rounded-2xl relative z-10"
+          style={{
+            background: 'linear-gradient(135deg, rgba(30,58,138,0.60) 0%, rgba(30,64,175,0.50) 100%)',
+            border: '1px solid rgba(255,255,255,0.08)',
+            boxShadow: '0 12px 40px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.08), inset 0 0 0 1px rgba(255,255,255,0.03)',
+            backdropFilter: 'blur(12px)'
+          }}
+        >
           <div className="flex flex-wrap gap-3 items-center justify-between">
-            {/* BÚSQUEDA */}
+            {/* BÚSQUEDA - Input premium */}
             <div className="flex-1 min-w-[300px]">
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/60" />
-                <input type="text" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder="Buscar leads..." 
-                  className="w-full pl-10 pr-4 py-2.5 rounded-2xl text-white placeholder:text-white/40 focus:outline-none transition-all duration-200" 
+                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-white/50" />
+                <input 
+                  type="text" 
+                  value={searchTerm} 
+                  onChange={(e) => setSearchTerm(e.target.value)} 
+                  placeholder="Buscar leads..." 
+                  className="w-full pl-11 pr-4 py-2.5 rounded-xl text-white placeholder:text-white/35 focus:outline-none focus:ring-2 focus:ring-blue-400/30 transition-all duration-200" 
                   style={{ 
                     fontFamily: "'Exo 2', sans-serif", 
                     fontSize: '13px',
-                    background: 'rgba(255,255,255,0.08)',
-                    border: '1px solid rgba(255,255,255,0.10)',
-                    boxShadow: '0 10px 24px rgba(0,0,0,0.20), inset 0 1px 0 rgba(255,255,255,0.10)'
-                  }} />
+                    background: 'rgba(15,23,42,0.50)',
+                    border: '1px solid rgba(255,255,255,0.08)',
+                    boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.20)'
+                  }} 
+                />
               </div>
             </div>
             
-            {/* FILTRO VENDEDOR - Estilo pill OS */}
+            {/* FILTRO VENDEDOR - Select premium */}
             <div className="flex gap-3">
               <select 
                 value={filterVendedor} 
                 onChange={(e) => setFilterVendedor(e.target.value)} 
-                className="px-4 py-2.5 rounded-2xl text-white/90 focus:outline-none transition-all duration-200 cursor-pointer hover:-translate-y-0.5 active:translate-y-0"
+                className="px-4 py-2.5 rounded-xl text-white/90 focus:outline-none transition-all duration-150 cursor-pointer hover:-translate-y-0.5 hover:shadow-lg active:translate-y-0"
                 style={{ 
                   fontFamily: "'Exo 2', sans-serif", 
                   fontSize: '13px',
-                  background: 'rgba(255,255,255,0.08)',
-                  border: '1px solid rgba(255,255,255,0.10)',
-                  boxShadow: '0 10px 24px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.10)'
+                  background: 'rgba(15,23,42,0.50)',
+                  border: '1px solid rgba(255,255,255,0.08)',
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.15), inset 0 1px 0 rgba(255,255,255,0.05)'
                 }}>
                 <option value="">Todos los vendedores</option>
                 {getVendedoresUnicos().map(v => <option key={v} value={v}>{v}</option>)}
               </select>
             </div>
             
-            {/* BOTONES PILL OS */}
-            <div className="flex gap-3">
+            {/* BOTONES OS PREMIUM */}
+            <div className="flex gap-2.5">
               {isAdmin && (
                 <button 
                   onClick={() => setShowDeleted(!showDeleted)} 
-                  className="flex items-center gap-2 px-4 py-2.5 rounded-2xl transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0"
+                  className="flex items-center gap-2 px-4 py-2.5 rounded-xl transition-all duration-150 hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98]"
                   style={{ 
                     fontFamily: "'Exo 2', sans-serif", 
                     fontSize: '13px', 
-                    fontWeight: 500,
-                    background: showDeleted ? 'rgba(239,68,68,0.15)' : 'rgba(255,255,255,0.08)',
-                    border: showDeleted ? '1px solid rgba(239,68,68,0.25)' : '1px solid rgba(255,255,255,0.10)',
-                    boxShadow: '0 10px 24px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.10)',
+                    fontWeight: 600,
+                    background: showDeleted 
+                      ? 'linear-gradient(180deg, rgba(239,68,68,0.25) 0%, rgba(220,38,38,0.20) 100%)' 
+                      : 'linear-gradient(180deg, rgba(255,255,255,0.12) 0%, rgba(255,255,255,0.06) 100%)',
+                    border: showDeleted ? '1px solid rgba(239,68,68,0.30)' : '1px solid rgba(255,255,255,0.10)',
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.20), inset 0 1px 0 rgba(255,255,255,0.10)',
                     color: showDeleted ? 'rgba(252,165,165,0.95)' : 'rgba(255,255,255,0.90)'
                   }}>
                   <Trash2 className="w-4 h-4" />
@@ -444,29 +487,31 @@ export const PanelOportunidadesModule = ({ onBack }: PanelOportunidadesModulePro
               )}
               <button 
                 onClick={() => setShowFunnel(!showFunnel)} 
-                className="flex items-center gap-2 px-4 py-2.5 rounded-2xl transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0"
+                className="flex items-center gap-2 px-4 py-2.5 rounded-xl transition-all duration-150 hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98]"
                 style={{ 
                   fontFamily: "'Exo 2', sans-serif", 
                   fontSize: '13px', 
-                  fontWeight: 500,
-                  background: showFunnel ? 'rgba(59,130,246,0.20)' : 'rgba(255,255,255,0.08)',
-                  border: showFunnel ? '1px solid rgba(59,130,246,0.35)' : '1px solid rgba(255,255,255,0.10)',
-                  boxShadow: '0 10px 24px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.10)',
-                  color: showFunnel ? 'rgba(147,197,253,0.95)' : 'rgba(255,255,255,0.90)'
+                  fontWeight: 600,
+                  background: showFunnel 
+                    ? 'linear-gradient(180deg, rgba(59,130,246,0.30) 0%, rgba(37,99,235,0.25) 100%)' 
+                    : 'linear-gradient(180deg, rgba(255,255,255,0.12) 0%, rgba(255,255,255,0.06) 100%)',
+                  border: showFunnel ? '1px solid rgba(59,130,246,0.40)' : '1px solid rgba(255,255,255,0.10)',
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.20), inset 0 1px 0 rgba(255,255,255,0.10)',
+                  color: showFunnel ? 'rgba(147,197,253,0.98)' : 'rgba(255,255,255,0.90)'
                 }}>
                 <BarChart3 className="w-4 h-4" />
                 Funnel
               </button>
               <button 
                 onClick={handleExportExcel} 
-                className="flex items-center gap-2 px-4 py-2.5 rounded-2xl transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0"
+                className="flex items-center gap-2 px-4 py-2.5 rounded-xl transition-all duration-150 hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98]"
                 style={{ 
                   fontFamily: "'Exo 2', sans-serif", 
                   fontSize: '13px', 
-                  fontWeight: 500,
-                  background: 'rgba(255,255,255,0.08)',
+                  fontWeight: 600,
+                  background: 'linear-gradient(180deg, rgba(255,255,255,0.12) 0%, rgba(255,255,255,0.06) 100%)',
                   border: '1px solid rgba(255,255,255,0.10)',
-                  boxShadow: '0 10px 24px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.10)',
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.20), inset 0 1px 0 rgba(255,255,255,0.10)',
                   color: 'rgba(255,255,255,0.90)'
                 }}>
                 <Download className="w-4 h-4" />
@@ -476,31 +521,43 @@ export const PanelOportunidadesModule = ({ onBack }: PanelOportunidadesModulePro
           </div>
         </div>
 
+        {/* FUNNEL CARD - Premium glass */}
         {showFunnel && (
-          <div className="flex-shrink-0 mx-4 mb-3 p-4 rounded-2xl relative z-10 backdrop-blur-md"
+          <div 
+            className="flex-shrink-0 mx-4 mb-3 p-4 rounded-2xl relative z-10"
             style={{
-              background: 'rgba(15, 23, 42, 0.85)',
+              background: 'linear-gradient(135deg, rgba(15,23,42,0.90) 0%, rgba(30,41,59,0.85) 100%)',
               border: '1px solid rgba(255,255,255,0.08)',
-              boxShadow: '0 8px 32px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.05)'
-            }}>
-            <h3 className="text-white/90 mb-3" style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '18px', fontWeight: 600, letterSpacing: '0.02em' }}>Funnel de Ventas</h3>
+              boxShadow: '0 16px 48px rgba(0,0,0,0.30), inset 0 1px 0 rgba(255,255,255,0.06), inset 0 0 0 1px rgba(255,255,255,0.03)',
+              backdropFilter: 'blur(16px)'
+            }}
+          >
+            <h3 className="text-white/95 mb-3" style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '16px', fontWeight: 600, letterSpacing: '-0.01em' }}>Funnel de Ventas</h3>
             <div className="grid grid-cols-5 gap-3">
-              <div className="p-3 rounded-xl bg-blue-500/8 border border-blue-500/20"><div className="text-blue-300/80 mb-1" style={{ fontSize: '12px', letterSpacing: '0.03em' }}>Total</div><div className="text-white" style={{ fontFamily: "'Orbitron', sans-serif", fontSize: '28px', fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{leads.filter(l => !l.eliminado).length}</div></div>
-              <div className="p-3 rounded-xl bg-amber-500/8 border border-amber-500/20"><div className="text-amber-300/80 mb-1" style={{ fontSize: '12px', letterSpacing: '0.03em' }}>Cotizados</div><div className="text-white" style={{ fontFamily: "'Orbitron', sans-serif", fontSize: '28px', fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{leads.filter(l => !l.eliminado && l.etapaLead === 'Cotizado').length}</div></div>
-              <div className="p-3 rounded-xl bg-teal-500/8 border border-teal-500/20"><div className="text-teal-300/80 mb-1" style={{ fontSize: '12px', letterSpacing: '0.03em' }}>Cerrados</div><div className="text-white" style={{ fontFamily: "'Orbitron', sans-serif", fontSize: '28px', fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{leads.filter(l => !l.eliminado && l.etapaLead === 'Cerrado').length}</div></div>
-              <div className="p-3 rounded-xl bg-teal-500/8 border border-teal-500/20"><div className="text-teal-300/80 mb-1" style={{ fontSize: '12px', letterSpacing: '0.03em' }}>$ Potencial</div><div className="text-teal-400" style={{ fontFamily: "'Orbitron', sans-serif", fontSize: '18px', fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>${leads.filter(l => !l.eliminado).reduce((sum, l) => sum + calcularPotencialDesdeCotizaciones(l), 0).toLocaleString('es-MX')}</div></div>
-              <div className="p-3 rounded-xl bg-red-500/8 border border-red-500/20"><div className="text-red-300/80 mb-1" style={{ fontSize: '12px', letterSpacing: '0.03em' }}>En Riesgo</div><div className="text-white" style={{ fontFamily: "'Orbitron', sans-serif", fontSize: '28px', fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{leads.filter(l => !l.eliminado && getAlertaLead(l).tipo !== null).length}</div></div>
+              <div className="p-3 rounded-xl" style={{ background: 'rgba(59,130,246,0.10)', border: '1px solid rgba(59,130,246,0.20)' }}><div className="text-blue-300/80 mb-1" style={{ fontSize: '11px', letterSpacing: '0.04em', textTransform: 'uppercase' }}>Total</div><div className="text-white" style={{ fontFamily: "'Orbitron', sans-serif", fontSize: '26px', fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{leads.filter(l => !l.eliminado).length}</div></div>
+              <div className="p-3 rounded-xl" style={{ background: 'rgba(251,191,36,0.10)', border: '1px solid rgba(251,191,36,0.20)' }}><div className="text-amber-300/80 mb-1" style={{ fontSize: '11px', letterSpacing: '0.04em', textTransform: 'uppercase' }}>Cotizados</div><div className="text-white" style={{ fontFamily: "'Orbitron', sans-serif", fontSize: '26px', fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{leads.filter(l => !l.eliminado && l.etapaLead === 'Cotizado').length}</div></div>
+              <div className="p-3 rounded-xl" style={{ background: 'rgba(34,197,94,0.10)', border: '1px solid rgba(34,197,94,0.20)' }}><div className="text-green-300/80 mb-1" style={{ fontSize: '11px', letterSpacing: '0.04em', textTransform: 'uppercase' }}>Cerrados</div><div className="text-white" style={{ fontFamily: "'Orbitron', sans-serif", fontSize: '26px', fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{leads.filter(l => !l.eliminado && l.etapaLead === 'Cerrado').length}</div></div>
+              <div className="p-3 rounded-xl" style={{ background: 'rgba(20,184,166,0.10)', border: '1px solid rgba(20,184,166,0.20)' }}><div className="text-teal-300/80 mb-1" style={{ fontSize: '11px', letterSpacing: '0.04em', textTransform: 'uppercase' }}>$ Potencial</div><div className="text-teal-400" style={{ fontFamily: "'Orbitron', sans-serif", fontSize: '17px', fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>${leads.filter(l => !l.eliminado).reduce((sum, l) => sum + calcularPotencialDesdeCotizaciones(l), 0).toLocaleString('es-MX')}</div></div>
+              <div className="p-3 rounded-xl" style={{ background: 'rgba(239,68,68,0.10)', border: '1px solid rgba(239,68,68,0.20)' }}><div className="text-red-300/80 mb-1" style={{ fontSize: '11px', letterSpacing: '0.04em', textTransform: 'uppercase' }}>En Riesgo</div><div className="text-white" style={{ fontFamily: "'Orbitron', sans-serif", fontSize: '26px', fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{leads.filter(l => !l.eliminado && getAlertaLead(l).tipo !== null).length}</div></div>
             </div>
           </div>
         )}
 
-        {/* CARD PRINCIPAL - Surface premium flotante */}
+        {/* ═══════════════════════════════════════════════════════════════
+            CONTENEDOR PRINCIPAL - Surface flotante con profundidad máxima
+            ═══════════════════════════════════════════════════════════════ */}
         <div 
-          className="flex-1 mx-4 mb-4 rounded-2xl overflow-hidden flex flex-col relative z-10 backdrop-blur-md"
+          className="flex-1 mx-4 mb-4 rounded-2xl overflow-hidden flex flex-col relative z-10"
           style={{
-            background: 'rgba(15, 23, 42, 0.92)',
-            border: '1px solid rgba(255,255,255,0.10)',
-            boxShadow: '0 18px 45px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.06)'
+            background: 'linear-gradient(180deg, rgba(15,23,42,0.95) 0%, rgba(15,23,42,0.98) 100%)',
+            border: '1px solid rgba(255,255,255,0.08)',
+            boxShadow: `
+              0 30px 80px rgba(0,0,0,0.45),
+              0 15px 35px rgba(0,0,0,0.30),
+              inset 0 1px 0 rgba(255,255,255,0.08),
+              inset 0 0 0 1px rgba(255,255,255,0.04)
+            `,
+            backdropFilter: 'blur(20px)'
           }}
         >
           {/* HEADER TABLA - STICKY con glass blur */}
