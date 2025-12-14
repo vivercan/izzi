@@ -307,7 +307,56 @@ export const PanelOportunidadesModule = ({ onBack }: PanelOportunidadesModulePro
   const handleToggleServicio = (s: string) => { const arr = formData.tipoServicio || []; setFormData({ ...formData, tipoServicio: arr.includes(s) ? arr.filter(x => x !== s) : [...arr, s] }); };
   const handleToggleViaje = (v: string) => { const arr = formData.tipoViaje || []; setFormData({ ...formData, tipoViaje: arr.includes(v) ? arr.filter(x => x !== v) : [...arr, v] }); };
   const SortIcon = ({ field }: { field: SortField }) => sortField !== field ? <SortAsc className="w-4 h-4 opacity-30" /> : sortDirection === 'asc' ? <SortAsc className="w-4 h-4" /> : <SortDesc className="w-4 h-4" />;
-  const AlertBadge = ({ lead }: { lead: Lead }) => { const alerta = getAlertaLead(lead); if (!alerta.tipo) return null; if (alerta.tipo === 'amarillo') return <span title={alerta.mensaje} className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-amber-500/8 text-amber-500/70 text-xs font-medium cursor-help border border-amber-500/15"><Zap className="w-3 h-3" />{alerta.dias}d</span>; if (alerta.tipo === 'rojo') return <span title={alerta.mensaje} className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-red-500/8 text-red-400/80 text-xs font-medium cursor-help border border-red-500/15 animate-pulse"><Flame className="w-3 h-3" />{alerta.dias}d</span>; if (alerta.tipo === 'critico') return <span title={alerta.mensaje} className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-red-500/12 text-red-400 text-xs font-semibold cursor-help border border-red-500/25 animate-pulse"><Skull className="w-3 h-3" />{alerta.dias}d</span>; return null; };
+  
+  // SEMÁFOROS SÓLIDOS PREMIUM
+  const AlertBadge = ({ lead }: { lead: Lead }) => { 
+    const alerta = getAlertaLead(lead); 
+    if (!alerta.tipo) return null; 
+    
+    // Warning (amarillo) - fondo sólido ámbar
+    if (alerta.tipo === 'amarillo') return (
+      <span 
+        title={alerta.mensaje} 
+        className="inline-flex items-center justify-center gap-1 cursor-help transition-all duration-150 hover:-translate-y-0.5"
+        style={{
+          height: '24px',
+          padding: '0 10px',
+          borderRadius: '8px',
+          background: '#F59E0B',
+          color: '#111827',
+          fontSize: '11px',
+          fontWeight: 700,
+          letterSpacing: '0.2px',
+          boxShadow: '0 6px 14px rgba(245,158,11,0.35), inset 0 1px 0 rgba(255,255,255,0.25)'
+        }}
+      >
+        <Zap className="w-3 h-3" />{alerta.dias}d
+      </span>
+    ); 
+    
+    // Danger (rojo) - fondo sólido rojo
+    if (alerta.tipo === 'rojo' || alerta.tipo === 'critico') return (
+      <span 
+        title={alerta.mensaje} 
+        className="inline-flex items-center justify-center gap-1 cursor-help transition-all duration-150 hover:-translate-y-0.5"
+        style={{
+          height: '24px',
+          padding: '0 10px',
+          borderRadius: '8px',
+          background: '#DC2626',
+          color: '#FFFFFF',
+          fontSize: '11px',
+          fontWeight: 700,
+          letterSpacing: '0.2px',
+          boxShadow: '0 6px 14px rgba(220,38,38,0.40), inset 0 1px 0 rgba(255,255,255,0.18)'
+        }}
+      >
+        {alerta.tipo === 'critico' ? <Skull className="w-3 h-3" /> : <Flame className="w-3 h-3" />}{alerta.dias}d
+      </span>
+    ); 
+    
+    return null; 
+  };
 
   // Icono PDF inline SVG
   const PdfIcon = () => (
@@ -454,34 +503,50 @@ export const PanelOportunidadesModule = ({ onBack }: PanelOportunidadesModulePro
             boxShadow: '0 18px 45px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.06)'
           }}
         >
-          {/* HEADER TABLA - Con fondo distintivo */}
+          {/* HEADER TABLA - STICKY con glass blur */}
           <div 
-            className="flex-shrink-0"
+            className="flex-shrink-0 sticky top-0 z-20 backdrop-blur-md"
             style={{
-              background: 'rgba(30, 41, 59, 0.6)',
-              borderBottom: '1px solid rgba(255,255,255,0.08)'
+              background: 'rgba(30, 41, 59, 0.85)',
+              borderBottom: '1px solid rgba(255,255,255,0.08)',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
             }}
           >
-            <table className="w-full"><thead><tr>
-              <th className="px-2 py-3.5 text-center" style={{ fontSize: '11px', fontWeight: 600, width: '3%', color: 'rgba(148,163,184,0.9)', letterSpacing: '0.05em' }}>#</th>
-              <th onClick={() => handleSort('nombreEmpresa')} className="px-2 py-3.5 text-left cursor-pointer hover:text-slate-200 transition-colors" style={{ fontSize: '11px', fontWeight: 600, width: '18%', color: 'rgba(148,163,184,0.9)', letterSpacing: '0.05em' }}><div className="flex items-center gap-1"><Building2 className="w-3 h-3" />EMPRESA<SortIcon field="nombreEmpresa" /></div></th>
-              <th className="px-1.5 py-3.5 text-left" style={{ fontSize: '11px', fontWeight: 600, width: '7%', color: 'rgba(148,163,184,0.9)', letterSpacing: '0.05em' }}>ETAPA</th>
-              <th className="px-2 py-3.5 text-left" style={{ fontSize: '11px', fontWeight: 600, width: '14%', color: 'rgba(148,163,184,0.9)', letterSpacing: '0.05em' }}>CONTACTO</th>
-              <th className="px-2 py-3.5 text-left" style={{ fontSize: '11px', fontWeight: 600, width: '10%', color: 'rgba(148,163,184,0.9)', letterSpacing: '0.05em' }}>SERVICIO</th>
-              <th className="px-1.5 py-3.5 text-left" style={{ fontSize: '11px', fontWeight: 600, width: '10%', color: 'rgba(148,163,184,0.9)', letterSpacing: '0.05em' }}>VIAJE</th>
-              <th className="px-1.5 py-3.5 text-left" style={{ fontSize: '11px', fontWeight: 600, width: '12%', color: 'rgba(148,163,184,0.9)', letterSpacing: '0.05em' }}>$ POTENCIAL</th>
-              <th onClick={() => handleSort('vendedor')} className="px-2 py-3.5 text-left cursor-pointer hover:text-slate-200 transition-colors" style={{ fontSize: '11px', fontWeight: 600, width: '10%', color: 'rgba(148,163,184,0.9)', letterSpacing: '0.05em' }}><div className="flex items-center gap-1"><User className="w-3 h-3" />VENDEDOR<SortIcon field="vendedor" /></div></th>
-              <th onClick={() => handleSort('fechaCaptura')} className="px-2 py-3.5 text-left cursor-pointer hover:text-slate-200 transition-colors" style={{ fontSize: '11px', fontWeight: 600, width: '8%', color: 'rgba(148,163,184,0.9)', letterSpacing: '0.05em' }}><div className="flex items-center gap-1"><Calendar className="w-3 h-3" />CREADO<SortIcon field="fechaCaptura" /></div></th>
-              <th className="px-2 py-3.5 text-center" style={{ fontSize: '11px', fontWeight: 600, width: '8%', color: 'rgba(148,163,184,0.9)', letterSpacing: '0.05em' }}>ACCIONES</th>
-            </tr></thead></table>
+            <table className="w-full" style={{ tableLayout: 'fixed' }}>
+              <colgroup>
+                <col style={{ width: '3%' }} />
+                <col style={{ width: '17%' }} />
+                <col style={{ width: '9%' }} />
+                <col style={{ width: '14%' }} />
+                <col style={{ width: '9%' }} />
+                <col style={{ width: '9%' }} />
+                <col style={{ width: '11%' }} />
+                <col style={{ width: '10%' }} />
+                <col style={{ width: '9%' }} />
+                <col style={{ width: '9%' }} />
+              </colgroup>
+              <thead><tr>
+                <th className="px-2 py-3.5 text-center" style={{ fontSize: '11px', fontWeight: 600, color: 'rgba(180,190,205,0.95)', letterSpacing: '0.06em' }}>#</th>
+                <th onClick={() => handleSort('nombreEmpresa')} className="px-3 py-3.5 text-left cursor-pointer hover:text-white transition-colors" style={{ fontSize: '11px', fontWeight: 600, color: 'rgba(180,190,205,0.95)', letterSpacing: '0.06em' }}><div className="flex items-center gap-1"><Building2 className="w-3 h-3" />EMPRESA<SortIcon field="nombreEmpresa" /></div></th>
+                <th className="px-3 py-3.5 text-left" style={{ fontSize: '11px', fontWeight: 600, color: 'rgba(180,190,205,0.95)', letterSpacing: '0.06em' }}>ETAPA</th>
+                <th className="px-3 py-3.5 text-left" style={{ fontSize: '11px', fontWeight: 600, color: 'rgba(180,190,205,0.95)', letterSpacing: '0.06em' }}>CONTACTO</th>
+                <th className="px-3 py-3.5 text-left" style={{ fontSize: '11px', fontWeight: 600, color: 'rgba(180,190,205,0.95)', letterSpacing: '0.06em' }}>SERVICIO</th>
+                <th className="px-3 py-3.5 text-left" style={{ fontSize: '11px', fontWeight: 600, color: 'rgba(180,190,205,0.95)', letterSpacing: '0.06em' }}>VIAJE</th>
+                <th className="px-3 py-3.5 text-right" style={{ fontSize: '11px', fontWeight: 600, color: 'rgba(180,190,205,0.95)', letterSpacing: '0.06em' }}>$ POTENCIAL</th>
+                <th onClick={() => handleSort('vendedor')} className="px-3 py-3.5 text-left cursor-pointer hover:text-white transition-colors" style={{ fontSize: '11px', fontWeight: 600, color: 'rgba(180,190,205,0.95)', letterSpacing: '0.06em' }}><div className="flex items-center gap-1"><User className="w-3 h-3" />VENDEDOR<SortIcon field="vendedor" /></div></th>
+                <th onClick={() => handleSort('fechaCaptura')} className="px-3 py-3.5 text-right cursor-pointer hover:text-white transition-colors" style={{ fontSize: '11px', fontWeight: 600, color: 'rgba(180,190,205,0.95)', letterSpacing: '0.06em' }}><div className="flex items-center justify-end gap-1"><Calendar className="w-3 h-3" />CREADO<SortIcon field="fechaCaptura" /></div></th>
+                <th className="px-3 py-3.5 text-center" style={{ fontSize: '11px', fontWeight: 600, color: 'rgba(180,190,205,0.95)', letterSpacing: '0.06em' }}>ACCIONES</th>
+              </tr></thead>
+            </table>
           </div>
           
-          {/* BODY TABLA - Con scrollbar estilizado */}
+          {/* BODY TABLA - Con scrollbar estilizado y scrollbar-gutter */}
           <div 
             className="flex-1 overflow-y-auto"
             style={{
               scrollbarWidth: 'thin',
-              scrollbarColor: 'rgba(100,116,139,0.4) transparent'
+              scrollbarColor: 'rgba(100,116,139,0.4) transparent',
+              scrollbarGutter: 'stable'
             }}
           >
             <style>{`
@@ -490,7 +555,20 @@ export const PanelOportunidadesModule = ({ onBack }: PanelOportunidadesModulePro
               .table-scroll::-webkit-scrollbar-thumb { background: rgba(100,116,139,0.4); border-radius: 3px; }
               .table-scroll::-webkit-scrollbar-thumb:hover { background: rgba(100,116,139,0.6); }
             `}</style>
-            <table className="w-full"><tbody>
+            <table className="w-full" style={{ tableLayout: 'fixed' }}>
+              <colgroup>
+                <col style={{ width: '3%' }} />
+                <col style={{ width: '17%' }} />
+                <col style={{ width: '9%' }} />
+                <col style={{ width: '14%' }} />
+                <col style={{ width: '9%' }} />
+                <col style={{ width: '9%' }} />
+                <col style={{ width: '11%' }} />
+                <col style={{ width: '10%' }} />
+                <col style={{ width: '9%' }} />
+                <col style={{ width: '9%' }} />
+              </colgroup>
+              <tbody>
               {filteredLeads.length === 0 ? (<tr><td colSpan={10} className="px-6 py-12 text-center text-slate-400">No se encontraron leads.</td></tr>) : (
                 filteredLeads.map((lead, index) => {
                   const alerta = getAlertaLead(lead);
@@ -500,70 +578,113 @@ export const PanelOportunidadesModule = ({ onBack }: PanelOportunidadesModulePro
                       key={lead.id} 
                       className={`transition-all duration-180 ${lead.eliminado ? 'opacity-50' : ''}`}
                       style={{ 
-                        height: '54px',
-                        background: index % 2 === 0 ? 'rgba(30,41,59,0.25)' : 'transparent',
-                        borderBottom: '1px solid rgba(71,85,105,0.25)',
+                        height: '52px',
+                        background: index % 2 === 0 ? 'rgba(30,41,59,0.20)' : 'transparent',
+                        borderBottom: '1px solid rgba(255,255,255,0.06)',
                         borderLeft: '2px solid transparent'
                       }}
                       onMouseEnter={(e) => {
-                        e.currentTarget.style.background = 'rgba(59,130,246,0.06)';
-                        e.currentTarget.style.borderLeftColor = 'rgba(249,115,22,0.6)';
+                        e.currentTarget.style.background = 'rgba(59,130,246,0.08)';
+                        e.currentTarget.style.borderLeftColor = 'rgba(249,115,22,0.7)';
                       }}
                       onMouseLeave={(e) => {
-                        e.currentTarget.style.background = index % 2 === 0 ? 'rgba(30,41,59,0.25)' : 'transparent';
+                        e.currentTarget.style.background = index % 2 === 0 ? 'rgba(30,41,59,0.20)' : 'transparent';
                         e.currentTarget.style.borderLeftColor = 'transparent';
                       }}
                     >
-                      <td className="px-2 py-2 text-center" style={{ fontFamily: "'Orbitron', monospace", fontSize: '11px', fontWeight: 600, color: lead.eliminado ? '#ef4444' : alerta.tipo === 'critico' ? '#ef4444' : '#60a5fa', width: '3%', fontVariantNumeric: 'tabular-nums' }}>{index + 1}</td>
-                      <td className="px-2 py-2" style={{ width: '18%' }}><div className="flex items-center justify-between gap-2"><span className="text-white truncate" style={{ fontSize: '14px', fontWeight: 600 }}>{lead.nombreEmpresa}</span><AlertBadge lead={lead} /></div></td>
-                      <td className="px-1.5 py-2" style={{ width: '7%' }}>
+                      {/* # */}
+                      <td className="px-2 py-2 text-center" style={{ fontFamily: "'Orbitron', monospace", fontSize: '11px', fontWeight: 600, color: lead.eliminado ? '#ef4444' : alerta.tipo === 'critico' ? '#ef4444' : '#60a5fa', fontVariantNumeric: 'tabular-nums' }}>{index + 1}</td>
+                      
+                      {/* EMPRESA */}
+                      <td className="px-3 py-2"><div className="flex items-center justify-between gap-2"><span className="text-white truncate" style={{ fontSize: '13px', fontWeight: 600 }}>{lead.nombreEmpresa}</span><AlertBadge lead={lead} /></div></td>
+                      
+                      {/* ETAPA - Pill premium con tinte y acento */}
+                      <td className="px-3 py-2">
                         <span 
-                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg"
+                          className="inline-flex items-center justify-center"
                           style={{ 
                             fontSize: '10px', 
-                            fontWeight: 500,
-                            background: 'rgba(255,255,255,0.06)',
+                            fontWeight: 600,
+                            minWidth: '85px',
+                            height: '26px',
+                            padding: '0 10px',
+                            borderRadius: '8px',
+                            background: lead.etapaLead === 'Cotizado' ? 'rgba(251,191,36,0.12)' : lead.etapaLead === 'Negociacion' ? 'rgba(249,115,22,0.12)' : lead.etapaLead === 'Cerrado' ? 'rgba(34,197,94,0.12)' : 'rgba(96,165,250,0.10)',
                             border: '1px solid rgba(255,255,255,0.10)',
-                            color: 'rgba(255,255,255,0.85)',
-                            borderLeftWidth: '2px',
-                            borderLeftColor: lead.etapaLead === 'Cotizado' ? 'rgba(251,191,36,0.7)' : lead.etapaLead === 'Negociacion' ? 'rgba(249,115,22,0.7)' : lead.etapaLead === 'Cerrado' ? 'rgba(34,197,94,0.7)' : 'rgba(96,165,250,0.5)'
+                            borderLeftWidth: '3px',
+                            borderLeftColor: lead.etapaLead === 'Cotizado' ? '#FBBF24' : lead.etapaLead === 'Negociacion' ? '#F97316' : lead.etapaLead === 'Cerrado' ? '#22C55E' : '#60A5FA',
+                            color: 'rgba(255,255,255,0.90)',
+                            textAlign: 'center'
                           }}
                         >
                           {lead.etapaLead || 'Prospecto'}
                         </span>
                       </td>
-                      <td className="px-2 py-2" style={{ width: '14%' }}><div><div className="text-white/90 font-medium truncate" style={{ fontSize: '13px' }}>{lead.nombreContacto}</div><div className="text-slate-400 truncate" style={{ fontSize: '12px' }}>{lead.correoElectronico}</div></div></td>
-                      <td className="px-2 py-2" style={{ width: '10%' }}>
+                      
+                      {/* CONTACTO */}
+                      <td className="px-3 py-2">
+                        <div>
+                          <div className="text-white/90 font-medium truncate" style={{ fontSize: '12px' }}>{lead.nombreContacto}</div>
+                          <div className="truncate" style={{ fontSize: '11px', color: 'rgba(148,163,184,0.85)' }}>{lead.correoElectronico}</div>
+                        </div>
+                      </td>
+                      
+                      {/* SERVICIO - Chips compactos OS */}
+                      <td className="px-3 py-2">
                         <div className="flex flex-wrap gap-1">
                           {(lead.tipoServicio || []).slice(0,2).map((t, i) => (
-                            <span key={i} className="px-2 py-0.5 rounded-lg" style={{ 
-                              fontSize: '9px', 
-                              fontWeight: 500,
-                              background: 'rgba(255,255,255,0.06)',
-                              border: '1px solid rgba(255,255,255,0.10)',
-                              color: 'rgba(255,255,255,0.80)'
-                            }}>{t}</span>
+                            <span 
+                              key={i} 
+                              style={{ 
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                height: '22px',
+                                padding: '0 8px',
+                                borderRadius: '6px',
+                                fontSize: '9px', 
+                                fontWeight: 500,
+                                background: 'rgba(255,255,255,0.06)',
+                                border: '1px solid rgba(255,255,255,0.10)',
+                                color: 'rgba(255,255,255,0.85)'
+                              }}
+                            >{t}</span>
                           ))}
                         </div>
                       </td>
-                      <td className="px-1.5 py-2" style={{ width: '10%' }}>
+                      
+                      {/* VIAJE - Chips compactos OS */}
+                      <td className="px-3 py-2">
                         <div className="flex flex-wrap gap-1">
                           {(lead.tipoViaje || []).slice(0,2).map((t, i) => (
-                            <span key={i} className="px-2 py-0.5 rounded-lg" style={{ 
-                              fontSize: '9px', 
-                              fontWeight: 500,
-                              background: 'rgba(255,255,255,0.06)',
-                              border: '1px solid rgba(255,255,255,0.10)',
-                              color: 'rgba(255,255,255,0.85)'
-                            }}>{t}</span>
+                            <span 
+                              key={i} 
+                              style={{ 
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                height: '22px',
+                                padding: '0 8px',
+                                borderRadius: '6px',
+                                fontSize: '9px', 
+                                fontWeight: 500,
+                                background: 'rgba(255,255,255,0.06)',
+                                border: '1px solid rgba(255,255,255,0.10)',
+                                color: 'rgba(255,255,255,0.85)'
+                              }}
+                            >{t}</span>
                           ))}
                         </div>
                       </td>
-                      <td className="px-1.5 py-2" style={{ width: '12%' }}>
+                      
+                      {/* $ POTENCIAL - Alineado derecha, tabular-nums */}
+                      <td className="px-3 py-2 text-right">
                         {potencial > 0 ? (
                           <span 
-                            className="inline-block px-2.5 py-1 rounded-lg"
                             style={{ 
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              height: '24px',
+                              padding: '0 10px',
+                              borderRadius: '6px',
                               fontFamily: "'Exo 2', sans-serif", 
                               fontSize: '11px', 
                               fontWeight: 600, 
@@ -576,12 +697,18 @@ export const PanelOportunidadesModule = ({ onBack }: PanelOportunidadesModulePro
                             ${potencial.toLocaleString('es-MX')}
                           </span>
                         ) : (
-                          <span style={{ fontSize: '10px', color: 'rgba(100,116,139,0.6)' }}>—</span>
+                          <span style={{ fontSize: '11px', color: 'rgba(100,116,139,0.5)' }}>—</span>
                         )}
                       </td>
-                      <td className="px-2 py-2 text-slate-400" style={{ fontSize: '12px', width: '10%' }}>{lead.vendedor}</td>
-                      <td className="px-2 py-2" style={{ width: '8%' }}><span className="text-slate-300" style={{ fontSize: '11px', fontVariantNumeric: 'tabular-nums' }}>{formatDate(lead.fechaCaptura)}</span></td>
-                      <td className="px-2 py-2" style={{ width: '8%' }}>
+                      
+                      {/* VENDEDOR */}
+                      <td className="px-3 py-2" style={{ fontSize: '11px', color: 'rgba(148,163,184,0.90)' }}>{lead.vendedor}</td>
+                      
+                      {/* CREADO - Alineado derecha, tabular-nums */}
+                      <td className="px-3 py-2 text-right" style={{ fontSize: '11px', fontVariantNumeric: 'tabular-nums', color: 'rgba(203,213,225,0.85)' }}>{formatDate(lead.fechaCaptura)}</td>
+                      
+                      {/* ACCIONES */}
+                      <td className="px-3 py-2">
                         <div className="flex items-center justify-center gap-1.5">
                           {/* BOTÓN EDITAR - Naranja FX */}
                           <button onClick={() => setEditLead(lead)} disabled={lead.eliminado} title="Editar"
