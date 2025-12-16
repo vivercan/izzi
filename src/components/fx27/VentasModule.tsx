@@ -1,852 +1,490 @@
 import { ModuleTemplate } from './ModuleTemplate';
 import { useState, useEffect, useCallback } from 'react';
 import { MODULE_IMAGES } from '../../assets/module-images';
-import { Upload, FileSpreadsheet, Calendar, TrendingUp, DollarSign, Users, Building2, Filter, Download, Loader2, CheckCircle, AlertTriangle, X, ChevronDown, BarChart3, PieChart, ArrowUpRight, ArrowDownRight, Truck, Globe, RefreshCw } from 'lucide-react';
-import { projectId, publicAnonKey } from '../../utils/supabase/info';
-import * as XLSX from 'xlsx';
+import { 
+  TrendingUp, DollarSign, Building2, Loader2, Truck, 
+  Globe, RefreshCw, Send, Bot, Sparkles, BarChart3
+} from 'lucide-react';
+import { supabase } from '../../utils/supabase/client';
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// TIPOS E INTERFACES
+// TIPOS
 // ═══════════════════════════════════════════════════════════════════════════════
 
 interface VentasModuleProps { onBack: () => void; }
 
-interface ViajeVenta {
-  id: string;
-  idViaje: string;
-  fechaFactura: string;
-  cliente: string;
-  clienteCorregido: string;
-  clienteConsolidado: string;
-  tipoViaje: string;
-  segmentoNegocio: string;
-  ejecutivo: string;
-  subtotalUnificado: number;
-  tcFactura: number;
+interface StatsData {
+  total_viajes: number;
+  total_ventas: number;
+  por_segmento: { [key: string]: { viajes: number; ventas: number } };
+  por_empresa: { [key: string]: { viajes: number; ventas: number } };
+}
+
+interface TopCliente {
+  nombre: string;
+  viajes: number;
   ventas: number;
-  origen: string;
-  destino: string;
-  empresa: string;
-  estatusFactura: string;
-  clienteFinal: string;
-  fechaCarga: string;
 }
 
-interface ResumenVentas {
-  totalVentas: number;
-  totalViajes: number;
-  porEjecutivo: { [key: string]: number };
-  porSegmento: { [key: string]: number };
-  porCliente: { [key: string]: number };
-  porMes: { [key: string]: number };
+interface MesData {
+  viajes: number;
+  ventas: number;
+  impex: number;
+  dedicado: number;
 }
 
-type FiltroTiempo = 'semana' | 'mes' | 'año' | 'rango';
-type Vista = 'dashboard' | 'upload' | 'tabla';
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// REGLAS DE PROCESAMIENTO (DEL DOCUMENTO)
-// ═══════════════════════════════════════════════════════════════════════════════
-
-const EMPRESAS_INTERNAS = ['TROB TRANSPORTES', 'WEXPRESS', 'SPEEDYHAUL INTERNATIONAL'];
-
-const CLIENTES_SIEMPRE_DEDICADO = ['BAFAR', 'NATURESWEET', 'CLARIOS', 'NEXTEER', 'BARCEL'];
-
-const MAPEO_CLIENTEFINAL: { [key: string]: string } = {
-  'SIGMA ALIMENTOS': 'SIGMA ALIMENTOS',
-  'BIMBO': 'BIMBO',
-  'PILGRIM\'S': 'PILGRIM\'S PRIDE',
-  'TYSON': 'TYSON FOODS',
-  'BACHOCO': 'BACHOCO',
-};
-
-const CONSOLIDACION_CLIENTES: { [key: string]: string[] } = {
-  'SIGMA ALIMENTOS': ['SIGMA ALIMENTOS CENTRO', 'SIGMA ALIMENTOS COMERCIAL', 'SIGMA ALIMENTOS LACTEOS'],
-  'PILGRIM\'S PRIDE': ['PILGRIM\'S PRIDE', 'AVICOLA PILGRIM\'S PRIDE DE MEXICO', 'PILGRIM\'S PRIDE MEXICO'],
-  'BIMBO': ['BIMBO', 'GRUPO BIMBO', 'BIMBO BAKERIES'],
-  'NATURESWEET': ['NATURESWEET', 'NATURESWEET COMERCIALIZADORA', 'NATURESWEET INVERNADEROS'],
-  'BARCEL': ['BARCEL', 'BARCEL S.A.'],
-};
-
-const CLIENTES_ISIS = ['HERCON SERVICES', 'ARCH MEAT', 'ZEBRA LOGISTICS', 'SUN CHEMICAL', 'BAKERY MACHINERY', 'MARTICO MEX', 'BERRIES PARADISE', 'TITAN MEATS', 'RED ROAD LOGISTICS'];
-const CLIENTES_PALOMA = ['P.A.C. INTERNATIONAL', 'PAC INTERNATIONAL', 'SHORELINE TRANSFER', 'ATLAS EXPEDITORS', 'LOGISTEED MEXICO', 'SCHENKER INTERNATIONAL', 'COMERCIALIZADORA KEES'];
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// FUNCIONES DE PROCESAMIENTO
-// ═══════════════════════════════════════════════════════════════════════════════
-
-const corregirCliente = (cliente: string, clienteFinal: string, origen: string, destino: string): string => {
-  if (!EMPRESAS_INTERNAS.includes(cliente.toUpperCase())) {
-    return cliente;
-  }
-  // Método 1: Buscar en ClienteFinal
-  for (const [key, value] of Object.entries(MAPEO_CLIENTEFINAL)) {
-    if (clienteFinal.toUpperCase().includes(key)) {
-      return value;
-    }
-  }
-  // Método 2: Buscar en Origen/Destino (simplificado)
-  const ubicaciones = `${origen} ${destino}`.toUpperCase();
-  if (ubicaciones.includes('SIGMA')) return 'SIGMA ALIMENTOS';
-  if (ubicaciones.includes('PILGRIM')) return 'PILGRIM\'S PRIDE';
-  if (ubicaciones.includes('BIMBO')) return 'BIMBO';
-  
-  return cliente; // Sin corrección
-};
-
-const consolidarCliente = (clienteCorregido: string): string => {
-  const upper = clienteCorregido.toUpperCase();
-  for (const [consolidado, variantes] of Object.entries(CONSOLIDACION_CLIENTES)) {
-    if (variantes.some(v => upper.includes(v.toUpperCase()))) {
-      return consolidado;
-    }
-  }
-  return clienteCorregido;
-};
-
-const clasificarSegmento = (clienteConsolidado: string, tipoViaje: string): string => {
-  // Clientes siempre DEDICADO
-  if (CLIENTES_SIEMPRE_DEDICADO.some(c => clienteConsolidado.toUpperCase().includes(c))) {
-    return 'DEDICADO';
-  }
-  // Regla general
-  if (tipoViaje === 'NAC') {
-    return 'DEDICADO';
-  }
-  return 'IMPEX';
-};
-
-const asignarEjecutivo = (clienteConsolidado: string): string => {
-  const upper = clienteConsolidado.toUpperCase();
-  if (CLIENTES_ISIS.some(c => upper.includes(c))) return 'ISIS ESTRADA';
-  if (CLIENTES_PALOMA.some(c => upper.includes(c))) return 'PALOMA OLIVO';
-  return '';
-};
-
-const procesarExcel = (data: any[]): ViajeVenta[] => {
-  const viajes: ViajeVenta[] = [];
-  const idViajesVistos = new Set<string>();
-
-  for (const row of data) {
-    // 1. Saltar cancelados
-    const estatus = String(row.EstatusFactura || '').toLowerCase();
-    if (estatus.includes('cancelad')) continue;
-
-    // 2. Saltar duplicados por idViaje
-    const idViaje = String(row.idViaje || '');
-    if (idViaje && idViajesVistos.has(idViaje)) continue;
-    if (idViaje) idViajesVistos.add(idViaje);
-
-    // 3. Extraer datos
-    const cliente = String(row.Cliente || '').toUpperCase();
-    const clienteFinal = String(row.ClienteFinal || '');
-    const origen = String(row.Origen || '');
-    const destino = String(row.Destino || '');
-    const tipoViaje = String(row.TipoViaje || '').toUpperCase();
-
-    // 4. Corregir cliente (si es empresa interna)
-    const clienteCorregido = corregirCliente(cliente, clienteFinal, origen, destino).toUpperCase();
-
-    // 5. Consolidar cliente
-    const clienteConsolidado = consolidarCliente(clienteCorregido).toUpperCase();
-
-    // 6. Eliminar NAC de PILGRIM'S
-    if (clienteConsolidado.includes('PILGRIM') && tipoViaje === 'NAC') continue;
-
-    // 7. Clasificar segmento
-    const segmentoNegocio = clasificarSegmento(clienteConsolidado, tipoViaje);
-
-    // 8. Asignar ejecutivo
-    const ejecutivo = asignarEjecutivo(clienteConsolidado);
-
-    // 9. Calcular ventas
-    const subtotalUnificado = parseFloat(row.SubTotalUnificado) || 0;
-    const tcFactura = parseFloat(row.TC_Factura) || 1;
-    const ventas = Math.round(subtotalUnificado * tcFactura);
-
-    // 10. Parsear fecha
-    let fechaFactura = '';
-    if (row.FechaFactura) {
-      const fecha = new Date(row.FechaFactura);
-      if (!isNaN(fecha.getTime())) {
-        fechaFactura = fecha.toISOString().split('T')[0];
-      }
-    }
-
-    viajes.push({
-      id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-      idViaje,
-      fechaFactura,
-      cliente,
-      clienteCorregido,
-      clienteConsolidado,
-      tipoViaje,
-      segmentoNegocio,
-      ejecutivo,
-      subtotalUnificado,
-      tcFactura,
-      ventas,
-      origen,
-      destino,
-      empresa: String(row.Empresa || ''),
-      estatusFactura: String(row.EstatusFactura || ''),
-      clienteFinal,
-      fechaCarga: new Date().toISOString(),
-    });
-  }
-
-  return viajes;
-};
+type Vista = 'dashboard' | 'chat';
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // COMPONENTE PRINCIPAL
 // ═══════════════════════════════════════════════════════════════════════════════
 
-export const VentasModule = ({ onBack }: VentasModuleProps) => {
+export default function VentasModule({ onBack }: VentasModuleProps) {
   const [vista, setVista] = useState<Vista>('dashboard');
-  const [ventas, setVentas] = useState<ViajeVenta[]>([]);
   const [loading, setLoading] = useState(true);
-  const [uploading, setUploading] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState('');
-  const [filtroTiempo, setFiltroTiempo] = useState<FiltroTiempo>('mes');
-  const [fechaInicio, setFechaInicio] = useState('');
-  const [fechaFin, setFechaFin] = useState('');
-  const [filtroEjecutivo, setFiltroEjecutivo] = useState('');
-  const [filtroSegmento, setFiltroSegmento] = useState('');
-  const [dragOver, setDragOver] = useState(false);
+  const [stats, setStats] = useState<StatsData | null>(null);
+  const [topClientes, setTopClientes] = useState<TopCliente[]>([]);
+  const [datosMensuales, setDatosMensuales] = useState<{ [key: string]: MesData }>({});
+  const [ultimaActualizacion, setUltimaActualizacion] = useState<string>('');
+  const [yearSeleccionado, setYearSeleccionado] = useState<number>(2025);
+  
+  const [chatMessages, setChatMessages] = useState<{ role: 'user' | 'assistant'; content: string }[]>([]);
+  const [chatInput, setChatInput] = useState('');
+  const [chatLoading, setChatLoading] = useState(false);
 
-  // Cargar ventas desde Supabase
-  useEffect(() => {
-    const cargarVentas = async () => {
-      try {
-        const res = await fetch(`https://${projectId}.supabase.co/functions/v1/make-server-d84b50bb/ventas`, {
-          headers: { 'Authorization': `Bearer ${publicAnonKey}` }
+  // ─────────────────────────────────────────────────────────────────────────────
+  // CARGAR DATOS
+  // ─────────────────────────────────────────────────────────────────────────────
+  
+  const cargarDatos = useCallback(async () => {
+    setLoading(true);
+    try {
+      const { data: ultimaFecha } = await supabase
+        .from('ventas_maestro')
+        .select('fecha_factura')
+        .order('fecha_factura', { ascending: false })
+        .limit(1)
+        .single();
+      
+      if (ultimaFecha?.fecha_factura) {
+        const fecha = new Date(ultimaFecha.fecha_factura);
+        setUltimaActualizacion(`Datos al: ${fecha.toLocaleDateString('es-MX')}`);
+      }
+
+      const inicioAño = `${yearSeleccionado}-01-01`;
+      const finAño = `${yearSeleccionado}-12-31`;
+
+      const { data: ventasData } = await supabase
+        .from('ventas_maestro')
+        .select('cliente_consolidado, segmento, empresa, ventas, fecha_factura')
+        .gte('fecha_factura', inicioAño)
+        .lte('fecha_factura', finAño);
+
+      if (ventasData) {
+        const totalViajes = ventasData.length;
+        const totalVentas = ventasData.reduce((sum, r) => sum + (r.ventas || 0), 0);
+
+        const porSegmento: { [key: string]: { viajes: number; ventas: number } } = {};
+        ventasData.forEach(r => {
+          const seg = r.segmento || 'SIN_SEGMENTO';
+          if (!porSegmento[seg]) porSegmento[seg] = { viajes: 0, ventas: 0 };
+          porSegmento[seg].viajes++;
+          porSegmento[seg].ventas += r.ventas || 0;
         });
-        const data = await res.json();
-        if (data.success && data.ventas) {
-          setVentas(data.ventas);
-        }
-      } catch (error) {
-        console.error('Error cargando ventas:', error);
-      } finally {
-        setLoading(false);
+
+        const porEmpresa: { [key: string]: { viajes: number; ventas: number } } = {};
+        ventasData.forEach(r => {
+          const emp = r.empresa || 'SIN_EMPRESA';
+          if (!porEmpresa[emp]) porEmpresa[emp] = { viajes: 0, ventas: 0 };
+          porEmpresa[emp].viajes++;
+          porEmpresa[emp].ventas += r.ventas || 0;
+        });
+
+        setStats({ total_viajes: totalViajes, total_ventas: totalVentas, por_segmento: porSegmento, por_empresa: porEmpresa });
+
+        const clienteStats: { [key: string]: { viajes: number; ventas: number } } = {};
+        ventasData.forEach(r => {
+          const cliente = r.cliente_consolidado || 'SIN_CLIENTE';
+          if (!clienteStats[cliente]) clienteStats[cliente] = { viajes: 0, ventas: 0 };
+          clienteStats[cliente].viajes++;
+          clienteStats[cliente].ventas += r.ventas || 0;
+        });
+
+        const top10 = Object.entries(clienteStats)
+          .map(([nombre, s]) => ({ nombre, ...s }))
+          .sort((a, b) => b.ventas - a.ventas)
+          .slice(0, 10);
+
+        setTopClientes(top10);
+
+        const porMes: { [key: string]: MesData } = {};
+        ventasData.forEach(r => {
+          const fecha = new Date(r.fecha_factura);
+          const key = `${fecha.getFullYear()}-${String(fecha.getMonth() + 1).padStart(2, '0')}`;
+          if (!porMes[key]) porMes[key] = { viajes: 0, ventas: 0, impex: 0, dedicado: 0 };
+          porMes[key].viajes++;
+          porMes[key].ventas += r.ventas || 0;
+          if (r.segmento === 'IMPEX') porMes[key].impex += r.ventas || 0;
+          if (r.segmento === 'DEDICADO') porMes[key].dedicado += r.ventas || 0;
+        });
+
+        setDatosMensuales(porMes);
       }
-    };
-    cargarVentas();
-  }, []);
-
-  // Filtrar ventas por fecha
-  const ventasFiltradas = useCallback(() => {
-    let filtered = [...ventas];
-    const hoy = new Date();
-    
-    if (filtroTiempo === 'semana') {
-      const inicioSemana = new Date(hoy);
-      inicioSemana.setDate(hoy.getDate() - hoy.getDay());
-      filtered = filtered.filter(v => new Date(v.fechaFactura) >= inicioSemana);
-    } else if (filtroTiempo === 'mes') {
-      const inicioMes = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
-      filtered = filtered.filter(v => new Date(v.fechaFactura) >= inicioMes);
-    } else if (filtroTiempo === 'año') {
-      const inicioAño = new Date(hoy.getFullYear(), 0, 1);
-      filtered = filtered.filter(v => new Date(v.fechaFactura) >= inicioAño);
-    } else if (filtroTiempo === 'rango' && fechaInicio && fechaFin) {
-      filtered = filtered.filter(v => {
-        const fecha = new Date(v.fechaFactura);
-        return fecha >= new Date(fechaInicio) && fecha <= new Date(fechaFin);
-      });
+    } catch (error) {
+      console.error('Error cargando datos:', error);
+    } finally {
+      setLoading(false);
     }
+  }, [yearSeleccionado]);
 
-    if (filtroEjecutivo) {
-      filtered = filtered.filter(v => v.ejecutivo === filtroEjecutivo);
-    }
-    if (filtroSegmento) {
-      filtered = filtered.filter(v => v.segmentoNegocio === filtroSegmento);
-    }
+  useEffect(() => {
+    cargarDatos();
+  }, [cargarDatos]);
 
-    return filtered;
-  }, [ventas, filtroTiempo, fechaInicio, fechaFin, filtroEjecutivo, filtroSegmento]);
+  // ─────────────────────────────────────────────────────────────────────────────
+  // CHAT IA
+  // ─────────────────────────────────────────────────────────────────────────────
 
-  // Calcular resumen
-  const calcularResumen = useCallback((): ResumenVentas => {
-    const filtered = ventasFiltradas();
-    const resumen: ResumenVentas = {
-      totalVentas: 0,
-      totalViajes: filtered.length,
-      porEjecutivo: {},
-      porSegmento: {},
-      porCliente: {},
-      porMes: {},
-    };
+  const enviarPregunta = async () => {
+    if (!chatInput.trim() || chatLoading) return;
 
-    for (const v of filtered) {
-      resumen.totalVentas += v.ventas;
-      
-      // Por ejecutivo
-      if (v.ejecutivo) {
-        resumen.porEjecutivo[v.ejecutivo] = (resumen.porEjecutivo[v.ejecutivo] || 0) + v.ventas;
-      }
-      
-      // Por segmento
-      resumen.porSegmento[v.segmentoNegocio] = (resumen.porSegmento[v.segmentoNegocio] || 0) + v.ventas;
-      
-      // Por cliente (top 10)
-      resumen.porCliente[v.clienteConsolidado] = (resumen.porCliente[v.clienteConsolidado] || 0) + v.ventas;
-      
-      // Por mes
-      const mes = v.fechaFactura.substring(0, 7);
-      resumen.porMes[mes] = (resumen.porMes[mes] || 0) + v.ventas;
-    }
-
-    return resumen;
-  }, [ventasFiltradas]);
-
-  // Manejar upload de archivo
-  const handleFileUpload = async (file: File) => {
-    if (!file.name.endsWith('.xlsx') && !file.name.endsWith('.xls')) {
-      alert('❌ Solo se permiten archivos Excel (.xlsx, .xls)');
-      return;
-    }
-
-    setUploading(true);
-    setUploadProgress('Leyendo archivo...');
+    const pregunta = chatInput.trim();
+    setChatInput('');
+    setChatMessages(prev => [...prev, { role: 'user', content: pregunta }]);
+    setChatLoading(true);
 
     try {
-      const buffer = await file.arrayBuffer();
-      const workbook = XLSX.read(buffer, { type: 'array', cellDates: true });
-      const sheetName = workbook.SheetNames[0];
-      const worksheet = workbook.Sheets[sheetName];
-      const jsonData = XLSX.utils.sheet_to_json(worksheet);
-
-      setUploadProgress(`Procesando ${jsonData.length} registros...`);
-
-      // Procesar con las reglas
-      const viajesProcesados = procesarExcel(jsonData);
-      
-      setUploadProgress(`${viajesProcesados.length} viajes válidos. Verificando duplicados...`);
-
-      // Filtrar duplicados contra los existentes
-      const idViajesExistentes = new Set(ventas.map(v => v.idViaje));
-      const viajesNuevos = viajesProcesados.filter(v => !idViajesExistentes.has(v.idViaje));
-
-      if (viajesNuevos.length === 0) {
-        alert('ℹ️ Todos los viajes ya existen en la base de datos');
-        setUploading(false);
-        setUploadProgress('');
-        return;
-      }
-
-      setUploadProgress(`Guardando ${viajesNuevos.length} viajes nuevos...`);
-
-      // Guardar en Supabase
-      const res = await fetch(`https://${projectId}.supabase.co/functions/v1/make-server-d84b50bb/ventas`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${publicAnonKey}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ viajes: viajesNuevos })
+      const { data, error } = await supabase.functions.invoke('ventas-api', {
+        body: { action: 'ai_analysis', pregunta, year: yearSeleccionado }
       });
 
-      const result = await res.json();
-      
-      if (result.success) {
-        setVentas(prev => [...prev, ...viajesNuevos]);
-        alert(`✅ ${viajesNuevos.length} viajes agregados correctamente\n${viajesProcesados.length - viajesNuevos.length} duplicados omitidos`);
-        setVista('dashboard');
-      } else {
-        throw new Error(result.error || 'Error al guardar');
-      }
+      if (error) throw error;
 
+      setChatMessages(prev => [...prev, { 
+        role: 'assistant', 
+        content: data?.respuesta || 'No pude procesar tu pregunta.' 
+      }]);
     } catch (error) {
-      console.error('Error procesando archivo:', error);
-      alert(`❌ Error: ${error}`);
+      console.error('Error IA:', error);
+      setChatMessages(prev => [...prev, { 
+        role: 'assistant', 
+        content: 'Error al procesar la pregunta. Intenta de nuevo.' 
+      }]);
     } finally {
-      setUploading(false);
-      setUploadProgress('');
+      setChatLoading(false);
     }
   };
 
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    setDragOver(false);
-    const file = e.dataTransfer.files[0];
-    if (file) handleFileUpload(file);
-  };
-
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-    setDragOver(true);
-  };
-
-  const handleDragLeave = () => setDragOver(false);
-
-  const resumen = calcularResumen();
-  const topClientes = Object.entries(resumen.porCliente)
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 5);
+  const formatMoney = (n: number) => `$${n.toLocaleString('es-MX')}`;
+  const formatNumber = (n: number) => n.toLocaleString('es-MX');
+  const MESES = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
 
   // ═══════════════════════════════════════════════════════════════════════════════
-  // RENDER
+  // RENDER DASHBOARD
   // ═══════════════════════════════════════════════════════════════════════════════
 
-  return (
-    <ModuleTemplate title="Ventas" onBack={onBack}>
-      {/* FONDO GLOBAL AAA - Igual al Panel de Oportunidades */}
-      <div 
-        className="flex flex-col h-[calc(100vh-120px)] relative"
-        style={{
-          background: `
-            radial-gradient(ellipse 120% 80% at 50% 20%, rgba(37,99,235,0.95) 0%, rgba(30,64,175,0.98) 40%, rgba(15,23,42,1) 100%),
-            linear-gradient(180deg, #1e3a8a 0%, #0f172a 100%)
-          `,
-        }}
-      >
-        {/* Noise texture overlay */}
-        <div 
-          className="absolute inset-0 pointer-events-none z-0"
-          style={{
-            backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E")`,
-            opacity: 0.035,
-            mixBlendMode: 'overlay'
-          }}
-        />
-        
-        {/* Radial glow */}
-        <div 
-          className="absolute inset-0 pointer-events-none z-0"
-          style={{
-            background: `
-              radial-gradient(ellipse 70% 50% at 50% 45%, rgba(59,130,246,0.12) 0%, transparent 60%),
-              radial-gradient(ellipse 90% 60% at 50% 50%, rgba(30,58,138,0.20) 0%, transparent 70%)
-            `
-          }}
-        />
+  const renderDashboard = () => {
+    if (loading || !stats) {
+      return (
+        <div className="flex items-center justify-center h-96">
+          <div className="relative">
+            <Loader2 className="w-12 h-12 animate-spin text-orange-500" />
+            <div className="absolute inset-0 w-12 h-12 rounded-full border-2 border-orange-500/20 animate-ping" />
+          </div>
+          <span className="ml-4 text-white/60 text-lg">Cargando datos...</span>
+        </div>
+      );
+    }
 
-        {/* BARRA DE NAVEGACIÓN / FILTROS */}
-        <div 
-          className="flex-shrink-0 mx-4 mt-4 mb-3 p-4 rounded-2xl relative z-10"
-          style={{
-            background: 'linear-gradient(135deg, rgba(30,58,138,0.60) 0%, rgba(30,64,175,0.50) 100%)',
-            border: '1px solid rgba(255,255,255,0.08)',
-            boxShadow: '0 12px 40px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.08)',
-            backdropFilter: 'blur(12px)'
-          }}
-        >
-          <div className="flex flex-wrap gap-3 items-center justify-between">
-            {/* TABS DE VISTA */}
-            <div className="flex gap-2">
-              {(['dashboard', 'upload', 'tabla'] as Vista[]).map(v => (
-                <button
-                  key={v}
-                  onClick={() => setVista(v)}
-                  className="px-4 py-2 rounded-xl transition-all duration-150"
-                  style={{
-                    background: vista === v ? 'linear-gradient(180deg, rgba(59,130,246,0.30) 0%, rgba(37,99,235,0.25) 100%)' : 'transparent',
-                    border: vista === v ? '1px solid rgba(59,130,246,0.40)' : '1px solid transparent',
-                    color: vista === v ? 'rgba(147,197,253,0.98)' : 'rgba(255,255,255,0.60)',
-                    fontSize: '13px',
-                    fontWeight: 600,
-                  }}
-                >
-                  {v === 'dashboard' && <><BarChart3 className="w-4 h-4 inline mr-2" />Dashboard</>}
-                  {v === 'upload' && <><Upload className="w-4 h-4 inline mr-2" />Subir Excel</>}
-                  {v === 'tabla' && <><FileSpreadsheet className="w-4 h-4 inline mr-2" />Datos</>}
-                </button>
-              ))}
-            </div>
+    const maxVentas = Math.max(...topClientes.map(c => c.ventas), 1);
 
-            {/* FILTROS DE TIEMPO */}
-            {vista === 'dashboard' && (
-              <div className="flex gap-2 items-center">
-                {(['semana', 'mes', 'año', 'rango'] as FiltroTiempo[]).map(f => (
-                  <button
-                    key={f}
-                    onClick={() => setFiltroTiempo(f)}
-                    className="px-3 py-1.5 rounded-lg transition-all duration-150 text-xs font-medium"
-                    style={{
-                      background: filtroTiempo === f ? 'rgba(255,255,255,0.12)' : 'transparent',
-                      border: filtroTiempo === f ? '1px solid rgba(255,255,255,0.15)' : '1px solid transparent',
-                      color: filtroTiempo === f ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.50)',
-                    }}
-                  >
-                    {f.charAt(0).toUpperCase() + f.slice(1)}
-                  </button>
-                ))}
-                
-                {filtroTiempo === 'rango' && (
-                  <div className="flex gap-2 ml-2">
-                    <input
-                      type="date"
-                      value={fechaInicio}
-                      onChange={e => setFechaInicio(e.target.value)}
-                      className="px-2 py-1 rounded-lg text-xs"
-                      style={{
-                        background: 'rgba(15,23,42,0.50)',
-                        border: '1px solid rgba(255,255,255,0.08)',
-                        color: 'white'
-                      }}
-                    />
-                    <span className="text-white/50">→</span>
-                    <input
-                      type="date"
-                      value={fechaFin}
-                      onChange={e => setFechaFin(e.target.value)}
-                      className="px-2 py-1 rounded-lg text-xs"
-                      style={{
-                        background: 'rgba(15,23,42,0.50)',
-                        border: '1px solid rgba(255,255,255,0.08)',
-                        color: 'white'
-                      }}
-                    />
-                  </div>
-                )}
+    return (
+      <div className="space-y-6">
+        {/* Header */}
+        <div className="flex items-center justify-between bg-white/[0.02] border border-white/[0.06] rounded-xl p-4">
+          <div className="flex items-center gap-4">
+            <select
+              value={yearSeleccionado}
+              onChange={(e) => setYearSeleccionado(Number(e.target.value))}
+              className="bg-white/5 border border-white/10 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-orange-500/50 transition-all hover:bg-white/10"
+            >
+              <option value={2025}>2025</option>
+              <option value={2024}>2024</option>
+              <option value={2023}>2023</option>
+            </select>
+            <button onClick={cargarDatos} className="p-2.5 bg-white/5 hover:bg-orange-500/20 rounded-lg transition-all duration-300 group">
+              <RefreshCw className="w-5 h-5 text-white/60 group-hover:text-orange-400 transition-colors" />
+            </button>
+          </div>
+          <div className="flex items-center gap-2 text-sm text-white/40">
+            <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+            {ultimaActualizacion}
+          </div>
+        </div>
 
-                {/* Filtro ejecutivo */}
-                <select
-                  value={filtroEjecutivo}
-                  onChange={e => setFiltroEjecutivo(e.target.value)}
-                  className="px-3 py-1.5 rounded-lg text-xs"
-                  style={{
-                    background: 'rgba(15,23,42,0.50)',
-                    border: '1px solid rgba(255,255,255,0.08)',
-                    color: 'white'
-                  }}
-                >
-                  <option value="">Todos los ejecutivos</option>
-                  <option value="ISIS ESTRADA">ISIS ESTRADA</option>
-                  <option value="PALOMA OLIVO">PALOMA OLIVO</option>
-                </select>
-
-                {/* Filtro segmento */}
-                <select
-                  value={filtroSegmento}
-                  onChange={e => setFiltroSegmento(e.target.value)}
-                  className="px-3 py-1.5 rounded-lg text-xs"
-                  style={{
-                    background: 'rgba(15,23,42,0.50)',
-                    border: '1px solid rgba(255,255,255,0.08)',
-                    color: 'white'
-                  }}
-                >
-                  <option value="">Todos los segmentos</option>
-                  <option value="IMPEX">IMPEX</option>
-                  <option value="DEDICADO">DEDICADO</option>
-                </select>
+        {/* KPIs */}
+        <div className="grid grid-cols-4 gap-4">
+          <div className="group relative bg-gradient-to-br from-orange-500/20 via-orange-500/10 to-transparent border border-orange-500/20 rounded-xl p-5 overflow-hidden hover:border-orange-500/40 transition-all duration-300">
+            <div className="absolute inset-0 bg-gradient-to-br from-orange-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+            <div className="relative">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="p-2.5 bg-orange-500/20 rounded-lg group-hover:scale-110 transition-transform duration-300">
+                  <DollarSign className="w-5 h-5 text-orange-400" />
+                </div>
+                <span className="text-white/60 text-sm">Total Ventas</span>
               </div>
-            )}
+              <div className="text-2xl font-bold text-white">{formatMoney(stats.total_ventas)}</div>
+              <div className="text-xs text-white/40 mt-1">MXN</div>
+            </div>
+          </div>
 
-            {/* CONTADOR */}
-            <div className="text-white/60 text-sm">
-              {ventas.length.toLocaleString()} viajes totales
+          <div className="group relative bg-gradient-to-br from-blue-500/20 via-blue-500/10 to-transparent border border-blue-500/20 rounded-xl p-5 overflow-hidden hover:border-blue-500/40 transition-all duration-300">
+            <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+            <div className="relative">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="p-2.5 bg-blue-500/20 rounded-lg group-hover:scale-110 transition-transform duration-300">
+                  <Truck className="w-5 h-5 text-blue-400" />
+                </div>
+                <span className="text-white/60 text-sm">Total Viajes</span>
+              </div>
+              <div className="text-2xl font-bold text-white">{formatNumber(stats.total_viajes)}</div>
+            </div>
+          </div>
+
+          <div className="group relative bg-gradient-to-br from-emerald-500/20 via-emerald-500/10 to-transparent border border-emerald-500/20 rounded-xl p-5 overflow-hidden hover:border-emerald-500/40 transition-all duration-300">
+            <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+            <div className="relative">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="p-2.5 bg-emerald-500/20 rounded-lg group-hover:scale-110 transition-transform duration-300">
+                  <Globe className="w-5 h-5 text-emerald-400" />
+                </div>
+                <span className="text-white/60 text-sm">IMPEX</span>
+              </div>
+              <div className="text-2xl font-bold text-white">{formatMoney(stats.por_segmento?.IMPEX?.ventas || 0)}</div>
+              <div className="text-xs text-white/40 mt-1">{formatNumber(stats.por_segmento?.IMPEX?.viajes || 0)} viajes</div>
+            </div>
+          </div>
+
+          <div className="group relative bg-gradient-to-br from-purple-500/20 via-purple-500/10 to-transparent border border-purple-500/20 rounded-xl p-5 overflow-hidden hover:border-purple-500/40 transition-all duration-300">
+            <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+            <div className="relative">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="p-2.5 bg-purple-500/20 rounded-lg group-hover:scale-110 transition-transform duration-300">
+                  <Truck className="w-5 h-5 text-purple-400" />
+                </div>
+                <span className="text-white/60 text-sm">DEDICADO</span>
+              </div>
+              <div className="text-2xl font-bold text-white">{formatMoney(stats.por_segmento?.DEDICADO?.ventas || 0)}</div>
+              <div className="text-xs text-white/40 mt-1">{formatNumber(stats.por_segmento?.DEDICADO?.viajes || 0)} viajes</div>
             </div>
           </div>
         </div>
 
-        {/* CONTENIDO PRINCIPAL */}
-        <div className="flex-1 mx-4 mb-4 overflow-hidden relative z-10">
-          {loading ? (
-            <div className="flex items-center justify-center h-full">
-              <Loader2 className="w-8 h-8 text-blue-400 animate-spin" />
+        {/* Top Clientes + Empresas */}
+        <div className="grid grid-cols-2 gap-6">
+          <div className="bg-white/[0.02] border border-white/[0.06] rounded-xl p-5 hover:border-white/[0.1] transition-all duration-300">
+            <h3 className="text-lg font-medium text-white mb-4 flex items-center gap-2">
+              <TrendingUp className="w-5 h-5 text-orange-400" />
+              Top 10 Clientes - {yearSeleccionado}
+            </h3>
+            <div className="space-y-3">
+              {topClientes.map((cliente, idx) => (
+                <div key={cliente.nombre} className="group flex items-center gap-3 hover:bg-white/[0.02] p-2 -mx-2 rounded-lg transition-all duration-200">
+                  <span className="text-white/40 text-sm w-6 group-hover:text-orange-400 transition-colors">{idx + 1}.</span>
+                  <div className="flex-1">
+                    <div className="flex justify-between items-center mb-1">
+                      <span className="text-white/80 text-sm truncate max-w-[200px] group-hover:text-white transition-colors">{cliente.nombre}</span>
+                      <span className="text-white/60 text-xs group-hover:text-orange-400 transition-colors">{formatMoney(cliente.ventas)}</span>
+                    </div>
+                    <div className="h-2 bg-white/5 rounded-full overflow-hidden">
+                      <div 
+                        className="h-full bg-gradient-to-r from-orange-500 to-orange-400 rounded-full transition-all duration-500 group-hover:from-orange-400 group-hover:to-yellow-400"
+                        style={{ width: `${(cliente.ventas / maxVentas) * 100}%` }}
+                      />
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
-          ) : (
-            <>
-              {/* ═══════════════════════════════════════════════════════════════
-                  VISTA: DASHBOARD
-                  ═══════════════════════════════════════════════════════════════ */}
-              {vista === 'dashboard' && (
-                <div className="grid grid-cols-4 gap-4 h-full">
-                  {/* TARJETAS KPI */}
-                  <div 
-                    className="col-span-4 grid grid-cols-4 gap-4"
-                  >
-                    {/* Total Ventas */}
-                    <div 
-                      className="p-5 rounded-2xl"
-                      style={{
-                        background: 'linear-gradient(135deg, rgba(34,197,94,0.15) 0%, rgba(22,163,74,0.10) 100%)',
-                        border: '1px solid rgba(34,197,94,0.25)',
-                        boxShadow: '0 8px 32px rgba(0,0,0,0.20)'
-                      }}
-                    >
-                      <div className="flex items-center gap-3 mb-2">
-                        <DollarSign className="w-5 h-5 text-green-400" />
-                        <span className="text-green-400/70 text-sm font-medium">Total Ventas</span>
-                      </div>
-                      <div className="text-3xl font-bold text-green-400" style={{ fontFamily: "'Orbitron', monospace" }}>
-                        ${resumen.totalVentas.toLocaleString('es-MX')}
-                      </div>
-                      <div className="text-green-400/50 text-xs mt-1">MXN</div>
-                    </div>
+          </div>
 
-                    {/* Total Viajes */}
-                    <div 
-                      className="p-5 rounded-2xl"
-                      style={{
-                        background: 'linear-gradient(135deg, rgba(59,130,246,0.15) 0%, rgba(37,99,235,0.10) 100%)',
-                        border: '1px solid rgba(59,130,246,0.25)',
-                        boxShadow: '0 8px 32px rgba(0,0,0,0.20)'
-                      }}
-                    >
-                      <div className="flex items-center gap-3 mb-2">
-                        <Truck className="w-5 h-5 text-blue-400" />
-                        <span className="text-blue-400/70 text-sm font-medium">Total Viajes</span>
+          <div className="bg-white/[0.02] border border-white/[0.06] rounded-xl p-5 hover:border-white/[0.1] transition-all duration-300">
+            <h3 className="text-lg font-medium text-white mb-4 flex items-center gap-2">
+              <Building2 className="w-5 h-5 text-blue-400" />
+              Por Empresa
+            </h3>
+            <div className="space-y-4">
+              {Object.entries(stats.por_empresa || {}).map(([empresa, data]) => {
+                const maxEmpresa = Math.max(...Object.values(stats.por_empresa || {}).map(e => e.ventas), 1);
+                const colors: { [key: string]: string } = { 'TROB': 'from-orange-500 to-orange-400', 'WE': 'from-blue-500 to-blue-400', 'SHI': 'from-emerald-500 to-emerald-400' };
+                const bgColors: { [key: string]: string } = { 'TROB': 'bg-orange-500/10 border-orange-500/20', 'WE': 'bg-blue-500/10 border-blue-500/20', 'SHI': 'bg-emerald-500/10 border-emerald-500/20' };
+                return (
+                  <div key={empresa} className={`p-3 rounded-lg border ${bgColors[empresa] || 'bg-white/5 border-white/10'} hover:scale-[1.02] transition-all duration-200`}>
+                    <div className="flex justify-between items-center mb-2">
+                      <span className="text-white font-medium">{empresa}</span>
+                      <div className="text-right">
+                        <span className="text-white/80">{formatMoney(data.ventas)}</span>
+                        <span className="text-white/40 text-xs ml-2">({formatNumber(data.viajes)} viajes)</span>
                       </div>
-                      <div className="text-3xl font-bold text-blue-400" style={{ fontFamily: "'Orbitron', monospace" }}>
-                        {resumen.totalViajes.toLocaleString()}
-                      </div>
-                      <div className="text-blue-400/50 text-xs mt-1">viajes</div>
                     </div>
-
-                    {/* IMPEX */}
-                    <div 
-                      className="p-5 rounded-2xl"
-                      style={{
-                        background: 'linear-gradient(135deg, rgba(168,85,247,0.15) 0%, rgba(139,92,246,0.10) 100%)',
-                        border: '1px solid rgba(168,85,247,0.25)',
-                        boxShadow: '0 8px 32px rgba(0,0,0,0.20)'
-                      }}
-                    >
-                      <div className="flex items-center gap-3 mb-2">
-                        <Globe className="w-5 h-5 text-purple-400" />
-                        <span className="text-purple-400/70 text-sm font-medium">IMPEX</span>
-                      </div>
-                      <div className="text-3xl font-bold text-purple-400" style={{ fontFamily: "'Orbitron', monospace" }}>
-                        ${(resumen.porSegmento['IMPEX'] || 0).toLocaleString('es-MX')}
-                      </div>
-                      <div className="text-purple-400/50 text-xs mt-1">MXN</div>
-                    </div>
-
-                    {/* DEDICADO */}
-                    <div 
-                      className="p-5 rounded-2xl"
-                      style={{
-                        background: 'linear-gradient(135deg, rgba(249,115,22,0.15) 0%, rgba(234,88,12,0.10) 100%)',
-                        border: '1px solid rgba(249,115,22,0.25)',
-                        boxShadow: '0 8px 32px rgba(0,0,0,0.20)'
-                      }}
-                    >
-                      <div className="flex items-center gap-3 mb-2">
-                        <Building2 className="w-5 h-5 text-orange-400" />
-                        <span className="text-orange-400/70 text-sm font-medium">DEDICADO</span>
-                      </div>
-                      <div className="text-3xl font-bold text-orange-400" style={{ fontFamily: "'Orbitron', monospace" }}>
-                        ${(resumen.porSegmento['DEDICADO'] || 0).toLocaleString('es-MX')}
-                      </div>
-                      <div className="text-orange-400/50 text-xs mt-1">MXN</div>
+                    <div className="h-3 bg-white/5 rounded-full overflow-hidden">
+                      <div className={`h-full bg-gradient-to-r ${colors[empresa] || 'from-gray-500 to-gray-400'} rounded-full transition-all duration-500`} style={{ width: `${(data.ventas / maxEmpresa) * 100}%` }} />
                     </div>
                   </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
 
-                  {/* TOP CLIENTES */}
-                  <div 
-                    className="col-span-2 p-5 rounded-2xl overflow-auto"
-                    style={{
-                      background: 'linear-gradient(180deg, rgba(15,23,42,0.92) 0%, rgba(15,23,42,0.96) 100%)',
-                      border: '1px solid rgba(255,255,255,0.08)',
-                      boxShadow: '0 12px 40px rgba(0,0,0,0.25)'
-                    }}
-                  >
-                    <div className="flex items-center gap-2 mb-4">
-                      <Building2 className="w-5 h-5 text-blue-400" />
-                      <span className="text-white/90 font-semibold">Top 5 Clientes</span>
+        {/* Gráfica Mensual */}
+        <div className="bg-white/[0.02] border border-white/[0.06] rounded-xl p-5 hover:border-white/[0.1] transition-all duration-300">
+          <h3 className="text-lg font-medium text-white mb-4 flex items-center gap-2">
+            <BarChart3 className="w-5 h-5 text-purple-400" />
+            Ventas Mensuales - {yearSeleccionado}
+          </h3>
+          <div className="flex items-end gap-2 h-48">
+            {MESES.map((mes, idx) => {
+              const key = `${yearSeleccionado}-${String(idx + 1).padStart(2, '0')}`;
+              const data = datosMensuales[key] || { ventas: 0 };
+              const maxMes = Math.max(...Object.values(datosMensuales).map(d => d.ventas), 1);
+              const height = (data.ventas / maxMes) * 100;
+              return (
+                <div key={mes} className="flex-1 flex flex-col items-center group">
+                  <div className="w-full flex flex-col items-center justify-end h-40 relative">
+                    <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-gray-900 border border-white/20 rounded px-2 py-1 text-xs text-white opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10">
+                      {formatMoney(data.ventas)}
                     </div>
-                    <div className="space-y-3">
-                      {topClientes.map(([cliente, monto], i) => (
-                        <div key={cliente} className="flex items-center gap-3">
-                          <span className="w-6 h-6 rounded-full bg-blue-500/20 text-blue-400 text-xs font-bold flex items-center justify-center">
-                            {i + 1}
-                          </span>
-                          <span className="flex-1 text-white/80 text-sm truncate">{cliente}</span>
-                          <span className="text-green-400 font-semibold text-sm" style={{ fontFamily: "'Orbitron', monospace" }}>
-                            ${monto.toLocaleString('es-MX')}
-                          </span>
-                        </div>
-                      ))}
-                      {topClientes.length === 0 && (
-                        <div className="text-white/40 text-sm text-center py-4">Sin datos</div>
-                      )}
-                    </div>
+                    <div 
+                      className="w-full bg-gradient-to-t from-orange-500 to-orange-400 rounded-t-md transition-all duration-300 group-hover:from-orange-400 group-hover:to-yellow-400 group-hover:shadow-lg group-hover:shadow-orange-500/20"
+                      style={{ height: `${height}%`, minHeight: data.ventas > 0 ? '4px' : '0' }}
+                    />
                   </div>
-
-                  {/* POR EJECUTIVO */}
-                  <div 
-                    className="col-span-2 p-5 rounded-2xl"
-                    style={{
-                      background: 'linear-gradient(180deg, rgba(15,23,42,0.92) 0%, rgba(15,23,42,0.96) 100%)',
-                      border: '1px solid rgba(255,255,255,0.08)',
-                      boxShadow: '0 12px 40px rgba(0,0,0,0.25)'
-                    }}
-                  >
-                    <div className="flex items-center gap-2 mb-4">
-                      <Users className="w-5 h-5 text-cyan-400" />
-                      <span className="text-white/90 font-semibold">Por Ejecutivo</span>
-                    </div>
-                    <div className="space-y-4">
-                      {Object.entries(resumen.porEjecutivo).map(([ejecutivo, monto]) => (
-                        <div key={ejecutivo}>
-                          <div className="flex justify-between mb-1">
-                            <span className="text-white/70 text-sm">{ejecutivo}</span>
-                            <span className="text-cyan-400 font-semibold text-sm" style={{ fontFamily: "'Orbitron', monospace" }}>
-                              ${monto.toLocaleString('es-MX')}
-                            </span>
-                          </div>
-                          <div className="h-2 rounded-full bg-slate-700/50 overflow-hidden">
-                            <div 
-                              className="h-full rounded-full bg-gradient-to-r from-cyan-500 to-blue-500"
-                              style={{ width: `${(monto / resumen.totalVentas) * 100}%` }}
-                            />
-                          </div>
-                        </div>
-                      ))}
-                      {Object.keys(resumen.porEjecutivo).length === 0 && (
-                        <div className="text-white/40 text-sm text-center py-4">Sin datos</div>
-                      )}
-                    </div>
-                  </div>
+                  <span className="text-white/40 text-xs mt-2 group-hover:text-white transition-colors">{mes}</span>
                 </div>
-              )}
-
-              {/* ═══════════════════════════════════════════════════════════════
-                  VISTA: UPLOAD
-                  ═══════════════════════════════════════════════════════════════ */}
-              {vista === 'upload' && (
-                <div className="flex items-center justify-center h-full">
-                  <div 
-                    className={`w-full max-w-2xl p-12 rounded-3xl text-center transition-all duration-200 ${dragOver ? 'scale-[1.02]' : ''}`}
-                    style={{
-                      background: dragOver 
-                        ? 'linear-gradient(135deg, rgba(59,130,246,0.20) 0%, rgba(37,99,235,0.15) 100%)'
-                        : 'linear-gradient(180deg, rgba(15,23,42,0.92) 0%, rgba(15,23,42,0.96) 100%)',
-                      border: dragOver 
-                        ? '2px dashed rgba(59,130,246,0.60)'
-                        : '2px dashed rgba(255,255,255,0.15)',
-                      boxShadow: '0 20px 60px rgba(0,0,0,0.30)'
-                    }}
-                    onDrop={handleDrop}
-                    onDragOver={handleDragOver}
-                    onDragLeave={handleDragLeave}
-                  >
-                    {uploading ? (
-                      <div className="space-y-4">
-                        <Loader2 className="w-16 h-16 text-blue-400 animate-spin mx-auto" />
-                        <div className="text-white/90 text-lg font-medium">{uploadProgress}</div>
-                      </div>
-                    ) : (
-                      <>
-                        <FileSpreadsheet className="w-20 h-20 text-blue-400/60 mx-auto mb-6" />
-                        <h3 className="text-white/90 text-xl font-semibold mb-2">
-                          Arrastra tu archivo Excel aquí
-                        </h3>
-                        <p className="text-white/50 text-sm mb-6">
-                          o haz clic para seleccionar archivo
-                        </p>
-                        <input
-                          type="file"
-                          accept=".xlsx,.xls"
-                          className="hidden"
-                          id="excel-upload"
-                          onChange={e => e.target.files?.[0] && handleFileUpload(e.target.files[0])}
-                        />
-                        <label
-                          htmlFor="excel-upload"
-                          className="inline-flex items-center gap-2 px-6 py-3 rounded-xl cursor-pointer transition-all duration-150 hover:-translate-y-0.5"
-                          style={{
-                            background: 'linear-gradient(180deg, rgba(59,130,246,0.30) 0%, rgba(37,99,235,0.25) 100%)',
-                            border: '1px solid rgba(59,130,246,0.40)',
-                            color: 'rgba(147,197,253,0.98)',
-                            fontSize: '14px',
-                            fontWeight: 600,
-                          }}
-                        >
-                          <Upload className="w-5 h-5" />
-                          Seleccionar archivo
-                        </label>
-                        <div className="mt-8 p-4 rounded-xl bg-amber-500/10 border border-amber-500/20">
-                          <div className="flex items-start gap-3">
-                            <AlertTriangle className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" />
-                            <div className="text-left">
-                              <div className="text-amber-400/90 text-sm font-medium mb-1">Columnas requeridas:</div>
-                              <div className="text-amber-400/60 text-xs">
-                                idViaje, Cliente, ClienteFinal, Origen, Destino, TipoViaje, SubTotalUnificado, TC_Factura, FechaFactura, EstatusFactura, Empresa
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      </>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {/* ═══════════════════════════════════════════════════════════════
-                  VISTA: TABLA
-                  ═══════════════════════════════════════════════════════════════ */}
-              {vista === 'tabla' && (
-                <div 
-                  className="h-full rounded-2xl overflow-hidden"
-                  style={{
-                    background: 'linear-gradient(180deg, rgba(15,23,42,0.92) 0%, rgba(15,23,42,0.96) 100%)',
-                    border: '1px solid rgba(255,255,255,0.08)',
-                    boxShadow: '0 12px 40px rgba(0,0,0,0.25)'
-                  }}
-                >
-                  <div className="overflow-auto h-full">
-                    <table className="w-full">
-                      <thead className="sticky top-0 z-10" style={{ background: 'rgba(15,23,42,0.98)' }}>
-                        <tr>
-                          {['Fecha', 'ID Viaje', 'Cliente', 'Segmento', 'Ejecutivo', 'Ventas'].map(col => (
-                            <th key={col} className="px-4 py-3 text-left text-xs font-semibold text-white/60 border-b border-white/10">
-                              {col}
-                            </th>
-                          ))}
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {ventasFiltradas().slice(0, 100).map((v, i) => (
-                          <tr 
-                            key={v.id} 
-                            className="transition-colors hover:bg-white/5"
-                            style={{ background: i % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.02)' }}
-                          >
-                            <td className="px-4 py-3 text-sm text-white/70">{v.fechaFactura}</td>
-                            <td className="px-4 py-3 text-sm text-white/50 font-mono text-xs">{v.idViaje}</td>
-                            <td className="px-4 py-3 text-sm text-white/90">{v.clienteConsolidado}</td>
-                            <td className="px-4 py-3">
-                              <span 
-                                className="px-2 py-1 rounded-full text-xs font-medium"
-                                style={{
-                                  background: v.segmentoNegocio === 'IMPEX' ? 'rgba(168,85,247,0.20)' : 'rgba(249,115,22,0.20)',
-                                  color: v.segmentoNegocio === 'IMPEX' ? 'rgba(192,132,252,0.95)' : 'rgba(251,146,60,0.95)',
-                                }}
-                              >
-                                {v.segmentoNegocio}
-                              </span>
-                            </td>
-                            <td className="px-4 py-3 text-sm text-white/60">{v.ejecutivo || '-'}</td>
-                            <td className="px-4 py-3 text-sm text-green-400 font-semibold" style={{ fontFamily: "'Orbitron', monospace" }}>
-                              ${v.ventas.toLocaleString('es-MX')}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                    {ventasFiltradas().length === 0 && (
-                      <div className="text-center py-12 text-white/40">
-                        No hay datos para mostrar
-                      </div>
-                    )}
-                    {ventasFiltradas().length > 100 && (
-                      <div className="text-center py-4 text-white/40 text-sm">
-                        Mostrando 100 de {ventasFiltradas().length} registros
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
-            </>
-          )}
+              );
+            })}
+          </div>
         </div>
       </div>
+    );
+  };
+
+  // ═══════════════════════════════════════════════════════════════════════════════
+  // RENDER CHAT
+  // ═══════════════════════════════════════════════════════════════════════════════
+
+  const renderChat = () => (
+    <div className="h-[600px] flex flex-col bg-white/[0.02] border border-white/[0.06] rounded-xl overflow-hidden">
+      <div className="p-4 border-b border-white/[0.06] flex items-center gap-3 bg-gradient-to-r from-orange-500/10 to-purple-500/10">
+        <div className="p-2 bg-gradient-to-br from-orange-500/20 to-purple-500/20 rounded-lg">
+          <Sparkles className="w-5 h-5 text-orange-400" />
+        </div>
+        <div>
+          <h3 className="text-white font-medium">Análisis IA</h3>
+          <p className="text-white/40 text-sm">Pregunta sobre los datos de ventas de Grupo Loma</p>
+        </div>
+      </div>
+
+      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+        {chatMessages.length === 0 && (
+          <div className="text-center text-white/40 py-8">
+            <Bot className="w-16 h-16 mx-auto mb-4 opacity-30" />
+            <p className="text-lg mb-2">Pregúntame sobre las ventas</p>
+            <p className="text-sm text-white/30 mb-6">Puedo analizar clientes, segmentos, tendencias y más</p>
+            <div className="space-y-2 max-w-md mx-auto">
+              {['¿Cuál es el cliente más rentable?', 'Compara IMPEX vs DEDICADO', '¿Cómo van las ventas por empresa?', '¿Qué cliente creció más este año?'].map((ejemplo, idx) => (
+                <button key={idx} onClick={() => setChatInput(ejemplo)} className="block w-full text-left px-4 py-3 bg-white/5 rounded-lg text-sm hover:bg-white/10 hover:border-orange-500/30 border border-transparent transition-all duration-200">
+                  {ejemplo}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {chatMessages.map((msg, idx) => (
+          <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+            <div className={`max-w-[80%] p-4 rounded-xl ${msg.role === 'user' ? 'bg-gradient-to-br from-orange-500/20 to-orange-600/10 border border-orange-500/30 text-white' : 'bg-white/5 border border-white/10 text-white/80'}`}>
+              {msg.role === 'assistant' && (
+                <div className="flex items-center gap-2 mb-2 text-orange-400 text-sm">
+                  <Bot className="w-4 h-4" />
+                  <span>Claude</span>
+                </div>
+              )}
+              <p className="text-sm whitespace-pre-wrap leading-relaxed">{msg.content}</p>
+            </div>
+          </div>
+        ))}
+
+        {chatLoading && (
+          <div className="flex justify-start">
+            <div className="bg-white/5 border border-white/10 rounded-xl p-4">
+              <div className="flex items-center gap-3 text-white/60">
+                <div className="relative">
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                  <div className="absolute inset-0 w-5 h-5 rounded-full border border-orange-500/50 animate-ping" />
+                </div>
+                <span className="text-sm">Analizando datos...</span>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      <div className="p-4 border-t border-white/[0.06] bg-white/[0.01]">
+        <div className="flex gap-3">
+          <input
+            type="text"
+            value={chatInput}
+            onChange={(e) => setChatInput(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && enviarPregunta()}
+            placeholder="Escribe tu pregunta..."
+            className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/30 focus:outline-none focus:border-orange-500/50 focus:bg-white/[0.07] transition-all duration-200"
+          />
+          <button
+            onClick={enviarPregunta}
+            disabled={chatLoading || !chatInput.trim()}
+            className="px-5 py-3 bg-gradient-to-r from-orange-500 to-orange-600 rounded-xl text-white font-medium hover:from-orange-400 hover:to-orange-500 transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-lg hover:shadow-orange-500/25 active:scale-95"
+          >
+            <Send className="w-5 h-5" />
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+
+  // ═══════════════════════════════════════════════════════════════════════════════
+  // RENDER PRINCIPAL
+  // ═══════════════════════════════════════════════════════════════════════════════
+
+  return (
+    <ModuleTemplate
+      title="Ventas"
+      subtitle="Análisis y reportes de ventas Grupo Loma"
+      icon={TrendingUp}
+      accentColor="orange"
+      backgroundImage={MODULE_IMAGES.ventas}
+      onBack={onBack}
+    >
+      <div className="flex gap-2 mb-6">
+        <button
+          onClick={() => setVista('dashboard')}
+          className={`px-5 py-2.5 rounded-xl font-medium transition-all duration-200 flex items-center gap-2 ${vista === 'dashboard' ? 'bg-gradient-to-r from-orange-500/20 to-orange-600/10 text-orange-400 border border-orange-500/30 shadow-lg shadow-orange-500/10' : 'bg-white/5 text-white/60 hover:bg-white/10 border border-transparent'}`}
+        >
+          <BarChart3 className="w-4 h-4" />
+          Dashboard
+        </button>
+        <button
+          onClick={() => setVista('chat')}
+          className={`px-5 py-2.5 rounded-xl font-medium transition-all duration-200 flex items-center gap-2 ${vista === 'chat' ? 'bg-gradient-to-r from-orange-500/20 to-orange-600/10 text-orange-400 border border-orange-500/30 shadow-lg shadow-orange-500/10' : 'bg-white/5 text-white/60 hover:bg-white/10 border border-transparent'}`}
+        >
+          <Sparkles className="w-4 h-4" />
+          Análisis IA
+        </button>
+      </div>
+
+      {vista === 'dashboard' && renderDashboard()}
+      {vista === 'chat' && renderChat()}
     </ModuleTemplate>
   );
-};
+}
