@@ -39,7 +39,7 @@ type Vista = 'dashboard' | 'chat';
 // COMPONENTE PRINCIPAL
 // ═══════════════════════════════════════════════════════════════════════════════
 
-export default function VentasModule({ onBack }: VentasModuleProps) {
+export function VentasModule({ onBack }: VentasModuleProps) {
   const [vista, setVista] = useState<Vista>('dashboard');
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState<StatsData | null>(null);
@@ -488,3 +488,4 @@ export default function VentasModule({ onBack }: VentasModuleProps) {
     </ModuleTemplate>
   );
 }
+
