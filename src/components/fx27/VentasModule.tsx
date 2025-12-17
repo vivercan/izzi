@@ -9,10 +9,22 @@ interface Filtros { fechaInicio: string; fechaFin: string; segmento: string; tip
 interface StatsData { total_viajes: number; total_ventas: number; total_kms: number; por_segmento: { [k: string]: { viajes: number; ventas: number } }; por_empresa: { [k: string]: { viajes: number; ventas: number } }; por_tipo: { [k: string]: { viajes: number; ventas: number } }; }
 interface TopItem { nombre: string; viajes: number; ventas: number; }
 
-// Sin filtro de fecha por defecto - muestra todo el año
+// Por defecto: del 1 del mes actual hasta hoy
+const getDefaultDates = () => {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = (now.getMonth() + 1).toString().padStart(2, '0');
+  const day = now.getDate().toString().padStart(2, '0');
+  return {
+    fechaInicio: `${year}-${month}-01`,
+    fechaFin: `${year}-${month}-${day}`
+  };
+};
+const defaultDates = getDefaultDates();
+
 const FILTROS_INIT: Filtros = { 
-  fechaInicio: '', 
-  fechaFin: '', 
+  fechaInicio: defaultDates.fechaInicio,  // 2025-12-01
+  fechaFin: defaultDates.fechaFin,        // 2025-12-17 (hoy)
   segmento: '', tipo: '', empresa: '', clientes: [], tractos: [], cajas: [], estadoOrigen: '', estadoDestino: '', vendedor: '', division: '', kmsMin: '', kmsMax: '' 
 };
 
