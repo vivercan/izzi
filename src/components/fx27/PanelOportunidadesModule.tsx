@@ -8,24 +8,22 @@ import * as pdfjsLib from 'pdfjs-dist';
 pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
 
 // ═══════════════════════════════════════════════════════════════════════════
-// 📋 PERMISOS OPORTUNIDADES - userVendedor viene desde App.tsx
+// 📋 PERMISOS OPORTUNIDADES - userVendedorLeads viene desde App.tsx
 // ═══════════════════════════════════════════════════════════════════════════
-// | Usuario            | userVendedor | Leads que ve                        |
-// |--------------------|--------------|-------------------------------------|
-// | Juan Viveros       | undefined    | TODOS (admin)                       |
-// | Jennifer Sánchez   | undefined    | TODOS (admin)                       |
-// | Lizeth Rodríguez   | undefined    | TODOS (csr)                         |
-// | Elizabeth Rodríguez| undefined    | TODOS (csr)                         |
-// | Isis Estrada       | 'ISIS'       | Solo leads donde vendedor='Isis...' |
-// | Paloma Oliva       | 'PALOMA'     | Solo leads donde vendedor='Paloma..'|
-// | Jaime Soto         | N/A          | SIN ACCESO (operaciones)            |
-// | José Rodríguez     | N/A          | SIN ACCESO (operaciones)            |
-// | Marcos Pineda      | N/A          | SIN ACCESO (operaciones)            |
+// | Usuario            | userVendedorLeads | Leads que ve                    |
+// |--------------------|-------------------|----------------------------------|
+// | Juan Viveros       | ''                | TODOS (admin)                    |
+// | Jennifer Sánchez   | ''                | TODOS (admin)                    |
+// | Lizeth Rodríguez   | ''                | TODOS (csr)                      |
+// | Elizabeth Rodríguez| ''                | TODOS (csr)                      |
+// | Isis Estrada       | 'Isis Estrada'    | Solo leads donde vendedor match  |
+// | Paloma Oliva       | 'Paloma Oliva'    | Solo leads donde vendedor match  |
+// | Operaciones        | N/A               | SIN ACCESO a este módulo         |
 // ═══════════════════════════════════════════════════════════════════════════
 
 interface PanelOportunidadesModuleProps { 
   onBack: () => void; 
-  userVendedor?: string; // 'ISIS' | 'PALOMA' | undefined (admin/csr ve todo)
+  userVendedorLeads?: string; // 'Isis Estrada' | 'Paloma Oliva' | '' (admin/csr ve todo)
 }
 interface LineaCotizacion { origen: string; destino: string; servicio: string; tarifa: number; moneda: string; viajes: number; tipoViaje: string; subtotalMXN: number; omitida?: boolean; }
 interface Cotizacion { nombre: string; url: string; fecha: string; analisis?: any; eliminado?: boolean; lineas?: LineaCotizacion[]; potencialMXN?: number; }
@@ -254,7 +252,7 @@ const getTipoViajeColor = (tipo: string) => {
   }
 };
 
-export const PanelOportunidadesModule = ({ onBack, userVendedor }: PanelOportunidadesModuleProps) => {
+export const PanelOportunidadesModule = ({ onBack, userVendedorLeads }: PanelOportunidadesModuleProps) => {
   const [leads, setLeads] = useState<Lead[]>([]);
   const [allLeads, setAllLeads] = useState<Lead[]>([]); // TODOS los leads para validación de duplicados
   const [filteredLeads, setFilteredLeads] = useState<Lead[]>([]);
@@ -299,49 +297,59 @@ export const PanelOportunidadesModule = ({ onBack, userVendedor }: PanelOportuni
             esAdmin = usuario.rol === 'admin'; 
             esCsr = usuario.rol === 'csr';
             setIsAdmin(esAdmin); 
-            setPuedeVerTodo(esAdmin || esCsr); // Admin y CSR ven todo
+            setPuedeVerTodo(esAdmin || esCsr);
             setVendedorActual(vendedor);
           } 
         }
         
-        console.log('🔍 userVendedor:', userVendedor, 'esAdmin:', esAdmin, 'esCsr:', esCsr);
+        console.log('📋 Cargando leads...');
+        console.log('   → userVendedorLeads:', userVendedorLeads || 'VER TODO');
+        console.log('   → esAdmin:', esAdmin, '| esCsr:', esCsr);
         
-        // Siempre cargar todos los leads primero
+        // Siempre cargar todos los leads
         const url = `https://${projectId}.supabase.co/functions/v1/make-server-d84b50bb/leads`;
         const response = await fetch(url, { headers: { 'Authorization': `Bearer ${publicAnonKey}` } });
         const result = await response.json();
         
         if (response.ok && result.success) { 
-          let leadsData = result.leads;
+          let leadsData = result.leads || [];
+          console.log('   → Total leads en BD:', leadsData.length);
           
-          // Filtrar por vendedor si es ISIS o PALOMA
-          if (userVendedor) {
-            console.log('🔒 Filtrando leads para vendedor:', userVendedor);
+          // Si userVendedorLeads tiene valor, filtrar por nombre de vendedor
+          if (userVendedorLeads && userVendedorLeads.trim() !== '') {
+            console.log('🔒 Filtrando leads para:', userVendedorLeads);
             leadsData = leadsData.filter((l: Lead) => {
-              const vendedorLead = (l.vendedor || '').toUpperCase();
-              // Buscar si el nombre del vendedor contiene ISIS o PALOMA
-              return vendedorLead.includes(userVendedor.toUpperCase());
+              const vendedorLead = (l.vendedor || '').toLowerCase().trim();
+              const filtro = userVendedorLeads.toLowerCase().trim();
+              // Comparar si el vendedor del lead contiene o es igual al filtro
+              return vendedorLead === filtro || vendedorLead.includes(filtro);
             });
-            console.log('📋 Leads encontrados:', leadsData.length);
-          } else if (!esAdmin && !esCsr && vendedor) {
-            // Usuario normal - filtrar por su nombre exacto
-            leadsData = leadsData.filter((l: Lead) => 
-              l.vendedor?.toLowerCase() === vendedor.toLowerCase()
-            );
+            console.log('   → Leads filtrados:', leadsData.length);
           }
-          // Admin y CSR ven todos (no filtramos)
+          // Si es admin o CSR, no filtramos (ven todo)
+          // Si no tiene userVendedorLeads y no es admin/csr, filtrar por su nombre
+          else if (!esAdmin && !esCsr && vendedor) {
+            console.log('🔒 Filtrando por nombre de usuario:', vendedor);
+            leadsData = leadsData.filter((l: Lead) => 
+              (l.vendedor || '').toLowerCase().trim() === vendedor.toLowerCase().trim()
+            );
+            console.log('   → Leads filtrados:', leadsData.length);
+          }
           
+          // Guardar todos los leads para validación de duplicados
+          setAllLeads(result.leads || []);
+          
+          // Guardar leads filtrados
           setLeads(leadsData); 
           setFilteredLeads(leadsData.filter((l: Lead) => !l.eliminado)); 
         }
         
-        // SIEMPRE cargar TODOS los leads para validación de duplicados
-        setAllLeads(result.leads || []);
-        
-      } catch (error) { console.error('Error:', error); }
+      } catch (error) { 
+        console.error('❌ Error cargando leads:', error); 
+      }
     };
     cargarLeads();
-  }, [userVendedor]);
+  }, [userVendedorLeads]);
 
   // DETECTAR DUPLICADOS EXISTENTES EN LA BASE DE DATOS
   const detectarDuplicadosExistentes = (leadsArray: Lead[]): Map<string, Lead[]> => {

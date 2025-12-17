@@ -23,21 +23,21 @@ import { MODULE_IMAGES } from './assets/module-images';
 import { projectId, publicAnonKey } from './utils/supabase/info';
 import './styles/globals.css';
 
-// ═══════════════════════════════════════════════════════════════════════════
-// 📋 MATRIZ DE USUARIOS FX27 - ACTUALIZADA 17/DIC/2025
-// ═══════════════════════════════════════════════════════════════════════════
-// | Usuario            | Correo                          | Rol         | Header      | Módulos                    | Ventas/Oport  |
-// |--------------------|--------------------------------|-------------|-------------|----------------------------|---------------|
-// | Juan Viveros       | juan.viveros@trob.com.mx       | admin       | ADMIN       | TODOS                      | Ver TODO      |
-// | Jennifer Sánchez   | jennifer.sanchez@trob.com.mx   | admin       | ADMIN       | TODOS                      | Ver TODO      |
-// | Lizeth Rodríguez   | customer.service3@trob.com.mx  | csr         | CSR         | TODO menos Config          | Ver TODO      |
-// | Elizabeth Rodríguez| customer.service1@trob.com.mx  | csr         | CSR         | TODO menos Config          | Ver TODO      |
-// | Isis Estrada       | isis.estrada@wexpress.com.mx   | ventas      | VENTAS      | TODO menos Config          | Solo ISIS     |
-// | Paloma Oliva       | paloma.oliva@speedyhaul.com.mx | ventas      | VENTAS      | TODO menos Config          | Solo PALOMA   |
-// | Jaime Soto         | jaime.soto@trob.com.mx         | operaciones | OPERACIONES | Solo Dedicado              | Sin acceso    |
-// | José Rodríguez     | jose.rodriguez@trob.com.mx     | operaciones | OPERACIONES | Solo Dedicado              | Sin acceso    |
-// | Marcos Pineda      | marcos.pineda@trob.com.mx      | operaciones | OPERACIONES | Solo Dedicado              | Sin acceso    |
-// ═══════════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════════════════════════════════
+// 📋 MATRIZ COMPLETA DE USUARIOS FX27 - ACTUALIZADA 17/DIC/2025
+// ═══════════════════════════════════════════════════════════════════════════════════════════════════
+// # | Usuario            | Correo                          | Password    | Header      | Módulos      | Ventas/Oport
+// --|--------------------|---------------------------------|-------------|-------------|--------------|-------------
+// 1 | Juan Viveros       | juan.viveros@trob.com.mx        | Mexico86    | ADMIN       | TODOS        | Ver TODO
+// 2 | Jennifer Sánchez   | jennifer.sanchez@trob.com.mx    | jsanchez    | ADMIN       | TODOS        | Ver TODO
+// 3 | Lizeth Rodríguez   | customer.service3@trob.com.mx   | lrodriguez  | CSR         | Todo -Config | Ver TODO
+// 4 | Elizabeth Rodríguez| customer.service1@trob.com.mx   | erodriguez  | CSR         | Todo -Config | Ver TODO
+// 5 | Isis Estrada       | isis.estrada@wexpress.com.mx    | iestrada    | VENTAS      | Todo -Config | Solo ISIS
+// 6 | Paloma Oliva       | paloma.oliva@speedyhaul.com.mx  | poliva      | VENTAS      | Todo -Config | Solo PALOMA
+// 7 | Jaime Soto         | jaime.soto@trob.com.mx          | jsoto       | OPERACIONES | Solo Dedicado| Sin acceso
+// 8 | José Rodríguez     | jose.rodriguez@trob.com.mx      | jrodriguez  | OPERACIONES | Solo Dedicado| Sin acceso
+// 9 | Marcos Pineda      | marcos.pineda@trob.com.mx       | mpineda     | OPERACIONES | Solo Dedicado| Sin acceso
+// ═══════════════════════════════════════════════════════════════════════════════════════════════════
 
 type UserRole = 'admin' | 'ventas' | 'operaciones' | 'csr' | 'custom';
 
@@ -48,17 +48,20 @@ interface Usuario {
   password: string;
   rol: UserRole;
   rolDisplay: string;
-  vendedor?: string; // 'ISIS' | 'PALOMA' para filtrar en Ventas/Oportunidades
+  // Para filtrar en Ventas: valor exacto de ejecutivo_ventas en BD (ISIS, PALOMA)
+  vendedorVentas?: string;
+  // Para filtrar en Oportunidades: nombre que contiene el campo vendedor en leads
+  vendedorLeads?: string;
   permisosCustom?: string[];
   ultimoAcceso: string;
   activo: boolean;
   createdAt: string;
 }
 
-// 🔒 USUARIOS AUTORIZADOS - 9 USUARIOS TOTALES
+// 🔒 9 USUARIOS AUTORIZADOS
 const USUARIOS_AUTORIZADOS: Usuario[] = [
   // ═══════════════════════════════════════════════════════════════
-  // ADMINISTRADORES (2) - Acceso TOTAL
+  // ADMINISTRADORES (2) - Acceso TOTAL a todo
   // ═══════════════════════════════════════════════════════════════
   {
     id: '1',
@@ -83,7 +86,7 @@ const USUARIOS_AUTORIZADOS: Usuario[] = [
     createdAt: '2025-12-17T00:00:00.000Z'
   },
   // ═══════════════════════════════════════════════════════════════
-  // CSR (2) - Todo menos Configuración, VE TODO en Ventas/Oportunidades
+  // CSR (2) - Todo menos Config, VEN TODO en módulos de datos
   // ═══════════════════════════════════════════════════════════════
   {
     id: '7',
@@ -108,7 +111,7 @@ const USUARIOS_AUTORIZADOS: Usuario[] = [
     createdAt: '2025-01-05T00:00:00.000Z'
   },
   // ═══════════════════════════════════════════════════════════════
-  // VENTAS (2) - Todo menos Config, SOLO SUS CLIENTES en Ventas/Oportunidades
+  // VENTAS (2) - Todo menos Config, SOLO SUS DATOS en Ventas/Oportunidades
   // ═══════════════════════════════════════════════════════════════
   {
     id: '4',
@@ -117,7 +120,8 @@ const USUARIOS_AUTORIZADOS: Usuario[] = [
     password: 'iestrada',
     rol: 'ventas',
     rolDisplay: 'VENTAS',
-    vendedor: 'ISIS', // ← Filtro para Ventas y Oportunidades
+    vendedorVentas: 'ISIS',        // Valor en ventas_maestro.ejecutivo_ventas
+    vendedorLeads: 'Isis Estrada', // Valor en leads.vendedor (nombre completo)
     ultimoAcceso: '',
     activo: true,
     createdAt: '2025-01-03T00:00:00.000Z'
@@ -129,13 +133,14 @@ const USUARIOS_AUTORIZADOS: Usuario[] = [
     password: 'poliva',
     rol: 'ventas',
     rolDisplay: 'VENTAS',
-    vendedor: 'PALOMA', // ← Filtro para Ventas y Oportunidades
+    vendedorVentas: 'PALOMA',      // Valor en ventas_maestro.ejecutivo_ventas
+    vendedorLeads: 'Paloma Oliva', // Valor en leads.vendedor (nombre completo)
     ultimoAcceso: '',
     activo: true,
     createdAt: '2025-01-03T00:00:00.000Z'
   },
   // ═══════════════════════════════════════════════════════════════
-  // OPERACIONES (3) - SOLO módulo Dedicado
+  // OPERACIONES (3) - SOLO módulo Dedicado, sin acceso a Ventas/Oportunidades
   // ═══════════════════════════════════════════════════════════════
   {
     id: '2',
@@ -176,35 +181,35 @@ export default function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userRole, setUserRole] = useState<UserRole>('admin');
   const [userRolDisplay, setUserRolDisplay] = useState<string>('ADMIN');
-  const [userVendedor, setUserVendedor] = useState<string>(''); // 'ISIS' | 'PALOMA' | ''
+  const [userVendedorVentas, setUserVendedorVentas] = useState<string>('');   // Para módulo Ventas
+  const [userVendedorLeads, setUserVendedorLeads] = useState<string>('');     // Para Panel Oportunidades
   const [userPermisosCustom, setUserPermisosCustom] = useState<string[]>([]);
   const [currentModule, setCurrentModule] = useState<string | null>(null);
   const [loginError, setLoginError] = useState<string>('');
   const [currentUserEmail, setCurrentUserEmail] = useState<string>('');
   const [currentUserName, setCurrentUserName] = useState<string>('');
 
-  // 🔧 INICIALIZAR USUARIOS AL CARGAR LA APP
+  // 🔧 INICIALIZAR AL CARGAR
   useEffect(() => {
-    // Siempre actualizar con los usuarios más recientes
-    console.log('🔧 Actualizando lista de usuarios autorizados...');
+    // Siempre actualizar usuarios
     localStorage.setItem('fx27-usuarios', JSON.stringify(USUARIOS_AUTORIZADOS));
 
     const savedSession = localStorage.getItem('fx27-session');
     if (savedSession) {
       try {
         const session = JSON.parse(savedSession);
-        // Verificar que el usuario sigue existiendo y está activo
         const usuario = USUARIOS_AUTORIZADOS.find(u => u.correo === session.email && u.activo);
         if (usuario) {
           setIsLoggedIn(true);
           setUserRole(usuario.rol);
           setUserRolDisplay(usuario.rolDisplay);
-          setUserVendedor(usuario.vendedor || '');
+          setUserVendedorVentas(usuario.vendedorVentas || '');
+          setUserVendedorLeads(usuario.vendedorLeads || '');
           setUserPermisosCustom(usuario.permisosCustom || []);
           setCurrentUserEmail(session.email);
           setCurrentUserName(usuario.nombre);
+          console.log('✅ Sesión restaurada:', usuario.nombre, '| Ventas:', usuario.vendedorVentas || 'TODO', '| Leads:', usuario.vendedorLeads || 'TODO');
         } else {
-          // Usuario ya no existe o está inactivo
           localStorage.removeItem('fx27-session');
         }
       } catch (e) {
@@ -213,46 +218,45 @@ export default function App() {
     }
   }, []);
 
-  // 🔐 VALIDACIÓN DE LOGIN
+  // 🔐 LOGIN
   const handleLogin = (email: string, password: string) => {
-    console.log('🔐 Intentando login:', email);
+    console.log('🔐 Login:', email);
     setLoginError('');
 
-    // Buscar en usuarios autorizados
     const usuario = USUARIOS_AUTORIZADOS.find(u => 
-      u.correo === email && 
-      u.password === password && 
-      u.activo === true
+      u.correo === email && u.password === password && u.activo
     );
 
     if (!usuario) {
-      console.error('❌ Credenciales incorrectas:', email);
       setLoginError('Credenciales incorrectas. Verifica tu email y contraseña.');
       return;
     }
 
-    console.log('✅ Login exitoso:', usuario.nombre, '- Rol:', usuario.rolDisplay, '- Vendedor:', usuario.vendedor || 'N/A');
+    console.log('✅ Login OK:', usuario.nombre, '| Rol:', usuario.rolDisplay);
+    console.log('   → Ventas filtro:', usuario.vendedorVentas || 'VER TODO');
+    console.log('   → Leads filtro:', usuario.vendedorLeads || 'VER TODO');
     
     setUserRole(usuario.rol);
     setUserRolDisplay(usuario.rolDisplay);
-    setUserVendedor(usuario.vendedor || '');
+    setUserVendedorVentas(usuario.vendedorVentas || '');
+    setUserVendedorLeads(usuario.vendedorLeads || '');
     setUserPermisosCustom(usuario.permisosCustom || []);
     setIsLoggedIn(true);
     setCurrentUserEmail(email);
     setCurrentUserName(usuario.nombre);
     
-    // Guardar sesión
     localStorage.setItem('fx27-session', JSON.stringify({
       role: usuario.rol,
       rolDisplay: usuario.rolDisplay,
-      vendedor: usuario.vendedor || '',
+      vendedorVentas: usuario.vendedorVentas || '',
+      vendedorLeads: usuario.vendedorLeads || '',
       permisosCustom: usuario.permisosCustom || [],
       email: email,
       name: usuario.nombre,
       timestamp: new Date().toISOString()
     }));
 
-    // Actualizar último acceso en backend (fire and forget)
+    // Actualizar último acceso
     fetch(`https://${projectId}.supabase.co/functions/v1/make-server-d84b50bb/usuarios/ultimo-acceso`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${publicAnonKey}` },
@@ -261,12 +265,12 @@ export default function App() {
   };
 
   const handleLogout = () => {
-    console.log('👋 Cerrando sesión');
     setIsLoggedIn(false);
     setCurrentModule(null);
     setUserRole('admin');
     setUserRolDisplay('ADMIN');
-    setUserVendedor('');
+    setUserVendedorVentas('');
+    setUserVendedorLeads('');
     setUserPermisosCustom([]);
     setCurrentUserEmail('');
     setCurrentUserName('');
@@ -274,46 +278,24 @@ export default function App() {
   };
 
   const handleNavigate = (module: string) => {
-    const hasAccess = checkModuleAccess(module, userRole, userPermisosCustom);
-    
-    if (!hasAccess) {
-      alert('⚠️ Acceso Restringido\n\nNo tienes permisos para este módulo.\n\nContacta al administrador.');
+    if (!checkModuleAccess(module, userRole, userPermisosCustom)) {
+      alert('⚠️ Acceso Restringido\n\nNo tienes permisos para este módulo.');
       return;
     }
-    
     setCurrentModule(module);
   };
 
-  const handleBack = () => {
-    setCurrentModule(null);
-  };
+  const handleBack = () => setCurrentModule(null);
 
-  // 🔒 CONTROL DE PERMISOS POR ROL
+  // 🔒 PERMISOS POR ROL
   const checkModuleAccess = (module: string, role: UserRole, permisosCustom: string[] = []): boolean => {
-    // ADMIN: acceso a TODO
     if (role === 'admin') return true;
-    
-    // CSR: TODO menos Configuración
-    if (role === 'csr') {
-      return module !== 'configuracion';
-    }
-    
-    // VENTAS: TODO menos Configuración (filtro de datos se aplica en cada módulo)
-    if (role === 'ventas') {
-      return module !== 'configuracion';
-    }
-    
-    // OPERACIONES: SOLO Dedicados y sus submódulos
+    if (role === 'csr') return module !== 'configuracion';
+    if (role === 'ventas') return module !== 'configuracion';
     if (role === 'operaciones') {
-      const modulosDedicados = ['dedicados', 'admin-carroll', 'monitor-carroll', 'vista-clientes-carroll', 'mapa-climatico-carroll'];
-      return modulosDedicados.includes(module);
+      return ['dedicados', 'admin-carroll', 'monitor-carroll', 'vista-clientes-carroll', 'mapa-climatico-carroll'].includes(module);
     }
-
-    // CUSTOM: según permisos específicos
-    if (role === 'custom') {
-      return permisosCustom.includes(module);
-    }
-    
+    if (role === 'custom') return permisosCustom.includes(module);
     return false;
   };
 
@@ -324,7 +306,12 @@ export default function App() {
       ) : currentModule ? (
         <>
           {currentModule === 'agregar-lead' && <AgregarLeadModule onBack={handleBack} />}
-          {currentModule === 'panel-oportunidades' && <PanelOportunidadesModule onBack={handleBack} userVendedor={userVendedor} />}
+          {currentModule === 'panel-oportunidades' && (
+            <PanelOportunidadesModule 
+              onBack={handleBack} 
+              userVendedorLeads={userVendedorLeads}  // Nombre completo para filtrar leads
+            />
+          )}
           {currentModule === 'operaciones' && <ModuleTemplate title="Operaciones" onBack={handleBack} headerImage={MODULE_IMAGES.OPERACIONES} />}
           {currentModule === 'despacho-inteligente' && <DespachoInteligenteModule onBack={handleBack} />}
           {currentModule === 'control-equipo' && <ControlEquipoModule onBack={handleBack} />}
@@ -335,10 +322,7 @@ export default function App() {
           {currentModule === 'utilerias' && <UtileriasModule onBack={handleBack} />}
           {currentModule === 'servicio-clientes' && <ServicioClientesModule onBack={handleBack} />}
           {currentModule === 'dedicados' && (
-            <DedicadosHub 
-              onBack={handleBack} 
-              onNavigate={(submodule) => setCurrentModule(submodule)} 
-            />
+            <DedicadosHub onBack={handleBack} onNavigate={(submodule) => setCurrentModule(submodule)} />
           )}
           {currentModule === 'admin-carroll' && <CarrollModuleFinalV2Compact onBack={() => setCurrentModule('dedicados')} />}
           {currentModule === 'monitor-carroll' && <DedicadosModuleWideTech onBack={() => setCurrentModule('dedicados')} />}
