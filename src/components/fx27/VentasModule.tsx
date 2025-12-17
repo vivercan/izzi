@@ -9,7 +9,25 @@ interface Filtros { fechaInicio: string; fechaFin: string; segmento: string; tip
 interface StatsData { total_viajes: number; total_ventas: number; total_kms: number; por_segmento: { [k: string]: { viajes: number; ventas: number } }; por_empresa: { [k: string]: { viajes: number; ventas: number } }; por_tipo: { [k: string]: { viajes: number; ventas: number } }; }
 interface TopItem { nombre: string; viajes: number; ventas: number; }
 
-const FILTROS_INIT: Filtros = { fechaInicio: '', fechaFin: '', segmento: '', tipo: '', empresa: '', clientes: [], tractos: [], cajas: [], estadoOrigen: '', estadoDestino: '', vendedor: '', division: '', kmsMin: '', kmsMax: '' };
+// Obtener primer y último día del mes actual
+const getDefaultDateRange = () => {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = now.getMonth();
+  const firstDay = new Date(year, month, 1);
+  const lastDay = new Date(year, month + 1, 0);
+  return {
+    fechaInicio: firstDay.toISOString().split('T')[0],
+    fechaFin: lastDay.toISOString().split('T')[0]
+  };
+};
+
+const defaultDates = getDefaultDateRange();
+const FILTROS_INIT: Filtros = { 
+  fechaInicio: defaultDates.fechaInicio, 
+  fechaFin: defaultDates.fechaFin, 
+  segmento: '', tipo: '', empresa: '', clientes: [], tractos: [], cajas: [], estadoOrigen: '', estadoDestino: '', vendedor: '', division: '', kmsMin: '', kmsMax: '' 
+};
 
 // ═══════════════════════════════════════════════════════════════════════════
 // 📋 PERMISOS VENTAS - DEBE COINCIDIR CON App.tsx
@@ -307,25 +325,92 @@ export function VentasModule({ onBack }: VentasModuleProps) {
               </div>
               <div>
                 <label className="text-white/40 text-xs mb-1 block">Fecha Inicio</label>
-                <input 
-                  type="date" 
-                  value={filtrosTemp.fechaInicio} 
-                  onChange={e => setFiltrosTemp(p => ({ ...p, fechaInicio: e.target.value }))} 
-                  onMouseDown={e => e.stopPropagation()}
-                  onClick={e => e.stopPropagation()}
-                  className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm [&::-webkit-calendar-picker-indicator]:filter [&::-webkit-calendar-picker-indicator]:invert" 
-                />
+                <div className="flex gap-2">
+                  <select 
+                    value={filtrosTemp.fechaInicio ? filtrosTemp.fechaInicio.slice(5, 7) : ''}
+                    onChange={e => {
+                      const year = filtrosTemp.fechaInicio ? filtrosTemp.fechaInicio.slice(0, 4) : new Date().getFullYear().toString();
+                      const month = e.target.value;
+                      if (month) setFiltrosTemp(p => ({ ...p, fechaInicio: `${year}-${month}-01` }));
+                    }}
+                    className="flex-1 bg-white/5 border border-white/10 rounded-lg px-2 py-2 text-white text-sm"
+                  >
+                    <option value="">Mes</option>
+                    <option value="01">Enero</option>
+                    <option value="02">Febrero</option>
+                    <option value="03">Marzo</option>
+                    <option value="04">Abril</option>
+                    <option value="05">Mayo</option>
+                    <option value="06">Junio</option>
+                    <option value="07">Julio</option>
+                    <option value="08">Agosto</option>
+                    <option value="09">Septiembre</option>
+                    <option value="10">Octubre</option>
+                    <option value="11">Noviembre</option>
+                    <option value="12">Diciembre</option>
+                  </select>
+                  <select
+                    value={filtrosTemp.fechaInicio ? filtrosTemp.fechaInicio.slice(0, 4) : ''}
+                    onChange={e => {
+                      const month = filtrosTemp.fechaInicio ? filtrosTemp.fechaInicio.slice(5, 7) : '01';
+                      if (e.target.value) setFiltrosTemp(p => ({ ...p, fechaInicio: `${e.target.value}-${month}-01` }));
+                    }}
+                    className="w-24 bg-white/5 border border-white/10 rounded-lg px-2 py-2 text-white text-sm"
+                  >
+                    <option value="">Año</option>
+                    <option value="2023">2023</option>
+                    <option value="2024">2024</option>
+                    <option value="2025">2025</option>
+                  </select>
+                </div>
               </div>
               <div>
                 <label className="text-white/40 text-xs mb-1 block">Fecha Fin</label>
-                <input 
-                  type="date" 
-                  value={filtrosTemp.fechaFin} 
-                  onChange={e => setFiltrosTemp(p => ({ ...p, fechaFin: e.target.value }))} 
-                  onMouseDown={e => e.stopPropagation()}
-                  onClick={e => e.stopPropagation()}
-                  className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm [&::-webkit-calendar-picker-indicator]:filter [&::-webkit-calendar-picker-indicator]:invert" 
-                />
+                <div className="flex gap-2">
+                  <select 
+                    value={filtrosTemp.fechaFin ? filtrosTemp.fechaFin.slice(5, 7) : ''}
+                    onChange={e => {
+                      const year = filtrosTemp.fechaFin ? filtrosTemp.fechaFin.slice(0, 4) : new Date().getFullYear().toString();
+                      const month = e.target.value;
+                      if (month) {
+                        // Calcular último día del mes
+                        const lastDay = new Date(parseInt(year), parseInt(month), 0).getDate();
+                        setFiltrosTemp(p => ({ ...p, fechaFin: `${year}-${month}-${lastDay.toString().padStart(2, '0')}` }));
+                      }
+                    }}
+                    className="flex-1 bg-white/5 border border-white/10 rounded-lg px-2 py-2 text-white text-sm"
+                  >
+                    <option value="">Mes</option>
+                    <option value="01">Enero</option>
+                    <option value="02">Febrero</option>
+                    <option value="03">Marzo</option>
+                    <option value="04">Abril</option>
+                    <option value="05">Mayo</option>
+                    <option value="06">Junio</option>
+                    <option value="07">Julio</option>
+                    <option value="08">Agosto</option>
+                    <option value="09">Septiembre</option>
+                    <option value="10">Octubre</option>
+                    <option value="11">Noviembre</option>
+                    <option value="12">Diciembre</option>
+                  </select>
+                  <select
+                    value={filtrosTemp.fechaFin ? filtrosTemp.fechaFin.slice(0, 4) : ''}
+                    onChange={e => {
+                      const month = filtrosTemp.fechaFin ? filtrosTemp.fechaFin.slice(5, 7) : '12';
+                      if (e.target.value) {
+                        const lastDay = new Date(parseInt(e.target.value), parseInt(month), 0).getDate();
+                        setFiltrosTemp(p => ({ ...p, fechaFin: `${e.target.value}-${month}-${lastDay.toString().padStart(2, '0')}` }));
+                      }
+                    }}
+                    className="w-24 bg-white/5 border border-white/10 rounded-lg px-2 py-2 text-white text-sm"
+                  >
+                    <option value="">Año</option>
+                    <option value="2023">2023</option>
+                    <option value="2024">2024</option>
+                    <option value="2025">2025</option>
+                  </select>
+                </div>
               </div>
               <div>
                 <label className="text-white/40 text-xs mb-1 block">Segmento</label>
@@ -545,16 +630,16 @@ export function VentasModule({ onBack }: VentasModuleProps) {
             <Sparkles className="w-3 h-3" />IA
           </button>
         </div>
-        <div className="flex items-center gap-1.5">
-          <span className="text-white/40 text-[10px]">{yearAplicado}</span>
-          <button onClick={abrirFiltros} className={`flex items-center gap-1 px-2 py-1 rounded text-[10px] ${nFiltros ? 'bg-orange-500/20 text-orange-400' : 'bg-white/5 text-white/50'}`}>
-            <Filter className="w-3 h-3" />Filtros{nFiltros > 0 && <span className="bg-orange-500 text-white text-[8px] px-1 rounded-full">{nFiltros}</span>}
+        <div className="flex items-center gap-2">
+          <span className="text-white/50 text-xs font-medium">{yearAplicado}</span>
+          <button onClick={abrirFiltros} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-orange-500 hover:bg-orange-600 text-white transition-colors">
+            <Filter className="w-3.5 h-3.5" />Filtros{nFiltros > 0 && <span className="bg-white/20 text-white text-[10px] px-1.5 rounded-full">{nFiltros}</span>}
           </button>
-          <button onClick={cargarDatos} className="p-1 bg-white/5 hover:bg-white/10 rounded">
-            <RefreshCw className="w-3 h-3 text-white/50" />
+          <button onClick={cargarDatos} className="p-1.5 bg-white/10 hover:bg-white/20 rounded-lg transition-colors">
+            <RefreshCw className="w-3.5 h-3.5 text-white/70" />
           </button>
-          <span className="text-[9px] text-white/30 flex items-center gap-0.5">
-            <span className="w-1 h-1 rounded-full bg-emerald-500" />{ultimaAct}
+          <span className="text-[10px] text-white/40 flex items-center gap-1">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />{ultimaAct}
           </span>
         </div>
       </div>

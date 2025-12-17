@@ -256,6 +256,7 @@ export const PanelOportunidadesModule = ({ onBack, userVendedorLeads }: PanelOpo
   const [leads, setLeads] = useState<Lead[]>([]);
   const [allLeads, setAllLeads] = useState<Lead[]>([]); // TODOS los leads para validación de duplicados
   const [filteredLeads, setFilteredLeads] = useState<Lead[]>([]);
+  const [isLoading, setIsLoading] = useState(true); // ← NUEVO: Estado de carga
   const [searchTerm, setSearchTerm] = useState('');
   const [filterVendedor, setFilterVendedor] = useState('');
   const [filterFecha, setFilterFecha] = useState('');
@@ -285,6 +286,7 @@ export const PanelOportunidadesModule = ({ onBack, userVendedorLeads }: PanelOpo
 
   useEffect(() => {
     const cargarLeads = async () => {
+      setIsLoading(true); // ← Iniciar carga
       try {
         const session = localStorage.getItem('fx27-session');
         let vendedor = '', esAdmin = false, esCsr = false;
@@ -346,6 +348,8 @@ export const PanelOportunidadesModule = ({ onBack, userVendedorLeads }: PanelOpo
         
       } catch (error) { 
         console.error('❌ Error cargando leads:', error); 
+      } finally {
+        setIsLoading(false); // ← Finalizar carga
       }
     };
     cargarLeads();
@@ -1066,7 +1070,22 @@ export const PanelOportunidadesModule = ({ onBack, userVendedorLeads }: PanelOpo
                 <col style={{ width: '9%' }} />
               </colgroup>
               <tbody>
-              {filteredLeads.length === 0 ? (<tr><td colSpan={10} className="px-6 py-12 text-center text-slate-400">No se encontraron leads.</td></tr>) : (
+              {isLoading ? (
+                <tr>
+                  <td colSpan={10} className="px-6 py-16 text-center">
+                    <div className="flex flex-col items-center gap-3">
+                      <div className="w-8 h-8 border-3 border-orange-500 border-t-transparent rounded-full animate-spin"></div>
+                      <span className="text-orange-400 font-medium">Cargando leads...</span>
+                    </div>
+                  </td>
+                </tr>
+              ) : filteredLeads.length === 0 ? (
+                <tr>
+                  <td colSpan={10} className="px-6 py-12 text-center text-slate-400">
+                    No hay leads disponibles.
+                  </td>
+                </tr>
+              ) : (
                 filteredLeads.map((lead, index) => {
                   const alerta = getAlertaLead(lead);
                   const potencial = calcularPotencialDesdeCotizaciones(lead);
