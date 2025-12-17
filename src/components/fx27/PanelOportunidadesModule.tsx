@@ -7,7 +7,10 @@ import * as pdfjsLib from 'pdfjs-dist';
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
 
-interface PanelOportunidadesModuleProps { onBack: () => void; }
+interface PanelOportunidadesModuleProps { 
+  onBack: () => void; 
+  userVendedor?: string; // 'ISIS' | 'PALOMA' | undefined (admin/csr ve todo)
+}
 interface LineaCotizacion { origen: string; destino: string; servicio: string; tarifa: number; moneda: string; viajes: number; tipoViaje: string; subtotalMXN: number; omitida?: boolean; }
 interface Cotizacion { nombre: string; url: string; fecha: string; analisis?: any; eliminado?: boolean; lineas?: LineaCotizacion[]; potencialMXN?: number; }
 interface HistorialCambio { fecha: string; campo: string; valorAnterior: string; valorNuevo: string; usuario: string; }
@@ -235,7 +238,7 @@ const getTipoViajeColor = (tipo: string) => {
   }
 };
 
-export const PanelOportunidadesModule = ({ onBack }: PanelOportunidadesModuleProps) => {
+export const PanelOportunidadesModule = ({ onBack, userVendedor }: PanelOportunidadesModuleProps) => {
   const [leads, setLeads] = useState<Lead[]>([]);
   const [allLeads, setAllLeads] = useState<Lead[]>([]); // TODOS los leads para validación de duplicados
   const [filteredLeads, setFilteredLeads] = useState<Lead[]>([]);
@@ -254,6 +257,7 @@ export const PanelOportunidadesModule = ({ onBack }: PanelOportunidadesModulePro
   const [deleteModal, setDeleteModal] = useState<Lead | null>(null);
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
   const [isAdmin, setIsAdmin] = useState(false);
+  const [puedeVerTodo, setPuedeVerTodo] = useState(false); // Admin o CSR ve todo
   const [showDeleted, setShowDeleted] = useState(false);
   const [analizando, setAnalizando] = useState(false);
   const [statusMsg, setStatusMsg] = useState('');
@@ -269,7 +273,7 @@ export const PanelOportunidadesModule = ({ onBack }: PanelOportunidadesModulePro
     const cargarLeads = async () => {
       try {
         const session = localStorage.getItem('fx27-session');
-        let vendedor = '', esAdmin = false;
+        let vendedor = '', esAdmin = false, esCsr = false;
         if (session) { 
           const { email } = JSON.parse(session); 
           const usuarios = JSON.parse(localStorage.getItem('fx27-usuarios') || '[]'); 
@@ -277,21 +281,41 @@ export const PanelOportunidadesModule = ({ onBack }: PanelOportunidadesModulePro
           if (usuario) { 
             vendedor = usuario.nombre; 
             esAdmin = usuario.rol === 'admin'; 
+            esCsr = usuario.rol === 'csr';
             setIsAdmin(esAdmin); 
+            setPuedeVerTodo(esAdmin || esCsr); // Admin y CSR ven todo
             setVendedorActual(vendedor);
           } 
         }
         
-        // Admin ve todos los leads, usuarios solo los suyos
-        const url = esAdmin 
-          ? `https://${projectId}.supabase.co/functions/v1/make-server-d84b50bb/leads` 
-          : `https://${projectId}.supabase.co/functions/v1/make-server-d84b50bb/leads?vendedor=${encodeURIComponent(vendedor)}`;
+        // Si tiene userVendedor (ISIS/PALOMA), filtrar por vendedor asignado
+        // Admin y CSR ven todos los leads
+        let url: string;
+        if (userVendedor) {
+          // ISIS o PALOMA - filtrar por nombre que contenga su identificador
+          const nombreVendedor = userVendedor === 'ISIS' ? 'Isis' : 'Paloma';
+          url = `https://${projectId}.supabase.co/functions/v1/make-server-d84b50bb/leads?vendedor=${encodeURIComponent(nombreVendedor)}`;
+        } else if (esAdmin || esCsr) {
+          url = `https://${projectId}.supabase.co/functions/v1/make-server-d84b50bb/leads`;
+        } else {
+          url = `https://${projectId}.supabase.co/functions/v1/make-server-d84b50bb/leads?vendedor=${encodeURIComponent(vendedor)}`;
+        }
+        
         const response = await fetch(url, { headers: { 'Authorization': `Bearer ${publicAnonKey}` } });
         const result = await response.json();
         
         if (response.ok && result.success) { 
-          setLeads(result.leads); 
-          setFilteredLeads(result.leads.filter((l: Lead) => !l.eliminado)); 
+          let leadsData = result.leads;
+          
+          // Filtro adicional por vendedor si es ISIS o PALOMA
+          if (userVendedor) {
+            leadsData = leadsData.filter((l: Lead) => 
+              l.vendedor?.toUpperCase().includes(userVendedor.toUpperCase())
+            );
+          }
+          
+          setLeads(leadsData); 
+          setFilteredLeads(leadsData.filter((l: Lead) => !l.eliminado)); 
         }
         
         // SIEMPRE cargar TODOS los leads para validación de duplicados (incluso para usuarios normales)
@@ -305,7 +329,7 @@ export const PanelOportunidadesModule = ({ onBack }: PanelOportunidadesModulePro
       } catch (error) { console.error('Error:', error); }
     };
     cargarLeads();
-  }, []);
+  }, [userVendedor]);
 
   // DETECTAR DUPLICADOS EXISTENTES EN LA BASE DE DATOS
   const detectarDuplicadosExistentes = (leadsArray: Lead[]): Map<string, Lead[]> => {

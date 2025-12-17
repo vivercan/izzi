@@ -23,7 +23,8 @@ import { MODULE_IMAGES } from './assets/module-images';
 import { projectId, publicAnonKey } from './utils/supabase/info';
 import './styles/globals.css';
 
-type UserRole = 'admin' | 'ventas' | 'operaciones' | 'custom';
+// ✅ ROLES ACTUALIZADOS 17/DIC/2025
+type UserRole = 'admin' | 'ventas' | 'operaciones' | 'csr' | 'custom';
 
 interface Usuario {
   id: string;
@@ -31,30 +32,47 @@ interface Usuario {
   correo: string;
   password: string;
   rol: UserRole;
+  rolDisplay?: string; // Para mostrar en header
+  vendedor?: string; // Para ISIS/PALOMA - filtrar sus clientes
   permisosCustom?: string[];
   ultimoAcceso: string;
   activo: boolean;
   createdAt: string;
 }
 
-// 🔒 USUARIOS PREDEFINIDOS DEL SISTEMA (8 USUARIOS AUTORIZADOS)
+// 🔒 USUARIOS PREDEFINIDOS DEL SISTEMA - ACTUALIZADOS 17/DIC/2025
 const USUARIOS_AUTORIZADOS: Usuario[] = [
+  // ADMINISTRADORES
   {
     id: '1',
     nombre: 'Juan Viveros',
     correo: 'juan.viveros@trob.com.mx',
     password: 'Mexico86',
     rol: 'admin',
+    rolDisplay: 'ADMIN',
     ultimoAcceso: '',
     activo: true,
     createdAt: '2025-01-01T00:00:00.000Z'
   },
+  {
+    id: '9',
+    nombre: 'Jennifer Sánchez',
+    correo: 'jennifer.sanchez@trob.com.mx',
+    password: 'jsanchez',
+    rol: 'admin',
+    rolDisplay: 'ADMIN',
+    ultimoAcceso: '',
+    activo: true,
+    createdAt: '2025-12-17T00:00:00.000Z'
+  },
+  // OPERACIONES - Solo módulo Dedicado
   {
     id: '2',
     nombre: 'José Rodríguez',
     correo: 'jose.rodriguez@trob.com.mx',
     password: 'jrodriguez',
     rol: 'operaciones',
+    rolDisplay: 'OPERACIONES',
     ultimoAcceso: '',
     activo: true,
     createdAt: '2025-01-02T00:00:00.000Z'
@@ -65,46 +83,56 @@ const USUARIOS_AUTORIZADOS: Usuario[] = [
     correo: 'marcos.pineda@trob.com.mx',
     password: 'mpineda',
     rol: 'operaciones',
+    rolDisplay: 'OPERACIONES',
     ultimoAcceso: '',
     activo: true,
     createdAt: '2025-01-02T00:00:00.000Z'
-  },
-  {
-    id: '4',
-    nombre: 'Isis Estrada',
-    correo: 'isis.estrada@wexpress.com.mx',
-    password: 'iestrada',
-    rol: 'ventas',
-    ultimoAcceso: '',
-    activo: true,
-    createdAt: '2025-01-03T00:00:00.000Z'
-  },
-  {
-    id: '5',
-    nombre: 'Paloma Oliva',
-    correo: 'paloma.oliva@speedyhaul.com.mx',
-    password: 'poliva',
-    rol: 'ventas',
-    ultimoAcceso: '',
-    activo: true,
-    createdAt: '2025-01-03T00:00:00.000Z'
   },
   {
     id: '6',
     nombre: 'Jaime Soto',
     correo: 'jaime.soto@trob.com.mx',
     password: 'jsoto',
-    rol: 'ventas',
+    rol: 'operaciones',
+    rolDisplay: 'OPERACIONES',
     ultimoAcceso: '',
     activo: true,
     createdAt: '2025-01-04T00:00:00.000Z'
   },
+  // VENTAS - ISIS (solo sus clientes en Ventas y Oportunidades)
+  {
+    id: '4',
+    nombre: 'Isis Estrada',
+    correo: 'isis.estrada@wexpress.com.mx',
+    password: 'iestrada',
+    rol: 'ventas',
+    rolDisplay: 'VENTAS',
+    vendedor: 'ISIS',
+    ultimoAcceso: '',
+    activo: true,
+    createdAt: '2025-01-03T00:00:00.000Z'
+  },
+  // VENTAS - PALOMA (solo sus clientes en Ventas y Oportunidades)
+  {
+    id: '5',
+    nombre: 'Paloma Oliva',
+    correo: 'paloma.oliva@speedyhaul.com.mx',
+    password: 'poliva',
+    rol: 'ventas',
+    rolDisplay: 'VENTAS',
+    vendedor: 'PALOMA',
+    ultimoAcceso: '',
+    activo: true,
+    createdAt: '2025-01-03T00:00:00.000Z'
+  },
+  // CSR - Ver todo menos Configuración
   {
     id: '7',
     nombre: 'Lizeth Rodríguez',
     correo: 'customer.service3@trob.com.mx',
     password: 'lrodriguez',
-    rol: 'ventas',
+    rol: 'csr',
+    rolDisplay: 'CSR',
     ultimoAcceso: '',
     activo: true,
     createdAt: '2025-01-05T00:00:00.000Z'
@@ -114,7 +142,8 @@ const USUARIOS_AUTORIZADOS: Usuario[] = [
     nombre: 'Elizabeth Rodríguez',
     correo: 'customer.service1@trob.com.mx',
     password: 'erodriguez',
-    rol: 'ventas',
+    rol: 'csr',
+    rolDisplay: 'CSR',
     ultimoAcceso: '',
     activo: true,
     createdAt: '2025-01-05T00:00:00.000Z'
@@ -124,18 +153,20 @@ const USUARIOS_AUTORIZADOS: Usuario[] = [
 export default function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userRole, setUserRole] = useState<UserRole>('admin');
+  const [userRolDisplay, setUserRolDisplay] = useState<string>('ADMIN');
+  const [userVendedor, setUserVendedor] = useState<string>('');
   const [userPermisosCustom, setUserPermisosCustom] = useState<string[]>([]);
   const [currentModule, setCurrentModule] = useState<string | null>(null);
   const [loginError, setLoginError] = useState<string>('');
   const [currentUserEmail, setCurrentUserEmail] = useState<string>('');
-  const [currentUserName, setCurrentUserName] = useState<string>(''); // ✅ NUEVO: Nombre del usuario
+  const [currentUserName, setCurrentUserName] = useState<string>('');
 
   // 🔧 INICIALIZAR USUARIOS AL CARGAR LA APP
   useEffect(() => {
     const savedUsers = localStorage.getItem('fx27-usuarios');
     
     if (!savedUsers) {
-      console.log('🔧 Inicializando 8 usuarios autorizados...');
+      console.log('🔧 Inicializando usuarios autorizados...');
       localStorage.setItem('fx27-usuarios', JSON.stringify(USUARIOS_AUTORIZADOS));
     } else {
       try {
@@ -161,9 +192,11 @@ export default function App() {
         const session = JSON.parse(savedSession);
         setIsLoggedIn(true);
         setUserRole(session.role || 'admin');
+        setUserRolDisplay(session.rolDisplay || 'ADMIN');
+        setUserVendedor(session.vendedor || '');
         setUserPermisosCustom(session.permisosCustom || []);
         setCurrentUserEmail(session.email || '');
-        setCurrentUserName(session.name || ''); // ✅ NUEVO: Cargar nombre
+        setCurrentUserName(session.name || '');
       } catch (e) {
         localStorage.removeItem('fx27-session');
       }
@@ -190,10 +223,8 @@ export default function App() {
     try {
       usuarios = JSON.parse(savedUsers);
       console.log('👥 Usuarios en sistema:', usuarios.length);
-      console.log('📧 Emails disponibles:', usuarios.map(u => u.correo));
     } catch (e) {
       console.error('❌ Error al parsear usuarios');
-      console.log('🔧 Reinicializando usuarios...');
       localStorage.setItem('fx27-usuarios', JSON.stringify(USUARIOS_AUTORIZADOS));
       setLoginError('Sistema reinicializado. Intenta nuevamente.');
       return;
@@ -208,15 +239,6 @@ export default function App() {
 
     if (!usuario) {
       console.error('❌ Credenciales incorrectas:', email);
-      console.log('🔍 Buscando usuario con email:', email);
-      const userExists = usuarios.find(u => u.correo === email);
-      if (userExists) {
-        console.log('✅ Email existe, contraseña incorrecta');
-        console.log('🔑 Contraseña esperada:', userExists.password);
-        console.log('🔑 Contraseña recibida:', password);
-      } else {
-        console.log('❌ Email no existe en el sistema');
-      }
       setLoginError('Credenciales incorrectas. Verifica tu email y contraseña.');
       return;
     }
@@ -224,10 +246,12 @@ export default function App() {
     console.log('✅ Login exitoso:', usuario.nombre, '- Rol:', usuario.rol);
     
     setUserRole(usuario.rol);
+    setUserRolDisplay(usuario.rolDisplay || usuario.rol.toUpperCase());
+    setUserVendedor(usuario.vendedor || '');
     setUserPermisosCustom(usuario.permisosCustom || []);
     setIsLoggedIn(true);
     setCurrentUserEmail(email);
-    setCurrentUserName(usuario.nombre); // ✅ NUEVO: Guardar nombre
+    setCurrentUserName(usuario.nombre);
     
     const usuariosActualizados = usuarios.map((u: Usuario) => 
       u.correo === email ? { ...u, ultimoAcceso: new Date().toISOString() } : u
@@ -236,9 +260,11 @@ export default function App() {
     
     localStorage.setItem('fx27-session', JSON.stringify({
       role: usuario.rol,
+      rolDisplay: usuario.rolDisplay || usuario.rol.toUpperCase(),
+      vendedor: usuario.vendedor || '',
       permisosCustom: usuario.permisosCustom || [],
       email: email,
-      name: usuario.nombre, // ✅ NUEVO: Guardar nombre
+      name: usuario.nombre,
       timestamp: new Date().toISOString()
     }));
 
@@ -250,16 +276,7 @@ export default function App() {
         'Authorization': `Bearer ${publicAnonKey}`
       },
       body: JSON.stringify({ email })
-    })
-      .then(res => res.json())
-      .then(data => {
-        if (data.success) {
-          console.log('✅ Último acceso guardado en backend:', data.timestamp);
-        } else {
-          console.error('❌ Error guardando último acceso:', data.error);
-        }
-      })
-      .catch(err => console.error('❌ Error llamando endpoint ultimo-acceso:', err));
+    }).catch(err => console.error('❌ Error llamando endpoint ultimo-acceso:', err));
   };
 
   const handleLogout = () => {
@@ -267,9 +284,11 @@ export default function App() {
     setIsLoggedIn(false);
     setCurrentModule(null);
     setUserRole('admin');
+    setUserRolDisplay('ADMIN');
+    setUserVendedor('');
     setUserPermisosCustom([]);
     setCurrentUserEmail('');
-    setCurrentUserName(''); // ✅ NUEVO: Limpiar nombre
+    setCurrentUserName('');
     localStorage.removeItem('fx27-session');
   };
 
@@ -288,39 +307,40 @@ export default function App() {
     setCurrentModule(null);
   };
 
-  // 🔒 CONTROL DE PERMISOS BLINDADO (INCLUYE CUSTOM)
+  // 🔒 CONTROL DE PERMISOS ACTUALIZADO 17/DIC/2025
   const checkModuleAccess = (module: string, role: UserRole, permisosCustom: string[] = []): boolean => {
     // ADMIN: acceso a TODO
     if (role === 'admin') {
-      console.log('✅ Admin - Acceso permitido a:', module);
+      return true;
+    }
+    
+    // CSR: TODO menos Configuración
+    if (role === 'csr') {
+      if (module === 'configuracion') {
+        return false;
+      }
       return true;
     }
     
     // VENTAS: TODO menos Configuración
     if (role === 'ventas') {
       if (module === 'configuracion') {
-        console.log('❌ Ventas - Configuración bloqueada');
         return false;
       }
-      console.log('✅ Ventas - Acceso permitido a:', module);
       return true;
     }
     
-    // OPERACIONES: SOLO Operaciones
+    // OPERACIONES: SOLO Dedicados
     if (role === 'operaciones') {
-      if (module === 'operaciones') {
-        console.log('✅ Operaciones - Acceso permitido');
+      if (module === 'dedicados' || module === 'admin-carroll' || module === 'monitor-carroll' || module === 'vista-clientes-carroll' || module === 'mapa-climatico-carroll') {
         return true;
       }
-      console.log('❌ Operaciones - Módulo bloqueado:', module);
       return false;
     }
 
     // CUSTOM: según permisos específicos
     if (role === 'custom') {
-      const tieneAcceso = permisosCustom.includes(module);
-      console.log(tieneAcceso ? '✅' : '❌', 'Custom - Módulo:', module, '- Acceso:', tieneAcceso);
-      return tieneAcceso;
+      return permisosCustom.includes(module);
     }
     
     return false;
@@ -333,7 +353,7 @@ export default function App() {
       ) : currentModule ? (
         <>
           {currentModule === 'agregar-lead' && <AgregarLeadModule onBack={handleBack} />}
-          {currentModule === 'panel-oportunidades' && <PanelOportunidadesModule onBack={handleBack} />}
+          {currentModule === 'panel-oportunidades' && <PanelOportunidadesModule onBack={handleBack} userVendedor={userVendedor} />}
           {currentModule === 'operaciones' && <ModuleTemplate title="Operaciones" onBack={handleBack} headerImage={MODULE_IMAGES.OPERACIONES} />}
           {currentModule === 'despacho-inteligente' && <DespachoInteligenteModule onBack={handleBack} />}
           {currentModule === 'control-equipo' && <ControlEquipoModule onBack={handleBack} />}
@@ -359,7 +379,8 @@ export default function App() {
           onLogout={handleLogout}
           onNavigate={handleNavigate}
           userRole={userRole}
-          userName={currentUserName} // ✅ NUEVO: Pasar nombre
+          userRolDisplay={userRolDisplay}
+          userName={currentUserName}
         />
       )}
     </div>
