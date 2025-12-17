@@ -9,23 +9,10 @@ interface Filtros { fechaInicio: string; fechaFin: string; segmento: string; tip
 interface StatsData { total_viajes: number; total_ventas: number; total_kms: number; por_segmento: { [k: string]: { viajes: number; ventas: number } }; por_empresa: { [k: string]: { viajes: number; ventas: number } }; por_tipo: { [k: string]: { viajes: number; ventas: number } }; }
 interface TopItem { nombre: string; viajes: number; ventas: number; }
 
-// Obtener primer y último día del mes actual
-const getDefaultDateRange = () => {
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = now.getMonth();
-  const firstDay = new Date(year, month, 1);
-  const lastDay = new Date(year, month + 1, 0);
-  return {
-    fechaInicio: firstDay.toISOString().split('T')[0],
-    fechaFin: lastDay.toISOString().split('T')[0]
-  };
-};
-
-const defaultDates = getDefaultDateRange();
+// Sin filtro de fecha por defecto - muestra todo el año
 const FILTROS_INIT: Filtros = { 
-  fechaInicio: defaultDates.fechaInicio, 
-  fechaFin: defaultDates.fechaFin, 
+  fechaInicio: '', 
+  fechaFin: '', 
   segmento: '', tipo: '', empresa: '', clientes: [], tractos: [], cajas: [], estadoOrigen: '', estadoDestino: '', vendedor: '', division: '', kmsMin: '', kmsMax: '' 
 };
 
@@ -325,37 +312,52 @@ export function VentasModule({ onBack }: VentasModuleProps) {
               </div>
               <div>
                 <label className="text-white/40 text-xs mb-1 block">Fecha Inicio</label>
-                <div className="flex gap-2">
+                <div className="flex gap-1">
+                  <select 
+                    value={filtrosTemp.fechaInicio ? filtrosTemp.fechaInicio.slice(8, 10) : ''}
+                    onChange={e => {
+                      const year = filtrosTemp.fechaInicio ? filtrosTemp.fechaInicio.slice(0, 4) : new Date().getFullYear().toString();
+                      const month = filtrosTemp.fechaInicio ? filtrosTemp.fechaInicio.slice(5, 7) : '01';
+                      if (e.target.value) setFiltrosTemp(p => ({ ...p, fechaInicio: `${year}-${month}-${e.target.value}` }));
+                    }}
+                    className="w-16 bg-white/5 border border-white/10 rounded-lg px-1 py-2 text-white text-sm"
+                  >
+                    <option value="">Día</option>
+                    {Array.from({length: 31}, (_, i) => i + 1).map(d => (
+                      <option key={d} value={d.toString().padStart(2, '0')}>{d}</option>
+                    ))}
+                  </select>
                   <select 
                     value={filtrosTemp.fechaInicio ? filtrosTemp.fechaInicio.slice(5, 7) : ''}
                     onChange={e => {
                       const year = filtrosTemp.fechaInicio ? filtrosTemp.fechaInicio.slice(0, 4) : new Date().getFullYear().toString();
-                      const month = e.target.value;
-                      if (month) setFiltrosTemp(p => ({ ...p, fechaInicio: `${year}-${month}-01` }));
+                      const day = filtrosTemp.fechaInicio ? filtrosTemp.fechaInicio.slice(8, 10) : '01';
+                      if (e.target.value) setFiltrosTemp(p => ({ ...p, fechaInicio: `${year}-${e.target.value}-${day}` }));
                     }}
-                    className="flex-1 bg-white/5 border border-white/10 rounded-lg px-2 py-2 text-white text-sm"
+                    className="flex-1 bg-white/5 border border-white/10 rounded-lg px-1 py-2 text-white text-sm"
                   >
                     <option value="">Mes</option>
-                    <option value="01">Enero</option>
-                    <option value="02">Febrero</option>
-                    <option value="03">Marzo</option>
-                    <option value="04">Abril</option>
-                    <option value="05">Mayo</option>
-                    <option value="06">Junio</option>
-                    <option value="07">Julio</option>
-                    <option value="08">Agosto</option>
-                    <option value="09">Septiembre</option>
-                    <option value="10">Octubre</option>
-                    <option value="11">Noviembre</option>
-                    <option value="12">Diciembre</option>
+                    <option value="01">Ene</option>
+                    <option value="02">Feb</option>
+                    <option value="03">Mar</option>
+                    <option value="04">Abr</option>
+                    <option value="05">May</option>
+                    <option value="06">Jun</option>
+                    <option value="07">Jul</option>
+                    <option value="08">Ago</option>
+                    <option value="09">Sep</option>
+                    <option value="10">Oct</option>
+                    <option value="11">Nov</option>
+                    <option value="12">Dic</option>
                   </select>
                   <select
                     value={filtrosTemp.fechaInicio ? filtrosTemp.fechaInicio.slice(0, 4) : ''}
                     onChange={e => {
                       const month = filtrosTemp.fechaInicio ? filtrosTemp.fechaInicio.slice(5, 7) : '01';
-                      if (e.target.value) setFiltrosTemp(p => ({ ...p, fechaInicio: `${e.target.value}-${month}-01` }));
+                      const day = filtrosTemp.fechaInicio ? filtrosTemp.fechaInicio.slice(8, 10) : '01';
+                      if (e.target.value) setFiltrosTemp(p => ({ ...p, fechaInicio: `${e.target.value}-${month}-${day}` }));
                     }}
-                    className="w-24 bg-white/5 border border-white/10 rounded-lg px-2 py-2 text-white text-sm"
+                    className="w-20 bg-white/5 border border-white/10 rounded-lg px-1 py-2 text-white text-sm"
                   >
                     <option value="">Año</option>
                     <option value="2023">2023</option>
@@ -366,44 +368,52 @@ export function VentasModule({ onBack }: VentasModuleProps) {
               </div>
               <div>
                 <label className="text-white/40 text-xs mb-1 block">Fecha Fin</label>
-                <div className="flex gap-2">
+                <div className="flex gap-1">
+                  <select 
+                    value={filtrosTemp.fechaFin ? filtrosTemp.fechaFin.slice(8, 10) : ''}
+                    onChange={e => {
+                      const year = filtrosTemp.fechaFin ? filtrosTemp.fechaFin.slice(0, 4) : new Date().getFullYear().toString();
+                      const month = filtrosTemp.fechaFin ? filtrosTemp.fechaFin.slice(5, 7) : '12';
+                      if (e.target.value) setFiltrosTemp(p => ({ ...p, fechaFin: `${year}-${month}-${e.target.value}` }));
+                    }}
+                    className="w-16 bg-white/5 border border-white/10 rounded-lg px-1 py-2 text-white text-sm"
+                  >
+                    <option value="">Día</option>
+                    {Array.from({length: 31}, (_, i) => i + 1).map(d => (
+                      <option key={d} value={d.toString().padStart(2, '0')}>{d}</option>
+                    ))}
+                  </select>
                   <select 
                     value={filtrosTemp.fechaFin ? filtrosTemp.fechaFin.slice(5, 7) : ''}
                     onChange={e => {
                       const year = filtrosTemp.fechaFin ? filtrosTemp.fechaFin.slice(0, 4) : new Date().getFullYear().toString();
-                      const month = e.target.value;
-                      if (month) {
-                        // Calcular último día del mes
-                        const lastDay = new Date(parseInt(year), parseInt(month), 0).getDate();
-                        setFiltrosTemp(p => ({ ...p, fechaFin: `${year}-${month}-${lastDay.toString().padStart(2, '0')}` }));
-                      }
+                      const day = filtrosTemp.fechaFin ? filtrosTemp.fechaFin.slice(8, 10) : '31';
+                      if (e.target.value) setFiltrosTemp(p => ({ ...p, fechaFin: `${year}-${e.target.value}-${day}` }));
                     }}
-                    className="flex-1 bg-white/5 border border-white/10 rounded-lg px-2 py-2 text-white text-sm"
+                    className="flex-1 bg-white/5 border border-white/10 rounded-lg px-1 py-2 text-white text-sm"
                   >
                     <option value="">Mes</option>
-                    <option value="01">Enero</option>
-                    <option value="02">Febrero</option>
-                    <option value="03">Marzo</option>
-                    <option value="04">Abril</option>
-                    <option value="05">Mayo</option>
-                    <option value="06">Junio</option>
-                    <option value="07">Julio</option>
-                    <option value="08">Agosto</option>
-                    <option value="09">Septiembre</option>
-                    <option value="10">Octubre</option>
-                    <option value="11">Noviembre</option>
-                    <option value="12">Diciembre</option>
+                    <option value="01">Ene</option>
+                    <option value="02">Feb</option>
+                    <option value="03">Mar</option>
+                    <option value="04">Abr</option>
+                    <option value="05">May</option>
+                    <option value="06">Jun</option>
+                    <option value="07">Jul</option>
+                    <option value="08">Ago</option>
+                    <option value="09">Sep</option>
+                    <option value="10">Oct</option>
+                    <option value="11">Nov</option>
+                    <option value="12">Dic</option>
                   </select>
                   <select
                     value={filtrosTemp.fechaFin ? filtrosTemp.fechaFin.slice(0, 4) : ''}
                     onChange={e => {
                       const month = filtrosTemp.fechaFin ? filtrosTemp.fechaFin.slice(5, 7) : '12';
-                      if (e.target.value) {
-                        const lastDay = new Date(parseInt(e.target.value), parseInt(month), 0).getDate();
-                        setFiltrosTemp(p => ({ ...p, fechaFin: `${e.target.value}-${month}-${lastDay.toString().padStart(2, '0')}` }));
-                      }
+                      const day = filtrosTemp.fechaFin ? filtrosTemp.fechaFin.slice(8, 10) : '31';
+                      if (e.target.value) setFiltrosTemp(p => ({ ...p, fechaFin: `${e.target.value}-${month}-${day}` }));
                     }}
-                    className="w-24 bg-white/5 border border-white/10 rounded-lg px-2 py-2 text-white text-sm"
+                    className="w-20 bg-white/5 border border-white/10 rounded-lg px-1 py-2 text-white text-sm"
                   >
                     <option value="">Año</option>
                     <option value="2023">2023</option>
