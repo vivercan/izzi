@@ -23,7 +23,22 @@ import { MODULE_IMAGES } from './assets/module-images';
 import { projectId, publicAnonKey } from './utils/supabase/info';
 import './styles/globals.css';
 
-// ✅ ROLES ACTUALIZADOS 17/DIC/2025
+// ═══════════════════════════════════════════════════════════════════════════
+// 📋 MATRIZ DE USUARIOS FX27 - ACTUALIZADA 17/DIC/2025
+// ═══════════════════════════════════════════════════════════════════════════
+// | Usuario            | Correo                          | Rol         | Header      | Módulos                    | Ventas/Oport  |
+// |--------------------|--------------------------------|-------------|-------------|----------------------------|---------------|
+// | Juan Viveros       | juan.viveros@trob.com.mx       | admin       | ADMIN       | TODOS                      | Ver TODO      |
+// | Jennifer Sánchez   | jennifer.sanchez@trob.com.mx   | admin       | ADMIN       | TODOS                      | Ver TODO      |
+// | Lizeth Rodríguez   | customer.service3@trob.com.mx  | csr         | CSR         | TODO menos Config          | Ver TODO      |
+// | Elizabeth Rodríguez| customer.service1@trob.com.mx  | csr         | CSR         | TODO menos Config          | Ver TODO      |
+// | Isis Estrada       | isis.estrada@wexpress.com.mx   | ventas      | VENTAS      | TODO menos Config          | Solo ISIS     |
+// | Paloma Oliva       | paloma.oliva@speedyhaul.com.mx | ventas      | VENTAS      | TODO menos Config          | Solo PALOMA   |
+// | Jaime Soto         | jaime.soto@trob.com.mx         | operaciones | OPERACIONES | Solo Dedicado              | Sin acceso    |
+// | José Rodríguez     | jose.rodriguez@trob.com.mx     | operaciones | OPERACIONES | Solo Dedicado              | Sin acceso    |
+// | Marcos Pineda      | marcos.pineda@trob.com.mx      | operaciones | OPERACIONES | Solo Dedicado              | Sin acceso    |
+// ═══════════════════════════════════════════════════════════════════════════
+
 type UserRole = 'admin' | 'ventas' | 'operaciones' | 'csr' | 'custom';
 
 interface Usuario {
@@ -32,17 +47,19 @@ interface Usuario {
   correo: string;
   password: string;
   rol: UserRole;
-  rolDisplay?: string; // Para mostrar en header
-  vendedor?: string; // Para ISIS/PALOMA - filtrar sus clientes
+  rolDisplay: string;
+  vendedor?: string; // 'ISIS' | 'PALOMA' para filtrar en Ventas/Oportunidades
   permisosCustom?: string[];
   ultimoAcceso: string;
   activo: boolean;
   createdAt: string;
 }
 
-// 🔒 USUARIOS PREDEFINIDOS DEL SISTEMA - ACTUALIZADOS 17/DIC/2025
+// 🔒 USUARIOS AUTORIZADOS - 9 USUARIOS TOTALES
 const USUARIOS_AUTORIZADOS: Usuario[] = [
-  // ADMINISTRADORES
+  // ═══════════════════════════════════════════════════════════════
+  // ADMINISTRADORES (2) - Acceso TOTAL
+  // ═══════════════════════════════════════════════════════════════
   {
     id: '1',
     nombre: 'Juan Viveros',
@@ -65,7 +82,61 @@ const USUARIOS_AUTORIZADOS: Usuario[] = [
     activo: true,
     createdAt: '2025-12-17T00:00:00.000Z'
   },
-  // OPERACIONES - Solo módulo Dedicado
+  // ═══════════════════════════════════════════════════════════════
+  // CSR (2) - Todo menos Configuración, VE TODO en Ventas/Oportunidades
+  // ═══════════════════════════════════════════════════════════════
+  {
+    id: '7',
+    nombre: 'Lizeth Rodríguez',
+    correo: 'customer.service3@trob.com.mx',
+    password: 'lrodriguez',
+    rol: 'csr',
+    rolDisplay: 'CSR',
+    ultimoAcceso: '',
+    activo: true,
+    createdAt: '2025-01-05T00:00:00.000Z'
+  },
+  {
+    id: '8',
+    nombre: 'Elizabeth Rodríguez',
+    correo: 'customer.service1@trob.com.mx',
+    password: 'erodriguez',
+    rol: 'csr',
+    rolDisplay: 'CSR',
+    ultimoAcceso: '',
+    activo: true,
+    createdAt: '2025-01-05T00:00:00.000Z'
+  },
+  // ═══════════════════════════════════════════════════════════════
+  // VENTAS (2) - Todo menos Config, SOLO SUS CLIENTES en Ventas/Oportunidades
+  // ═══════════════════════════════════════════════════════════════
+  {
+    id: '4',
+    nombre: 'Isis Estrada',
+    correo: 'isis.estrada@wexpress.com.mx',
+    password: 'iestrada',
+    rol: 'ventas',
+    rolDisplay: 'VENTAS',
+    vendedor: 'ISIS', // ← Filtro para Ventas y Oportunidades
+    ultimoAcceso: '',
+    activo: true,
+    createdAt: '2025-01-03T00:00:00.000Z'
+  },
+  {
+    id: '5',
+    nombre: 'Paloma Oliva',
+    correo: 'paloma.oliva@speedyhaul.com.mx',
+    password: 'poliva',
+    rol: 'ventas',
+    rolDisplay: 'VENTAS',
+    vendedor: 'PALOMA', // ← Filtro para Ventas y Oportunidades
+    ultimoAcceso: '',
+    activo: true,
+    createdAt: '2025-01-03T00:00:00.000Z'
+  },
+  // ═══════════════════════════════════════════════════════════════
+  // OPERACIONES (3) - SOLO módulo Dedicado
+  // ═══════════════════════════════════════════════════════════════
   {
     id: '2',
     nombre: 'José Rodríguez',
@@ -98,55 +169,6 @@ const USUARIOS_AUTORIZADOS: Usuario[] = [
     ultimoAcceso: '',
     activo: true,
     createdAt: '2025-01-04T00:00:00.000Z'
-  },
-  // VENTAS - ISIS (solo sus clientes en Ventas y Oportunidades)
-  {
-    id: '4',
-    nombre: 'Isis Estrada',
-    correo: 'isis.estrada@wexpress.com.mx',
-    password: 'iestrada',
-    rol: 'ventas',
-    rolDisplay: 'VENTAS',
-    vendedor: 'ISIS',
-    ultimoAcceso: '',
-    activo: true,
-    createdAt: '2025-01-03T00:00:00.000Z'
-  },
-  // VENTAS - PALOMA (solo sus clientes en Ventas y Oportunidades)
-  {
-    id: '5',
-    nombre: 'Paloma Oliva',
-    correo: 'paloma.oliva@speedyhaul.com.mx',
-    password: 'poliva',
-    rol: 'ventas',
-    rolDisplay: 'VENTAS',
-    vendedor: 'PALOMA',
-    ultimoAcceso: '',
-    activo: true,
-    createdAt: '2025-01-03T00:00:00.000Z'
-  },
-  // CSR - Ver todo menos Configuración
-  {
-    id: '7',
-    nombre: 'Lizeth Rodríguez',
-    correo: 'customer.service3@trob.com.mx',
-    password: 'lrodriguez',
-    rol: 'csr',
-    rolDisplay: 'CSR',
-    ultimoAcceso: '',
-    activo: true,
-    createdAt: '2025-01-05T00:00:00.000Z'
-  },
-  {
-    id: '8',
-    nombre: 'Elizabeth Rodríguez',
-    correo: 'customer.service1@trob.com.mx',
-    password: 'erodriguez',
-    rol: 'csr',
-    rolDisplay: 'CSR',
-    ultimoAcceso: '',
-    activo: true,
-    createdAt: '2025-01-05T00:00:00.000Z'
   }
 ];
 
@@ -154,7 +176,7 @@ export default function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userRole, setUserRole] = useState<UserRole>('admin');
   const [userRolDisplay, setUserRolDisplay] = useState<string>('ADMIN');
-  const [userVendedor, setUserVendedor] = useState<string>('');
+  const [userVendedor, setUserVendedor] = useState<string>(''); // 'ISIS' | 'PALOMA' | ''
   const [userPermisosCustom, setUserPermisosCustom] = useState<string[]>([]);
   const [currentModule, setCurrentModule] = useState<string | null>(null);
   const [loginError, setLoginError] = useState<string>('');
@@ -163,75 +185,41 @@ export default function App() {
 
   // 🔧 INICIALIZAR USUARIOS AL CARGAR LA APP
   useEffect(() => {
-    const savedUsers = localStorage.getItem('fx27-usuarios');
-    
-    if (!savedUsers) {
-      console.log('🔧 Inicializando usuarios autorizados...');
-      localStorage.setItem('fx27-usuarios', JSON.stringify(USUARIOS_AUTORIZADOS));
-    } else {
-      try {
-        const users = JSON.parse(savedUsers);
-        const usuariosActualizados = [...USUARIOS_AUTORIZADOS];
-        
-        users.forEach((user: Usuario) => {
-          if (!USUARIOS_AUTORIZADOS.find(u => u.correo === user.correo)) {
-            usuariosActualizados.push(user);
-          }
-        });
-        
-        localStorage.setItem('fx27-usuarios', JSON.stringify(usuariosActualizados));
-      } catch (e) {
-        console.error('Error al cargar usuarios, reinicializando...');
-        localStorage.setItem('fx27-usuarios', JSON.stringify(USUARIOS_AUTORIZADOS));
-      }
-    }
+    // Siempre actualizar con los usuarios más recientes
+    console.log('🔧 Actualizando lista de usuarios autorizados...');
+    localStorage.setItem('fx27-usuarios', JSON.stringify(USUARIOS_AUTORIZADOS));
 
     const savedSession = localStorage.getItem('fx27-session');
     if (savedSession) {
       try {
         const session = JSON.parse(savedSession);
-        setIsLoggedIn(true);
-        setUserRole(session.role || 'admin');
-        setUserRolDisplay(session.rolDisplay || 'ADMIN');
-        setUserVendedor(session.vendedor || '');
-        setUserPermisosCustom(session.permisosCustom || []);
-        setCurrentUserEmail(session.email || '');
-        setCurrentUserName(session.name || '');
+        // Verificar que el usuario sigue existiendo y está activo
+        const usuario = USUARIOS_AUTORIZADOS.find(u => u.correo === session.email && u.activo);
+        if (usuario) {
+          setIsLoggedIn(true);
+          setUserRole(usuario.rol);
+          setUserRolDisplay(usuario.rolDisplay);
+          setUserVendedor(usuario.vendedor || '');
+          setUserPermisosCustom(usuario.permisosCustom || []);
+          setCurrentUserEmail(session.email);
+          setCurrentUserName(usuario.nombre);
+        } else {
+          // Usuario ya no existe o está inactivo
+          localStorage.removeItem('fx27-session');
+        }
       } catch (e) {
         localStorage.removeItem('fx27-session');
       }
     }
   }, []);
 
-  // 🔐 VALIDACIÓN BLINDADA - CREDENCIALES EXACTAS
+  // 🔐 VALIDACIÓN DE LOGIN
   const handleLogin = (email: string, password: string) => {
     console.log('🔐 Intentando login:', email);
     setLoginError('');
-    
-    const savedUsers = localStorage.getItem('fx27-usuarios');
-    
-    if (!savedUsers) {
-      console.error('❌ No hay usuarios en localStorage');
-      console.log('🔧 Reinicializando usuarios...');
-      localStorage.setItem('fx27-usuarios', JSON.stringify(USUARIOS_AUTORIZADOS));
-      setLoginError('Sistema reinicializado. Intenta nuevamente.');
-      return;
-    }
 
-    let usuarios: Usuario[] = [];
-    
-    try {
-      usuarios = JSON.parse(savedUsers);
-      console.log('👥 Usuarios en sistema:', usuarios.length);
-    } catch (e) {
-      console.error('❌ Error al parsear usuarios');
-      localStorage.setItem('fx27-usuarios', JSON.stringify(USUARIOS_AUTORIZADOS));
-      setLoginError('Sistema reinicializado. Intenta nuevamente.');
-      return;
-    }
-
-    // 🔒 VALIDACIÓN EXACTA
-    const usuario = usuarios.find((u: Usuario) => 
+    // Buscar en usuarios autorizados
+    const usuario = USUARIOS_AUTORIZADOS.find(u => 
       u.correo === email && 
       u.password === password && 
       u.activo === true
@@ -243,24 +231,20 @@ export default function App() {
       return;
     }
 
-    console.log('✅ Login exitoso:', usuario.nombre, '- Rol:', usuario.rol);
+    console.log('✅ Login exitoso:', usuario.nombre, '- Rol:', usuario.rolDisplay, '- Vendedor:', usuario.vendedor || 'N/A');
     
     setUserRole(usuario.rol);
-    setUserRolDisplay(usuario.rolDisplay || usuario.rol.toUpperCase());
+    setUserRolDisplay(usuario.rolDisplay);
     setUserVendedor(usuario.vendedor || '');
     setUserPermisosCustom(usuario.permisosCustom || []);
     setIsLoggedIn(true);
     setCurrentUserEmail(email);
     setCurrentUserName(usuario.nombre);
     
-    const usuariosActualizados = usuarios.map((u: Usuario) => 
-      u.correo === email ? { ...u, ultimoAcceso: new Date().toISOString() } : u
-    );
-    localStorage.setItem('fx27-usuarios', JSON.stringify(usuariosActualizados));
-    
+    // Guardar sesión
     localStorage.setItem('fx27-session', JSON.stringify({
       role: usuario.rol,
-      rolDisplay: usuario.rolDisplay || usuario.rol.toUpperCase(),
+      rolDisplay: usuario.rolDisplay,
       vendedor: usuario.vendedor || '',
       permisosCustom: usuario.permisosCustom || [],
       email: email,
@@ -268,15 +252,12 @@ export default function App() {
       timestamp: new Date().toISOString()
     }));
 
-    // 🔥 ACTUALIZAR ÚLTIMO ACCESO EN BACKEND
+    // Actualizar último acceso en backend (fire and forget)
     fetch(`https://${projectId}.supabase.co/functions/v1/make-server-d84b50bb/usuarios/ultimo-acceso`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${publicAnonKey}`
-      },
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${publicAnonKey}` },
       body: JSON.stringify({ email })
-    }).catch(err => console.error('❌ Error llamando endpoint ultimo-acceso:', err));
+    }).catch(() => {});
   };
 
   const handleLogout = () => {
@@ -307,35 +288,25 @@ export default function App() {
     setCurrentModule(null);
   };
 
-  // 🔒 CONTROL DE PERMISOS ACTUALIZADO 17/DIC/2025
+  // 🔒 CONTROL DE PERMISOS POR ROL
   const checkModuleAccess = (module: string, role: UserRole, permisosCustom: string[] = []): boolean => {
     // ADMIN: acceso a TODO
-    if (role === 'admin') {
-      return true;
-    }
+    if (role === 'admin') return true;
     
     // CSR: TODO menos Configuración
     if (role === 'csr') {
-      if (module === 'configuracion') {
-        return false;
-      }
-      return true;
+      return module !== 'configuracion';
     }
     
-    // VENTAS: TODO menos Configuración
+    // VENTAS: TODO menos Configuración (filtro de datos se aplica en cada módulo)
     if (role === 'ventas') {
-      if (module === 'configuracion') {
-        return false;
-      }
-      return true;
+      return module !== 'configuracion';
     }
     
-    // OPERACIONES: SOLO Dedicados
+    // OPERACIONES: SOLO Dedicados y sus submódulos
     if (role === 'operaciones') {
-      if (module === 'dedicados' || module === 'admin-carroll' || module === 'monitor-carroll' || module === 'vista-clientes-carroll' || module === 'mapa-climatico-carroll') {
-        return true;
-      }
-      return false;
+      const modulosDedicados = ['dedicados', 'admin-carroll', 'monitor-carroll', 'vista-clientes-carroll', 'mapa-climatico-carroll'];
+      return modulosDedicados.includes(module);
     }
 
     // CUSTOM: según permisos específicos

@@ -11,12 +11,32 @@ interface TopItem { nombre: string; viajes: number; ventas: number; }
 
 const FILTROS_INIT: Filtros = { fechaInicio: '', fechaFin: '', segmento: '', tipo: '', empresa: '', clientes: [], tractos: [], cajas: [], estadoOrigen: '', estadoDestino: '', vendedor: '', division: '', kmsMin: '', kmsMax: '' };
 
-// ✅ CORREOS CORRECTOS - ACTUALIZADOS
+// ═══════════════════════════════════════════════════════════════════════════
+// 📋 PERMISOS VENTAS - DEBE COINCIDIR CON App.tsx
+// ═══════════════════════════════════════════════════════════════════════════
+// | Usuario            | Correo                          | Acceso Ventas     |
+// |--------------------|--------------------------------|-------------------|
+// | Juan Viveros       | juan.viveros@trob.com.mx       | Ver TODO          |
+// | Jennifer Sánchez   | jennifer.sanchez@trob.com.mx   | Ver TODO          |
+// | Lizeth Rodríguez   | customer.service3@trob.com.mx  | Ver TODO (CSR)    |
+// | Elizabeth Rodríguez| customer.service1@trob.com.mx  | Ver TODO (CSR)    |
+// | Isis Estrada       | isis.estrada@wexpress.com.mx   | Solo clientes ISIS|
+// | Paloma Oliva       | paloma.oliva@speedyhaul.com.mx | Solo clientes PALOMA|
+// | Jaime Soto         | jaime.soto@trob.com.mx         | SIN ACCESO (Op)   |
+// | José Rodríguez     | jose.rodriguez@trob.com.mx     | SIN ACCESO (Op)   |
+// | Marcos Pineda      | marcos.pineda@trob.com.mx      | SIN ACCESO (Op)   |
+// ═══════════════════════════════════════════════════════════════════════════
 const PERMISOS: { [email: string]: { vendedor?: string; verTodo: boolean } } = {
+  // ADMIN - Ver TODO
   'juan.viveros@trob.com.mx': { verTodo: true },
   'jennifer.sanchez@trob.com.mx': { verTodo: true },
+  // CSR - Ver TODO
+  'customer.service3@trob.com.mx': { verTodo: true },
+  'customer.service1@trob.com.mx': { verTodo: true },
+  // VENTAS - Solo sus clientes (filtro por ejecutivo_ventas en BD)
   'isis.estrada@wexpress.com.mx': { vendedor: 'ISIS', verTodo: false },
   'paloma.oliva@speedyhaul.com.mx': { vendedor: 'PALOMA', verTodo: false },
+  // OPERACIONES - No aparecen aquí porque no tienen acceso a este módulo
 };
 
 function MultiSelect({ label, options, selected, onChange, placeholder }: { label: string; options: string[]; selected: string[]; onChange: (v: string[]) => void; placeholder: string; }) {
@@ -80,14 +100,23 @@ export function VentasModule({ onBack }: VentasModuleProps) {
   const [moneda, setMoneda] = useState<'MXN' | 'USD'>('MXN');
 
   useEffect(() => {
-    const getUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user?.email) {
-        const p = PERMISOS[user.email] || { verTodo: false };
-        setUserPermisos(p);
-        if (p.vendedor && !p.verTodo) {
-          setFiltrosAplicados(prev => ({ ...prev, vendedor: p.vendedor! }));
-          setFiltrosTemp(prev => ({ ...prev, vendedor: p.vendedor! }));
+    const getUser = () => {
+      // Obtener usuario de localStorage (no de Supabase Auth)
+      const session = localStorage.getItem('fx27-session');
+      if (session) {
+        try {
+          const { email } = JSON.parse(session);
+          if (email) {
+            const p = PERMISOS[email] || { verTodo: false };
+            console.log('📧 Usuario logueado:', email, '- Permisos:', p);
+            setUserPermisos(p);
+            if (p.vendedor && !p.verTodo) {
+              setFiltrosAplicados(prev => ({ ...prev, vendedor: p.vendedor! }));
+              setFiltrosTemp(prev => ({ ...prev, vendedor: p.vendedor! }));
+            }
+          }
+        } catch (e) {
+          console.error('Error parsing session:', e);
         }
       }
     };
@@ -278,11 +307,25 @@ export function VentasModule({ onBack }: VentasModuleProps) {
               </div>
               <div>
                 <label className="text-white/40 text-xs mb-1 block">Fecha Inicio</label>
-                <input type="date" value={filtrosTemp.fechaInicio} onChange={e => setFiltrosTemp(p => ({ ...p, fechaInicio: e.target.value }))} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm" />
+                <input 
+                  type="date" 
+                  value={filtrosTemp.fechaInicio} 
+                  onChange={e => setFiltrosTemp(p => ({ ...p, fechaInicio: e.target.value }))} 
+                  onMouseDown={e => e.stopPropagation()}
+                  onClick={e => e.stopPropagation()}
+                  className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm [&::-webkit-calendar-picker-indicator]:filter [&::-webkit-calendar-picker-indicator]:invert" 
+                />
               </div>
               <div>
                 <label className="text-white/40 text-xs mb-1 block">Fecha Fin</label>
-                <input type="date" value={filtrosTemp.fechaFin} onChange={e => setFiltrosTemp(p => ({ ...p, fechaFin: e.target.value }))} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm" />
+                <input 
+                  type="date" 
+                  value={filtrosTemp.fechaFin} 
+                  onChange={e => setFiltrosTemp(p => ({ ...p, fechaFin: e.target.value }))} 
+                  onMouseDown={e => e.stopPropagation()}
+                  onClick={e => e.stopPropagation()}
+                  className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm [&::-webkit-calendar-picker-indicator]:filter [&::-webkit-calendar-picker-indicator]:invert" 
+                />
               </div>
               <div>
                 <label className="text-white/40 text-xs mb-1 block">Segmento</label>

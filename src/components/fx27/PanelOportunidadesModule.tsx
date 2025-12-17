@@ -7,6 +7,22 @@ import * as pdfjsLib from 'pdfjs-dist';
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
 
+// ═══════════════════════════════════════════════════════════════════════════
+// 📋 PERMISOS OPORTUNIDADES - userVendedor viene desde App.tsx
+// ═══════════════════════════════════════════════════════════════════════════
+// | Usuario            | userVendedor | Leads que ve                        |
+// |--------------------|--------------|-------------------------------------|
+// | Juan Viveros       | undefined    | TODOS (admin)                       |
+// | Jennifer Sánchez   | undefined    | TODOS (admin)                       |
+// | Lizeth Rodríguez   | undefined    | TODOS (csr)                         |
+// | Elizabeth Rodríguez| undefined    | TODOS (csr)                         |
+// | Isis Estrada       | 'ISIS'       | Solo leads donde vendedor='Isis...' |
+// | Paloma Oliva       | 'PALOMA'     | Solo leads donde vendedor='Paloma..'|
+// | Jaime Soto         | N/A          | SIN ACCESO (operaciones)            |
+// | José Rodríguez     | N/A          | SIN ACCESO (operaciones)            |
+// | Marcos Pineda      | N/A          | SIN ACCESO (operaciones)            |
+// ═══════════════════════════════════════════════════════════════════════════
+
 interface PanelOportunidadesModuleProps { 
   onBack: () => void; 
   userVendedor?: string; // 'ISIS' | 'PALOMA' | undefined (admin/csr ve todo)
@@ -288,43 +304,39 @@ export const PanelOportunidadesModule = ({ onBack, userVendedor }: PanelOportuni
           } 
         }
         
-        // Si tiene userVendedor (ISIS/PALOMA), filtrar por vendedor asignado
-        // Admin y CSR ven todos los leads
-        let url: string;
-        if (userVendedor) {
-          // ISIS o PALOMA - filtrar por nombre que contenga su identificador
-          const nombreVendedor = userVendedor === 'ISIS' ? 'Isis' : 'Paloma';
-          url = `https://${projectId}.supabase.co/functions/v1/make-server-d84b50bb/leads?vendedor=${encodeURIComponent(nombreVendedor)}`;
-        } else if (esAdmin || esCsr) {
-          url = `https://${projectId}.supabase.co/functions/v1/make-server-d84b50bb/leads`;
-        } else {
-          url = `https://${projectId}.supabase.co/functions/v1/make-server-d84b50bb/leads?vendedor=${encodeURIComponent(vendedor)}`;
-        }
+        console.log('🔍 userVendedor:', userVendedor, 'esAdmin:', esAdmin, 'esCsr:', esCsr);
         
+        // Siempre cargar todos los leads primero
+        const url = `https://${projectId}.supabase.co/functions/v1/make-server-d84b50bb/leads`;
         const response = await fetch(url, { headers: { 'Authorization': `Bearer ${publicAnonKey}` } });
         const result = await response.json();
         
         if (response.ok && result.success) { 
           let leadsData = result.leads;
           
-          // Filtro adicional por vendedor si es ISIS o PALOMA
+          // Filtrar por vendedor si es ISIS o PALOMA
           if (userVendedor) {
+            console.log('🔒 Filtrando leads para vendedor:', userVendedor);
+            leadsData = leadsData.filter((l: Lead) => {
+              const vendedorLead = (l.vendedor || '').toUpperCase();
+              // Buscar si el nombre del vendedor contiene ISIS o PALOMA
+              return vendedorLead.includes(userVendedor.toUpperCase());
+            });
+            console.log('📋 Leads encontrados:', leadsData.length);
+          } else if (!esAdmin && !esCsr && vendedor) {
+            // Usuario normal - filtrar por su nombre exacto
             leadsData = leadsData.filter((l: Lead) => 
-              l.vendedor?.toUpperCase().includes(userVendedor.toUpperCase())
+              l.vendedor?.toLowerCase() === vendedor.toLowerCase()
             );
           }
+          // Admin y CSR ven todos (no filtramos)
           
           setLeads(leadsData); 
           setFilteredLeads(leadsData.filter((l: Lead) => !l.eliminado)); 
         }
         
-        // SIEMPRE cargar TODOS los leads para validación de duplicados (incluso para usuarios normales)
-        const allLeadsUrl = `https://${projectId}.supabase.co/functions/v1/make-server-d84b50bb/leads`;
-        const allResponse = await fetch(allLeadsUrl, { headers: { 'Authorization': `Bearer ${publicAnonKey}` } });
-        const allResult = await allResponse.json();
-        if (allResponse.ok && allResult.success) {
-          setAllLeads(allResult.leads);
-        }
+        // SIEMPRE cargar TODOS los leads para validación de duplicados
+        setAllLeads(result.leads || []);
         
       } catch (error) { console.error('Error:', error); }
     };
