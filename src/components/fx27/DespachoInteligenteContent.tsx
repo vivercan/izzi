@@ -188,7 +188,7 @@ export default function DespachoInteligenteContent() {
         {/* Actualizar */}
         <button onClick={() => fetchGPS(true)} disabled={isLoading} className={`h-10 px-4 rounded-xl font-semibold text-sm flex items-center gap-2 transition-all ${isLoading ? 'bg-gradient-to-b from-orange-500 to-orange-700' : 'bg-gradient-to-b from-blue-500 to-blue-700'} text-white`} style={{ boxShadow: isLoading ? '0 4px 16px rgba(249,115,22,0.5), inset 0 1px 0 rgba(255,255,255,0.2)' : '0 4px 16px rgba(59,130,246,0.4), inset 0 1px 0 rgba(255,255,255,0.2)' }}>
           <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
-          {isLoading ? `${pct}%` : 'Actualizar'}
+          {isLoading ? `${progress.c * 5 > 242 ? 242 : progress.c * 5}/${stats.total} • ${pct}%` : 'Actualizar'}
         </button>
       </div>
 
