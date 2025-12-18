@@ -71,10 +71,15 @@ export default function DespachoInteligenteContent() {
         const g = all.find((d: any) => d.placa === u.economico);
         if (g?.success && g.location) {
           const l = g.location;
-          const mov = (l.speed || 0) > 5;
-          const sig = l.latitude && l.longitude;
-          const ign = l.ignition === 'ON' || l.ignition === true;
-          return { ...u, latitude: l.latitude, longitude: l.longitude, speed: l.speed, address: l.address || l.addressOriginal, timestamp: l.timestamp, odometer: l.odometer, ignition: ign, status: !sig ? 'no_signal' : mov ? 'moving' : ign ? 'stopped' : 'no_signal' };
+          const hasCoords = l.latitude && l.longitude;
+          const isMoving = (l.speed || 0) > 3;
+          const ignOn = l.ignition === 'ON' || l.ignition === true;
+          // Si tiene coordenadas = tiene señal. Status basado en velocidad/ignición
+          let st: 'moving' | 'stopped' | 'no_signal' = 'no_signal';
+          if (hasCoords) {
+            st = isMoving ? 'moving' : 'stopped'; // Si tiene coords, está moving o stopped, nunca sin señal
+          }
+          return { ...u, latitude: l.latitude, longitude: l.longitude, speed: l.speed, address: l.address || l.addressOriginal, timestamp: l.timestamp, odometer: l.odometer, ignition: ignOn, status: st };
         }
         if (batches.slice(0, i + 1).flat().includes(u.economico) && u.status === 'loading') return { ...u, status: 'no_signal' as const };
         return u;
