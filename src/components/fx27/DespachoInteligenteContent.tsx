@@ -281,7 +281,7 @@ interface UnitRegistry {
   segmento: string;
 }
 
-interface GPSData {
+interface FleetUnit extends UnitRegistry {
   latitude: number | null;
   longitude: number | null;
   speed: number | null;
@@ -290,16 +290,14 @@ interface GPSData {
   timestamp: string | null;
   odometer: number | null;
   ignition: boolean | null;
-}
-
-interface FleetUnit extends UnitRegistry, GPSData {
   status: 'online' | 'offline' | 'moving' | 'stopped' | 'no_signal' | 'loading';
   lastUpdate: Date | null;
 }
 
-// ============================================
-// COLORES POR EMPRESA
-// ============================================
+// Orden de empresas para sorting
+const EMPRESA_ORDER: Record<string, number> = { 'SHI': 1, 'TROB': 2, 'WE': 3, 'TROB USA': 4 };
+
+// Colores por empresa
 const EMPRESA_COLORS: Record<string, { bg: string; text: string; border: string }> = {
   'TROB': { bg: 'bg-blue-500/20', text: 'text-blue-400', border: 'border-blue-500/30' },
   'WE': { bg: 'bg-emerald-500/20', text: 'text-emerald-400', border: 'border-emerald-500/30' },
@@ -307,21 +305,15 @@ const EMPRESA_COLORS: Record<string, { bg: string; text: string; border: string 
   'TROB USA': { bg: 'bg-amber-500/20', text: 'text-amber-400', border: 'border-amber-500/30' },
 };
 
-// ============================================
-// COLORES POR STATUS
-// ============================================
+// Status config
 const STATUS_CONFIG: Record<string, { bg: string; text: string; icon: React.ReactNode; label: string }> = {
-  'moving': { bg: 'bg-green-500/20', text: 'text-green-400', icon: <Navigation className="w-3 h-3" />, label: 'En Movimiento' },
+  'moving': { bg: 'bg-green-500/20', text: 'text-green-400', icon: <Navigation className="w-3 h-3" />, label: 'Movimiento' },
   'stopped': { bg: 'bg-yellow-500/20', text: 'text-yellow-400', icon: <Power className="w-3 h-3" />, label: 'Detenido' },
-  'offline': { bg: 'bg-red-500/20', text: 'text-red-400', icon: <WifiOff className="w-3 h-3" />, label: 'Sin Señal' },
-  'online': { bg: 'bg-blue-500/20', text: 'text-blue-400', icon: <Wifi className="w-3 h-3" />, label: 'Online' },
+  'offline': { bg: 'bg-red-500/20', text: 'text-red-400', icon: <WifiOff className="w-3 h-3" />, label: 'Offline' },
   'no_signal': { bg: 'bg-slate-500/20', text: 'text-slate-400', icon: <WifiOff className="w-3 h-3" />, label: 'Sin GPS' },
-  'loading': { bg: 'bg-slate-500/20', text: 'text-slate-400', icon: <RefreshCw className="w-3 h-3 animate-spin" />, label: 'Cargando...' },
+  'loading': { bg: 'bg-slate-500/20', text: 'text-slate-400', icon: <RefreshCw className="w-3 h-3 animate-spin" />, label: '...' },
 };
 
-// ============================================
-// BATCH SIZE - Cuántas unidades consultar por lote
-// ============================================
 const BATCH_SIZE = 5;
 
 // ============================================
@@ -337,16 +329,10 @@ export default function DespachoInteligenteContent() {
   const [filterSegmento, setFilterSegmento] = useState<string>('ALL');
   const [filterStatus, setFilterStatus] = useState<string>('ALL');
   const [selectedUnit, setSelectedUnit] = useState<FleetUnit | null>(null);
-  const [sortField, setSortField] = useState<'economico' | 'empresa' | 'segmento' | 'status'>('economico');
-  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
-  const [showFilters, setShowFilters] = useState(false);
   const [loadingProgress, setLoadingProgress] = useState({ current: 0, total: 0 });
 
   const uniqueSegmentos = [...new Set(FLOTA_LOMA.map(u => u.segmento))].sort();
 
-  // ============================================
-  // FUNCIÓN: Consultar un lote de unidades
-  // ============================================
   const fetchBatch = async (placas: string[]): Promise<any[]> => {
     try {
       const response = await fetch(
@@ -360,115 +346,69 @@ export default function DespachoInteligenteContent() {
           body: JSON.stringify({ placas }),
         }
       );
-
-      if (!response.ok) {
-        console.error(`Batch error: HTTP ${response.status}`);
-        return [];
-      }
-
+      if (!response.ok) return [];
       const result = await response.json();
       return result.results || result.data || [];
-    } catch (error) {
-      console.error('Error en batch:', error);
+    } catch {
       return [];
     }
   };
 
-  // ============================================
-  // FUNCIÓN: Obtener GPS de todas las unidades en lotes
-  // ============================================
   const fetchFleetGPS = useCallback(async (isRefresh = false) => {
     if (isRefresh) setRefreshing(true);
     else setLoading(true);
 
-    // Inicializar fleet con datos base
     const initialFleet: FleetUnit[] = FLOTA_LOMA.map(unit => ({
-      ...unit,
-      latitude: null,
-      longitude: null,
-      speed: null,
-      heading: null,
-      address: null,
-      timestamp: null,
-      odometer: null,
-      ignition: null,
-      status: 'loading' as const,
-      lastUpdate: null,
+      ...unit, latitude: null, longitude: null, speed: null, heading: null,
+      address: null, timestamp: null, odometer: null, ignition: null,
+      status: 'loading' as const, lastUpdate: null,
     }));
-    
     setFleet(initialFleet);
 
-    // Dividir en lotes
     const allPlacas = FLOTA_LOMA.map(u => u.economico);
     const batches: string[][] = [];
     for (let i = 0; i < allPlacas.length; i += BATCH_SIZE) {
       batches.push(allPlacas.slice(i, i + BATCH_SIZE));
     }
-
     setLoadingProgress({ current: 0, total: batches.length });
 
-    // Procesar lotes secuencialmente
     const allResults: any[] = [];
-    
     for (let i = 0; i < batches.length; i++) {
       const batchResults = await fetchBatch(batches[i]);
       allResults.push(...batchResults);
       setLoadingProgress({ current: i + 1, total: batches.length });
       
-      // Actualizar fleet con resultados parciales
-      setFleet(prev => {
-        return prev.map(unit => {
-          const gpsData = allResults.find((d: any) => d.placa === unit.economico);
-          
-          if (gpsData && gpsData.success && gpsData.location) {
-            const loc = gpsData.location;
-            const isMoving = (loc.speed || 0) > 5;
-            const hasSignal = loc.latitude && loc.longitude;
-            const ignitionOn = loc.ignition === 'ON' || loc.ignition === true;
-            
-            return {
-              ...unit,
-              latitude: loc.latitude,
-              longitude: loc.longitude,
-              speed: loc.speed,
-              heading: loc.heading,
-              address: loc.address || loc.addressOriginal,
-              timestamp: loc.timestamp,
-              odometer: loc.odometer,
-              ignition: ignitionOn,
-              status: !hasSignal ? 'no_signal' : isMoving ? 'moving' : ignitionOn ? 'stopped' : 'offline',
-              lastUpdate: new Date(),
-            };
-          }
-          
-          // Si ya fue procesado en un lote anterior, mantener
-          if (batches.slice(0, i + 1).flat().includes(unit.economico) && unit.status === 'loading') {
-            return {
-              ...unit,
-              status: 'no_signal' as const,
-              lastUpdate: new Date(),
-            };
-          }
-          
-          return unit;
-        });
-      });
+      setFleet(prev => prev.map(unit => {
+        const gpsData = allResults.find((d: any) => d.placa === unit.economico);
+        if (gpsData && gpsData.success && gpsData.location) {
+          const loc = gpsData.location;
+          const isMoving = (loc.speed || 0) > 5;
+          const hasSignal = loc.latitude && loc.longitude;
+          const ignitionOn = loc.ignition === 'ON' || loc.ignition === true;
+          return {
+            ...unit, latitude: loc.latitude, longitude: loc.longitude, speed: loc.speed,
+            heading: loc.heading, address: loc.address || loc.addressOriginal,
+            timestamp: loc.timestamp, odometer: loc.odometer, ignition: ignitionOn,
+            status: !hasSignal ? 'no_signal' : isMoving ? 'moving' : ignitionOn ? 'stopped' : 'offline',
+            lastUpdate: new Date(),
+          };
+        }
+        if (batches.slice(0, i + 1).flat().includes(unit.economico) && unit.status === 'loading') {
+          return { ...unit, status: 'no_signal' as const, lastUpdate: new Date() };
+        }
+        return unit;
+      }));
 
-      // Pequeña pausa entre lotes para no saturar
-      if (i < batches.length - 1) {
-        await new Promise(resolve => setTimeout(resolve, 500));
-      }
+      if (i < batches.length - 1) await new Promise(r => setTimeout(r, 300));
     }
-
     setLastRefresh(new Date());
     setLoading(false);
     setRefreshing(false);
   }, []);
 
-  useEffect(() => {
-    fetchFleetGPS();
-  }, [fetchFleetGPS]);
+  useEffect(() => { fetchFleetGPS(); }, [fetchFleetGPS]);
 
+  // Ordenamiento por defecto: Empresa -> Segmento -> Económico
   const filteredFleet = fleet
     .filter(unit => {
       if (searchTerm && !unit.economico.toLowerCase().includes(searchTerm.toLowerCase())) return false;
@@ -478,13 +418,14 @@ export default function DespachoInteligenteContent() {
       return true;
     })
     .sort((a, b) => {
-      let comparison = 0;
-      if (sortField === 'economico') {
-        comparison = parseInt(a.economico) - parseInt(b.economico);
-      } else {
-        comparison = (a[sortField] || '').localeCompare(b[sortField] || '');
-      }
-      return sortDirection === 'asc' ? comparison : -comparison;
+      // Primero por empresa
+      const empresaDiff = (EMPRESA_ORDER[a.empresa] || 99) - (EMPRESA_ORDER[b.empresa] || 99);
+      if (empresaDiff !== 0) return empresaDiff;
+      // Luego por segmento
+      const segmentoDiff = a.segmento.localeCompare(b.segmento);
+      if (segmentoDiff !== 0) return segmentoDiff;
+      // Finalmente por económico numérico
+      return parseInt(a.economico) - parseInt(b.economico);
     });
 
   const stats = {
@@ -501,422 +442,237 @@ export default function DespachoInteligenteContent() {
     }
   };
 
-  const handleSort = (field: typeof sortField) => {
-    if (sortField === field) {
-      setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
-    } else {
-      setSortField(field);
-      setSortDirection('asc');
-    }
-  };
-
   const formatTimestamp = (ts: string | null) => {
     if (!ts) return '-';
     try {
-      const date = new Date(ts);
-      return date.toLocaleString('es-MX', { 
-        day: '2-digit', 
-        month: '2-digit', 
-        hour: '2-digit', 
-        minute: '2-digit' 
-      });
-    } catch {
-      return ts;
-    }
+      return new Date(ts).toLocaleString('es-MX', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+    } catch { return ts; }
   };
 
   return (
-    <div className="space-y-4">
-      {/* HEADER CON STATS */}
-      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
-        <div className="bg-slate-800/40 border border-slate-700/30 rounded-xl p-4">
-          <div className="flex items-center gap-2 text-slate-400 text-xs mb-1">
-            <Truck className="w-4 h-4" />
-            <span>Total Flota</span>
+    <div className="flex flex-col h-full max-h-[calc(100vh-120px)]">
+      {/* HEADER COMPACTO */}
+      <div className="flex-shrink-0 space-y-2 pb-2">
+        {/* Stats en una línea */}
+        <div className="flex items-center gap-2 flex-wrap">
+          {/* Total */}
+          <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-800/60 rounded-lg border border-slate-700/30">
+            <Truck className="w-4 h-4 text-slate-400" />
+            <span className="text-white font-bold">{stats.total}</span>
+            <span className="text-slate-500 text-xs">Total</span>
           </div>
-          <div className="text-2xl font-bold text-white">{stats.total}</div>
-        </div>
-
-        <div className="bg-green-500/10 border border-green-500/20 rounded-xl p-4">
-          <div className="flex items-center gap-2 text-green-400 text-xs mb-1">
-            <Navigation className="w-4 h-4" />
-            <span>En Movimiento</span>
+          {/* En Movimiento */}
+          <div className="flex items-center gap-2 px-3 py-1.5 bg-green-500/10 rounded-lg border border-green-500/20">
+            <Navigation className="w-4 h-4 text-green-400" />
+            <span className="text-green-400 font-bold">{stats.moving}</span>
+            <span className="text-green-400/60 text-xs">Mov</span>
           </div>
-          <div className="text-2xl font-bold text-green-400">{stats.moving}</div>
-        </div>
-
-        <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-4">
-          <div className="flex items-center gap-2 text-yellow-400 text-xs mb-1">
-            <Power className="w-4 h-4" />
-            <span>Detenidos</span>
+          {/* Detenidos */}
+          <div className="flex items-center gap-2 px-3 py-1.5 bg-yellow-500/10 rounded-lg border border-yellow-500/20">
+            <Power className="w-4 h-4 text-yellow-400" />
+            <span className="text-yellow-400 font-bold">{stats.stopped}</span>
+            <span className="text-yellow-400/60 text-xs">Det</span>
           </div>
-          <div className="text-2xl font-bold text-yellow-400">{stats.stopped}</div>
-        </div>
-
-        <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-4">
-          <div className="flex items-center gap-2 text-red-400 text-xs mb-1">
-            <WifiOff className="w-4 h-4" />
-            <span>Sin Señal</span>
+          {/* Sin Señal */}
+          <div className="flex items-center gap-2 px-3 py-1.5 bg-red-500/10 rounded-lg border border-red-500/20">
+            <WifiOff className="w-4 h-4 text-red-400" />
+            <span className="text-red-400 font-bold">{stats.offline}</span>
+            <span className="text-red-400/60 text-xs">Sin</span>
           </div>
-          <div className="text-2xl font-bold text-red-400">{stats.offline}</div>
-        </div>
-
-        <div className="col-span-2 bg-slate-800/40 border border-slate-700/30 rounded-xl p-4 flex items-center justify-between">
-          <div>
-            <div className="text-slate-400 text-xs mb-1">Última actualización</div>
-            <div className="text-white font-medium">
-              {lastRefresh ? lastRefresh.toLocaleTimeString('es-MX') : '-'}
-            </div>
-            {(loading || refreshing) && loadingProgress.total > 0 && (
-              <div className="text-blue-400 text-xs mt-1">
-                Cargando lote {loadingProgress.current}/{loadingProgress.total}...
-              </div>
+          
+          {/* Spacer */}
+          <div className="flex-1" />
+          
+          {/* Última actualización y botón */}
+          <div className="flex items-center gap-2">
+            {lastRefresh && (
+              <span className="text-slate-500 text-xs">{lastRefresh.toLocaleTimeString('es-MX')}</span>
             )}
-          </div>
-          <button
-            onClick={() => fetchFleetGPS(true)}
-            disabled={refreshing || loading}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-500/20 hover:bg-blue-500/30 border border-blue-500/30 rounded-lg text-blue-400 text-sm transition-all disabled:opacity-50"
-          >
-            <RefreshCw className={`w-4 h-4 ${refreshing || loading ? 'animate-spin' : ''}`} />
-            {refreshing || loading ? 'Cargando...' : 'Actualizar'}
-          </button>
-        </div>
-      </div>
-
-      {/* BARRA DE PROGRESO */}
-      {(loading || refreshing) && loadingProgress.total > 0 && (
-        <div className="bg-slate-800/40 border border-slate-700/30 rounded-xl p-4">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-slate-400 text-sm">Consultando GPS de unidades...</span>
-            <span className="text-blue-400 text-sm">{Math.round((loadingProgress.current / loadingProgress.total) * 100)}%</span>
-          </div>
-          <div className="w-full bg-slate-700/30 rounded-full h-2">
-            <div 
-              className="bg-blue-500 h-2 rounded-full transition-all duration-300"
-              style={{ width: `${(loadingProgress.current / loadingProgress.total) * 100}%` }}
-            />
+            {(loading || refreshing) && loadingProgress.total > 0 && (
+              <span className="text-blue-400 text-xs">{loadingProgress.current}/{loadingProgress.total}</span>
+            )}
+            <button
+              onClick={() => fetchFleetGPS(true)}
+              disabled={refreshing || loading}
+              className="flex items-center gap-1 px-3 py-1.5 bg-blue-500/20 hover:bg-blue-500/30 border border-blue-500/30 rounded-lg text-blue-400 text-sm disabled:opacity-50"
+            >
+              <RefreshCw className={`w-3 h-3 ${refreshing || loading ? 'animate-spin' : ''}`} />
+              {refreshing || loading ? `${Math.round((loadingProgress.current / loadingProgress.total) * 100)}%` : 'Actualizar'}
+            </button>
           </div>
         </div>
-      )}
 
-      {/* BARRA DE BÚSQUEDA Y FILTROS */}
-      <div className="bg-slate-800/40 border border-slate-700/30 rounded-xl p-4">
-        <div className="flex flex-col md:flex-row gap-3">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+        {/* Filtros en una línea */}
+        <div className="flex items-center gap-2 flex-wrap">
+          {/* Búsqueda compacta */}
+          <div className="relative w-32">
+            <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-slate-500" />
             <input
               type="text"
-              placeholder="Buscar por económico..."
+              placeholder="Eco..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 bg-slate-900/50 border border-slate-700/30 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:border-blue-500/50"
+              className="w-full pl-7 pr-2 py-1.5 bg-slate-900/50 border border-slate-700/30 rounded-lg text-white text-sm placeholder-slate-500 focus:outline-none focus:border-blue-500/50"
             />
           </div>
-
-          <button
-            onClick={() => setShowFilters(!showFilters)}
-            className={`flex items-center gap-2 px-4 py-2 border rounded-lg text-sm transition-all ${
-              showFilters 
-                ? 'bg-blue-500/20 border-blue-500/30 text-blue-400' 
-                : 'bg-slate-900/50 border-slate-700/30 text-slate-400 hover:text-white'
-            }`}
+          
+          {/* Filtro Empresa */}
+          <select
+            value={filterEmpresa}
+            onChange={(e) => setFilterEmpresa(e.target.value)}
+            className="px-2 py-1.5 bg-slate-900/50 border border-slate-700/30 rounded-lg text-white text-sm focus:outline-none"
           >
-            <Filter className="w-4 h-4" />
-            Filtros
-            {showFilters ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-          </button>
-        </div>
+            <option value="ALL">Empresa ({stats.total})</option>
+            <option value="SHI">SHI ({stats.byEmpresa.SHI})</option>
+            <option value="TROB">TROB ({stats.byEmpresa.TROB})</option>
+            <option value="WE">WE ({stats.byEmpresa.WE})</option>
+            <option value="TROB USA">USA ({stats.byEmpresa['TROB USA']})</option>
+          </select>
 
-        {showFilters && (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mt-4 pt-4 border-t border-slate-700/30">
-            <div>
-              <label className="text-slate-400 text-xs mb-1 block">Empresa</label>
-              <select
-                value={filterEmpresa}
-                onChange={(e) => setFilterEmpresa(e.target.value)}
-                className="w-full px-3 py-2 bg-slate-900/50 border border-slate-700/30 rounded-lg text-white focus:outline-none focus:border-blue-500/50"
-              >
-                <option value="ALL">Todas ({stats.total})</option>
-                <option value="TROB">TROB ({stats.byEmpresa.TROB})</option>
-                <option value="WE">WEXPRESS ({stats.byEmpresa.WE})</option>
-                <option value="SHI">SPEEDYHAUL ({stats.byEmpresa.SHI})</option>
-                <option value="TROB USA">TROB USA ({stats.byEmpresa['TROB USA']})</option>
-              </select>
-            </div>
+          {/* Filtro Segmento */}
+          <select
+            value={filterSegmento}
+            onChange={(e) => setFilterSegmento(e.target.value)}
+            className="px-2 py-1.5 bg-slate-900/50 border border-slate-700/30 rounded-lg text-white text-sm focus:outline-none max-w-[140px]"
+          >
+            <option value="ALL">Segmento</option>
+            {uniqueSegmentos.map(seg => (
+              <option key={seg} value={seg}>{seg.length > 15 ? seg.slice(0,15)+'...' : seg}</option>
+            ))}
+          </select>
 
-            <div>
-              <label className="text-slate-400 text-xs mb-1 block">Segmento</label>
-              <select
-                value={filterSegmento}
-                onChange={(e) => setFilterSegmento(e.target.value)}
-                className="w-full px-3 py-2 bg-slate-900/50 border border-slate-700/30 rounded-lg text-white focus:outline-none focus:border-blue-500/50"
-              >
-                <option value="ALL">Todos</option>
-                {uniqueSegmentos.map(seg => (
-                  <option key={seg} value={seg}>{seg}</option>
-                ))}
-              </select>
-            </div>
+          {/* Filtro Status */}
+          <select
+            value={filterStatus}
+            onChange={(e) => setFilterStatus(e.target.value)}
+            className="px-2 py-1.5 bg-slate-900/50 border border-slate-700/30 rounded-lg text-white text-sm focus:outline-none"
+          >
+            <option value="ALL">Status</option>
+            <option value="moving">Movimiento ({stats.moving})</option>
+            <option value="stopped">Detenidos ({stats.stopped})</option>
+            <option value="no_signal">Sin Señal</option>
+          </select>
 
-            <div>
-              <label className="text-slate-400 text-xs mb-1 block">Status</label>
-              <select
-                value={filterStatus}
-                onChange={(e) => setFilterStatus(e.target.value)}
-                className="w-full px-3 py-2 bg-slate-900/50 border border-slate-700/30 rounded-lg text-white focus:outline-none focus:border-blue-500/50"
-              >
-                <option value="ALL">Todos</option>
-                <option value="moving">En Movimiento ({stats.moving})</option>
-                <option value="stopped">Detenidos ({stats.stopped})</option>
-                <option value="offline">Sin Señal ({stats.offline})</option>
-              </select>
-            </div>
-          </div>
-        )}
-
-        <div className="mt-3 text-slate-500 text-sm">
-          Mostrando {filteredFleet.length} de {stats.total} unidades
-          {stats.loading > 0 && <span className="text-blue-400 ml-2">({stats.loading} cargando...)</span>}
+          <span className="text-slate-500 text-xs ml-auto">
+            {filteredFleet.length}/{stats.total}
+            {stats.loading > 0 && <span className="text-blue-400"> ({stats.loading}...)</span>}
+          </span>
         </div>
       </div>
 
-      {/* TABLA DE UNIDADES */}
-      <div className="bg-slate-800/40 border border-slate-700/30 rounded-xl overflow-hidden">
-        <div className="overflow-x-auto">
+      {/* TABLA CON SCROLL */}
+      <div className="flex-1 overflow-hidden bg-slate-800/40 border border-slate-700/30 rounded-xl">
+        <div className="h-full overflow-y-auto scrollbar-thin scrollbar-thumb-slate-600 scrollbar-track-transparent">
           <table className="w-full">
-            <thead>
-              <tr className="bg-slate-900/50 border-b border-slate-700/30">
-                <th 
-                  className="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider cursor-pointer hover:text-white"
-                  onClick={() => handleSort('economico')}
-                >
-                  <div className="flex items-center gap-1">
-                    Económico
-                    {sortField === 'economico' && (sortDirection === 'asc' ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
-                  </div>
-                </th>
-                <th 
-                  className="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider cursor-pointer hover:text-white"
-                  onClick={() => handleSort('empresa')}
-                >
-                  <div className="flex items-center gap-1">
-                    Empresa
-                    {sortField === 'empresa' && (sortDirection === 'asc' ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
-                  </div>
-                </th>
-                <th 
-                  className="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider cursor-pointer hover:text-white"
-                  onClick={() => handleSort('segmento')}
-                >
-                  <div className="flex items-center gap-1">
-                    Segmento
-                    {sortField === 'segmento' && (sortDirection === 'asc' ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
-                  </div>
-                </th>
-                <th 
-                  className="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider cursor-pointer hover:text-white"
-                  onClick={() => handleSort('status')}
-                >
-                  <div className="flex items-center gap-1">
-                    Status
-                    {sortField === 'status' && (sortDirection === 'asc' ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
-                  </div>
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
-                  Ubicación
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
-                  Velocidad
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
-                  Última Señal
-                </th>
+            <thead className="sticky top-0 bg-slate-900/95 z-10">
+              <tr className="border-b border-slate-700/30">
+                <th className="px-3 py-2 text-left text-xs font-medium text-slate-400 uppercase">Eco</th>
+                <th className="px-3 py-2 text-left text-xs font-medium text-slate-400 uppercase">Empresa</th>
+                <th className="px-3 py-2 text-left text-xs font-medium text-slate-400 uppercase">Segmento</th>
+                <th className="px-3 py-2 text-left text-xs font-medium text-slate-400 uppercase">Status</th>
+                <th className="px-3 py-2 text-left text-xs font-medium text-slate-400 uppercase">Ubicación</th>
+                <th className="px-3 py-2 text-left text-xs font-medium text-slate-400 uppercase">Vel</th>
+                <th className="px-3 py-2 text-left text-xs font-medium text-slate-400 uppercase">Señal</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-700/30">
-              {filteredFleet.length === 0 ? (
-                <tr>
-                  <td colSpan={7} className="px-4 py-12 text-center text-slate-500">
-                    No se encontraron unidades con los filtros aplicados
-                  </td>
-                </tr>
-              ) : (
-                filteredFleet.map((unit) => {
-                  const empresaColor = EMPRESA_COLORS[unit.empresa] || EMPRESA_COLORS['TROB'];
-                  const statusConfig = STATUS_CONFIG[unit.status] || STATUS_CONFIG['no_signal'];
-                  
-                  return (
-                    <tr 
-                      key={unit.economico}
-                      onClick={() => setSelectedUnit(unit)}
-                      className="hover:bg-slate-700/20 cursor-pointer transition-colors"
-                    >
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-2">
-                          <Truck className="w-4 h-4 text-slate-500" />
-                          <span className="font-mono font-bold text-white">{unit.economico}</span>
-                        </div>
-                      </td>
-
-                      <td className="px-4 py-3">
-                        <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium ${empresaColor.bg} ${empresaColor.text} border ${empresaColor.border}`}>
-                          <Building2 className="w-3 h-3" />
-                          {unit.empresa}
-                        </span>
-                      </td>
-
-                      <td className="px-4 py-3">
-                        <span className="text-slate-300 text-sm">{unit.segmento}</span>
-                      </td>
-
-                      <td className="px-4 py-3">
-                        <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium ${statusConfig.bg} ${statusConfig.text}`}>
-                          {statusConfig.icon}
-                          {statusConfig.label}
-                        </span>
-                      </td>
-
-                      <td className="px-4 py-3">
-                        <div className="flex items-start gap-1 max-w-xs">
-                          <MapPin className="w-3 h-3 text-slate-500 mt-0.5 flex-shrink-0" />
-                          <span className="text-slate-400 text-xs truncate">
-                            {unit.address || (unit.latitude ? `${unit.latitude.toFixed(4)}, ${unit.longitude?.toFixed(4)}` : '-')}
-                          </span>
-                        </div>
-                      </td>
-
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-1">
-                          <Gauge className="w-3 h-3 text-slate-500" />
-                          <span className={`text-sm font-medium ${(unit.speed || 0) > 0 ? 'text-green-400' : 'text-slate-500'}`}>
-                            {unit.speed !== null ? `${unit.speed} km/h` : '-'}
-                          </span>
-                        </div>
-                      </td>
-
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-1">
-                          <Clock className="w-3 h-3 text-slate-500" />
-                          <span className="text-slate-400 text-xs">
-                            {formatTimestamp(unit.timestamp)}
-                          </span>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
+            <tbody className="divide-y divide-slate-700/20">
+              {filteredFleet.map((unit) => {
+                const empresaColor = EMPRESA_COLORS[unit.empresa] || EMPRESA_COLORS['TROB'];
+                const statusConfig = STATUS_CONFIG[unit.status] || STATUS_CONFIG['no_signal'];
+                
+                return (
+                  <tr 
+                    key={unit.economico}
+                    onClick={() => setSelectedUnit(unit)}
+                    className="hover:bg-slate-700/20 cursor-pointer transition-colors"
+                  >
+                    <td className="px-3 py-2">
+                      <span className="font-mono font-bold text-white text-sm">{unit.economico}</span>
+                    </td>
+                    <td className="px-3 py-2">
+                      <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium ${empresaColor.bg} ${empresaColor.text}`}>
+                        {unit.empresa}
+                      </span>
+                    </td>
+                    <td className="px-3 py-2">
+                      <span className="text-slate-300 text-xs">{unit.segmento.length > 18 ? unit.segmento.slice(0,18)+'...' : unit.segmento}</span>
+                    </td>
+                    <td className="px-3 py-2">
+                      <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs ${statusConfig.bg} ${statusConfig.text}`}>
+                        {statusConfig.icon}
+                        {statusConfig.label}
+                      </span>
+                    </td>
+                    <td className="px-3 py-2 max-w-[200px]">
+                      <span className="text-slate-400 text-xs truncate block">
+                        {unit.address || (unit.latitude ? `${unit.latitude.toFixed(3)}, ${unit.longitude?.toFixed(3)}` : '-')}
+                      </span>
+                    </td>
+                    <td className="px-3 py-2">
+                      <span className={`text-xs font-medium ${(unit.speed || 0) > 0 ? 'text-green-400' : 'text-slate-500'}`}>
+                        {unit.speed !== null ? `${unit.speed}` : '-'}
+                      </span>
+                    </td>
+                    <td className="px-3 py-2">
+                      <span className="text-slate-400 text-xs">{formatTimestamp(unit.timestamp)}</span>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
       </div>
 
-      {/* MODAL DETALLE DE UNIDAD */}
+      {/* MODAL DETALLE */}
       {selectedUnit && (
-        <div 
-          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4"
-          onClick={() => setSelectedUnit(null)}
-        >
-          <div 
-            className="bg-slate-800 border border-slate-700/50 rounded-2xl w-full max-w-lg shadow-2xl"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center justify-between p-4 border-b border-slate-700/50">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 bg-blue-500/20 rounded-xl flex items-center justify-center">
-                  <Truck className="w-6 h-6 text-blue-400" />
-                </div>
-                <div>
-                  <h3 className="text-xl font-bold text-white">Unidad {selectedUnit.economico}</h3>
-                  <div className="flex items-center gap-2 mt-1">
-                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs ${EMPRESA_COLORS[selectedUnit.empresa]?.bg} ${EMPRESA_COLORS[selectedUnit.empresa]?.text}`}>
-                      {selectedUnit.empresa}
-                    </span>
-                    <span className="text-slate-500 text-xs">{selectedUnit.segmento}</span>
-                  </div>
-                </div>
-              </div>
-              <button 
-                onClick={() => setSelectedUnit(null)}
-                className="p-2 hover:bg-slate-700/50 rounded-lg transition-colors"
-              >
-                <X className="w-5 h-5 text-slate-400" />
-              </button>
-            </div>
-
-            <div className="p-4 space-y-4">
-              <div className={`flex items-center gap-3 p-3 rounded-xl ${STATUS_CONFIG[selectedUnit.status]?.bg}`}>
-                {STATUS_CONFIG[selectedUnit.status]?.icon}
-                <span className={`font-medium ${STATUS_CONFIG[selectedUnit.status]?.text}`}>
-                  {STATUS_CONFIG[selectedUnit.status]?.label}
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setSelectedUnit(null)}>
+          <div className="bg-slate-800 border border-slate-700/50 rounded-2xl w-full max-w-md shadow-2xl" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between p-3 border-b border-slate-700/50">
+              <div className="flex items-center gap-2">
+                <Truck className="w-5 h-5 text-blue-400" />
+                <span className="text-lg font-bold text-white">{selectedUnit.economico}</span>
+                <span className={`px-2 py-0.5 rounded text-xs ${EMPRESA_COLORS[selectedUnit.empresa]?.bg} ${EMPRESA_COLORS[selectedUnit.empresa]?.text}`}>
+                  {selectedUnit.empresa}
                 </span>
               </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div className="col-span-2 bg-slate-900/50 rounded-xl p-3">
-                  <div className="flex items-center gap-2 text-slate-400 text-xs mb-1">
-                    <MapPin className="w-3 h-3" />
-                    Ubicación
-                  </div>
-                  <div className="text-white text-sm">
-                    {selectedUnit.address || 'Sin dirección disponible'}
-                  </div>
-                  {selectedUnit.latitude && (
-                    <div className="text-slate-500 text-xs mt-1">
-                      {selectedUnit.latitude.toFixed(6)}, {selectedUnit.longitude?.toFixed(6)}
-                    </div>
-                  )}
+              <button onClick={() => setSelectedUnit(null)} className="p-1 hover:bg-slate-700/50 rounded">
+                <X className="w-4 h-4 text-slate-400" />
+              </button>
+            </div>
+            <div className="p-3 space-y-2">
+              <div className={`flex items-center gap-2 p-2 rounded-lg ${STATUS_CONFIG[selectedUnit.status]?.bg}`}>
+                {STATUS_CONFIG[selectedUnit.status]?.icon}
+                <span className={`text-sm font-medium ${STATUS_CONFIG[selectedUnit.status]?.text}`}>
+                  {STATUS_CONFIG[selectedUnit.status]?.label}
+                </span>
+                <span className="text-slate-400 text-xs ml-auto">{selectedUnit.segmento}</span>
+              </div>
+              <div className="grid grid-cols-2 gap-2 text-sm">
+                <div className="bg-slate-900/50 rounded-lg p-2 col-span-2">
+                  <div className="text-slate-400 text-xs flex items-center gap-1"><MapPin className="w-3 h-3"/>Ubicación</div>
+                  <div className="text-white text-xs mt-1">{selectedUnit.address || 'Sin dirección'}</div>
+                  {selectedUnit.latitude && <div className="text-slate-500 text-xs">{selectedUnit.latitude.toFixed(5)}, {selectedUnit.longitude?.toFixed(5)}</div>}
                 </div>
-
-                <div className="bg-slate-900/50 rounded-xl p-3">
-                  <div className="flex items-center gap-2 text-slate-400 text-xs mb-1">
-                    <Gauge className="w-3 h-3" />
-                    Velocidad
-                  </div>
-                  <div className={`text-xl font-bold ${(selectedUnit.speed || 0) > 0 ? 'text-green-400' : 'text-white'}`}>
+                <div className="bg-slate-900/50 rounded-lg p-2">
+                  <div className="text-slate-400 text-xs flex items-center gap-1"><Gauge className="w-3 h-3"/>Velocidad</div>
+                  <div className={`text-lg font-bold ${(selectedUnit.speed || 0) > 0 ? 'text-green-400' : 'text-white'}`}>
                     {selectedUnit.speed !== null ? `${selectedUnit.speed} km/h` : '-'}
                   </div>
                 </div>
-
-                <div className="bg-slate-900/50 rounded-xl p-3">
-                  <div className="flex items-center gap-2 text-slate-400 text-xs mb-1">
-                    <Navigation className="w-3 h-3" />
-                    Dirección
-                  </div>
-                  <div className="text-xl font-bold text-white">
-                    {selectedUnit.heading || '-'}
+                <div className="bg-slate-900/50 rounded-lg p-2">
+                  <div className="text-slate-400 text-xs flex items-center gap-1"><Power className="w-3 h-3"/>Motor</div>
+                  <div className={`text-lg font-bold ${selectedUnit.ignition ? 'text-green-400' : 'text-red-400'}`}>
+                    {selectedUnit.ignition !== null ? (selectedUnit.ignition ? 'ON' : 'OFF') : '-'}
                   </div>
                 </div>
-
-                <div className="bg-slate-900/50 rounded-xl p-3">
-                  <div className="flex items-center gap-2 text-slate-400 text-xs mb-1">
-                    <Truck className="w-3 h-3" />
-                    Odómetro
-                  </div>
-                  <div className="text-white font-medium">
-                    {selectedUnit.odometer !== null ? `${selectedUnit.odometer.toLocaleString()} km` : '-'}
-                  </div>
+                <div className="bg-slate-900/50 rounded-lg p-2">
+                  <div className="text-slate-400 text-xs">Odómetro</div>
+                  <div className="text-white">{selectedUnit.odometer?.toLocaleString() || '-'} km</div>
                 </div>
-
-                <div className="bg-slate-900/50 rounded-xl p-3">
-                  <div className="flex items-center gap-2 text-slate-400 text-xs mb-1">
-                    <Power className="w-3 h-3" />
-                    Motor
-                  </div>
-                  <div className={`font-medium ${selectedUnit.ignition ? 'text-green-400' : 'text-red-400'}`}>
-                    {selectedUnit.ignition !== null ? (selectedUnit.ignition ? 'Encendido' : 'Apagado') : '-'}
-                  </div>
-                </div>
-
-                <div className="col-span-2 bg-slate-900/50 rounded-xl p-3">
-                  <div className="flex items-center gap-2 text-slate-400 text-xs mb-1">
-                    <Clock className="w-3 h-3" />
-                    Última Señal GPS
-                  </div>
-                  <div className="text-white">
-                    {formatTimestamp(selectedUnit.timestamp)}
-                  </div>
+                <div className="bg-slate-900/50 rounded-lg p-2">
+                  <div className="text-slate-400 text-xs flex items-center gap-1"><Clock className="w-3 h-3"/>Señal</div>
+                  <div className="text-white text-xs">{formatTimestamp(selectedUnit.timestamp)}</div>
                 </div>
               </div>
             </div>
