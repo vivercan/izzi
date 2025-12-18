@@ -320,6 +320,11 @@ const STATUS_CONFIG: Record<string, { bg: string; text: string; icon: React.Reac
 };
 
 // ============================================
+// BATCH SIZE - Cuántas unidades consultar por lote
+// ============================================
+const BATCH_SIZE = 5;
+
+// ============================================
 // COMPONENTE PRINCIPAL
 // ============================================
 export default function DespachoInteligenteContent() {
@@ -335,35 +340,15 @@ export default function DespachoInteligenteContent() {
   const [sortField, setSortField] = useState<'economico' | 'empresa' | 'segmento' | 'status'>('economico');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
   const [showFilters, setShowFilters] = useState(false);
+  const [loadingProgress, setLoadingProgress] = useState({ current: 0, total: 0 });
 
   const uniqueSegmentos = [...new Set(FLOTA_LOMA.map(u => u.segmento))].sort();
 
   // ============================================
-  // FUNCIÓN: Obtener GPS de todas las unidades
+  // FUNCIÓN: Consultar un lote de unidades
   // ============================================
-  const fetchFleetGPS = useCallback(async (isRefresh = false) => {
-    if (isRefresh) setRefreshing(true);
-    else setLoading(true);
-
+  const fetchBatch = async (placas: string[]): Promise<any[]> => {
     try {
-      const initialFleet: FleetUnit[] = FLOTA_LOMA.map(unit => ({
-        ...unit,
-        latitude: null,
-        longitude: null,
-        speed: null,
-        heading: null,
-        address: null,
-        timestamp: null,
-        odometer: null,
-        ignition: null,
-        status: 'loading' as const,
-        lastUpdate: null,
-      }));
-      
-      if (!isRefresh) setFleet(initialFleet);
-
-      const placas = FLOTA_LOMA.map(u => u.economico);
-      
       const response = await fetch(
         `https://${projectId}.supabase.co/functions/v1/make-server-d84b50bb/widetech/locations/batch`,
         {
@@ -377,69 +362,105 @@ export default function DespachoInteligenteContent() {
       );
 
       if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
+        console.error(`Batch error: HTTP ${response.status}`);
+        return [];
       }
 
       const result = await response.json();
+      return result.data || [];
+    } catch (error) {
+      console.error('Error en batch:', error);
+      return [];
+    }
+  };
+
+  // ============================================
+  // FUNCIÓN: Obtener GPS de todas las unidades en lotes
+  // ============================================
+  const fetchFleetGPS = useCallback(async (isRefresh = false) => {
+    if (isRefresh) setRefreshing(true);
+    else setLoading(true);
+
+    // Inicializar fleet con datos base
+    const initialFleet: FleetUnit[] = FLOTA_LOMA.map(unit => ({
+      ...unit,
+      latitude: null,
+      longitude: null,
+      speed: null,
+      heading: null,
+      address: null,
+      timestamp: null,
+      odometer: null,
+      ignition: null,
+      status: 'loading' as const,
+      lastUpdate: null,
+    }));
+    
+    setFleet(initialFleet);
+
+    // Dividir en lotes
+    const allPlacas = FLOTA_LOMA.map(u => u.economico);
+    const batches: string[][] = [];
+    for (let i = 0; i < allPlacas.length; i += BATCH_SIZE) {
+      batches.push(allPlacas.slice(i, i + BATCH_SIZE));
+    }
+
+    setLoadingProgress({ current: 0, total: batches.length });
+
+    // Procesar lotes secuencialmente
+    const allResults: any[] = [];
+    
+    for (let i = 0; i < batches.length; i++) {
+      const batchResults = await fetchBatch(batches[i]);
+      allResults.push(...batchResults);
+      setLoadingProgress({ current: i + 1, total: batches.length });
       
-      const updatedFleet: FleetUnit[] = FLOTA_LOMA.map(unit => {
-        const gpsData = result.data?.find((d: any) => d.placa === unit.economico);
-        
-        if (gpsData && gpsData.success) {
-          const isMoving = (gpsData.speed || 0) > 5;
-          const hasSignal = gpsData.latitude && gpsData.longitude;
+      // Actualizar fleet con resultados parciales
+      setFleet(prev => {
+        return prev.map(unit => {
+          const gpsData = allResults.find((d: any) => d.placa === unit.economico);
           
-          return {
-            ...unit,
-            latitude: gpsData.latitude,
-            longitude: gpsData.longitude,
-            speed: gpsData.speed,
-            heading: gpsData.heading,
-            address: gpsData.address,
-            timestamp: gpsData.timestamp,
-            odometer: gpsData.odometer,
-            ignition: gpsData.ignition,
-            status: !hasSignal ? 'no_signal' : isMoving ? 'moving' : gpsData.ignition ? 'stopped' : 'offline',
-            lastUpdate: new Date(),
-          };
-        }
-        
-        return {
-          ...unit,
-          latitude: null,
-          longitude: null,
-          speed: null,
-          heading: null,
-          address: null,
-          timestamp: null,
-          odometer: null,
-          ignition: null,
-          status: 'no_signal' as const,
-          lastUpdate: new Date(),
-        };
+          if (gpsData && gpsData.success) {
+            const isMoving = (gpsData.speed || 0) > 5;
+            const hasSignal = gpsData.latitude && gpsData.longitude;
+            
+            return {
+              ...unit,
+              latitude: gpsData.latitude,
+              longitude: gpsData.longitude,
+              speed: gpsData.speed,
+              heading: gpsData.heading,
+              address: gpsData.address,
+              timestamp: gpsData.timestamp,
+              odometer: gpsData.odometer,
+              ignition: gpsData.ignition,
+              status: !hasSignal ? 'no_signal' : isMoving ? 'moving' : gpsData.ignition ? 'stopped' : 'offline',
+              lastUpdate: new Date(),
+            };
+          }
+          
+          // Si ya fue procesado en un lote anterior, mantener
+          if (batches.slice(0, i + 1).flat().includes(unit.economico) && unit.status === 'loading') {
+            return {
+              ...unit,
+              status: 'no_signal' as const,
+              lastUpdate: new Date(),
+            };
+          }
+          
+          return unit;
+        });
       });
 
-      setFleet(updatedFleet);
-      setLastRefresh(new Date());
-    } catch (error) {
-      console.error('Error fetching GPS:', error);
-      setFleet(FLOTA_LOMA.map(unit => ({
-        ...unit,
-        latitude: null,
-        longitude: null,
-        speed: null,
-        heading: null,
-        address: null,
-        timestamp: null,
-        odometer: null,
-        ignition: null,
-        status: 'no_signal' as const,
-        lastUpdate: new Date(),
-      })));
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
+      // Pequeña pausa entre lotes para no saturar
+      if (i < batches.length - 1) {
+        await new Promise(resolve => setTimeout(resolve, 500));
+      }
     }
+
+    setLastRefresh(new Date());
+    setLoading(false);
+    setRefreshing(false);
   }, []);
 
   useEffect(() => {
@@ -469,6 +490,7 @@ export default function DespachoInteligenteContent() {
     moving: fleet.filter(u => u.status === 'moving').length,
     stopped: fleet.filter(u => u.status === 'stopped').length,
     offline: fleet.filter(u => u.status === 'offline' || u.status === 'no_signal').length,
+    loading: fleet.filter(u => u.status === 'loading').length,
     byEmpresa: {
       TROB: fleet.filter(u => u.empresa === 'TROB').length,
       WE: fleet.filter(u => u.empresa === 'WE').length,
@@ -543,17 +565,38 @@ export default function DespachoInteligenteContent() {
             <div className="text-white font-medium">
               {lastRefresh ? lastRefresh.toLocaleTimeString('es-MX') : '-'}
             </div>
+            {(loading || refreshing) && loadingProgress.total > 0 && (
+              <div className="text-blue-400 text-xs mt-1">
+                Cargando lote {loadingProgress.current}/{loadingProgress.total}...
+              </div>
+            )}
           </div>
           <button
             onClick={() => fetchFleetGPS(true)}
             disabled={refreshing || loading}
             className="flex items-center gap-2 px-4 py-2 bg-blue-500/20 hover:bg-blue-500/30 border border-blue-500/30 rounded-lg text-blue-400 text-sm transition-all disabled:opacity-50"
           >
-            <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
-            {refreshing ? 'Actualizando...' : 'Actualizar'}
+            <RefreshCw className={`w-4 h-4 ${refreshing || loading ? 'animate-spin' : ''}`} />
+            {refreshing || loading ? 'Cargando...' : 'Actualizar'}
           </button>
         </div>
       </div>
+
+      {/* BARRA DE PROGRESO */}
+      {(loading || refreshing) && loadingProgress.total > 0 && (
+        <div className="bg-slate-800/40 border border-slate-700/30 rounded-xl p-4">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-slate-400 text-sm">Consultando GPS de unidades...</span>
+            <span className="text-blue-400 text-sm">{Math.round((loadingProgress.current / loadingProgress.total) * 100)}%</span>
+          </div>
+          <div className="w-full bg-slate-700/30 rounded-full h-2">
+            <div 
+              className="bg-blue-500 h-2 rounded-full transition-all duration-300"
+              style={{ width: `${(loadingProgress.current / loadingProgress.total) * 100}%` }}
+            />
+          </div>
+        </div>
+      )}
 
       {/* BARRA DE BÚSQUEDA Y FILTROS */}
       <div className="bg-slate-800/40 border border-slate-700/30 rounded-xl p-4">
@@ -632,6 +675,7 @@ export default function DespachoInteligenteContent() {
 
         <div className="mt-3 text-slate-500 text-sm">
           Mostrando {filteredFleet.length} de {stats.total} unidades
+          {stats.loading > 0 && <span className="text-blue-400 ml-2">({stats.loading} cargando...)</span>}
         </div>
       </div>
 
@@ -689,19 +733,7 @@ export default function DespachoInteligenteContent() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-700/30">
-              {loading ? (
-                Array.from({ length: 10 }).map((_, i) => (
-                  <tr key={i} className="animate-pulse">
-                    <td className="px-4 py-3"><div className="h-4 bg-slate-700/50 rounded w-16"></div></td>
-                    <td className="px-4 py-3"><div className="h-4 bg-slate-700/50 rounded w-20"></div></td>
-                    <td className="px-4 py-3"><div className="h-4 bg-slate-700/50 rounded w-32"></div></td>
-                    <td className="px-4 py-3"><div className="h-4 bg-slate-700/50 rounded w-24"></div></td>
-                    <td className="px-4 py-3"><div className="h-4 bg-slate-700/50 rounded w-48"></div></td>
-                    <td className="px-4 py-3"><div className="h-4 bg-slate-700/50 rounded w-16"></div></td>
-                    <td className="px-4 py-3"><div className="h-4 bg-slate-700/50 rounded w-24"></div></td>
-                  </tr>
-                ))
-              ) : filteredFleet.length === 0 ? (
+              {filteredFleet.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="px-4 py-12 text-center text-slate-500">
                     No se encontraron unidades con los filtros aplicados
