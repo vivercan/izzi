@@ -367,7 +367,7 @@ export default function DespachoInteligenteContent() {
       }
 
       const result = await response.json();
-      return result.data || [];
+      return result.results || result.data || [];
     } catch (error) {
       console.error('Error en batch:', error);
       return [];
@@ -420,21 +420,23 @@ export default function DespachoInteligenteContent() {
         return prev.map(unit => {
           const gpsData = allResults.find((d: any) => d.placa === unit.economico);
           
-          if (gpsData && gpsData.success) {
-            const isMoving = (gpsData.speed || 0) > 5;
-            const hasSignal = gpsData.latitude && gpsData.longitude;
+          if (gpsData && gpsData.success && gpsData.location) {
+            const loc = gpsData.location;
+            const isMoving = (loc.speed || 0) > 5;
+            const hasSignal = loc.latitude && loc.longitude;
+            const ignitionOn = loc.ignition === 'ON' || loc.ignition === true;
             
             return {
               ...unit,
-              latitude: gpsData.latitude,
-              longitude: gpsData.longitude,
-              speed: gpsData.speed,
-              heading: gpsData.heading,
-              address: gpsData.address,
-              timestamp: gpsData.timestamp,
-              odometer: gpsData.odometer,
-              ignition: gpsData.ignition,
-              status: !hasSignal ? 'no_signal' : isMoving ? 'moving' : gpsData.ignition ? 'stopped' : 'offline',
+              latitude: loc.latitude,
+              longitude: loc.longitude,
+              speed: loc.speed,
+              heading: loc.heading,
+              address: loc.address || loc.addressOriginal,
+              timestamp: loc.timestamp,
+              odometer: loc.odometer,
+              ignition: ignitionOn,
+              status: !hasSignal ? 'no_signal' : isMoving ? 'moving' : ignitionOn ? 'stopped' : 'offline',
               lastUpdate: new Date(),
             };
           }
