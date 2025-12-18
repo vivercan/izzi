@@ -451,9 +451,9 @@ export default function DespachoInteligenteContent() {
         {lastRefresh && <span className="text-white/40 text-xs">{lastRefresh.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })}</span>}
 
         <button onClick={exportExcel} className="p-2 rounded-xl bg-white/10 hover:bg-white/20 text-white/70 transition-all" style={{ boxShadow: '0 4px 12px rgba(0,0,0,0.2)' }}><Download className="w-4 h-4" /></button>
-        <button onClick={() => fetchFleetGPS(true)} disabled={loading || refreshing} className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-br from-blue-500 to-blue-700 text-white font-semibold text-sm disabled:opacity-50 transition-all" style={{ boxShadow: '0 8px 24px rgba(59,130,246,0.4), inset 0 2px 0 rgba(255,255,255,0.2)' }}>
-          <RefreshCw className={`w-4 h-4 ${loading || refreshing ? 'animate-spin' : ''}`} />
-          {loading || refreshing ? `${Math.round((loadingProgress.current / loadingProgress.total) * 100)}%` : 'Actualizar'}
+        <button onClick={() => fetchFleetGPS(true)} disabled={loading || refreshing} className={`flex items-center gap-2 px-4 py-2 rounded-xl font-semibold text-sm transition-all ${loading || refreshing ? 'bg-gradient-to-br from-orange-500 to-orange-700 text-white' : 'bg-gradient-to-br from-blue-500 to-blue-700 text-white'}`} style={{ boxShadow: loading || refreshing ? '0 8px 24px rgba(249,115,22,0.5), inset 0 2px 0 rgba(255,255,255,0.2)' : '0 8px 24px rgba(59,130,246,0.4), inset 0 2px 0 rgba(255,255,255,0.2)' }}>
+          <RefreshCw className={`w-4 h-4 ${loading || refreshing ? 'animate-spin text-orange-200' : ''}`} />
+          {loading || refreshing ? `${Math.round((loadingProgress.current / loadingProgress.total) * 100 || 0)}%` : 'Actualizar'}
         </button>
       </div>
 
