@@ -1,5 +1,6 @@
 'use client';
 
+import { projectId, publicAnonKey } from '../../utils/supabase/info';
 import React, { useState, useEffect, useCallback } from 'react';
 import { 
   Truck, 
@@ -368,7 +369,7 @@ export default function DespachoInteligenteContent() {
       const placas = FLOTA_LOMA.map(u => u.economico);
       
       const response = await fetch(
-        'https://fbxbsslhewchyibdoyzk.supabase.co/functions/v1/make-server-d84b50bb/widetech/locations/batch',
+        '${https://${projectId}.supabase.co/functions/v1/make-server-d84b50bb/widetech/locations/batch}',
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -935,3 +936,4 @@ export default function DespachoInteligenteContent() {
     </div>
   );
 }
+
