@@ -17,8 +17,7 @@ import {
   Wifi,
   WifiOff,
   Navigation,
-  Building2,
-  Tag
+  Building2
 } from 'lucide-react';
 
 // ============================================
@@ -337,7 +336,6 @@ export default function DespachoInteligenteContent() {
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
   const [showFilters, setShowFilters] = useState(false);
 
-  // Obtener segmentos únicos
   const uniqueSegmentos = [...new Set(FLOTA_LOMA.map(u => u.segmento))].sort();
 
   // ============================================
@@ -348,7 +346,6 @@ export default function DespachoInteligenteContent() {
     else setLoading(true);
 
     try {
-      // Inicializar fleet con status loading
       const initialFleet: FleetUnit[] = FLOTA_LOMA.map(unit => ({
         ...unit,
         latitude: null,
@@ -365,14 +362,16 @@ export default function DespachoInteligenteContent() {
       
       if (!isRefresh) setFleet(initialFleet);
 
-      // Llamar al batch endpoint
       const placas = FLOTA_LOMA.map(u => u.economico);
       
       const response = await fetch(
-        '${https://${projectId}.supabase.co/functions/v1/make-server-d84b50bb/widetech/locations/batch}',
+        `https://${projectId}.supabase.co/functions/v1/make-server-d84b50bb/widetech/locations/batch`,
         {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${publicAnonKey}`
+          },
           body: JSON.stringify({ placas }),
         }
       );
@@ -383,7 +382,6 @@ export default function DespachoInteligenteContent() {
 
       const result = await response.json();
       
-      // Mapear resultados
       const updatedFleet: FleetUnit[] = FLOTA_LOMA.map(unit => {
         const gpsData = result.data?.find((d: any) => d.placa === unit.economico);
         
@@ -425,7 +423,6 @@ export default function DespachoInteligenteContent() {
       setLastRefresh(new Date());
     } catch (error) {
       console.error('Error fetching GPS:', error);
-      // En caso de error, marcar todas como sin señal
       setFleet(FLOTA_LOMA.map(unit => ({
         ...unit,
         latitude: null,
@@ -445,14 +442,10 @@ export default function DespachoInteligenteContent() {
     }
   }, []);
 
-  // Cargar al montar
   useEffect(() => {
     fetchFleetGPS();
   }, [fetchFleetGPS]);
 
-  // ============================================
-  // FILTRADO Y ORDENAMIENTO
-  // ============================================
   const filteredFleet = fleet
     .filter(unit => {
       if (searchTerm && !unit.economico.toLowerCase().includes(searchTerm.toLowerCase())) return false;
@@ -471,7 +464,6 @@ export default function DespachoInteligenteContent() {
       return sortDirection === 'asc' ? comparison : -comparison;
     });
 
-  // Estadísticas
   const stats = {
     total: fleet.length,
     moving: fleet.filter(u => u.status === 'moving').length,
@@ -485,9 +477,6 @@ export default function DespachoInteligenteContent() {
     }
   };
 
-  // ============================================
-  // HANDLERS
-  // ============================================
   const handleSort = (field: typeof sortField) => {
     if (sortField === field) {
       setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
@@ -512,14 +501,10 @@ export default function DespachoInteligenteContent() {
     }
   };
 
-  // ============================================
-  // RENDER
-  // ============================================
   return (
     <div className="space-y-4">
       {/* HEADER CON STATS */}
       <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
-        {/* Total */}
         <div className="bg-slate-800/40 border border-slate-700/30 rounded-xl p-4">
           <div className="flex items-center gap-2 text-slate-400 text-xs mb-1">
             <Truck className="w-4 h-4" />
@@ -528,7 +513,6 @@ export default function DespachoInteligenteContent() {
           <div className="text-2xl font-bold text-white">{stats.total}</div>
         </div>
 
-        {/* En Movimiento */}
         <div className="bg-green-500/10 border border-green-500/20 rounded-xl p-4">
           <div className="flex items-center gap-2 text-green-400 text-xs mb-1">
             <Navigation className="w-4 h-4" />
@@ -537,7 +521,6 @@ export default function DespachoInteligenteContent() {
           <div className="text-2xl font-bold text-green-400">{stats.moving}</div>
         </div>
 
-        {/* Detenidos */}
         <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-4">
           <div className="flex items-center gap-2 text-yellow-400 text-xs mb-1">
             <Power className="w-4 h-4" />
@@ -546,7 +529,6 @@ export default function DespachoInteligenteContent() {
           <div className="text-2xl font-bold text-yellow-400">{stats.stopped}</div>
         </div>
 
-        {/* Sin Señal */}
         <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-4">
           <div className="flex items-center gap-2 text-red-400 text-xs mb-1">
             <WifiOff className="w-4 h-4" />
@@ -555,7 +537,6 @@ export default function DespachoInteligenteContent() {
           <div className="text-2xl font-bold text-red-400">{stats.offline}</div>
         </div>
 
-        {/* Última actualización */}
         <div className="col-span-2 bg-slate-800/40 border border-slate-700/30 rounded-xl p-4 flex items-center justify-between">
           <div>
             <div className="text-slate-400 text-xs mb-1">Última actualización</div>
@@ -577,7 +558,6 @@ export default function DespachoInteligenteContent() {
       {/* BARRA DE BÚSQUEDA Y FILTROS */}
       <div className="bg-slate-800/40 border border-slate-700/30 rounded-xl p-4">
         <div className="flex flex-col md:flex-row gap-3">
-          {/* Búsqueda */}
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
             <input
@@ -589,7 +569,6 @@ export default function DespachoInteligenteContent() {
             />
           </div>
 
-          {/* Toggle Filtros */}
           <button
             onClick={() => setShowFilters(!showFilters)}
             className={`flex items-center gap-2 px-4 py-2 border rounded-lg text-sm transition-all ${
@@ -604,10 +583,8 @@ export default function DespachoInteligenteContent() {
           </button>
         </div>
 
-        {/* Panel de Filtros */}
         {showFilters && (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mt-4 pt-4 border-t border-slate-700/30">
-            {/* Filtro Empresa */}
             <div>
               <label className="text-slate-400 text-xs mb-1 block">Empresa</label>
               <select
@@ -623,7 +600,6 @@ export default function DespachoInteligenteContent() {
               </select>
             </div>
 
-            {/* Filtro Segmento */}
             <div>
               <label className="text-slate-400 text-xs mb-1 block">Segmento</label>
               <select
@@ -638,7 +614,6 @@ export default function DespachoInteligenteContent() {
               </select>
             </div>
 
-            {/* Filtro Status */}
             <div>
               <label className="text-slate-400 text-xs mb-1 block">Status</label>
               <select
@@ -655,7 +630,6 @@ export default function DespachoInteligenteContent() {
           </div>
         )}
 
-        {/* Contador de resultados */}
         <div className="mt-3 text-slate-500 text-sm">
           Mostrando {filteredFleet.length} de {stats.total} unidades
         </div>
@@ -716,7 +690,6 @@ export default function DespachoInteligenteContent() {
             </thead>
             <tbody className="divide-y divide-slate-700/30">
               {loading ? (
-                // Skeleton loading
                 Array.from({ length: 10 }).map((_, i) => (
                   <tr key={i} className="animate-pulse">
                     <td className="px-4 py-3"><div className="h-4 bg-slate-700/50 rounded w-16"></div></td>
@@ -745,7 +718,6 @@ export default function DespachoInteligenteContent() {
                       onClick={() => setSelectedUnit(unit)}
                       className="hover:bg-slate-700/20 cursor-pointer transition-colors"
                     >
-                      {/* Económico */}
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2">
                           <Truck className="w-4 h-4 text-slate-500" />
@@ -753,7 +725,6 @@ export default function DespachoInteligenteContent() {
                         </div>
                       </td>
 
-                      {/* Empresa */}
                       <td className="px-4 py-3">
                         <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium ${empresaColor.bg} ${empresaColor.text} border ${empresaColor.border}`}>
                           <Building2 className="w-3 h-3" />
@@ -761,12 +732,10 @@ export default function DespachoInteligenteContent() {
                         </span>
                       </td>
 
-                      {/* Segmento */}
                       <td className="px-4 py-3">
                         <span className="text-slate-300 text-sm">{unit.segmento}</span>
                       </td>
 
-                      {/* Status */}
                       <td className="px-4 py-3">
                         <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium ${statusConfig.bg} ${statusConfig.text}`}>
                           {statusConfig.icon}
@@ -774,7 +743,6 @@ export default function DespachoInteligenteContent() {
                         </span>
                       </td>
 
-                      {/* Ubicación */}
                       <td className="px-4 py-3">
                         <div className="flex items-start gap-1 max-w-xs">
                           <MapPin className="w-3 h-3 text-slate-500 mt-0.5 flex-shrink-0" />
@@ -784,7 +752,6 @@ export default function DespachoInteligenteContent() {
                         </div>
                       </td>
 
-                      {/* Velocidad */}
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-1">
                           <Gauge className="w-3 h-3 text-slate-500" />
@@ -794,7 +761,6 @@ export default function DespachoInteligenteContent() {
                         </div>
                       </td>
 
-                      {/* Última Señal */}
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-1">
                           <Clock className="w-3 h-3 text-slate-500" />
@@ -822,7 +788,6 @@ export default function DespachoInteligenteContent() {
             className="bg-slate-800 border border-slate-700/50 rounded-2xl w-full max-w-lg shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Header */}
             <div className="flex items-center justify-between p-4 border-b border-slate-700/50">
               <div className="flex items-center gap-3">
                 <div className="w-12 h-12 bg-blue-500/20 rounded-xl flex items-center justify-center">
@@ -846,9 +811,7 @@ export default function DespachoInteligenteContent() {
               </button>
             </div>
 
-            {/* Body */}
             <div className="p-4 space-y-4">
-              {/* Status */}
               <div className={`flex items-center gap-3 p-3 rounded-xl ${STATUS_CONFIG[selectedUnit.status]?.bg}`}>
                 {STATUS_CONFIG[selectedUnit.status]?.icon}
                 <span className={`font-medium ${STATUS_CONFIG[selectedUnit.status]?.text}`}>
@@ -856,9 +819,7 @@ export default function DespachoInteligenteContent() {
                 </span>
               </div>
 
-              {/* Grid de datos */}
               <div className="grid grid-cols-2 gap-3">
-                {/* Ubicación */}
                 <div className="col-span-2 bg-slate-900/50 rounded-xl p-3">
                   <div className="flex items-center gap-2 text-slate-400 text-xs mb-1">
                     <MapPin className="w-3 h-3" />
@@ -874,7 +835,6 @@ export default function DespachoInteligenteContent() {
                   )}
                 </div>
 
-                {/* Velocidad */}
                 <div className="bg-slate-900/50 rounded-xl p-3">
                   <div className="flex items-center gap-2 text-slate-400 text-xs mb-1">
                     <Gauge className="w-3 h-3" />
@@ -885,7 +845,6 @@ export default function DespachoInteligenteContent() {
                   </div>
                 </div>
 
-                {/* Dirección */}
                 <div className="bg-slate-900/50 rounded-xl p-3">
                   <div className="flex items-center gap-2 text-slate-400 text-xs mb-1">
                     <Navigation className="w-3 h-3" />
@@ -896,7 +855,6 @@ export default function DespachoInteligenteContent() {
                   </div>
                 </div>
 
-                {/* Odómetro */}
                 <div className="bg-slate-900/50 rounded-xl p-3">
                   <div className="flex items-center gap-2 text-slate-400 text-xs mb-1">
                     <Truck className="w-3 h-3" />
@@ -907,7 +865,6 @@ export default function DespachoInteligenteContent() {
                   </div>
                 </div>
 
-                {/* Ignición */}
                 <div className="bg-slate-900/50 rounded-xl p-3">
                   <div className="flex items-center gap-2 text-slate-400 text-xs mb-1">
                     <Power className="w-3 h-3" />
@@ -918,7 +875,6 @@ export default function DespachoInteligenteContent() {
                   </div>
                 </div>
 
-                {/* Última señal */}
                 <div className="col-span-2 bg-slate-900/50 rounded-xl p-3">
                   <div className="flex items-center gap-2 text-slate-400 text-xs mb-1">
                     <Clock className="w-3 h-3" />
@@ -936,4 +892,3 @@ export default function DespachoInteligenteContent() {
     </div>
   );
 }
-
