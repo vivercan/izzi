@@ -2,7 +2,7 @@
 
 import { projectId, publicAnonKey } from '../../utils/supabase/info';
 import React, { useState, useEffect, useCallback } from 'react';
-import { Truck, MapPin, Power, RefreshCw, Search, Download, WifiOff, Navigation, ExternalLink } from 'lucide-react';
+import { Truck, MapPin, Power, RefreshCw, Search, Download, WifiOff, Navigation, ExternalLink, Clock } from 'lucide-react';
 
 // FLOTA 219 UNIDADES (sin USA)
 const FLOTA_RAW: { e: string; emp: string; seg: string }[] = [
@@ -12,8 +12,6 @@ const FLOTA_RAW: { e: string; emp: string; seg: string }[] = [
 ];
 
 const FLOTA = FLOTA_RAW.map(u => ({ economico: u.e, empresa: u.emp, segmento: u.seg }));
-
-// Segmentos ordenados por prioridad
 const SEGMENTOS = ['IMPEX', 'CARROLL', 'BAFAR', 'NatureSweet', 'Pilgrims', 'ALPURA', 'BARCEL', 'MTTO', 'PATIOS', 'ACCIDENTE', 'INSTITUTO', 'PENDIENTE'];
 
 interface Unit {
@@ -25,13 +23,14 @@ interface Unit {
   speed: number | null;
   address: string | null;
   timestamp: string | null;
+  stoppedTime: string | null;
   status: 'moving' | 'stopped' | 'no_signal' | 'loading' | 'pending';
 }
 
-// Google Maps Geocoding API Key - REEMPLAZAR CON TU KEY
-const GOOGLE_MAPS_API_KEY = '';
-
 const EMP_ORDER: Record<string, number> = { SHI: 1, TROB: 2, WE: 3 };
+
+// Cache para geocoding (evitar llamadas repetidas)
+const geoCache: Record<string, string> = {};
 
 export default function DespachoInteligenteContent() {
   const [fleet, setFleet] = useState<Unit[]>([]);
@@ -43,35 +42,80 @@ export default function DespachoInteligenteContent() {
   const [progress, setProgress] = useState({ current: 0, total: 0 });
   const [loadedSegmentos, setLoadedSegmentos] = useState<string[]>([]);
 
-  // Inicializar flota con status pending
+  // Inicializar flota
   useEffect(() => {
-    setFleet(FLOTA.map(u => ({ ...u, latitude: null, longitude: null, speed: null, address: null, timestamp: null, status: 'pending' as const })));
+    setFleet(FLOTA.map(u => ({ ...u, latitude: null, longitude: null, speed: null, address: null, timestamp: null, stoppedTime: null, status: 'pending' as const })));
   }, []);
 
-  // Reverse Geocoding con Google Maps API
+  // Reverse Geocoding con Nominatim (OpenStreetMap) - GRATIS, sin API key
   const reverseGeocode = async (lat: number, lon: number): Promise<string> => {
-    if (!GOOGLE_MAPS_API_KEY) {
-      // Sin API key, mostrar coordenadas formateadas
-      return `${lat.toFixed(4)}°, ${lon.toFixed(4)}°`;
-    }
+    const cacheKey = `${lat.toFixed(4)},${lon.toFixed(4)}`;
+    if (geoCache[cacheKey]) return geoCache[cacheKey];
+
     try {
       const response = await fetch(
-        `https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lon}&key=${GOOGLE_MAPS_API_KEY}&language=es&result_type=locality|administrative_area_level_2|administrative_area_level_1`
+        `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json&addressdetails=1&accept-language=es`,
+        { headers: { 'User-Agent': 'FX27-Fleet-Tracker/1.0' } }
       );
+      
+      if (!response.ok) return '';
+      
       const data = await response.json();
-      if (data.results && data.results.length > 0) {
-        const components = data.results[0].address_components;
-        const locality = components.find((c: any) => c.types.includes('locality'))?.long_name;
-        const municipality = components.find((c: any) => c.types.includes('administrative_area_level_2'))?.long_name;
-        const state = components.find((c: any) => c.types.includes('administrative_area_level_1'))?.short_name;
+      if (data && data.address) {
+        const a = data.address;
+        // Extraer: Estado, Municipio, Ciudad/Pueblo/Localidad
+        const state = a.state || '';
+        const municipality = a.county || a.municipality || '';
+        const city = a.city || a.town || a.village || a.suburb || a.neighbourhood || '';
+        const road = a.road || '';
         
-        const parts = [locality, municipality, state].filter(Boolean);
-        return parts.length > 0 ? parts.join(', ') : `${lat.toFixed(4)}°, ${lon.toFixed(4)}°`;
+        // Formato: Ciudad, Municipio, Estado
+        const parts = [];
+        if (city) parts.push(city);
+        if (municipality && municipality !== city) parts.push(municipality);
+        if (state) parts.push(state);
+        
+        const result = parts.length > 0 ? parts.join(', ') : (road || 'México');
+        geoCache[cacheKey] = result;
+        return result;
       }
     } catch (error) {
       console.error('Geocoding error:', error);
     }
-    return `${lat.toFixed(4)}°, ${lon.toFixed(4)}°`;
+    return '';
+  };
+
+  // Calcular tiempo detenido desde timestamp
+  const calcStoppedTime = (timestamp: string | null, speed: number | null): string => {
+    if (!timestamp || (speed && speed > 0)) return '-';
+    
+    try {
+      // Parsear timestamp de WideTech (formato: "2025/12/18 17:25:00" o similar)
+      let date: Date;
+      if (timestamp.includes('/')) {
+        const parts = timestamp.replace(/\//g, '-').split(' ');
+        date = new Date(parts[0] + 'T' + (parts[1] || '00:00:00'));
+      } else {
+        date = new Date(timestamp);
+      }
+      
+      if (isNaN(date.getTime())) return '-';
+      
+      const now = new Date();
+      const diffMs = now.getTime() - date.getTime();
+      
+      if (diffMs < 0 || diffMs > 30 * 24 * 60 * 60 * 1000) return '-'; // Max 30 días
+      
+      const mins = Math.floor(diffMs / 60000);
+      const hours = Math.floor(mins / 60);
+      const days = Math.floor(hours / 24);
+      
+      if (days > 0) return `${days}d ${hours % 24}h`;
+      if (hours > 0) return `${hours}h ${mins % 60}m`;
+      return `${mins}m`;
+    } catch {
+      return '-';
+    }
   };
 
   const fetchBatch = async (placas: string[]) => {
@@ -92,59 +136,64 @@ export default function DespachoInteligenteContent() {
     const unitsToFetch = FLOTA.filter(u => u.segmento === segmento);
     const placas = unitsToFetch.map(u => u.economico);
     
-    // Marcar como loading
     setFleet(prev => prev.map(u => u.segmento === segmento ? { ...u, status: 'loading' as const } : u));
     
     const batches: string[][] = [];
-    for (let i = 0; i < placas.length; i += 5) {
-      batches.push(placas.slice(i, i + 5));
-    }
+    for (let i = 0; i < placas.length; i += 5) batches.push(placas.slice(i, i + 5));
     setProgress({ current: 0, total: placas.length });
 
     const allResults: any[] = [];
+    
     for (let i = 0; i < batches.length; i++) {
       const res = await fetchBatch(batches[i]);
       allResults.push(...res);
-      setProgress({ current: (i + 1) * 5, total: placas.length });
+      const processed = Math.min((i + 1) * 5, placas.length);
+      setProgress({ current: processed, total: placas.length });
 
-      // Actualizar unidades del batch actual
+      // Procesar cada resultado
       for (const g of res) {
         if (g?.success && g.location) {
           const l = g.location;
           const hasCoords = l.latitude && l.longitude;
-          const isMoving = (l.speed || 0) > 3;
+          const speed = l.speed || 0;
+          const isMoving = speed > 3;
           
-          // Obtener dirección legible
-          let address = l.address || l.addressOriginal || '';
-          if (hasCoords && (!address || address === 'Ubicación desconocida')) {
+          // Obtener dirección con Nominatim
+          let address = '';
+          if (hasCoords) {
             address = await reverseGeocode(l.latitude, l.longitude);
+            // Pequeña pausa para no saturar Nominatim (1 req/seg policy)
+            await new Promise(r => setTimeout(r, 100));
           }
+          
+          // Calcular tiempo detenido
+          const stoppedTime = !isMoving ? calcStoppedTime(l.timestamp, speed) : '-';
 
           setFleet(prev => prev.map(u => 
             u.economico === g.placa ? {
               ...u,
               latitude: l.latitude,
               longitude: l.longitude,
-              speed: l.speed,
-              address: address,
+              speed: speed,
+              address: address || 'Sin ubicación',
               timestamp: l.timestamp,
+              stoppedTime: stoppedTime,
               status: hasCoords ? (isMoving ? 'moving' : 'stopped') : 'no_signal'
             } : u
           ));
         } else {
-          // Sin datos de WideTech
           setFleet(prev => prev.map(u => 
-            u.economico === g?.placa ? { ...u, status: 'no_signal' as const } : u
+            u.economico === g?.placa ? { ...u, status: 'no_signal' as const, address: '-', stoppedTime: '-' } : u
           ));
         }
       }
 
-      if (i < batches.length - 1) await new Promise(r => setTimeout(r, 300));
+      if (i < batches.length - 1) await new Promise(r => setTimeout(r, 200));
     }
 
-    // Marcar unidades que no tuvieron respuesta
+    // Marcar los que no respondieron
     setFleet(prev => prev.map(u => 
-      u.segmento === segmento && u.status === 'loading' ? { ...u, status: 'no_signal' as const } : u
+      u.segmento === segmento && u.status === 'loading' ? { ...u, status: 'no_signal' as const, address: '-', stoppedTime: '-' } : u
     ));
 
     setLoadedSegmentos(prev => prev.includes(segmento) ? prev : [...prev, segmento]);
@@ -159,13 +208,13 @@ export default function DespachoInteligenteContent() {
     }
   }, [fleet.length, loadedSegmentos, fetchSegmento]);
 
-  // Auto-refresh cada 5 minutos del segmento activo
+  // Auto-refresh cada 5 minutos
   useEffect(() => {
     const interval = setInterval(() => {
       if (!loading && loadedSegmentos.includes(activeSegmento)) {
         fetchSegmento(activeSegmento);
       }
-    }, 5 * 60 * 1000); // 5 minutos
+    }, 5 * 60 * 1000);
     return () => clearInterval(interval);
   }, [activeSegmento, loading, loadedSegmentos, fetchSegmento]);
 
@@ -176,7 +225,6 @@ export default function DespachoInteligenteContent() {
     }
   };
 
-  // Filtrar solo el segmento activo
   const segmentoUnits = fleet.filter(u => u.segmento === activeSegmento);
   
   const filtered = segmentoUnits.filter(u => {
@@ -197,14 +245,46 @@ export default function DespachoInteligenteContent() {
   const openMap = (u: Unit) => u.latitude && window.open(`https://www.google.com/maps?q=${u.latitude},${u.longitude}`, '_blank');
 
   const exportCSV = () => {
-    const csv = [['Eco', 'Empresa', 'Seg', 'Status', 'Vel', 'Lat', 'Lon', 'Dir', 'Señal'], ...filtered.map(u => [u.economico, u.empresa, u.segmento, u.status, u.speed || '', u.latitude || '', u.longitude || '', u.address || '', u.timestamp || ''])].map(r => r.map(c => `"${c}"`).join(',')).join('\n');
-    const b = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
-    const l = document.createElement('a'); l.href = URL.createObjectURL(b); l.download = `GPS_${activeSegmento}_${new Date().toISOString().slice(0, 10)}.csv`; l.click();
+    const rows = [['Eco', 'Empresa', 'Segmento', 'Status', 'Detenido', 'Velocidad', 'Ubicación', 'Lat', 'Lon', 'Última Señal']];
+    filtered.forEach(u => {
+      rows.push([u.economico, u.empresa, u.segmento, u.status, u.stoppedTime || '-', String(u.speed || 0), u.address || '-', String(u.latitude || ''), String(u.longitude || ''), u.timestamp || '-']);
+    });
+    const csv = rows.map(r => r.map(c => `"${c}"`).join(',')).join('\n');
+    const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `GPS_${activeSegmento}_${new Date().toISOString().slice(0, 10)}.csv`;
+    link.click();
   };
 
-  const fmtTs = (t: string | null) => t ? new Date(t).toLocaleString('es-MX', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : '-';
+  const fmtTs = (t: string | null) => {
+    if (!t) return '-';
+    try {
+      let d: Date;
+      if (t.includes('/')) {
+        const parts = t.replace(/\//g, '-').split(' ');
+        d = new Date(parts[0] + 'T' + (parts[1] || '00:00:00'));
+      } else {
+        d = new Date(t);
+      }
+      return d.toLocaleString('es-MX', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+    } catch { return t; }
+  };
 
   const pct = progress.total > 0 ? Math.round((progress.current / progress.total) * 100) : 0;
+
+  // Color del tiempo detenido
+  const getStoppedColor = (time: string | null) => {
+    if (!time || time === '-') return 'text-slate-500';
+    if (time.includes('d')) return 'text-red-400'; // Días = rojo
+    if (time.includes('h')) {
+      const hours = parseInt(time);
+      if (hours >= 8) return 'text-red-400';
+      if (hours >= 4) return 'text-orange-400';
+      return 'text-yellow-400';
+    }
+    return 'text-yellow-400'; // Minutos = amarillo
+  };
 
   return (
     <div className="min-h-screen p-4" style={{ background: 'linear-gradient(180deg, #1a365d 0%, #0f172a 100%)' }}>
@@ -213,6 +293,7 @@ export default function DespachoInteligenteContent() {
       <div className="flex flex-wrap gap-2 mb-4">
         {SEGMENTOS.map(seg => {
           const count = FLOTA.filter(u => u.segmento === seg).length;
+          if (count === 0) return null;
           const isLoaded = loadedSegmentos.includes(seg);
           const isActive = activeSegmento === seg;
           
@@ -230,7 +311,7 @@ export default function DespachoInteligenteContent() {
               }`}
               style={{ boxShadow: isActive ? '0 4px 12px rgba(59,130,246,0.4)' : 'none' }}
             >
-              {seg} <span className="opacity-70">({count})</span>
+              {seg} ({count})
               {isLoaded && !isActive && <span className="ml-1 text-green-400">✓</span>}
             </button>
           );
@@ -240,23 +321,21 @@ export default function DespachoInteligenteContent() {
       {/* Toolbar */}
       <div className="flex items-center gap-3 mb-4 p-3 rounded-2xl bg-slate-800/60 backdrop-blur-sm" style={{ boxShadow: '0 4px 24px rgba(0,0,0,0.3)' }}>
         
-        {/* Status Buttons */}
-        <button onClick={() => setStatusF('ALL')} className={`h-10 px-4 rounded-xl font-semibold text-sm flex items-center gap-2 transition-all ${statusF === 'ALL' ? 'bg-gradient-to-b from-slate-500 to-slate-700 text-white' : 'bg-slate-700/80 text-slate-300'}`}>
-          <Truck className="w-4 h-4" /><span>{segStats.total}</span>
+        <button onClick={() => setStatusF('ALL')} className={`h-10 px-4 rounded-xl font-semibold text-sm flex items-center gap-2 ${statusF === 'ALL' ? 'bg-gradient-to-b from-slate-500 to-slate-700 text-white' : 'bg-slate-700/80 text-slate-300'}`}>
+          <Truck className="w-4 h-4" />{segStats.total}
         </button>
-        <button onClick={() => setStatusF('moving')} className={`h-10 px-4 rounded-xl font-semibold text-sm flex items-center gap-2 transition-all ${statusF === 'moving' ? 'bg-gradient-to-b from-green-500 to-green-700 text-white' : 'bg-slate-700/80 text-slate-300'}`}>
-          <Navigation className="w-4 h-4" /><span>{segStats.mov}</span>
+        <button onClick={() => setStatusF('moving')} className={`h-10 px-4 rounded-xl font-semibold text-sm flex items-center gap-2 ${statusF === 'moving' ? 'bg-gradient-to-b from-green-500 to-green-700 text-white' : 'bg-slate-700/80 text-slate-300'}`}>
+          <Navigation className="w-4 h-4" />{segStats.mov}
         </button>
-        <button onClick={() => setStatusF('stopped')} className={`h-10 px-4 rounded-xl font-semibold text-sm flex items-center gap-2 transition-all ${statusF === 'stopped' ? 'bg-gradient-to-b from-yellow-500 to-yellow-600 text-white' : 'bg-slate-700/80 text-slate-300'}`}>
-          <Power className="w-4 h-4" /><span>{segStats.det}</span>
+        <button onClick={() => setStatusF('stopped')} className={`h-10 px-4 rounded-xl font-semibold text-sm flex items-center gap-2 ${statusF === 'stopped' ? 'bg-gradient-to-b from-yellow-500 to-yellow-600 text-white' : 'bg-slate-700/80 text-slate-300'}`}>
+          <Power className="w-4 h-4" />{segStats.det}
         </button>
-        <button onClick={() => setStatusF('no_signal')} className={`h-10 px-4 rounded-xl font-semibold text-sm flex items-center gap-2 transition-all ${statusF === 'no_signal' ? 'bg-gradient-to-b from-red-500 to-red-700 text-white' : 'bg-slate-700/80 text-slate-300'}`}>
-          <WifiOff className="w-4 h-4" /><span>{segStats.sin}</span>
+        <button onClick={() => setStatusF('no_signal')} className={`h-10 px-4 rounded-xl font-semibold text-sm flex items-center gap-2 ${statusF === 'no_signal' ? 'bg-gradient-to-b from-red-500 to-red-700 text-white' : 'bg-slate-700/80 text-slate-300'}`}>
+          <WifiOff className="w-4 h-4" />{segStats.sin}
         </button>
 
         <div className="w-px h-8 bg-slate-600/50" />
 
-        {/* Search */}
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
           <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Eco..." className="h-10 w-24 pl-9 pr-3 rounded-xl bg-slate-700/60 border border-slate-600/50 text-white text-sm placeholder-slate-400 focus:outline-none" />
@@ -264,51 +343,58 @@ export default function DespachoInteligenteContent() {
 
         <div className="flex-1" />
 
-        {/* Info */}
         <span className="text-slate-400 text-sm">{filtered.length}/{segStats.total}</span>
         {lastRefresh && <span className="text-slate-500 text-xs">{lastRefresh.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })}</span>}
 
-        {/* Download */}
-        <button onClick={exportCSV} className="h-10 w-10 flex items-center justify-center rounded-xl bg-gradient-to-b from-slate-600 to-slate-800 text-slate-300 hover:from-slate-500 hover:to-slate-700 transition-all">
+        <button onClick={exportCSV} className="h-10 w-10 flex items-center justify-center rounded-xl bg-gradient-to-b from-slate-600 to-slate-800 text-slate-300">
           <Download className="w-4 h-4" />
         </button>
 
-        {/* Actualizar */}
-        <button onClick={() => fetchSegmento(activeSegmento)} disabled={loading} className={`h-10 px-4 rounded-xl font-semibold text-sm flex items-center gap-2 transition-all ${loading ? 'bg-gradient-to-b from-orange-500 to-orange-700' : 'bg-gradient-to-b from-blue-500 to-blue-700'} text-white`}>
+        <button onClick={() => fetchSegmento(activeSegmento)} disabled={loading} className={`h-10 px-4 rounded-xl font-semibold text-sm flex items-center gap-2 ${loading ? 'bg-gradient-to-b from-orange-500 to-orange-700' : 'bg-gradient-to-b from-blue-500 to-blue-700'} text-white`}>
           <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-          {loading ? `${progress.current}/${progress.total} • ${pct}%` : 'Actualizar'}
+          {loading ? `${progress.current}/${progress.total}` : 'Actualizar'}
         </button>
       </div>
 
       {/* Table */}
-      <div className="rounded-2xl overflow-hidden bg-slate-800/40 backdrop-blur-sm" style={{ boxShadow: '0 4px 24px rgba(0,0,0,0.3)' }}>
+      <div className="rounded-2xl overflow-hidden bg-slate-800/40" style={{ boxShadow: '0 4px 24px rgba(0,0,0,0.3)' }}>
         <div className="max-h-[calc(100vh-280px)] overflow-y-auto">
           <table className="w-full">
             <thead className="sticky top-0 bg-slate-900/95 z-10">
               <tr>
-                {['ECO', 'EMPRESA', 'STATUS', 'VEL', 'UBICACIÓN', 'SEÑAL'].map(h => (
-                  <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wide">{h}</th>
-                ))}
+                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-400 uppercase">ECO</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-400 uppercase">EMPRESA</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-400 uppercase">STATUS</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-400 uppercase">DETENIDO</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-400 uppercase">VEL</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-400 uppercase">UBICACIÓN</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-400 uppercase">SEÑAL</th>
               </tr>
             </thead>
             <tbody>
               {filtered.map(u => (
-                <tr key={u.economico} className="border-t border-slate-700/30 hover:bg-slate-700/20 transition-colors">
+                <tr key={u.economico} className="border-t border-slate-700/30 hover:bg-slate-700/20">
                   <td className="px-4 py-3 font-mono font-bold text-white">{u.economico}</td>
                   <td className="px-4 py-3">
                     <span className={`px-2 py-1 rounded-lg text-xs font-semibold ${u.empresa === 'SHI' ? 'bg-purple-500/20 text-purple-300' : u.empresa === 'TROB' ? 'bg-blue-500/20 text-blue-300' : 'bg-emerald-500/20 text-emerald-300'}`}>{u.empresa}</span>
                   </td>
                   <td className="px-4 py-3">
-                    <button onClick={() => openMap(u)} disabled={!u.latitude} className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold transition-all ${u.status === 'moving' ? 'bg-green-500/20 text-green-400' : u.status === 'stopped' ? 'bg-yellow-500/20 text-yellow-400' : u.status === 'loading' ? 'bg-blue-500/20 text-blue-400' : 'bg-red-500/20 text-red-400'} ${u.latitude ? 'cursor-pointer hover:opacity-80' : 'cursor-not-allowed opacity-60'}`}>
+                    <button onClick={() => openMap(u)} disabled={!u.latitude} className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold ${u.status === 'moving' ? 'bg-green-500/20 text-green-400' : u.status === 'stopped' ? 'bg-yellow-500/20 text-yellow-400' : u.status === 'loading' ? 'bg-blue-500/20 text-blue-400' : 'bg-red-500/20 text-red-400'} ${u.latitude ? 'cursor-pointer hover:opacity-80' : 'cursor-not-allowed opacity-60'}`}>
                       {u.status === 'moving' ? <Navigation className="w-3 h-3" /> : u.status === 'stopped' ? <Power className="w-3 h-3" /> : u.status === 'loading' ? <RefreshCw className="w-3 h-3 animate-spin" /> : <WifiOff className="w-3 h-3" />}
                       {u.status === 'moving' ? 'Mov' : u.status === 'stopped' ? 'Det' : u.status === 'loading' ? '...' : 'Sin'}
                       {u.latitude && <ExternalLink className="w-3 h-3" />}
                     </button>
                   </td>
                   <td className="px-4 py-3">
+                    <span className={`text-sm font-semibold flex items-center gap-1 ${getStoppedColor(u.stoppedTime)}`}>
+                      {u.stoppedTime && u.stoppedTime !== '-' && <Clock className="w-3 h-3" />}
+                      {u.stoppedTime || '-'}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3">
                     <span className={`text-sm font-semibold ${(u.speed || 0) > 0 ? 'text-green-400' : 'text-slate-500'}`}>{u.speed ?? '-'}</span>
                   </td>
-                  <td className="px-4 py-3 text-slate-300 text-sm max-w-[250px] truncate">{u.address || '-'}</td>
+                  <td className="px-4 py-3 text-slate-300 text-sm max-w-[280px] truncate">{u.address || '-'}</td>
                   <td className="px-4 py-3 text-slate-500 text-xs">{fmtTs(u.timestamp)}</td>
                 </tr>
               ))}
