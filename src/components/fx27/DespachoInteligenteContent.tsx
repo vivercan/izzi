@@ -4,14 +4,13 @@ import { projectId, publicAnonKey } from '../../utils/supabase/info';
 import React, { useState, useEffect, useCallback } from 'react';
 import { 
   Truck, MapPin, Clock, Gauge, Power, RefreshCw, Search, Download,
-  ChevronDown, X, WifiOff, Navigation, Building2, ExternalLink
+  X, WifiOff, Navigation, ExternalLink
 } from 'lucide-react';
 
 // ============================================
-// REGISTRY DE FLOTA - 242 UNIDADES
+// FLOTA - 242 UNIDADES
 // ============================================
 const FLOTA_LOMA_RAW: { economico: string; empresa: string; segmentoOriginal: string }[] = [
-  // TROB - 130 unidades
   { economico: "167", empresa: "TROB", segmentoOriginal: "INSTITUTO" },
   { economico: "503", empresa: "TROB", segmentoOriginal: "PATIERO NEXTEER" },
   { economico: "505", empresa: "TROB", segmentoOriginal: "CARROL" },
@@ -142,7 +141,6 @@ const FLOTA_LOMA_RAW: { economico: string; empresa: string; segmentoOriginal: st
   { economico: "963", empresa: "TROB", segmentoOriginal: "IMPEX/NEXTEER/CLARIOS" },
   { economico: "501", empresa: "TROB", segmentoOriginal: "IMPEX/NEXTEER/CLARIOS" },
   { economico: "507", empresa: "TROB", segmentoOriginal: "IMPEX/NEXTEER/CLARIOS" },
-  // WE - 56 unidades
   { economico: "112", empresa: "WE", segmentoOriginal: "IMPEX/NEXTEER/CLARIOS" },
   { economico: "116", empresa: "WE", segmentoOriginal: "IMPEX/NEXTEER/CLARIOS" },
   { economico: "118", empresa: "WE", segmentoOriginal: "CARROL" },
@@ -199,7 +197,6 @@ const FLOTA_LOMA_RAW: { economico: string; empresa: string; segmentoOriginal: st
   { economico: "234", empresa: "WE", segmentoOriginal: "ALPURA" },
   { economico: "236", empresa: "WE", segmentoOriginal: "ALPURA" },
   { economico: "230", empresa: "WE", segmentoOriginal: "PENDIENTE DE ENTREGA ZAPATA" },
-  // SHI - 33 unidades
   { economico: "1", empresa: "SHI", segmentoOriginal: "DEDICADO NS/MULA" },
   { economico: "101", empresa: "SHI", segmentoOriginal: "DEDICADO NS" },
   { economico: "103", empresa: "SHI", segmentoOriginal: "DEDICADO NS" },
@@ -233,7 +230,6 @@ const FLOTA_LOMA_RAW: { economico: string; empresa: string; segmentoOriginal: st
   { economico: "443", empresa: "SHI", segmentoOriginal: "IMPEX/NEXTEER/CLARIOS" },
   { economico: "445", empresa: "SHI", segmentoOriginal: "DEDICADO NS" },
   { economico: "449", empresa: "SHI", segmentoOriginal: "DEDICADO NS" },
-  // TROB USA - 23 unidades
   { economico: "231001", empresa: "TROB USA", segmentoOriginal: "TROB USA" },
   { economico: "231002", empresa: "TROB USA", segmentoOriginal: "TROB USA" },
   { economico: "231003", empresa: "TROB USA", segmentoOriginal: "TROB USA" },
@@ -259,7 +255,6 @@ const FLOTA_LOMA_RAW: { economico: string; empresa: string; segmentoOriginal: st
   { economico: "881", empresa: "TROB USA", segmentoOriginal: "TROB USA" },
 ];
 
-// Función para normalizar segmentos
 const normalizeSegmento = (seg: string): string => {
   const s = seg.toUpperCase();
   if (s.includes('ALPURA')) return 'ALPURA';
@@ -269,30 +264,21 @@ const normalizeSegmento = (seg: string): string => {
   if (s.includes('NS') || s.includes('NATURESWEET')) return 'NatureSweet';
   if (s.includes('PILGRIM')) return 'Pilgrims';
   if (s.includes('IMPEX') && !s.includes('MTTO')) return 'IMPEX';
-  if (s.includes('MTTO') || s.includes('MANTENIMIENTO')) return 'MTTO';
+  if (s.includes('MTTO')) return 'MTTO';
   if (s.includes('ACCIDENTE')) return 'ACCIDENTE';
   if (s.includes('INSTITUTO')) return 'INSTITUTO';
-  if (s.includes('PATIO') || s.includes('MULA')) {
-    if (s.includes('AGS')) return 'PATIO AGS';
-    if (s.includes('QRO')) return 'PATIO QRO';
-    if (s.includes('CELAYA')) return 'PATIO CELAYA';
-    if (s.includes('MTY')) return 'PATIO MTY';
-    if (s.includes('CARROL')) return 'PATIO CARROLL';
-    return 'PATIOS';
-  }
+  if (s.includes('PATIO') || s.includes('MULA')) return 'PATIOS';
   if (s.includes('PENDIENTE')) return 'PENDIENTE';
   if (s.includes('TROB USA') || s.includes('USA')) return 'TROB USA';
   return 'IMPEX';
 };
 
-// Crear flota con segmentos normalizados
 const FLOTA_LOMA = FLOTA_LOMA_RAW.map(u => ({
   economico: u.economico,
   empresa: u.empresa,
   segmento: normalizeSegmento(u.segmentoOriginal)
 }));
 
-// Tipos
 interface FleetUnit {
   economico: string;
   empresa: string;
@@ -310,19 +296,7 @@ interface FleetUnit {
 }
 
 const EMPRESA_ORDER: Record<string, number> = { 'SHI': 1, 'TROB': 2, 'WE': 3, 'TROB USA': 4 };
-const EMPRESA_COLORS: Record<string, { bg: string; text: string; solid: string }> = {
-  'SHI': { bg: 'bg-purple-500/20', text: 'text-purple-400', solid: 'bg-purple-600' },
-  'TROB': { bg: 'bg-blue-500/20', text: 'text-blue-400', solid: 'bg-blue-600' },
-  'WE': { bg: 'bg-emerald-500/20', text: 'text-emerald-400', solid: 'bg-emerald-600' },
-  'TROB USA': { bg: 'bg-amber-500/20', text: 'text-amber-400', solid: 'bg-amber-600' },
-};
-
-const SEGMENTOS_DISPONIBLES = [
-  'ALPURA', 'BAFAR', 'BARCEL', 'CARROLL', 'NatureSweet', 'Pilgrims', 
-  'IMPEX', 'MTTO', 'ACCIDENTE', 'INSTITUTO', 'PATIO AGS', 'PATIO QRO', 
-  'PATIO CELAYA', 'PATIO MTY', 'PATIO CARROLL', 'PENDIENTE', 'TROB USA'
-];
-
+const SEGMENTOS = ['ALPURA', 'BAFAR', 'BARCEL', 'CARROLL', 'NatureSweet', 'Pilgrims', 'IMPEX', 'MTTO', 'ACCIDENTE', 'INSTITUTO', 'PATIOS', 'PENDIENTE', 'TROB USA'];
 const BATCH_SIZE = 5;
 
 export default function DespachoInteligenteContent() {
@@ -334,18 +308,13 @@ export default function DespachoInteligenteContent() {
   const [filterStatus, setFilterStatus] = useState<string>('ALL');
   const [filterEmpresas, setFilterEmpresas] = useState<string[]>(['SHI', 'TROB', 'WE', 'TROB USA']);
   const [filterSegmento, setFilterSegmento] = useState<string>('ALL');
-  const [selectedUnit, setSelectedUnit] = useState<FleetUnit | null>(null);
   const [loadingProgress, setLoadingProgress] = useState({ current: 0, total: 0 });
 
   const fetchBatch = async (placas: string[]): Promise<any[]> => {
     try {
       const response = await fetch(
         `https://${projectId}.supabase.co/functions/v1/make-server-d84b50bb/widetech/locations/batch`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${publicAnonKey}` },
-          body: JSON.stringify({ placas }),
-        }
+        { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${publicAnonKey}` }, body: JSON.stringify({ placas }) }
       );
       if (!response.ok) return [];
       const result = await response.json();
@@ -354,335 +323,173 @@ export default function DespachoInteligenteContent() {
   };
 
   const fetchFleetGPS = useCallback(async (isRefresh = false) => {
-    if (isRefresh) setRefreshing(true);
-    else setLoading(true);
-
-    const initialFleet: FleetUnit[] = FLOTA_LOMA.map(unit => ({
-      ...unit, latitude: null, longitude: null, speed: null, heading: null,
-      address: null, timestamp: null, odometer: null, ignition: null,
-      status: 'loading' as const, lastUpdate: null,
-    }));
+    if (isRefresh) setRefreshing(true); else setLoading(true);
+    const initialFleet: FleetUnit[] = FLOTA_LOMA.map(unit => ({ ...unit, latitude: null, longitude: null, speed: null, heading: null, address: null, timestamp: null, odometer: null, ignition: null, status: 'loading' as const, lastUpdate: null }));
     setFleet(initialFleet);
-
     const allPlacas = FLOTA_LOMA.map(u => u.economico);
     const batches: string[][] = [];
-    for (let i = 0; i < allPlacas.length; i += BATCH_SIZE) {
-      batches.push(allPlacas.slice(i, i + BATCH_SIZE));
-    }
+    for (let i = 0; i < allPlacas.length; i += BATCH_SIZE) batches.push(allPlacas.slice(i, i + BATCH_SIZE));
     setLoadingProgress({ current: 0, total: batches.length });
-
     const allResults: any[] = [];
     for (let i = 0; i < batches.length; i++) {
       const batchResults = await fetchBatch(batches[i]);
       allResults.push(...batchResults);
       setLoadingProgress({ current: i + 1, total: batches.length });
-      
       setFleet(prev => prev.map(unit => {
         const gpsData = allResults.find((d: any) => d.placa === unit.economico);
-        if (gpsData && gpsData.success && gpsData.location) {
+        if (gpsData?.success && gpsData.location) {
           const loc = gpsData.location;
           const isMoving = (loc.speed || 0) > 5;
           const hasSignal = loc.latitude && loc.longitude;
           const ignitionOn = loc.ignition === 'ON' || loc.ignition === true;
-          return {
-            ...unit, latitude: loc.latitude, longitude: loc.longitude, speed: loc.speed,
-            heading: loc.heading, address: loc.address || loc.addressOriginal,
-            timestamp: loc.timestamp, odometer: loc.odometer, ignition: ignitionOn,
-            status: !hasSignal ? 'no_signal' : isMoving ? 'moving' : ignitionOn ? 'stopped' : 'offline',
-            lastUpdate: new Date(),
-          };
+          return { ...unit, latitude: loc.latitude, longitude: loc.longitude, speed: loc.speed, heading: loc.heading, address: loc.address || loc.addressOriginal, timestamp: loc.timestamp, odometer: loc.odometer, ignition: ignitionOn, status: !hasSignal ? 'no_signal' : isMoving ? 'moving' : ignitionOn ? 'stopped' : 'offline', lastUpdate: new Date() };
         }
-        if (batches.slice(0, i + 1).flat().includes(unit.economico) && unit.status === 'loading') {
-          return { ...unit, status: 'no_signal' as const, lastUpdate: new Date() };
-        }
+        if (batches.slice(0, i + 1).flat().includes(unit.economico) && unit.status === 'loading') return { ...unit, status: 'no_signal' as const, lastUpdate: new Date() };
         return unit;
       }));
       if (i < batches.length - 1) await new Promise(r => setTimeout(r, 300));
     }
-    setLastRefresh(new Date());
-    setLoading(false);
-    setRefreshing(false);
+    setLastRefresh(new Date()); setLoading(false); setRefreshing(false);
   }, []);
 
   useEffect(() => { fetchFleetGPS(); }, [fetchFleetGPS]);
 
-  const toggleEmpresa = (emp: string) => {
-    setFilterEmpresas(prev => 
-      prev.includes(emp) ? prev.filter(e => e !== emp) : [...prev, emp]
-    );
-  };
+  const toggleEmpresa = (emp: string) => setFilterEmpresas(prev => prev.includes(emp) ? prev.filter(e => e !== emp) : [...prev, emp]);
 
-  const filteredFleet = fleet
-    .filter(unit => {
-      if (searchTerm && !unit.economico.toLowerCase().includes(searchTerm.toLowerCase())) return false;
-      if (!filterEmpresas.includes(unit.empresa)) return false;
-      if (filterSegmento !== 'ALL' && unit.segmento !== filterSegmento) return false;
-      if (filterStatus === 'moving' && unit.status !== 'moving') return false;
-      if (filterStatus === 'stopped' && unit.status !== 'stopped') return false;
-      if (filterStatus === 'no_signal' && unit.status !== 'no_signal' && unit.status !== 'offline') return false;
-      return true;
-    })
-    .sort((a, b) => {
-      const empresaDiff = (EMPRESA_ORDER[a.empresa] || 99) - (EMPRESA_ORDER[b.empresa] || 99);
-      if (empresaDiff !== 0) return empresaDiff;
-      const segmentoDiff = a.segmento.localeCompare(b.segmento);
-      if (segmentoDiff !== 0) return segmentoDiff;
-      return parseInt(a.economico) - parseInt(b.economico);
-    });
+  const filteredFleet = fleet.filter(unit => {
+    if (searchTerm && !unit.economico.includes(searchTerm)) return false;
+    if (!filterEmpresas.includes(unit.empresa)) return false;
+    if (filterSegmento !== 'ALL' && unit.segmento !== filterSegmento) return false;
+    if (filterStatus === 'moving' && unit.status !== 'moving') return false;
+    if (filterStatus === 'stopped' && unit.status !== 'stopped') return false;
+    if (filterStatus === 'no_signal' && unit.status !== 'no_signal' && unit.status !== 'offline') return false;
+    return true;
+  }).sort((a, b) => {
+    const ed = (EMPRESA_ORDER[a.empresa] || 99) - (EMPRESA_ORDER[b.empresa] || 99);
+    if (ed !== 0) return ed;
+    const sd = a.segmento.localeCompare(b.segmento);
+    if (sd !== 0) return sd;
+    return parseInt(a.economico) - parseInt(b.economico);
+  });
 
   const stats = {
     total: fleet.length,
     moving: fleet.filter(u => u.status === 'moving').length,
     stopped: fleet.filter(u => u.status === 'stopped').length,
     noSignal: fleet.filter(u => u.status === 'no_signal' || u.status === 'offline').length,
-    loading: fleet.filter(u => u.status === 'loading').length,
-    byEmpresa: {
-      SHI: fleet.filter(u => u.empresa === 'SHI').length,
-      TROB: fleet.filter(u => u.empresa === 'TROB').length,
-      WE: fleet.filter(u => u.empresa === 'WE').length,
-      'TROB USA': fleet.filter(u => u.empresa === 'TROB USA').length,
-    }
+    byEmpresa: { SHI: fleet.filter(u => u.empresa === 'SHI').length, TROB: fleet.filter(u => u.empresa === 'TROB').length, WE: fleet.filter(u => u.empresa === 'WE').length, 'TROB USA': fleet.filter(u => u.empresa === 'TROB USA').length }
   };
 
-  const openGoogleMaps = (unit: FleetUnit) => {
-    if (unit.latitude && unit.longitude) {
-      window.open(`https://www.google.com/maps?q=${unit.latitude},${unit.longitude}`, '_blank');
-    }
+  const openMaps = (u: FleetUnit) => u.latitude && window.open(`https://www.google.com/maps?q=${u.latitude},${u.longitude}`, '_blank');
+
+  const exportExcel = () => {
+    const rows = [['Eco', 'Empresa', 'Segmento', 'Status', 'Vel', 'Lat', 'Lon', 'Dirección', 'Señal'], ...filteredFleet.map(u => [u.economico, u.empresa, u.segmento, u.status, u.speed || '', u.latitude || '', u.longitude || '', u.address || '', u.timestamp || ''])];
+    const csv = rows.map(r => r.map(c => `"${c}"`).join(',')).join('\n');
+    const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a'); link.href = URL.createObjectURL(blob); link.download = `GPS_${new Date().toISOString().slice(0, 10)}.csv`; link.click();
   };
 
-  const exportToExcel = () => {
-    const headers = ['Económico', 'Empresa', 'Segmento', 'Status', 'Velocidad', 'Latitud', 'Longitud', 'Dirección', 'Última Señal'];
-    const rows = filteredFleet.map(u => [
-      u.economico, u.empresa, u.segmento,
-      u.status === 'moving' ? 'En Movimiento' : u.status === 'stopped' ? 'Detenido' : 'Sin Señal',
-      u.speed || 0, u.latitude || '', u.longitude || '', u.address || '', u.timestamp || ''
-    ]);
-    const csvContent = [headers.join(','), ...rows.map(r => r.map(c => `"${c}"`).join(','))].join('\n');
-    const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = `flota_gps_${new Date().toISOString().slice(0,10)}.csv`;
-    link.click();
-  };
+  const formatTs = (ts: string | null) => ts ? new Date(ts).toLocaleString('es-MX', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : '-';
 
-  const formatTimestamp = (ts: string | null) => {
-    if (!ts) return '-';
-    try {
-      return new Date(ts).toLocaleString('es-MX', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
-    } catch { return ts; }
-  };
-
-  // Botón de status con efecto glassmorphism
-  const StatusButton = ({ type, count, active, onClick }: { type: string; count: number; active: boolean; onClick: () => void }) => {
-    const configs: Record<string, { bg: string; activeBg: string; text: string; icon: React.ReactNode; label: string }> = {
-      total: { bg: 'from-slate-600 to-slate-700', activeBg: 'from-slate-500 to-slate-600', text: 'text-white', icon: <Truck className="w-4 h-4" />, label: 'Total' },
-      moving: { bg: 'from-green-600 to-green-700', activeBg: 'from-green-500 to-green-600', text: 'text-white', icon: <Navigation className="w-4 h-4" />, label: 'Mov' },
-      stopped: { bg: 'from-yellow-600 to-yellow-700', activeBg: 'from-yellow-500 to-yellow-600', text: 'text-white', icon: <Power className="w-4 h-4" />, label: 'Det' },
-      no_signal: { bg: 'from-red-600 to-red-700', activeBg: 'from-red-500 to-red-600', text: 'text-white', icon: <WifiOff className="w-4 h-4" />, label: 'Sin' },
-    };
-    const cfg = configs[type];
-    return (
-      <button
-        onClick={onClick}
-        className={`
-          relative overflow-hidden px-3 py-2 rounded-xl transition-all duration-200
-          bg-gradient-to-b ${active ? cfg.activeBg : cfg.bg}
-          border border-white/20 shadow-lg
-          hover:scale-105 hover:shadow-xl
-          ${active ? 'ring-2 ring-white/50' : ''}
-          backdrop-blur-sm
-        `}
-        style={{ boxShadow: active ? '0 4px 20px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.2)' : '0 2px 10px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.1)' }}
-      >
-        <div className="absolute inset-0 bg-gradient-to-b from-white/10 to-transparent pointer-events-none" />
-        <div className="flex items-center gap-2 relative z-10">
-          {cfg.icon}
-          <span className={`font-bold text-lg ${cfg.text}`}>{count}</span>
-          <span className={`text-xs ${cfg.text} opacity-80`}>{cfg.label}</span>
-        </div>
-      </button>
-    );
-  };
-
-  // Botón de empresa con multi-selección
-  const EmpresaButton = ({ empresa, count, selected }: { empresa: string; count: number; selected: boolean }) => {
-    const color = EMPRESA_COLORS[empresa];
-    return (
-      <button
-        onClick={() => toggleEmpresa(empresa)}
-        className={`
-          px-2 py-1.5 rounded-lg text-xs font-medium transition-all duration-200
-          border ${selected ? 'border-white/30' : 'border-transparent'}
-          ${selected ? color.solid + ' text-white shadow-md' : 'bg-slate-700/50 text-slate-400'}
-          hover:scale-105
-        `}
-      >
-        {empresa} ({count})
-      </button>
-    );
-  };
+  // Botón 3D estilo glassmorphism uniforme
+  const Btn3D = ({ active, color, onClick, children }: { active?: boolean; color: string; onClick: () => void; children: React.ReactNode }) => (
+    <button onClick={onClick} className={`
+      relative px-4 py-2 rounded-xl font-semibold text-sm transition-all duration-200
+      ${active ? `bg-${color} text-white shadow-lg shadow-${color}/40` : 'bg-white/10 text-white/70 hover:bg-white/20'}
+      backdrop-blur-md border border-white/20
+      hover:scale-105 active:scale-95
+    `} style={{
+      background: active ? `linear-gradient(145deg, var(--tw-gradient-from), var(--tw-gradient-to))` : 'rgba(255,255,255,0.08)',
+      boxShadow: active ? `0 8px 32px rgba(0,0,0,0.3), inset 0 2px 0 rgba(255,255,255,0.2), 0 4px 16px ${color === 'emerald-500' ? 'rgba(16,185,129,0.3)' : color === 'amber-500' ? 'rgba(245,158,11,0.3)' : color === 'red-500' ? 'rgba(239,68,68,0.3)' : 'rgba(100,100,100,0.3)'}` : '0 4px 16px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.1)'
+    }}>{children}</button>
+  );
 
   return (
-    <div className="flex flex-col h-full max-h-[calc(100vh-120px)]">
-      {/* HEADER */}
-      <div className="flex-shrink-0 space-y-2 pb-2">
-        {/* Fila 1: Botones de status + Empresas + Filtros */}
-        <div className="flex items-center gap-2 flex-wrap">
-          {/* Botones de status */}
-          <StatusButton type="total" count={stats.total} active={filterStatus === 'ALL'} onClick={() => setFilterStatus('ALL')} />
-          <StatusButton type="moving" count={stats.moving} active={filterStatus === 'moving'} onClick={() => setFilterStatus('moving')} />
-          <StatusButton type="stopped" count={stats.stopped} active={filterStatus === 'stopped'} onClick={() => setFilterStatus('stopped')} />
-          <StatusButton type="no_signal" count={stats.noSignal} active={filterStatus === 'no_signal'} onClick={() => setFilterStatus('no_signal')} />
-          
-          <div className="w-px h-8 bg-slate-600 mx-1" />
-          
-          {/* Botones de empresa */}
-          <EmpresaButton empresa="SHI" count={stats.byEmpresa.SHI} selected={filterEmpresas.includes('SHI')} />
-          <EmpresaButton empresa="TROB" count={stats.byEmpresa.TROB} selected={filterEmpresas.includes('TROB')} />
-          <EmpresaButton empresa="WE" count={stats.byEmpresa.WE} selected={filterEmpresas.includes('WE')} />
-          <EmpresaButton empresa="TROB USA" count={stats.byEmpresa['TROB USA']} selected={filterEmpresas.includes('TROB USA')} />
-          
-          <div className="w-px h-8 bg-slate-600 mx-1" />
-          
-          {/* Búsqueda */}
-          <div className="relative">
-            <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-slate-500" />
-            <input
-              type="text"
-              placeholder="Eco..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-20 pl-7 pr-2 py-1.5 bg-slate-800/80 border border-slate-600/50 rounded-lg text-white text-sm placeholder-slate-500 focus:outline-none focus:border-blue-500/50"
-            />
-          </div>
-          
-          {/* Segmento */}
-          <select
-            value={filterSegmento}
-            onChange={(e) => setFilterSegmento(e.target.value)}
-            className="px-2 py-1.5 bg-slate-800/80 border border-slate-600/50 rounded-lg text-white text-xs focus:outline-none max-w-[120px]"
-          >
-            <option value="ALL">Segmento</option>
-            {SEGMENTOS_DISPONIBLES.map(seg => (
-              <option key={seg} value={seg}>{seg}</option>
-            ))}
-          </select>
-          
-          <div className="flex-1" />
-          
-          {/* Info y acciones */}
-          <span className="text-slate-500 text-xs">{filteredFleet.length}/{stats.total}</span>
-          
-          {lastRefresh && <span className="text-slate-500 text-xs">{lastRefresh.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })}</span>}
-          
-          <button onClick={exportToExcel} className="p-1.5 bg-slate-700/50 hover:bg-slate-600/50 rounded-lg text-slate-400 hover:text-white transition-colors" title="Exportar Excel">
-            <Download className="w-4 h-4" />
+    <div className="min-h-screen p-4" style={{ background: 'linear-gradient(135deg, #1e3a5f 0%, #0d1b2a 50%, #1b263b 100%)' }}>
+      {/* Toolbar */}
+      <div className="flex flex-wrap items-center gap-2 mb-4 p-3 rounded-2xl backdrop-blur-xl" style={{ background: 'rgba(255,255,255,0.05)', boxShadow: '0 8px 32px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.1)' }}>
+        {/* Status buttons */}
+        <button onClick={() => setFilterStatus('ALL')} className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-sm transition-all ${filterStatus === 'ALL' ? 'bg-gradient-to-br from-slate-500 to-slate-700 text-white shadow-lg' : 'bg-white/10 text-white/70 hover:bg-white/20'}`} style={{ boxShadow: filterStatus === 'ALL' ? '0 8px 24px rgba(0,0,0,0.4), inset 0 2px 0 rgba(255,255,255,0.2)' : '0 4px 12px rgba(0,0,0,0.2)' }}>
+          <Truck className="w-4 h-4" /> {stats.total}
+        </button>
+        <button onClick={() => setFilterStatus('moving')} className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-sm transition-all ${filterStatus === 'moving' ? 'bg-gradient-to-br from-emerald-400 to-emerald-600 text-white shadow-lg' : 'bg-white/10 text-white/70 hover:bg-white/20'}`} style={{ boxShadow: filterStatus === 'moving' ? '0 8px 24px rgba(16,185,129,0.4), inset 0 2px 0 rgba(255,255,255,0.2)' : '0 4px 12px rgba(0,0,0,0.2)' }}>
+          <Navigation className="w-4 h-4" /> {stats.moving}
+        </button>
+        <button onClick={() => setFilterStatus('stopped')} className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-sm transition-all ${filterStatus === 'stopped' ? 'bg-gradient-to-br from-amber-400 to-amber-600 text-white shadow-lg' : 'bg-white/10 text-white/70 hover:bg-white/20'}`} style={{ boxShadow: filterStatus === 'stopped' ? '0 8px 24px rgba(245,158,11,0.4), inset 0 2px 0 rgba(255,255,255,0.2)' : '0 4px 12px rgba(0,0,0,0.2)' }}>
+          <Power className="w-4 h-4" /> {stats.stopped}
+        </button>
+        <button onClick={() => setFilterStatus('no_signal')} className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-sm transition-all ${filterStatus === 'no_signal' ? 'bg-gradient-to-br from-red-400 to-red-600 text-white shadow-lg' : 'bg-white/10 text-white/70 hover:bg-white/20'}`} style={{ boxShadow: filterStatus === 'no_signal' ? '0 8px 24px rgba(239,68,68,0.4), inset 0 2px 0 rgba(255,255,255,0.2)' : '0 4px 12px rgba(0,0,0,0.2)' }}>
+          <WifiOff className="w-4 h-4" /> {stats.noSignal}
+        </button>
+
+        <div className="w-px h-8 bg-white/20 mx-1" />
+
+        {/* Empresa buttons */}
+        {(['SHI', 'TROB', 'WE', 'TROB USA'] as const).map(emp => (
+          <button key={emp} onClick={() => toggleEmpresa(emp)} className={`px-3 py-2 rounded-xl text-xs font-bold transition-all ${filterEmpresas.includes(emp) ? 'bg-gradient-to-br from-blue-400 to-blue-600 text-white shadow-lg' : 'bg-white/10 text-white/50 hover:bg-white/20'}`} style={{ boxShadow: filterEmpresas.includes(emp) ? '0 6px 20px rgba(59,130,246,0.4), inset 0 1px 0 rgba(255,255,255,0.2)' : '0 3px 10px rgba(0,0,0,0.2)' }}>
+            {emp} ({stats.byEmpresa[emp]})
           </button>
-          
-          <button
-            onClick={() => fetchFleetGPS(true)}
-            disabled={refreshing || loading}
-            className="flex items-center gap-1 px-3 py-1.5 bg-blue-600 hover:bg-blue-500 rounded-lg text-white text-sm disabled:opacity-50 shadow-md"
-          >
-            <RefreshCw className={`w-3 h-3 ${refreshing || loading ? 'animate-spin' : ''}`} />
-            {refreshing || loading ? `${Math.round((loadingProgress.current / loadingProgress.total) * 100)}%` : 'Actualizar'}
-          </button>
+        ))}
+
+        <div className="w-px h-8 bg-white/20 mx-1" />
+
+        {/* Search */}
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40" />
+          <input value={searchTerm} onChange={e => setSearchTerm(e.target.value)} placeholder="Eco..." className="w-24 pl-9 pr-3 py-2 rounded-xl bg-white/10 border border-white/20 text-white text-sm placeholder-white/40 focus:outline-none focus:bg-white/15" />
         </div>
+
+        {/* Segmento */}
+        <select value={filterSegmento} onChange={e => setFilterSegmento(e.target.value)} className="px-3 py-2 rounded-xl bg-white/10 border border-white/20 text-white text-xs focus:outline-none">
+          <option value="ALL" className="bg-slate-800">Segmento</option>
+          {SEGMENTOS.map(s => <option key={s} value={s} className="bg-slate-800">{s}</option>)}
+        </select>
+
+        <div className="flex-1" />
+
+        <span className="text-white/50 text-xs">{filteredFleet.length}/{stats.total}</span>
+        {lastRefresh && <span className="text-white/40 text-xs">{lastRefresh.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })}</span>}
+
+        <button onClick={exportExcel} className="p-2 rounded-xl bg-white/10 hover:bg-white/20 text-white/70 transition-all" style={{ boxShadow: '0 4px 12px rgba(0,0,0,0.2)' }}><Download className="w-4 h-4" /></button>
+        <button onClick={() => fetchFleetGPS(true)} disabled={loading || refreshing} className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-br from-blue-500 to-blue-700 text-white font-semibold text-sm disabled:opacity-50 transition-all" style={{ boxShadow: '0 8px 24px rgba(59,130,246,0.4), inset 0 2px 0 rgba(255,255,255,0.2)' }}>
+          <RefreshCw className={`w-4 h-4 ${loading || refreshing ? 'animate-spin' : ''}`} />
+          {loading || refreshing ? `${Math.round((loadingProgress.current / loadingProgress.total) * 100)}%` : 'Actualizar'}
+        </button>
       </div>
 
-      {/* TABLA */}
-      <div className="flex-1 overflow-hidden bg-slate-800/40 border border-slate-700/30 rounded-xl">
-        <div className="h-full overflow-y-auto scrollbar-thin scrollbar-thumb-slate-600 scrollbar-track-transparent">
+      {/* Table */}
+      <div className="rounded-2xl overflow-hidden backdrop-blur-xl" style={{ background: 'rgba(255,255,255,0.03)', boxShadow: '0 8px 32px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.05)' }}>
+        <div className="max-h-[calc(100vh-200px)] overflow-y-auto scrollbar-thin scrollbar-thumb-white/20 scrollbar-track-transparent">
           <table className="w-full">
-            <thead className="sticky top-0 bg-slate-900/95 z-10">
-              <tr className="border-b border-slate-700/30">
-                <th className="px-3 py-2 text-left text-xs font-medium text-slate-400 uppercase">Eco</th>
-                <th className="px-3 py-2 text-left text-xs font-medium text-slate-400 uppercase">Empresa</th>
-                <th className="px-3 py-2 text-left text-xs font-medium text-slate-400 uppercase">Segmento</th>
-                <th className="px-3 py-2 text-left text-xs font-medium text-slate-400 uppercase">Status</th>
-                <th className="px-3 py-2 text-left text-xs font-medium text-slate-400 uppercase">Vel</th>
-                <th className="px-3 py-2 text-left text-xs font-medium text-slate-400 uppercase">Ubicación</th>
-                <th className="px-3 py-2 text-left text-xs font-medium text-slate-400 uppercase">Señal</th>
+            <thead className="sticky top-0 z-10" style={{ background: 'rgba(15,23,42,0.95)' }}>
+              <tr>
+                {['ECO', 'EMPRESA', 'SEGMENTO', 'STATUS', 'VEL', 'UBICACIÓN', 'SEÑAL'].map(h => (
+                  <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-white/50 uppercase tracking-wider">{h}</th>
+                ))}
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-700/20">
-              {filteredFleet.map((unit) => {
-                const empresaColor = EMPRESA_COLORS[unit.empresa];
-                const statusColors: Record<string, { bg: string; text: string }> = {
-                  'moving': { bg: 'bg-green-500/20', text: 'text-green-400' },
-                  'stopped': { bg: 'bg-yellow-500/20', text: 'text-yellow-400' },
-                  'no_signal': { bg: 'bg-red-500/20', text: 'text-red-400' },
-                  'offline': { bg: 'bg-red-500/20', text: 'text-red-400' },
-                  'loading': { bg: 'bg-slate-500/20', text: 'text-slate-400' },
-                };
-                const stColor = statusColors[unit.status] || statusColors['no_signal'];
-                
-                return (
-                  <tr key={unit.economico} className="hover:bg-slate-700/20 transition-colors">
-                    <td className="px-3 py-2">
-                      <span className="font-mono font-bold text-white text-sm">{unit.economico}</span>
-                    </td>
-                    <td className="px-3 py-2">
-                      <span className={`inline-flex px-1.5 py-0.5 rounded text-xs font-medium ${empresaColor.bg} ${empresaColor.text}`}>
-                        {unit.empresa}
-                      </span>
-                    </td>
-                    <td className="px-3 py-2">
-                      <span className="text-slate-300 text-xs">{unit.segmento}</span>
-                    </td>
-                    <td className="px-3 py-2">
-                      <button
-                        onClick={() => openGoogleMaps(unit)}
-                        disabled={!unit.latitude}
-                        className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs ${stColor.bg} ${stColor.text} hover:opacity-80 disabled:cursor-not-allowed`}
-                      >
-                        {unit.status === 'moving' ? <Navigation className="w-3 h-3" /> : unit.status === 'stopped' ? <Power className="w-3 h-3" /> : <WifiOff className="w-3 h-3" />}
-                        {unit.status === 'moving' ? 'Mov' : unit.status === 'stopped' ? 'Det' : 'Sin'}
-                        {unit.latitude && <ExternalLink className="w-2.5 h-2.5 ml-0.5" />}
-                      </button>
-                    </td>
-                    <td className="px-3 py-2">
-                      <span className={`text-xs font-medium ${(unit.speed || 0) > 0 ? 'text-green-400' : 'text-slate-500'}`}>
-                        {unit.speed !== null ? `${unit.speed}` : '-'}
-                      </span>
-                    </td>
-                    <td className="px-3 py-2 max-w-[180px]">
-                      <span className="text-slate-400 text-xs truncate block">
-                        {unit.address || (unit.latitude ? `${unit.latitude.toFixed(3)}, ${unit.longitude?.toFixed(3)}` : '-')}
-                      </span>
-                    </td>
-                    <td className="px-3 py-2">
-                      <span className="text-slate-400 text-xs">{formatTimestamp(unit.timestamp)}</span>
-                    </td>
-                  </tr>
-                );
-              })}
+            <tbody>
+              {filteredFleet.map((u, i) => (
+                <tr key={u.economico} className="border-t border-white/5 hover:bg-white/5 transition-colors">
+                  <td className="px-4 py-3 font-mono font-bold text-white">{u.economico}</td>
+                  <td className="px-4 py-3"><span className={`px-2 py-1 rounded-lg text-xs font-semibold ${u.empresa === 'SHI' ? 'bg-purple-500/30 text-purple-300' : u.empresa === 'TROB' ? 'bg-blue-500/30 text-blue-300' : u.empresa === 'WE' ? 'bg-emerald-500/30 text-emerald-300' : 'bg-amber-500/30 text-amber-300'}`}>{u.empresa}</span></td>
+                  <td className="px-4 py-3 text-white/70 text-sm">{u.segmento}</td>
+                  <td className="px-4 py-3">
+                    <button onClick={() => openMaps(u)} disabled={!u.latitude} className={`flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium transition-all ${u.status === 'moving' ? 'bg-emerald-500/30 text-emerald-300' : u.status === 'stopped' ? 'bg-amber-500/30 text-amber-300' : 'bg-red-500/30 text-red-300'} ${u.latitude ? 'hover:opacity-80 cursor-pointer' : 'opacity-50 cursor-not-allowed'}`}>
+                      {u.status === 'moving' ? <Navigation className="w-3 h-3" /> : u.status === 'stopped' ? <Power className="w-3 h-3" /> : <WifiOff className="w-3 h-3" />}
+                      {u.status === 'moving' ? 'Mov' : u.status === 'stopped' ? 'Det' : 'Sin'}
+                      {u.latitude && <ExternalLink className="w-3 h-3 ml-1" />}
+                    </button>
+                  </td>
+                  <td className="px-4 py-3"><span className={`text-sm font-medium ${(u.speed || 0) > 0 ? 'text-emerald-400' : 'text-white/40'}`}>{u.speed ?? '-'}</span></td>
+                  <td className="px-4 py-3 text-white/50 text-xs max-w-[200px] truncate">{u.address || (u.latitude ? `${u.latitude.toFixed(3)}, ${u.longitude?.toFixed(3)}` : '-')}</td>
+                  <td className="px-4 py-3 text-white/40 text-xs">{formatTs(u.timestamp)}</td>
+                </tr>
+              ))}
             </tbody>
           </table>
         </div>
       </div>
-
-      {/* MODAL */}
-      {selectedUnit && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setSelectedUnit(null)}>
-          <div className="bg-slate-800 border border-slate-700/50 rounded-2xl w-full max-w-md shadow-2xl" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between p-3 border-b border-slate-700/50">
-              <div className="flex items-center gap-2">
-                <Truck className="w-5 h-5 text-blue-400" />
-                <span className="text-lg font-bold text-white">{selectedUnit.economico}</span>
-              </div>
-              <button onClick={() => setSelectedUnit(null)} className="p-1 hover:bg-slate-700/50 rounded"><X className="w-4 h-4 text-slate-400" /></button>
-            </div>
-            <div className="p-3 space-y-2">
-              {selectedUnit.latitude && (
-                <button onClick={() => openGoogleMaps(selectedUnit)} className="w-full flex items-center justify-center gap-2 p-2 bg-blue-600 hover:bg-blue-500 rounded-lg text-white">
-                  <MapPin className="w-4 h-4" /> Ver en Google Maps
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
