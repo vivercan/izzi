@@ -1,628 +1,454 @@
 import { ModuleTemplate } from './ModuleTemplate';
-import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { MODULE_IMAGES } from '../../assets/module-images';
-import { TrendingUp, DollarSign, Building2, Loader2, Truck, Globe, RefreshCw, Send, Bot, Sparkles, BarChart3, Filter, X, Package, Gauge, Check, AlertTriangle } from 'lucide-react';
+import { TrendingUp, DollarSign, Building2, Loader2, Truck, Globe, RefreshCw, Send, Bot, Sparkles, BarChart3, Filter, X, Users } from 'lucide-react';
 import { supabase } from '../../utils/supabase/client';
 
-interface VentasModuleProps { onBack: () => void; }
-interface Filtros { fechaInicio: string; fechaFin: string; segmento: string; tipo: string; empresa: string; clientes: string[]; tractos: string[]; cajas: string[]; estadoOrigen: string; estadoDestino: string; vendedor: string; division: string; kmsMin: string; kmsMax: string; }
-interface StatsData { total_viajes: number; total_ventas: number; total_kms: number; por_segmento: { [k: string]: { viajes: number; ventas: number } }; por_empresa: { [k: string]: { viajes: number; ventas: number } }; por_tipo: { [k: string]: { viajes: number; ventas: number } }; }
-interface TopItem { nombre: string; viajes: number; ventas: number; }
-
-// Sin fechas por defecto - cargará TODO y detectará el rango automáticamente
-const FILTROS_INIT: Filtros = { 
-  fechaInicio: '',  // Vacío = sin filtro de fecha inicio
-  fechaFin: '',     // Vacío = sin filtro de fecha fin
-  segmento: '', tipo: '', empresa: '', clientes: [], tractos: [], cajas: [], estadoOrigen: '', estadoDestino: '', vendedor: '', division: '', kmsMin: '', kmsMax: '' 
-};
-
-// ═══════════════════════════════════════════════════════════════════════════
-// 📋 PERMISOS VENTAS - DEBE COINCIDIR CON App.tsx
-// ═══════════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════════════
+// 📋 PERMISOS DE USUARIOS - ACTUALIZADOS 18/DIC/2025
+// ═══════════════════════════════════════════════════════════════════════════════
 const PERMISOS: { [email: string]: { vendedor?: string; verTodo: boolean } } = {
-  // ADMIN - Ver TODO
+  // ADMINISTRADORES - Ver TODO
   'juan.viveros@trob.com.mx': { verTodo: true },
   'jennifer.sanchez@trob.com.mx': { verTodo: true },
-  // CSR - Ver TODO
-  'customer.service3@trob.com.mx': { verTodo: true },
-  'customer.service1@trob.com.mx': { verTodo: true },
-  // VENTAS - Solo sus clientes
+  // CSR - Ver TODO (menos config)
+  'customer.service3@trob.com.mx': { verTodo: true },  // Lizeth Rodríguez
+  'customer.service1@trob.com.mx': { verTodo: true },  // Elizabeth Rodríguez
+  // VENTAS - Solo sus clientes asignados
   'isis.estrada@wexpress.com.mx': { vendedor: 'ISIS', verTodo: false },
   'paloma.oliva@speedyhaul.com.mx': { vendedor: 'PALOMA', verTodo: false },
+  // OPERACIONES - NO tienen acceso a Ventas
 };
 
-function MultiSelect({ label, options, selected, onChange, placeholder }: { label: string; options: string[]; selected: string[]; onChange: (v: string[]) => void; placeholder: string; }) {
-  const [open, setOpen] = useState(false);
-  const [search, setSearch] = useState('');
-  const ref = useRef<HTMLDivElement>(null);
-  useEffect(() => { const h = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false); }; document.addEventListener('mousedown', h); return () => document.removeEventListener('mousedown', h); }, []);
-  const filtered = options.filter(o => o.toLowerCase().includes(search.toLowerCase()));
-  const toggle = (item: string) => { if (selected.includes(item)) onChange(selected.filter(s => s !== item)); else onChange([...selected, item]); };
-  return (
-    <div ref={ref} className="relative">
-      <label className="text-white/40 text-xs mb-1 block">{label}</label>
-      <div onClick={() => setOpen(!open)} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm cursor-pointer hover:border-white/20 flex items-center justify-between">
-        <span className={selected.length ? 'text-white' : 'text-white/30'}>{selected.length ? `${selected.length} sel.` : placeholder}</span>
-        <span className="text-white/40 text-xs">▼</span>
-      </div>
-      {open && (
-        <div className="absolute z-50 mt-1 w-full bg-slate-900 border border-white/10 rounded-lg shadow-xl max-h-48 overflow-hidden">
-          <div className="p-2 border-b border-white/10">
-            <input type="text" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar..." className="w-full bg-white/5 border border-white/10 rounded px-2 py-1 text-sm text-white placeholder-white/30 focus:outline-none" onClick={(e) => e.stopPropagation()} />
-          </div>
-          <div className="overflow-y-auto max-h-36 scrollbar-thin scrollbar-thumb-white/10">
-            {selected.length > 0 && <button onClick={() => onChange([])} className="w-full px-3 py-1 text-left text-xs text-red-400 hover:bg-white/5 border-b border-white/10">✕ Limpiar</button>}
-            {filtered.slice(0, 50).map(item => (
-              <div key={item} onClick={() => toggle(item)} className={`px-3 py-1 text-xs cursor-pointer flex items-center gap-2 hover:bg-white/5 ${selected.includes(item) ? 'bg-orange-500/10 text-orange-400' : 'text-white/70'}`}>
-                <div className={`w-3 h-3 rounded border ${selected.includes(item) ? 'bg-orange-500 border-orange-500' : 'border-white/20'} flex items-center justify-center`}>
-                  {selected.includes(item) && <Check className="w-2 h-2 text-white" />}
-                </div>
-                <span className="truncate">{item}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
+// ═══════════════════════════════════════════════════════════════════════════════
+// 📋 REGLAS DE PROCESAMIENTO - LÓGICA DE NEGOCIO (para futuros uploads)
+// ═══════════════════════════════════════════════════════════════════════════════
+export const REGLAS_PROCESAMIENTO = {
+  // Clientes de ISIS
+  CLIENTES_ISIS: ['HERCON', 'ARCH MEAT', 'SUN CHEMICAL', 'BAKERY MACHINERY', 'MARTICO', 'BERRIES PARADISE', 'TITAN MEATS', 'RED ROAD', 'BAK - HERCA'],
+  
+  // Clientes de PALOMA
+  CLIENTES_PALOMA: ['P.A.C.', 'PAC INTERNATIONAL', 'SHORELINE', 'ATLAS EXPEDIT', 'LOGISTEED', 'SCHENKER', 'COMERCIALIZADORA KEES', 'FP GRUPO', 'JA FREIGHT'],
+  
+  // Consolidaciones de clientes
+  CONSOLIDACIONES: {
+    "PILGRIM'S PRIDE": ["PILGRIM", "PPC", "AVICOLA PILGRIM"],
+    "SIGMA ALIMENTOS": ["SIGMA", "ALIMENTOS FINOS"],
+    "BIMBO": ["BIMBO", "MARINELA", "TIA ROSA"],
+    "BARCEL": ["BARCEL"], // Separado de BIMBO
+    "NATURESWEET": ["NATURESWEET", "NATURESWEET COMERCIALIZADORA", "NATURESWEET INVERNADEROS", "NS BRANDS"],
+    "BARRY CALLEBAUT": ["BARRY CALLEBAUT", "BARRY CALLEBAUT MEXICO", "BARRY CALLEBAUT DISTRIBUTORS"],
+    "NEXTEER": ["NEXTEER", "STEERINGMEX", "STEERING"],
+    "JOHNSON CONTROLS": ["JOHNSON CONTROL", "JCI", "JOHNSON"],
+    "CLARIOS": ["CLARIOS", "CLARIOSMTY"],
+    "HERCON": ["HERCON SERVICES", "HERCON"],
+    "TITAN MEATS": ["TITAN MEATS", "TITAN MEATS LLC"],
+    "SHORELINE TRANSFER": ["SHORELINE TRANFER", "SHORELINE TRANSFER", "SHORELINE"],
+  },
+  
+  // Clientes siempre DEDICADO
+  CLIENTES_DEDICADO: ['BAFAR', 'NATURESWEET', 'BARCEL', 'GRANJAS CARROLL', 'LALA'],
+  
+  // Clientes IMPEX (ya no DEDICADO)
+  CLIENTES_IMPEX: ['NEXTEER', 'CLARIOS'],
+  
+  // Empresas internas (no pueden ser clientes)
+  EMPRESAS_INTERNAS: ['TROB TRANSPORTES', 'WEXPRESS', 'SPEEDYHAUL', 'TROB', 'WE', 'SHI'],
+  
+  // Mapeo de empresas
+  EMPRESA_MAP: {
+    'TROB': 'TROB', 'TROB TRANSPORTES': 'TROB',
+    'WE': 'WE', 'WEXPRESS': 'WE',
+    'SHI': 'SHI', 'SPEEDYHAUL INTERNATIONAL': 'SHI', 'SPEEDYHAUL': 'SHI',
+    'TROB_USA': 'TROB_USA', 'TROB USA': 'TROB_USA',
+  },
+  
+  // Regla especial NEXTEER: QRO↔TAMAULIPAS = IMPO/EXPO
+  NEXTEER_RUTAS: {
+    'TAMAULIPAS_QUERETARO': 'IMPO',
+    'QUERETARO_TAMAULIPAS': 'EXPO',
+  },
+  
+  // Eliminar PILGRIM's NAC
+  ELIMINAR_PILGRIM_NAC: true,
+};
 
-export function VentasModule({ onBack }: VentasModuleProps) {
-  const [vista, setVista] = useState<'dashboard' | 'chat'>('dashboard');
+interface VentasModuleProps { onBack: () => void; userEmail?: string; }
+interface Filtros { segmento: string; tipo: string; empresa: string; clientes: string[]; tractos: string[]; }
+interface StatsData { total_viajes: number; total_ventas: number; por_segmento: { [k: string]: { viajes: number; ventas: number } }; por_empresa: { [k: string]: { viajes: number; ventas: number } }; }
+
+const FILTROS_INIT: Filtros = { segmento: '', tipo: '', empresa: '', clientes: [], tractos: [] };
+
+export function VentasModule({ onBack, userEmail = '' }: VentasModuleProps) {
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [stats, setStats] = useState<StatsData | null>(null);
-  const [topClientes, setTopClientes] = useState<TopItem[]>([]);
-  const [topTractos, setTopTractos] = useState<TopItem[]>([]);
-  const [topCajas, setTopCajas] = useState<TopItem[]>([]);
-  const [datosMensuales, setDatosMensuales] = useState<{ [k: string]: { viajes: number; ventas: number } }>({});
-  const [ultimaAct, setUltimaAct] = useState('');
-  const [rangoFechas, setRangoFechas] = useState<{ min: string; max: string } | null>(null);
-  const [filtrosAplicados, setFiltrosAplicados] = useState<Filtros>(FILTROS_INIT);
-  const [filtrosTemp, setFiltrosTemp] = useState<Filtros>(FILTROS_INIT);
+  const [year, setYear] = useState(2025);
+  const [filtros, setFiltros] = useState<Filtros>(FILTROS_INIT);
   const [filtrosOpen, setFiltrosOpen] = useState(false);
-  const [opClientes, setOpClientes] = useState<string[]>([]);
-  const [opTractos, setOpTractos] = useState<string[]>([]);
-  const [opCajas, setOpCajas] = useState<string[]>([]);
-  const [opEstados, setOpEstados] = useState<string[]>([]);
-  const [chatMsgs, setChatMsgs] = useState<{ role: 'user' | 'assistant'; content: string }[]>([]);
-  const [chatIn, setChatIn] = useState('');
-  const [chatLoad, setChatLoad] = useState(false);
-  const [userPermisos, setUserPermisos] = useState<{ vendedor?: string; verTodo: boolean }>({ verTodo: true });
-  const [moneda, setMoneda] = useState<'MXN' | 'USD'>('MXN');
-  const [totalRegistros, setTotalRegistros] = useState(0);
+  const [vista, setVista] = useState<'dashboard' | 'chat'>('dashboard');
+  const [ultimaAct, setUltimaAct] = useState('');
+  const [topClientes, setTopClientes] = useState<{nombre: string; viajes: number; ventas: number}[]>([]);
+  const [clientesDisponibles, setClientesDisponibles] = useState<string[]>([]);
 
-  useEffect(() => {
-    const getUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user?.email) {
-        const p = PERMISOS[user.email] || { verTodo: false };
-        setUserPermisos(p);
-        if (p.vendedor && !p.verTodo) {
-          setFiltrosAplicados(prev => ({ ...prev, vendedor: p.vendedor! }));
-          setFiltrosTemp(prev => ({ ...prev, vendedor: p.vendedor! }));
-        }
-      }
-    };
-    getUser();
-  }, []);
+  // Chat IA
+  const [chatMsgs, setChatMsgs] = useState<{role: string; content: string}[]>([]);
+  const [chatInput, setChatInput] = useState('');
+  const [chatLoading, setChatLoading] = useState(false);
 
-  const cargarOpciones = useCallback(async () => {
-    try {
-      const { data: c } = await supabase.from('ventas_maestro').select('cliente_consolidado').not('cliente_consolidado', 'is', null).limit(1000);
-      if (c) setOpClientes([...new Set(c.map(x => x.cliente_consolidado))].filter(Boolean).sort());
-      const { data: t } = await supabase.from('ventas_maestro').select('tracto').not('tracto', 'is', null).limit(1000);
-      if (t) setOpTractos([...new Set(t.map(x => x.tracto))].filter(Boolean).sort());
-      const { data: ca } = await supabase.from('ventas_maestro').select('caja').not('caja', 'is', null).limit(1000);
-      if (ca) setOpCajas([...new Set(ca.map(x => x.caja))].filter(Boolean).sort());
-      const { data: e } = await supabase.from('ventas_maestro').select('estado_origen, estado_destino').limit(1000);
-      if (e) setOpEstados([...new Set([...e.map(x => x.estado_origen), ...e.map(x => x.estado_destino)].filter(Boolean))].sort());
-    } catch (err) {
-      console.error('Error cargando opciones:', err);
-    }
-  }, []);
+  // Obtener permisos del usuario
+  const permisoUsuario = useMemo(() => {
+    const permiso = PERMISOS[userEmail.toLowerCase()];
+    if (!permiso) return { verTodo: true }; // Default: admin
+    return permiso;
+  }, [userEmail]);
 
+  const vendedorFiltro = permisoUsuario.vendedor || '';
+  const esAdmin = permisoUsuario.verTodo;
+
+  // Cargar datos
   const cargarDatos = useCallback(async () => {
     setLoading(true);
-    setError(null);
     try {
-      console.log('🔄 Iniciando carga de datos...');
+      let query = supabase.from('ventas_maestro').select('*').eq('year', year);
       
-      // 1. Primero obtener el rango de fechas disponible
-      const { data: fechaMax, error: errMax } = await supabase
-        .from('ventas_maestro')
-        .select('fecha_factura')
-        .order('fecha_factura', { ascending: false })
-        .limit(1)
-        .single();
-      
-      const { data: fechaMin, error: errMin } = await supabase
-        .from('ventas_maestro')
-        .select('fecha_factura')
-        .order('fecha_factura', { ascending: true })
-        .limit(1)
-        .single();
-
-      console.log('📅 Rango de fechas en BD:', { min: fechaMin?.fecha_factura, max: fechaMax?.fecha_factura });
-      
-      if (fechaMax?.fecha_factura && fechaMin?.fecha_factura) {
-        setRangoFechas({ min: fechaMin.fecha_factura, max: fechaMax.fecha_factura });
-        setUltimaAct(`Datos: ${fechaMin.fecha_factura.substring(0,10)} a ${fechaMax.fecha_factura.substring(0,10)}`);
-      }
-
-      // 2. Construir query SIN filtro de año fijo
-      let q = supabase.from('ventas_maestro').select('*');
-
-      // Aplicar permisos de vendedor
-      if (!userPermisos.verTodo && userPermisos.vendedor) {
-        q = q.eq('ejecutivo_ventas', userPermisos.vendedor);
-        console.log('🔒 Filtro vendedor aplicado:', userPermisos.vendedor);
-      } else if (filtrosAplicados.vendedor) {
-        q = q.eq('ejecutivo_ventas', filtrosAplicados.vendedor);
-      }
-
-      // Filtros de fecha (SOLO si el usuario los especificó)
-      if (filtrosAplicados.fechaInicio) {
-        q = q.gte('fecha_factura', filtrosAplicados.fechaInicio);
-        console.log('📅 Filtro fecha inicio:', filtrosAplicados.fechaInicio);
-      }
-      if (filtrosAplicados.fechaFin) {
-        q = q.lte('fecha_factura', filtrosAplicados.fechaFin);
-        console.log('📅 Filtro fecha fin:', filtrosAplicados.fechaFin);
+      // 🔐 Filtro por vendedor (ISIS/PALOMA solo ven sus clientes)
+      if (!esAdmin && vendedorFiltro) {
+        query = query.eq('vendedor', vendedorFiltro);
       }
       
-      // Otros filtros
-      if (filtrosAplicados.segmento) q = q.eq('segmento', filtrosAplicados.segmento);
-      if (filtrosAplicados.tipo) q = q.eq('tipo', filtrosAplicados.tipo);
-      if (filtrosAplicados.empresa) q = q.eq('empresa', filtrosAplicados.empresa);
-      if (filtrosAplicados.estadoOrigen) q = q.eq('estado_origen', filtrosAplicados.estadoOrigen);
-      if (filtrosAplicados.estadoDestino) q = q.eq('estado_destino', filtrosAplicados.estadoDestino);
-      if (filtrosAplicados.division) q = q.eq('division', filtrosAplicados.division);
-      if (filtrosAplicados.kmsMin) q = q.gte('kms_viaje', parseFloat(filtrosAplicados.kmsMin));
-      if (filtrosAplicados.kmsMax) q = q.lte('kms_viaje', parseFloat(filtrosAplicados.kmsMax));
+      // Filtros adicionales
+      if (filtros.segmento) query = query.eq('segmento', filtros.segmento);
+      if (filtros.tipo) query = query.eq('tipo', filtros.tipo);
+      if (filtros.empresa) query = query.eq('empresa', filtros.empresa);
+      if (filtros.clientes.length > 0) query = query.in('cliente_consolidado', filtros.clientes);
+      if (filtros.tractos.length > 0) query = query.in('tracto', filtros.tractos);
 
-      // Limitar a 10000 registros para no sobrecargar
-      q = q.limit(10000);
+      const { data, error } = await query;
+      if (error) throw error;
 
-      console.log('🔍 Ejecutando query...');
-      const { data: vd, error: queryError } = await q;
-      
-      if (queryError) {
-        console.error('❌ Error en query:', queryError);
-        setError(`Error de BD: ${queryError.message}`);
-        setLoading(false);
-        return;
-      }
+      // Procesar stats
+      const statsCalc: StatsData = {
+        total_viajes: data?.length || 0,
+        total_ventas: data?.reduce((sum, r) => sum + (r.ventas || 0), 0) || 0,
+        por_segmento: {},
+        por_empresa: {},
+      };
 
-      console.log(`✅ Registros obtenidos: ${vd?.length || 0}`);
-      setTotalRegistros(vd?.length || 0);
+      data?.forEach(r => {
+        const seg = r.segmento || 'OTRO';
+        const emp = r.empresa || 'OTRO';
+        if (!statsCalc.por_segmento[seg]) statsCalc.por_segmento[seg] = { viajes: 0, ventas: 0 };
+        if (!statsCalc.por_empresa[emp]) statsCalc.por_empresa[emp] = { viajes: 0, ventas: 0 };
+        statsCalc.por_segmento[seg].viajes++;
+        statsCalc.por_segmento[seg].ventas += r.ventas || 0;
+        statsCalc.por_empresa[emp].viajes++;
+        statsCalc.por_empresa[emp].ventas += r.ventas || 0;
+      });
 
-      if (vd && vd.length > 0) {
-        let d = vd;
-        
-        // Filtros client-side para multiselect
-        if (filtrosAplicados.clientes.length) d = d.filter(x => filtrosAplicados.clientes.includes(x.cliente_consolidado));
-        if (filtrosAplicados.tractos.length) d = d.filter(x => filtrosAplicados.tractos.includes(x.tracto));
-        if (filtrosAplicados.cajas.length) d = d.filter(x => filtrosAplicados.cajas.includes(x.caja));
+      setStats(statsCalc);
 
-        // Detectar moneda según división
-        const hasTrobUSA = d.some(r => r.division === 'TROB_USA');
-        const hasGrupoLoma = d.some(r => r.division === 'GRUPO_LOMA' || !r.division);
-        if (filtrosAplicados.division === 'TROB_USA') setMoneda('USD');
-        else if (filtrosAplicados.division === 'GRUPO_LOMA') setMoneda('MXN');
-        else setMoneda(hasTrobUSA && !hasGrupoLoma ? 'USD' : 'MXN');
+      // Top clientes
+      const clienteMap: { [k: string]: { viajes: number; ventas: number } } = {};
+      data?.forEach(r => {
+        const c = r.cliente_consolidado || 'DESCONOCIDO';
+        if (!clienteMap[c]) clienteMap[c] = { viajes: 0, ventas: 0 };
+        clienteMap[c].viajes++;
+        clienteMap[c].ventas += r.ventas || 0;
+      });
+      const top = Object.entries(clienteMap)
+        .map(([nombre, d]) => ({ nombre, ...d }))
+        .sort((a, b) => b.ventas - a.ventas)
+        .slice(0, 10);
+      setTopClientes(top);
 
-        const tv = d.length;
-        const tven = d.reduce((s, r) => s + (r.ventas || 0), 0);
-        const tkm = d.reduce((s, r) => s + (r.kms_viaje || 0), 0);
+      // Clientes disponibles para filtros
+      const clientes = [...new Set(data?.map(r => r.cliente_consolidado).filter(Boolean))].sort();
+      setClientesDisponibles(clientes as string[]);
 
-        console.log(`📊 Stats: ${tv} viajes, $${tven.toLocaleString()}, ${tkm.toLocaleString()} kms`);
-
-        const pSeg: any = {}, pEmp: any = {}, pTipo: any = {};
-        d.forEach(r => {
-          const sg = r.segmento || 'SIN', em = r.empresa || 'SIN', tp = r.tipo || 'NAC';
-          if (!pSeg[sg]) pSeg[sg] = { viajes: 0, ventas: 0 };
-          if (!pEmp[em]) pEmp[em] = { viajes: 0, ventas: 0 };
-          if (!pTipo[tp]) pTipo[tp] = { viajes: 0, ventas: 0 };
-          pSeg[sg].viajes++; pSeg[sg].ventas += r.ventas || 0;
-          pEmp[em].viajes++; pEmp[em].ventas += r.ventas || 0;
-          pTipo[tp].viajes++; pTipo[tp].ventas += r.ventas || 0;
-        });
-
-        setStats({ total_viajes: tv, total_ventas: tven, total_kms: tkm, por_segmento: pSeg, por_empresa: pEmp, por_tipo: pTipo });
-
-        // Top clientes
-        const cliMap: any = {};
-        d.forEach(r => { const c = r.cliente_consolidado || 'SIN'; if (!cliMap[c]) cliMap[c] = { viajes: 0, ventas: 0 }; cliMap[c].viajes++; cliMap[c].ventas += r.ventas || 0; });
-        setTopClientes(Object.entries(cliMap).map(([n, v]: any) => ({ nombre: n, ...v })).sort((a, b) => b.ventas - a.ventas).slice(0, 5));
-
-        // Top tractos
-        const traMap: any = {};
-        d.forEach(r => { const t = r.tracto || 'SIN'; if (!traMap[t]) traMap[t] = { viajes: 0, ventas: 0 }; traMap[t].viajes++; traMap[t].ventas += r.ventas || 0; });
-        setTopTractos(Object.entries(traMap).map(([n, v]: any) => ({ nombre: n, ...v })).sort((a, b) => b.viajes - a.viajes).slice(0, 5));
-
-        // Top cajas
-        const cajaMap: any = {};
-        d.forEach(r => { const c = r.caja || 'SIN'; if (!cajaMap[c]) cajaMap[c] = { viajes: 0, ventas: 0 }; cajaMap[c].viajes++; cajaMap[c].ventas += r.ventas || 0; });
-        setTopCajas(Object.entries(cajaMap).map(([n, v]: any) => ({ nombre: n, ...v })).sort((a, b) => b.viajes - a.viajes).slice(0, 5));
-
-        // Datos mensuales
-        const mesMap: any = {};
-        d.forEach(r => { const m = r.fecha_factura?.substring(0, 7); if (m) { if (!mesMap[m]) mesMap[m] = { viajes: 0, ventas: 0 }; mesMap[m].viajes++; mesMap[m].ventas += r.ventas || 0; } });
-        setDatosMensuales(mesMap);
-      } else {
-        // Sin datos
-        setStats({ total_viajes: 0, total_ventas: 0, total_kms: 0, por_segmento: {}, por_empresa: {}, por_tipo: {} });
-        setTopClientes([]);
-        setTopTractos([]);
-        setTopCajas([]);
-        setDatosMensuales({});
-        console.log('⚠️ No se encontraron registros');
-      }
-    } catch (e: any) { 
-      console.error('❌ Error general:', e);
-      setError(e.message || 'Error desconocido');
+      setUltimaAct(new Date().toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' }));
+    } catch (err) {
+      console.error('Error cargando datos:', err);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
-  }, [filtrosAplicados, userPermisos]);
+  }, [year, filtros, esAdmin, vendedorFiltro]);
 
-  useEffect(() => { cargarOpciones(); }, [cargarOpciones]);
   useEffect(() => { cargarDatos(); }, [cargarDatos]);
-
-  const abrirFiltros = () => { setFiltrosTemp(filtrosAplicados); setFiltrosOpen(true); };
-  const aplicarFiltros = () => { setFiltrosAplicados(filtrosTemp); setFiltrosOpen(false); };
-  const limpiarFiltros = () => { 
-    const base = userPermisos.vendedor && !userPermisos.verTodo ? { ...FILTROS_INIT, vendedor: userPermisos.vendedor } : FILTROS_INIT;
-    setFiltrosTemp(base); 
-  };
 
   const nFiltros = useMemo(() => {
     let n = 0;
-    if (filtrosAplicados.fechaInicio) n++;
-    if (filtrosAplicados.fechaFin) n++;
-    if (filtrosAplicados.segmento) n++;
-    if (filtrosAplicados.tipo) n++;
-    if (filtrosAplicados.empresa) n++;
-    if (filtrosAplicados.clientes.length) n++;
-    if (filtrosAplicados.tractos.length) n++;
-    if (filtrosAplicados.cajas.length) n++;
-    if (filtrosAplicados.estadoOrigen) n++;
-    if (filtrosAplicados.estadoDestino) n++;
-    if (filtrosAplicados.vendedor && userPermisos.verTodo) n++;
-    if (filtrosAplicados.division) n++;
-    if (filtrosAplicados.kmsMin) n++;
-    if (filtrosAplicados.kmsMax) n++;
+    if (filtros.segmento) n++;
+    if (filtros.tipo) n++;
+    if (filtros.empresa) n++;
+    if (filtros.clientes.length > 0) n++;
+    if (filtros.tractos.length > 0) n++;
     return n;
-  }, [filtrosAplicados, userPermisos]);
+  }, [filtros]);
 
-  const enviarChat = async () => {
-    if (!chatIn.trim() || chatLoad) return;
-    const msg = chatIn.trim();
-    setChatIn('');
-    setChatMsgs(p => [...p, { role: 'user', content: msg }]);
-    setChatLoad(true);
-    try {
-      const ctx = `Datos ventas: ${stats?.total_viajes || 0} viajes, $${(stats?.total_ventas || 0).toLocaleString()} ${moneda}. Top clientes: ${topClientes.map(c => c.nombre).join(', ')}`;
-      const res = await fetch('https://fbxbsslhewchyibdoyzk.supabase.co/functions/v1/ventas-api', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'chat', message: msg, context: ctx })
-      });
-      const data = await res.json();
-      setChatMsgs(p => [...p, { role: 'assistant', content: data.response || 'Sin respuesta' }]);
-    } catch { setChatMsgs(p => [...p, { role: 'assistant', content: 'Error de conexión' }]); }
-    setChatLoad(false);
-  };
-
-  const fmt = (n: number) => {
+  const formatMoney = (n: number) => {
     if (n >= 1e9) return `$${(n / 1e9).toFixed(1)}B`;
     if (n >= 1e6) return `$${(n / 1e6).toFixed(1)}M`;
     if (n >= 1e3) return `$${(n / 1e3).toFixed(0)}K`;
     return `$${n.toLocaleString()}`;
   };
 
-  const ModalFiltros = () => {
-    if (!filtrosOpen) return null;
-    return (
-      <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-        <div className="bg-slate-900 border border-white/10 rounded-xl w-full max-w-2xl max-h-[80vh] overflow-hidden">
-          <div className="p-4 border-b border-white/10 flex items-center justify-between">
-            <h3 className="text-white font-medium">Filtros</h3>
-            <button onClick={() => setFiltrosOpen(false)} className="text-white/50 hover:text-white"><X className="w-5 h-5" /></button>
-          </div>
-          <div className="p-4 overflow-y-auto max-h-[60vh] space-y-4">
-            {/* Info de rango disponible */}
-            {rangoFechas && (
-              <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-3 text-blue-300 text-xs">
-                📅 Datos disponibles: {rangoFechas.min} a {rangoFechas.max}
-              </div>
-            )}
-            <div className="grid grid-cols-2 gap-4">
-              {userPermisos.verTodo && (
-                <div>
-                  <label className="text-white/40 text-xs mb-1 block">Vendedor</label>
-                  <select value={filtrosTemp.vendedor} onChange={e => setFiltrosTemp(p => ({ ...p, vendedor: e.target.value }))} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm">
-                    <option value="">Todos</option>
-                    <option value="ISIS">ISIS</option>
-                    <option value="PALOMA">PALOMA</option>
-                  </select>
-                </div>
-              )}
-              <div>
-                <label className="text-white/40 text-xs mb-1 block">División</label>
-                <select value={filtrosTemp.division} onChange={e => setFiltrosTemp(p => ({ ...p, division: e.target.value }))} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm">
-                  <option value="">Todas</option>
-                  <option value="GRUPO_LOMA">Grupo Loma (MXN)</option>
-                  <option value="TROB_USA">TROB USA (USD)</option>
-                </select>
-              </div>
-              <div>
-                <label className="text-white/40 text-xs mb-1 block">Fecha Inicio</label>
-                <input type="date" value={filtrosTemp.fechaInicio} onChange={e => setFiltrosTemp(p => ({ ...p, fechaInicio: e.target.value }))} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm" />
-              </div>
-              <div>
-                <label className="text-white/40 text-xs mb-1 block">Fecha Fin</label>
-                <input type="date" value={filtrosTemp.fechaFin} onChange={e => setFiltrosTemp(p => ({ ...p, fechaFin: e.target.value }))} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm" />
-              </div>
-              <div>
-                <label className="text-white/40 text-xs mb-1 block">Segmento</label>
-                <select value={filtrosTemp.segmento} onChange={e => setFiltrosTemp(p => ({ ...p, segmento: e.target.value }))} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm">
-                  <option value="">Todos</option>
-                  <option value="IMPEX">IMPEX</option>
-                  <option value="DEDICADO">DEDICADO</option>
-                </select>
-              </div>
-              <div>
-                <label className="text-white/40 text-xs mb-1 block">Tipo</label>
-                <select value={filtrosTemp.tipo} onChange={e => setFiltrosTemp(p => ({ ...p, tipo: e.target.value }))} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm">
-                  <option value="">Todos</option>
-                  <option value="IMPO">IMPO</option>
-                  <option value="EXPO">EXPO</option>
-                  <option value="NAC">NAC</option>
-                </select>
-              </div>
-              <div>
-                <label className="text-white/40 text-xs mb-1 block">Empresa</label>
-                <select value={filtrosTemp.empresa} onChange={e => setFiltrosTemp(p => ({ ...p, empresa: e.target.value }))} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm">
-                  <option value="">Todas</option>
-                  <option value="TROB">TROB</option>
-                  <option value="WEXPRESS">WEXPRESS</option>
-                  <option value="SHI">SHI</option>
-                </select>
-              </div>
-              <div>
-                <label className="text-white/40 text-xs mb-1 block">Estado Origen</label>
-                <select value={filtrosTemp.estadoOrigen} onChange={e => setFiltrosTemp(p => ({ ...p, estadoOrigen: e.target.value }))} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm">
-                  <option value="">Todos</option>
-                  {opEstados.map(e => <option key={e} value={e}>{e}</option>)}
-                </select>
-              </div>
-              <div>
-                <label className="text-white/40 text-xs mb-1 block">Estado Destino</label>
-                <select value={filtrosTemp.estadoDestino} onChange={e => setFiltrosTemp(p => ({ ...p, estadoDestino: e.target.value }))} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm">
-                  <option value="">Todos</option>
-                  {opEstados.map(e => <option key={e} value={e}>{e}</option>)}
-                </select>
-              </div>
-              <div>
-                <label className="text-white/40 text-xs mb-1 block">KMs Mínimo</label>
-                <input type="number" value={filtrosTemp.kmsMin} onChange={e => setFiltrosTemp(p => ({ ...p, kmsMin: e.target.value }))} placeholder="0" className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm" />
-              </div>
-              <div>
-                <label className="text-white/40 text-xs mb-1 block">KMs Máximo</label>
-                <input type="number" value={filtrosTemp.kmsMax} onChange={e => setFiltrosTemp(p => ({ ...p, kmsMax: e.target.value }))} placeholder="10000" className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm" />
-              </div>
-            </div>
-            <MultiSelect label="Clientes" options={opClientes} selected={filtrosTemp.clientes} onChange={v => setFiltrosTemp(p => ({ ...p, clientes: v }))} placeholder="Seleccionar clientes..." />
-            <MultiSelect label="Tractos" options={opTractos} selected={filtrosTemp.tractos} onChange={v => setFiltrosTemp(p => ({ ...p, tractos: v }))} placeholder="Seleccionar tractos..." />
-            <MultiSelect label="Cajas/Remolques" options={opCajas} selected={filtrosTemp.cajas} onChange={v => setFiltrosTemp(p => ({ ...p, cajas: v }))} placeholder="Seleccionar cajas..." />
-          </div>
-          <div className="p-4 border-t border-white/10 flex justify-between">
-            <button onClick={limpiarFiltros} className="px-4 py-2 text-red-400 text-sm hover:bg-red-500/10 rounded-lg">Limpiar</button>
-            <button onClick={aplicarFiltros} className="px-6 py-2 bg-orange-500 text-white text-sm font-medium rounded-lg hover:bg-orange-600">Aplicar</button>
-          </div>
-        </div>
-      </div>
-    );
+  // Chat con Claude
+  const enviarChat = async () => {
+    if (!chatInput.trim() || chatLoading) return;
+    const userMsg = chatInput.trim();
+    setChatInput('');
+    setChatMsgs(prev => [...prev, { role: 'user', content: userMsg }]);
+    setChatLoading(true);
+
+    try {
+      const contexto = `
+Eres un asistente de análisis de ventas para Grupo Loma Transportes (TROB, SHI, WE, TROB_USA).
+Datos actuales (${year}):
+- Total viajes: ${stats?.total_viajes?.toLocaleString()}
+- Ventas totales: ${formatMoney(stats?.total_ventas || 0)}
+- Por segmento: ${JSON.stringify(stats?.por_segmento)}
+- Por empresa: ${JSON.stringify(stats?.por_empresa)}
+- Top 10 clientes: ${JSON.stringify(topClientes)}
+
+REGLAS DE NEGOCIO IMPORTANTES:
+- CLIENTES ISIS: ${REGLAS_PROCESAMIENTO.CLIENTES_ISIS.join(', ')}
+- CLIENTES PALOMA: ${REGLAS_PROCESAMIENTO.CLIENTES_PALOMA.join(', ')}
+- CLIENTES DEDICADO: ${REGLAS_PROCESAMIENTO.CLIENTES_DEDICADO.join(', ')}
+- CLIENTES IMPEX: ${REGLAS_PROCESAMIENTO.CLIENTES_IMPEX.join(', ')}
+- NEXTEER (antes STEERINGMEX): rutas QRO↔Tamaulipas son IMPO/EXPO
+- PILGRIM's NAC se elimina (solo IMPO/EXPO)
+
+Usuario: ${userEmail} (${esAdmin ? 'Admin - ve todo' : `Vendedor ${vendedorFiltro} - solo sus clientes`})
+
+Responde de forma concisa y útil. Si te preguntan por análisis, usa los datos disponibles.
+`;
+
+      const response = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json', 
+          'x-api-key': import.meta.env.VITE_ANTHROPIC_API_KEY || '', 
+          'anthropic-version': '2023-06-01',
+          'anthropic-dangerous-direct-browser-access': 'true'
+        },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-20250514',
+          max_tokens: 1024,
+          system: contexto,
+          messages: [...chatMsgs.map(m => ({ role: m.role, content: m.content })), { role: 'user', content: userMsg }]
+        })
+      });
+
+      const data = await response.json();
+      const assistantMsg = data.content?.[0]?.text || 'Error al procesar respuesta';
+      setChatMsgs(prev => [...prev, { role: 'assistant', content: assistantMsg }]);
+    } catch (err) {
+      console.error('Error chat:', err);
+      setChatMsgs(prev => [...prev, { role: 'assistant', content: 'Error de conexión con IA. Verifica la API key.' }]);
+    } finally {
+      setChatLoading(false);
+    }
   };
 
-  const Dashboard = () => {
-    if (loading) return (
-      <div className="flex items-center justify-center h-64">
-        <Loader2 className="w-8 h-8 text-orange-500 animate-spin" />
-      </div>
-    );
-
-    if (error) return (
-      <div className="flex flex-col items-center justify-center h-64 text-center">
-        <AlertTriangle className="w-12 h-12 text-red-400 mb-4" />
-        <p className="text-red-400 text-sm mb-2">Error cargando datos</p>
-        <p className="text-white/50 text-xs mb-4">{error}</p>
-        <button onClick={cargarDatos} className="px-4 py-2 bg-orange-500 text-white text-sm rounded-lg hover:bg-orange-600">
-          Reintentar
-        </button>
-      </div>
-    );
-
-    if (totalRegistros === 0) return (
-      <div className="flex flex-col items-center justify-center h-64 text-center">
-        <BarChart3 className="w-12 h-12 text-white/20 mb-4" />
-        <p className="text-white/50 text-sm mb-2">No hay datos para mostrar</p>
-        {rangoFechas && (
-          <p className="text-white/30 text-xs">
-            Datos disponibles: {rangoFechas.min} a {rangoFechas.max}
-          </p>
-        )}
-        <button onClick={abrirFiltros} className="mt-4 px-4 py-2 bg-orange-500/20 text-orange-400 text-sm rounded-lg hover:bg-orange-500/30">
-          Ajustar filtros
-        </button>
-      </div>
-    );
-
-    const meses = Object.keys(datosMensuales).sort();
-    const maxVentas = Math.max(...Object.values(datosMensuales).map(m => m.ventas), 1);
-
-    return (
-      <div className="space-y-3">
-        {/* KPIs */}
-        <div className="grid grid-cols-3 gap-2">
-          <div className="bg-white/[0.03] border border-white/[0.06] rounded-lg p-3">
-            <div className="flex items-center gap-2 mb-1">
-              <Truck className="w-4 h-4 text-orange-400" />
-              <span className="text-white/50 text-xs">Viajes</span>
-            </div>
-            <div className="text-white text-xl font-bold">{(stats?.total_viajes || 0).toLocaleString()}</div>
-          </div>
-          <div className="bg-white/[0.03] border border-white/[0.06] rounded-lg p-3">
-            <div className="flex items-center gap-2 mb-1">
-              <DollarSign className="w-4 h-4 text-emerald-400" />
-              <span className="text-white/50 text-xs">Ventas ({moneda})</span>
-            </div>
-            <div className="text-white text-xl font-bold">{fmt(stats?.total_ventas || 0)}</div>
-          </div>
-          <div className="bg-white/[0.03] border border-white/[0.06] rounded-lg p-3">
-            <div className="flex items-center gap-2 mb-1">
-              <Gauge className="w-4 h-4 text-blue-400" />
-              <span className="text-white/50 text-xs">KMs Total</span>
-            </div>
-            <div className="text-white text-xl font-bold">{((stats?.total_kms || 0) / 1000).toFixed(0)}K</div>
-          </div>
+  // Dashboard
+  const Dashboard = () => (
+    <div className="space-y-4">
+      {/* KPIs */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <div className="bg-gradient-to-br from-blue-500/20 to-blue-600/10 rounded-xl p-4 border border-blue-500/20">
+          <div className="flex items-center gap-2 text-blue-400 text-xs mb-1"><Truck className="w-4 h-4" />Viajes</div>
+          <div className="text-2xl font-bold text-white">{stats?.total_viajes?.toLocaleString() || 0}</div>
         </div>
-
-        {/* Gráfica mensual */}
-        {meses.length > 0 && (
-          <div className="bg-white/[0.02] border border-white/[0.06] rounded-lg p-3">
-            <div className="text-white/70 text-xs mb-2 flex items-center gap-1">
-              <BarChart3 className="w-3 h-3" /> Ventas Mensuales
-            </div>
-            <div className="flex items-end gap-1 h-24">
-              {meses.map(m => {
-                const d = datosMensuales[m];
-                const h = (d.ventas / maxVentas) * 100;
-                return (
-                  <div key={m} className="flex-1 flex flex-col items-center">
-                    <div className="w-full bg-white/5 rounded-t relative" style={{ height: '80px' }}>
-                      <div className="absolute bottom-0 w-full bg-gradient-to-t from-orange-500 to-orange-400 rounded-t transition-all" style={{ height: `${h}%` }} />
-                    </div>
-                    <span className="text-white/30 text-[8px] mt-1">{m.split('-')[1]}</span>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
-        {/* Tops */}
-        <div className="grid grid-cols-3 gap-2">
-          <div className="bg-white/[0.02] border border-white/[0.06] rounded-lg p-2">
-            <div className="text-white/50 text-[10px] mb-1 flex items-center gap-1"><Building2 className="w-3 h-3" />Top Clientes</div>
-            {topClientes.map((c, i) => (
-              <div key={i} className="flex justify-between text-[9px] py-0.5 border-b border-white/5 last:border-0">
-                <span className="text-white/70 truncate flex-1">{c.nombre}</span>
-                <span className="text-orange-400 ml-1">{fmt(c.ventas)}</span>
-              </div>
-            ))}
-          </div>
-          <div className="bg-white/[0.02] border border-white/[0.06] rounded-lg p-2">
-            <div className="text-white/50 text-[10px] mb-1 flex items-center gap-1"><Truck className="w-3 h-3" />Top Tractos</div>
-            {topTractos.map((t, i) => (
-              <div key={i} className="flex justify-between text-[9px] py-0.5 border-b border-white/5 last:border-0">
-                <span className="text-white/70 truncate flex-1">{t.nombre}</span>
-                <span className="text-blue-400 ml-1">{t.viajes}</span>
-              </div>
-            ))}
-          </div>
-          <div className="bg-white/[0.02] border border-white/[0.06] rounded-lg p-2">
-            <div className="text-white/50 text-[10px] mb-1 flex items-center gap-1"><Package className="w-3 h-3" />Top Cajas</div>
-            {topCajas.map((c, i) => (
-              <div key={i} className="flex justify-between text-[9px] py-0.5 border-b border-white/5 last:border-0">
-                <span className="text-white/70 truncate flex-1">{c.nombre}</span>
-                <span className="text-emerald-400 ml-1">{c.viajes}</span>
-              </div>
-            ))}
-          </div>
+        <div className="bg-gradient-to-br from-emerald-500/20 to-emerald-600/10 rounded-xl p-4 border border-emerald-500/20">
+          <div className="flex items-center gap-2 text-emerald-400 text-xs mb-1"><DollarSign className="w-4 h-4" />Ventas</div>
+          <div className="text-2xl font-bold text-white">{formatMoney(stats?.total_ventas || 0)}</div>
         </div>
-
-        {/* Por tipo */}
-        <div className="grid grid-cols-3 gap-2">
-          {['IMPO', 'EXPO', 'NAC'].map(tipo => {
-            const d = stats?.por_tipo?.[tipo] || { viajes: 0, ventas: 0 };
-            return (
-              <div key={tipo} className="bg-white/[0.02] border border-white/[0.06] rounded-lg p-2 text-center">
-                <div className="text-white/40 text-[10px]">{tipo}</div>
-                <div className="text-white font-bold text-sm">{d.viajes.toLocaleString()}</div>
-                <div className="text-orange-400 text-[10px]">{fmt(d.ventas)}</div>
-              </div>
-            );
-          })}
+        <div className="bg-gradient-to-br from-purple-500/20 to-purple-600/10 rounded-xl p-4 border border-purple-500/20">
+          <div className="flex items-center gap-2 text-purple-400 text-xs mb-1"><Globe className="w-4 h-4" />IMPEX</div>
+          <div className="text-2xl font-bold text-white">{stats?.por_segmento?.['IMPEX']?.viajes?.toLocaleString() || 0}</div>
+          <div className="text-xs text-white/50">{formatMoney(stats?.por_segmento?.['IMPEX']?.ventas || 0)}</div>
+        </div>
+        <div className="bg-gradient-to-br from-orange-500/20 to-orange-600/10 rounded-xl p-4 border border-orange-500/20">
+          <div className="flex items-center gap-2 text-orange-400 text-xs mb-1"><Building2 className="w-4 h-4" />DEDICADO</div>
+          <div className="text-2xl font-bold text-white">{stats?.por_segmento?.['DEDICADO']?.viajes?.toLocaleString() || 0}</div>
+          <div className="text-xs text-white/50">{formatMoney(stats?.por_segmento?.['DEDICADO']?.ventas || 0)}</div>
         </div>
       </div>
-    );
-  };
 
+      {/* Por empresa */}
+      <div className="bg-white/5 rounded-xl p-4 border border-white/10">
+        <h3 className="text-sm font-medium text-white/70 mb-3 flex items-center gap-2"><Building2 className="w-4 h-4" />Por Empresa</h3>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          {Object.entries(stats?.por_empresa || {}).sort((a, b) => b[1].ventas - a[1].ventas).map(([emp, d]) => (
+            <div key={emp} className="bg-white/5 rounded-lg p-3">
+              <div className="text-xs text-white/50">{emp}</div>
+              <div className="text-lg font-bold text-white">{d.viajes.toLocaleString()}</div>
+              <div className="text-xs text-emerald-400">{formatMoney(d.ventas)}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Top clientes */}
+      <div className="bg-white/5 rounded-xl p-4 border border-white/10">
+        <h3 className="text-sm font-medium text-white/70 mb-3 flex items-center gap-2"><TrendingUp className="w-4 h-4" />Top 10 Clientes</h3>
+        <div className="space-y-2 max-h-64 overflow-y-auto scrollbar-thin scrollbar-thumb-white/10">
+          {topClientes.map((c, i) => (
+            <div key={c.nombre} className="flex items-center gap-3 p-2 bg-white/5 rounded-lg hover:bg-white/10 transition-colors">
+              <span className="text-xs text-white/30 w-5">{i + 1}</span>
+              <div className="flex-1 min-w-0">
+                <div className="text-sm text-white truncate">{c.nombre}</div>
+                <div className="text-xs text-white/50">{c.viajes} viajes</div>
+              </div>
+              <div className="text-sm font-medium text-emerald-400">{formatMoney(c.ventas)}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Info vendedor (solo si no es admin) */}
+      {!esAdmin && vendedorFiltro && (
+        <div className="bg-orange-500/10 border border-orange-500/30 rounded-xl p-4">
+          <div className="flex items-center gap-2 text-orange-400">
+            <Users className="w-4 h-4" />
+            <span className="text-sm">Mostrando solo clientes asignados a <strong>{vendedorFiltro}</strong></span>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+
+  // Chat IA
   const Chat = () => (
-    <div className="h-[400px] flex flex-col bg-white/[0.02] border border-white/[0.06] rounded-lg">
-      <div className="p-2 border-b border-white/[0.06] flex items-center gap-2">
-        <Sparkles className="w-3 h-3 text-orange-400" />
-        <span className="text-white text-xs font-medium">Análisis IA</span>
-      </div>
-      <div className="flex-1 overflow-y-auto p-2 space-y-2 scrollbar-thin scrollbar-thumb-white/10">
+    <div className="flex flex-col h-[500px] bg-white/5 rounded-xl border border-white/10">
+      <div className="flex-1 overflow-y-auto p-4 space-y-3 scrollbar-thin scrollbar-thumb-white/10">
         {chatMsgs.length === 0 && (
-          <div className="text-center text-white/30 py-4">
-            <Bot className="w-6 h-6 mx-auto mb-1 opacity-50" />
-            <p className="text-[10px]">Pregunta sobre ventas</p>
+          <div className="text-center text-white/30 py-8">
+            <Bot className="w-12 h-12 mx-auto mb-2 opacity-50" />
+            <p>Pregunta sobre tus ventas...</p>
+            <p className="text-xs mt-2">Ejemplos: "¿Cuál es mi mejor cliente?" • "Compara IMPEX vs DEDICADO" • "¿Cómo va TROB vs SHI?"</p>
           </div>
         )}
         {chatMsgs.map((m, i) => (
           <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-            <div className={`max-w-[80%] p-2 rounded-lg text-[10px] ${m.role === 'user' ? 'bg-orange-500/20 text-white' : 'bg-white/5 text-white/80'}`}>
-              {m.content}
+            <div className={`max-w-[80%] rounded-xl px-4 py-2 ${m.role === 'user' ? 'bg-orange-500/20 text-white' : 'bg-white/10 text-white/90'}`}>
+              <p className="text-sm whitespace-pre-wrap">{m.content}</p>
             </div>
           </div>
         ))}
-        {chatLoad && (
+        {chatLoading && (
           <div className="flex justify-start">
-            <div className="bg-white/5 rounded-lg p-2 flex items-center gap-1">
-              <Loader2 className="w-3 h-3 animate-spin" />
-              <span className="text-[10px] text-white/50">...</span>
+            <div className="bg-white/10 rounded-xl px-4 py-2">
+              <Loader2 className="w-4 h-4 animate-spin text-white/50" />
             </div>
           </div>
         )}
       </div>
-      <div className="p-2 border-t border-white/[0.06] flex gap-1">
-        <input type="text" value={chatIn} onChange={e => setChatIn(e.target.value)} onKeyDown={e => e.key === 'Enter' && enviarChat()} placeholder="Pregunta..." className="flex-1 bg-white/5 border border-white/10 rounded px-2 py-1 text-white text-[10px] placeholder-white/30" />
-        <button onClick={enviarChat} disabled={chatLoad || !chatIn.trim()} className="px-2 py-1 bg-orange-500/20 rounded text-orange-400 disabled:opacity-50">
-          <Send className="w-3 h-3" />
-        </button>
+      <div className="border-t border-white/10 p-3">
+        <div className="flex gap-2">
+          <input
+            type="text"
+            value={chatInput}
+            onChange={e => setChatInput(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && enviarChat()}
+            placeholder="Escribe tu pregunta..."
+            className="flex-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder-white/30 focus:outline-none focus:border-orange-500/50"
+          />
+          <button onClick={enviarChat} disabled={chatLoading} className="bg-orange-500 hover:bg-orange-600 text-white rounded-lg px-4 py-2 transition-colors disabled:opacity-50">
+            <Send className="w-4 h-4" />
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+
+  // Modal filtros
+  const FiltrosModal = () => (
+    <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4" onClick={() => setFiltrosOpen(false)}>
+      <div className="bg-[#1a1a2e] rounded-2xl w-full max-w-md max-h-[80vh] overflow-hidden" onClick={e => e.stopPropagation()}>
+        <div className="flex items-center justify-between p-4 border-b border-white/10">
+          <h3 className="text-lg font-medium text-white">Filtros</h3>
+          <button onClick={() => setFiltrosOpen(false)} className="text-white/50 hover:text-white"><X className="w-5 h-5" /></button>
+        </div>
+        <div className="p-4 space-y-4 overflow-y-auto max-h-[60vh]">
+          <div>
+            <label className="text-xs text-white/50 mb-1 block">Segmento</label>
+            <select value={filtros.segmento} onChange={e => setFiltros(f => ({ ...f, segmento: e.target.value }))} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm">
+              <option value="">Todos</option>
+              <option value="IMPEX">IMPEX</option>
+              <option value="DEDICADO">DEDICADO</option>
+            </select>
+          </div>
+          <div>
+            <label className="text-xs text-white/50 mb-1 block">Tipo</label>
+            <select value={filtros.tipo} onChange={e => setFiltros(f => ({ ...f, tipo: e.target.value }))} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm">
+              <option value="">Todos</option>
+              <option value="IMPO">IMPO</option>
+              <option value="EXPO">EXPO</option>
+              <option value="NAC">NAC</option>
+            </select>
+          </div>
+          <div>
+            <label className="text-xs text-white/50 mb-1 block">Empresa</label>
+            <select value={filtros.empresa} onChange={e => setFiltros(f => ({ ...f, empresa: e.target.value }))} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm">
+              <option value="">Todas</option>
+              <option value="TROB">TROB</option>
+              <option value="SHI">SHI</option>
+              <option value="WE">WE</option>
+              <option value="TROB_USA">TROB USA</option>
+            </select>
+          </div>
+          <div>
+            <label className="text-xs text-white/50 mb-1 block">Clientes ({filtros.clientes.length})</label>
+            <div className="bg-white/5 border border-white/10 rounded-lg max-h-32 overflow-y-auto">
+              {clientesDisponibles.slice(0, 50).map(c => (
+                <label key={c} className="flex items-center gap-2 px-3 py-1.5 hover:bg-white/5 cursor-pointer">
+                  <input type="checkbox" checked={filtros.clientes.includes(c)} onChange={e => {
+                    if (e.target.checked) setFiltros(f => ({ ...f, clientes: [...f.clientes, c] }));
+                    else setFiltros(f => ({ ...f, clientes: f.clientes.filter(x => x !== c) }));
+                  }} className="rounded border-white/20" />
+                  <span className="text-xs text-white/70 truncate">{c}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+        </div>
+        <div className="p-4 border-t border-white/10 flex gap-2">
+          <button onClick={() => { setFiltros(FILTROS_INIT); setFiltrosOpen(false); }} className="flex-1 bg-white/5 hover:bg-white/10 text-white/70 rounded-lg py-2 text-sm">Limpiar</button>
+          <button onClick={() => setFiltrosOpen(false)} className="flex-1 bg-orange-500 hover:bg-orange-600 text-white rounded-lg py-2 text-sm">Aplicar</button>
+        </div>
       </div>
     </div>
   );
 
   return (
-    <ModuleTemplate title="Ventas" subtitle={userPermisos.vendedor ? `Vendedor: ${userPermisos.vendedor}` : "Análisis Grupo Loma & TROB USA"} icon={TrendingUp} accentColor="orange" backgroundImage={MODULE_IMAGES.ventas} onBack={onBack}>
-      <ModalFiltros />
-      <div className="flex items-center justify-between mb-2">
-        <div className="flex gap-1">
-          <button onClick={() => setVista('dashboard')} className={`px-2 py-1 rounded text-[10px] font-medium flex items-center gap-1 ${vista === 'dashboard' ? 'bg-orange-500/20 text-orange-400' : 'bg-white/5 text-white/50'}`}>
-            <BarChart3 className="w-3 h-3" />Dashboard
+    <ModuleTemplate title="Ventas" subtitle={esAdmin ? "Dashboard General" : `Clientes ${vendedorFiltro}`} onBack={onBack} backgroundImage={MODULE_IMAGES.ventas}>
+      {filtrosOpen && <FiltrosModal />}
+      
+      <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
+        <div className="flex items-center gap-2">
+          <button onClick={() => setVista('dashboard')} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs transition-colors ${vista === 'dashboard' ? 'bg-orange-500/20 text-orange-400' : 'bg-white/5 text-white/50 hover:bg-white/10'}`}>
+            <BarChart3 className="w-3.5 h-3.5" />Dashboard
           </button>
-          <button onClick={() => setVista('chat')} className={`px-2 py-1 rounded text-[10px] font-medium flex items-center gap-1 ${vista === 'chat' ? 'bg-orange-500/20 text-orange-400' : 'bg-white/5 text-white/50'}`}>
-            <Sparkles className="w-3 h-3" />IA
+          <button onClick={() => setVista('chat')} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs transition-colors ${vista === 'chat' ? 'bg-orange-500/20 text-orange-400' : 'bg-white/5 text-white/50 hover:bg-white/10'}`}>
+            <Sparkles className="w-3.5 h-3.5" />IA
           </button>
         </div>
-        <div className="flex items-center gap-1.5">
-          <span className="text-white/40 text-[10px]">{totalRegistros.toLocaleString()} reg</span>
-          <button onClick={abrirFiltros} className={`flex items-center gap-1 px-2 py-1 rounded text-[10px] ${nFiltros ? 'bg-orange-500/20 text-orange-400' : 'bg-white/5 text-white/50'}`}>
-            <Filter className="w-3 h-3" />Filtros{nFiltros > 0 && <span className="bg-orange-500 text-white text-[8px] px-1 rounded-full">{nFiltros}</span>}
+        <div className="flex items-center gap-2">
+          <select value={year} onChange={e => setYear(Number(e.target.value))} className="bg-white/5 border border-white/10 rounded-lg px-2 py-1 text-white text-xs">
+            {[2025, 2024, 2023, 2022].map(y => <option key={y} value={y}>{y}</option>)}
+          </select>
+          <button onClick={() => setFiltrosOpen(true)} className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs ${nFiltros ? 'bg-orange-500/20 text-orange-400' : 'bg-white/5 text-white/50 hover:bg-white/10'}`}>
+            <Filter className="w-3.5 h-3.5" />Filtros{nFiltros > 0 && <span className="bg-orange-500 text-white text-[9px] px-1.5 rounded-full">{nFiltros}</span>}
           </button>
-          <button onClick={cargarDatos} className="p-1.5 bg-white/10 hover:bg-white/20 rounded-lg transition-colors">
-            <RefreshCw className="w-3 h-3 text-white/50" />
-          </button>
-          <span className="text-[9px] text-white/30 flex items-center gap-0.5">
-            <span className="w-1 h-1 rounded-full bg-emerald-500" />{ultimaAct}
-          </span>
+          <button onClick={cargarDatos} className="p-1.5 bg-white/5 hover:bg-white/10 rounded-lg"><RefreshCw className={`w-3.5 h-3.5 text-white/50 ${loading ? 'animate-spin' : ''}`} /></button>
+          <span className="text-[10px] text-white/30 flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />{ultimaAct}</span>
         </div>
       </div>
-      {vista === 'dashboard' ? <Dashboard /> : <Chat />}
+
+      {loading ? (
+        <div className="flex items-center justify-center py-20"><Loader2 className="w-8 h-8 animate-spin text-orange-500" /></div>
+      ) : vista === 'dashboard' ? <Dashboard /> : <Chat />}
     </ModuleTemplate>
   );
 }
