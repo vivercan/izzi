@@ -26,42 +26,122 @@ function calcDistance(lat1: number, lon1: number, lat2: number, lon2: number): n
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
 }
 
-// Geocoding con Google Maps
-async function getAddress(lat: number, lon: number): Promise<string> {
+// GEOCODING DETALLADO CON GOOGLE MAPS
+async function getDetailedAddress(lat: number, lon: number): Promise<string> {
   try {
     const res = await fetch(
-      `https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lon}&language=es&key=${GOOGLE_MAPS_API_KEY}`
+      `https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lon}&language=es&result_type=street_address|route|premise|subpremise&key=${GOOGLE_MAPS_API_KEY}`
     );
-    if (res.ok) {
-      const data = await res.json();
-      if (data.status === 'OK' && data.results?.[0]) {
-        const comps = data.results[0].address_components || [];
-        let streetNumber = '', route = '', neighborhood = '', sublocality = '', locality = '', adminArea1 = '';
-        
-        for (const c of comps) {
-          const types = c.types || [];
-          if (types.includes('street_number')) streetNumber = c.long_name;
-          if (types.includes('route')) route = c.long_name;
-          if (types.includes('neighborhood')) neighborhood = c.long_name;
-          if (types.includes('sublocality_level_1') || types.includes('sublocality')) sublocality = c.long_name;
-          if (types.includes('locality')) locality = c.long_name;
-          if (types.includes('administrative_area_level_1')) adminArea1 = c.short_name;
+    
+    if (!res.ok) throw new Error('Google Maps API error');
+    
+    const data = await res.json();
+    
+    if (data.status === 'OK' && data.results?.length > 0) {
+      // Buscar el resultado más detallado
+      let bestResult = data.results[0];
+      
+      // Preferir resultados con street_address o route
+      for (const result of data.results) {
+        if (result.types?.includes('street_address') || result.types?.includes('route')) {
+          bestResult = result;
+          break;
         }
+      }
+      
+      const comps = bestResult.address_components || [];
+      
+      let streetNumber = '';
+      let route = '';
+      let neighborhood = '';
+      let sublocality = '';
+      let locality = '';
+      let adminArea2 = '';
+      let adminArea1 = '';
+      
+      for (const c of comps) {
+        const types = c.types || [];
+        if (types.includes('street_number')) streetNumber = c.long_name;
+        if (types.includes('route')) route = c.long_name;
+        if (types.includes('neighborhood')) neighborhood = c.long_name;
+        if (types.includes('sublocality_level_1') || types.includes('sublocality')) sublocality = c.long_name;
+        if (types.includes('locality')) locality = c.long_name;
+        if (types.includes('administrative_area_level_2')) adminArea2 = c.long_name;
+        if (types.includes('administrative_area_level_1')) adminArea1 = c.short_name;
+      }
+      
+      // Construir dirección detallada
+      const parts: string[] = [];
+      
+      // 1. Calle con número o carretera
+      if (route) {
+        const isHighway = /carretera|autopista|libramiento|federal|estatal|blvd|boulevard|avenida|av\.|periférico|anillo/i.test(route);
         
-        const parts: string[] = [];
-        if (route) {
-          const isHighway = /carretera|autopista|libramiento|federal/i.test(route);
-          parts.push(isHighway ? route : (streetNumber ? `${route} #${streetNumber}` : route));
+        if (isHighway) {
+          // Para carreteras, incluir km si está disponible
+          if (streetNumber && /^\d+$/.test(streetNumber)) {
+            parts.push(`${route} Km ${streetNumber}`);
+          } else if (streetNumber) {
+            parts.push(`${route} #${streetNumber}`);
+          } else {
+            parts.push(route);
+          }
+        } else {
+          // Para calles normales
+          if (streetNumber) {
+            parts.push(`${route} #${streetNumber}`);
+          } else {
+            parts.push(route);
+          }
         }
-        const colonia = neighborhood || sublocality;
-        if (colonia && colonia !== route) parts.push(`Col. ${colonia}`);
-        if (locality) parts.push(locality);
-        if (adminArea1) parts.push(adminArea1);
-        
-        return parts.length > 0 ? parts.join(', ') : `${lat.toFixed(4)}, ${lon.toFixed(4)}`;
+      }
+      
+      // 2. Colonia (preferir neighborhood sobre sublocality)
+      const colonia = neighborhood || sublocality;
+      if (colonia && colonia !== route && !colonia.includes('Municipio')) {
+        parts.push(`Col. ${colonia}`);
+      }
+      
+      // 3. Ciudad/Municipio
+      const ciudad = locality || adminArea2;
+      if (ciudad) {
+        // Limpiar "Municipio de" si viene
+        const ciudadClean = ciudad.replace(/^Municipio de\s+/i, '');
+        parts.push(ciudadClean);
+      }
+      
+      // 4. Estado (abreviado)
+      if (adminArea1) {
+        parts.push(adminArea1);
+      }
+      
+      if (parts.length > 0) {
+        return parts.join(', ');
       }
     }
-  } catch {}
+    
+    // Si no hay resultados detallados, intentar con location_type más amplio
+    const res2 = await fetch(
+      `https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lon}&language=es&key=${GOOGLE_MAPS_API_KEY}`
+    );
+    
+    if (res2.ok) {
+      const data2 = await res2.json();
+      if (data2.status === 'OK' && data2.results?.[0]) {
+        // Usar formatted_address pero limpiarla
+        let addr = data2.results[0].formatted_address || '';
+        // Quitar código postal y país
+        addr = addr.replace(/\s*\d{5}\s*/, ' ').replace(/,?\s*México\s*$/i, '').trim();
+        // Quitar "Municipio de" redundante
+        addr = addr.replace(/Municipio de\s+/gi, '');
+        return addr || `${lat.toFixed(4)}, ${lon.toFixed(4)}`;
+      }
+    }
+    
+  } catch (e) {
+    console.error('Geocoding error:', e);
+  }
+  
   return `${lat.toFixed(4)}, ${lon.toFixed(4)}`;
 }
 
@@ -100,13 +180,11 @@ function formatStoppedTime(minutes: number): string {
 }
 
 export async function GET(request: NextRequest) {
-  // Verificar autorización (para cron de Vercel)
+  // Verificar autorización
   const authHeader = request.headers.get('authorization');
   const cronSecret = process.env.CRON_SECRET;
   
-  // Permitir acceso si es cron de Vercel o si tiene el secret correcto
   if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
-    // También permitir si viene de Vercel Cron
     const vercelCron = request.headers.get('x-vercel-cron');
     if (!vercelCron) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -116,10 +194,10 @@ export async function GET(request: NextRequest) {
   const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
   const startTime = Date.now();
   
-  console.log('🚀 GPS Worker started at', new Date().toISOString());
+  console.log('🚀 GPS Worker v2 started at', new Date().toISOString());
 
   try {
-    // Obtener datos actuales de la tabla
+    // Obtener geocercas actuales
     const { data: currentData } = await supabase
       .from('gps_tracking')
       .select('economico, geofence_lat, geofence_lon, geofence_entry_time');
@@ -141,6 +219,7 @@ export async function GET(request: NextRequest) {
     const batchSize = 10;
     let processed = 0;
     let updated = 0;
+    let geocoded = 0;
 
     for (let i = 0; i < placas.length; i += batchSize) {
       const batch = placas.slice(i, i + batchSize);
@@ -168,8 +247,9 @@ export async function GET(request: NextRequest) {
           const { latitude: lat, longitude: lon, speed = 0, timestamp: ts } = r.location;
           
           if (lat && lon) {
-            // Obtener dirección
-            const address = await getAddress(lat, lon);
+            // GEOCODING DETALLADO
+            const address = await getDetailedAddress(lat, lon);
+            geocoded++;
             
             // Calcular geocerca
             const existing = geofenceMap.get(eco);
@@ -181,7 +261,6 @@ export async function GET(request: NextRequest) {
             if (existing) {
               const distance = calcDistance(existing.lat, existing.lon, lat, lon);
               if (distance < 1) {
-                // Dentro de la geocerca
                 geofenceLat = existing.lat;
                 geofenceLon = existing.lon;
                 geofenceEntry = existing.entryTime;
@@ -196,7 +275,9 @@ export async function GET(request: NextRequest) {
             let status = 'stopped';
             
             if (ts) {
-              const hours = (Date.now() - new Date(ts.includes('/') ? ts.replace(/\//g, '-') : ts).getTime()) / 3600000;
+              const tsDate = new Date(ts.includes('/') ? ts.replace(/\//g, '-') : ts);
+              const hours = (Date.now() - tsDate.getTime()) / 3600000;
+              
               if (hours > 72) {
                 anomaly = `GPS sin señal ${Math.floor(hours / 24)}d`;
                 status = 'gps_issue';
@@ -238,19 +319,20 @@ export async function GET(request: NextRequest) {
         processed++;
       }
 
-      // Pequeña pausa entre batches
+      // Pausa entre batches para no saturar Google Maps
       if (i + batchSize < placas.length) {
-        await new Promise(r => setTimeout(r, 200));
+        await new Promise(r => setTimeout(r, 300));
       }
     }
 
     const duration = ((Date.now() - startTime) / 1000).toFixed(1);
-    console.log(`✅ GPS Worker completed: ${updated}/${processed} units in ${duration}s`);
+    console.log(`✅ GPS Worker v2 completed: ${updated}/${processed} units, ${geocoded} geocoded in ${duration}s`);
 
     return NextResponse.json({
       success: true,
       processed,
       updated,
+      geocoded,
       duration: `${duration}s`,
       timestamp: new Date().toISOString()
     });
@@ -264,7 +346,6 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// También permitir POST para testing manual
 export async function POST(request: NextRequest) {
   return GET(request);
 }
