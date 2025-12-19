@@ -2,7 +2,10 @@
 
 import { projectId, publicAnonKey } from '../../utils/supabase/info';
 import React, { useState, useEffect, useCallback } from 'react';
-import { Truck, Power, RefreshCw, Search, Download, WifiOff, Navigation, ExternalLink, Clock } from 'lucide-react';
+import { Truck, Power, RefreshCw, Search, Download, WifiOff, Navigation, ExternalLink, Clock, AlertTriangle } from 'lucide-react';
+
+// API Key desde variable de entorno
+const ANTHROPIC_API_KEY = process.env.NEXT_PUBLIC_ANTHROPIC_API_KEY || '';
 
 // FLOTA 219 UNIDADES
 const FLOTA_RAW: { e: string; emp: string; seg: string }[] = [
@@ -24,13 +27,31 @@ interface Unit {
   address: string;
   timestamp: string | null;
   stoppedTime: string;
-  status: 'moving' | 'stopped' | 'no_signal' | 'loading' | 'pending';
+  status: 'moving' | 'stopped' | 'no_signal' | 'loading' | 'pending' | 'gps_issue';
+  anomaly: string | null;
+}
+
+interface GeofenceHistory {
+  lat: number;
+  lon: number;
+  entryTime: Date;
 }
 
 const EMP_ORDER: Record<string, number> = { SHI: 1, TROB: 2, WE: 3 };
 
-// Cache global para geocoding
+// Caches
 const geoCache: Map<string, string> = new Map();
+const geofenceHistory: Map<string, GeofenceHistory> = new Map();
+const aiLocationCache: Map<string, string> = new Map();
+
+// Calcular distancia Haversine en km
+const calcDistance = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
+  const R = 6371;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = Math.sin(dLat/2) * Math.sin(dLat/2) + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon/2) * Math.sin(dLon/2);
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+};
 
 export default function DespachoInteligenteContent() {
   const [fleet, setFleet] = useState<Unit[]>([]);
@@ -43,11 +64,58 @@ export default function DespachoInteligenteContent() {
   const [loadedSegmentos, setLoadedSegmentos] = useState<string[]>([]);
 
   useEffect(() => {
-    setFleet(FLOTA.map(u => ({ ...u, latitude: null, longitude: null, speed: null, address: '-', timestamp: null, stoppedTime: '-', status: 'pending' as const })));
+    setFleet(FLOTA.map(u => ({ 
+      ...u, latitude: null, longitude: null, speed: null, address: '-', 
+      timestamp: null, stoppedTime: '-', status: 'pending' as const, anomaly: null
+    })));
   }, []);
 
-  // BigDataCloud API - Gratis, funciona desde browser sin CORS
-  const reverseGeocode = async (lat: number, lon: number): Promise<string> => {
+  // IA: Obtener ubicación detallada con Claude (AUTOMÁTICO)
+  const getDetailedLocation = async (lat: number, lon: number): Promise<string> => {
+    const key = `${lat.toFixed(4)},${lon.toFixed(4)}`;
+    if (aiLocationCache.has(key)) return aiLocationCache.get(key)!;
+
+    // Si no hay API key, usar BigDataCloud
+    if (!ANTHROPIC_API_KEY) {
+      return await getBasicLocation(lat, lon);
+    }
+
+    try {
+      const response = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': ANTHROPIC_API_KEY,
+          'anthropic-version': '2023-06-01',
+          'anthropic-dangerous-direct-browser-access': 'true'
+        },
+        body: JSON.stringify({
+          model: 'claude-3-haiku-20240307',
+          max_tokens: 100,
+          messages: [{
+            role: 'user',
+            content: `Coordenadas México: ${lat}, ${lon}. Dame ubicación exacta en máximo 40 caracteres. Formato: "Lugar específico, Ciudad, Estado" o si es carretera "Carr. X Km Y, Estado". Solo la ubicación, nada más.`
+          }]
+        })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        const result = data.content[0]?.text?.trim() || '';
+        if (result && result.length < 60) {
+          aiLocationCache.set(key, result);
+          return result;
+        }
+      }
+    } catch (err) {
+      console.log('AI error, using fallback');
+    }
+    
+    return await getBasicLocation(lat, lon);
+  };
+
+  // Fallback: BigDataCloud
+  const getBasicLocation = async (lat: number, lon: number): Promise<string> => {
     const key = `${lat.toFixed(3)},${lon.toFixed(3)}`;
     if (geoCache.has(key)) return geoCache.get(key)!;
 
@@ -59,63 +127,59 @@ export default function DespachoInteligenteContent() {
       if (response.ok) {
         const data = await response.json();
         const parts: string[] = [];
-        
-        // Ciudad/Localidad
         if (data.locality) parts.push(data.locality);
         else if (data.city) parts.push(data.city);
-        
-        // Municipio
-        if (data.localityInfo?.administrative) {
-          const admin = data.localityInfo.administrative;
-          // Buscar municipio (nivel 2 o 3 en México)
-          const muni = admin.find((a: any) => a.adminLevel === 3 || a.adminLevel === 2);
-          if (muni && muni.name && !parts.includes(muni.name)) parts.push(muni.name);
-        }
-        
-        // Estado
         if (data.principalSubdivision) {
-          const estado = data.principalSubdivision.replace('Estado de ', '').replace('State of ', '');
+          const estado = data.principalSubdivision.replace('Estado de ', '');
           if (!parts.includes(estado)) parts.push(estado);
         }
-        
         const result = parts.length > 0 ? parts.join(', ') : 'México';
         geoCache.set(key, result);
         return result;
       }
-    } catch (err) {
-      console.log('Geocode error:', err);
-    }
-    return '-';
+    } catch {}
+    return 'México';
   };
 
-  // Calcular tiempo detenido
-  const calcStoppedTime = (timestamp: string | null, speed: number | null): string => {
-    if (!timestamp || (speed !== null && speed > 0)) return '-';
+  // Detectar anomalías de GPS
+  const detectAnomaly = (timestamp: string | null): { anomaly: string | null; isGpsIssue: boolean } => {
+    if (!timestamp) return { anomaly: 'Sin datos GPS', isGpsIssue: true };
     
     try {
-      let dateStr = timestamp;
-      // Convertir formato WideTech "2025/12/18 17:25:00" a ISO
-      if (timestamp.includes('/')) {
-        dateStr = timestamp.replace(/\//g, '-');
-      }
-      
-      const date = new Date(dateStr);
-      if (isNaN(date.getTime())) return '-';
-      
+      const date = new Date(timestamp.includes('/') ? timestamp.replace(/\//g, '-') : timestamp);
       const now = new Date();
-      const diffMs = now.getTime() - date.getTime();
+      const diffHours = (now.getTime() - date.getTime()) / (1000 * 60 * 60);
       
-      if (diffMs < 0) return '-';
-      if (diffMs > 30 * 24 * 60 * 60 * 1000) return '>30d'; // Max 30 días
+      if (diffHours > 72) return { anomaly: `GPS sin señal ${Math.floor(diffHours / 24)}d`, isGpsIssue: true };
+      if (diffHours > 24) return { anomaly: `GPS inactivo ${Math.floor(diffHours)}h`, isGpsIssue: true };
+    } catch {}
+    return { anomaly: null, isGpsIssue: false };
+  };
+
+  // Geocerca: calcular tiempo real detenido
+  const updateGeofence = (eco: string, lat: number, lon: number): string => {
+    const history = geofenceHistory.get(eco);
+    const now = new Date();
+    
+    if (history) {
+      const distance = calcDistance(history.lat, history.lon, lat, lon);
       
-      const mins = Math.floor(diffMs / 60000);
-      const hours = Math.floor(mins / 60);
-      const days = Math.floor(hours / 24);
-      
-      if (days > 0) return `${days}d ${hours % 24}h`;
-      if (hours > 0) return `${hours}h ${mins % 60}m`;
-      return `${mins}m`;
-    } catch {
+      if (distance < 1) {
+        const diffMs = now.getTime() - history.entryTime.getTime();
+        const mins = Math.floor(diffMs / 60000);
+        const hours = Math.floor(mins / 60);
+        const days = Math.floor(hours / 24);
+        
+        if (days > 0) return `${days}d ${hours % 24}h`;
+        if (hours > 0) return `${hours}h ${mins % 60}m`;
+        if (mins > 0) return `${mins}m`;
+        return '-';
+      } else {
+        geofenceHistory.set(eco, { lat, lon, entryTime: now });
+        return '-';
+      }
+    } else {
+      geofenceHistory.set(eco, { lat, lon, entryTime: now });
       return '-';
     }
   };
@@ -138,7 +202,6 @@ export default function DespachoInteligenteContent() {
     const unitsToFetch = FLOTA.filter(u => u.segmento === segmento);
     const placas = unitsToFetch.map(u => u.economico);
     
-    // Marcar como loading
     setFleet(prev => prev.map(u => u.segmento === segmento ? { ...u, status: 'loading' as const } : u));
     
     const batches: string[][] = [];
@@ -147,10 +210,8 @@ export default function DespachoInteligenteContent() {
 
     for (let i = 0; i < batches.length; i++) {
       const res = await fetchBatch(batches[i]);
-      const processed = Math.min((i + 1) * 5, placas.length);
-      setProgress({ current: processed, total: placas.length });
+      setProgress({ current: Math.min((i + 1) * 5, placas.length), total: placas.length });
 
-      // Procesar cada unidad del batch
       for (const g of res) {
         const placa = g?.placa;
         if (!placa) continue;
@@ -164,39 +225,48 @@ export default function DespachoInteligenteContent() {
           const isMoving = speed > 3;
           const ts = l.timestamp;
           
-          // Geocoding
-          let address = '-';
-          if (hasCoords) {
-            address = await reverseGeocode(lat, lon);
+          // Detectar anomalías
+          const { anomaly, isGpsIssue } = detectAnomaly(ts);
+          
+          // Status
+          let status: Unit['status'] = 'no_signal';
+          if (isGpsIssue) {
+            status = 'gps_issue';
+          } else if (hasCoords) {
+            status = isMoving ? 'moving' : 'stopped';
           }
           
-          // Tiempo detenido
-          const stoppedTime = isMoving ? '-' : calcStoppedTime(ts, speed);
+          // Ubicación detallada con IA (AUTOMÁTICO)
+          let address = '-';
+          if (hasCoords && !isGpsIssue) {
+            address = await getDetailedLocation(lat, lon);
+          }
+          
+          // Tiempo en geocerca
+          let stoppedTime = '-';
+          if (hasCoords && !isMoving && !isGpsIssue) {
+            stoppedTime = updateGeofence(placa, lat, lon);
+          }
 
           setFleet(prev => prev.map(u => 
             u.economico === placa ? {
-              ...u,
-              latitude: lat,
-              longitude: lon,
-              speed: speed,
-              address: address,
-              timestamp: ts,
-              stoppedTime: stoppedTime,
-              status: hasCoords ? (isMoving ? 'moving' : 'stopped') : 'no_signal'
+              ...u, latitude: lat, longitude: lon, speed, address, timestamp: ts,
+              stoppedTime, status, anomaly
             } : u
           ));
         } else {
           setFleet(prev => prev.map(u => 
-            u.economico === placa ? { ...u, status: 'no_signal' as const, address: '-', stoppedTime: '-' } : u
+            u.economico === placa ? { 
+              ...u, status: 'no_signal' as const, address: '-', stoppedTime: '-',
+              anomaly: 'Sin respuesta WideTech'
+            } : u
           ));
         }
       }
 
-      // Pausa entre batches
       if (i < batches.length - 1) await new Promise(r => setTimeout(r, 300));
     }
 
-    // Marcar pendientes como no_signal
     setFleet(prev => prev.map(u => 
       u.segmento === segmento && u.status === 'loading' ? { ...u, status: 'no_signal' as const } : u
     ));
@@ -206,14 +276,12 @@ export default function DespachoInteligenteContent() {
     setLoading(false);
   }, []);
 
-  // Cargar IMPEX al inicio
   useEffect(() => {
     if (fleet.length > 0 && !loadedSegmentos.includes('IMPEX') && !loading) {
       fetchSegmento('IMPEX');
     }
   }, [fleet.length, loadedSegmentos, loading, fetchSegmento]);
 
-  // Auto-refresh cada 5 min
   useEffect(() => {
     const interval = setInterval(() => {
       if (!loading && loadedSegmentos.includes(activeSegmento)) {
@@ -236,7 +304,7 @@ export default function DespachoInteligenteContent() {
     if (search && !u.economico.includes(search)) return false;
     if (statusF === 'moving' && u.status !== 'moving') return false;
     if (statusF === 'stopped' && u.status !== 'stopped') return false;
-    if (statusF === 'no_signal' && u.status !== 'no_signal' && u.status !== 'pending') return false;
+    if (statusF === 'no_signal' && u.status !== 'no_signal' && u.status !== 'gps_issue' && u.status !== 'pending') return false;
     return true;
   }).sort((a, b) => (EMP_ORDER[a.empresa] || 9) - (EMP_ORDER[b.empresa] || 9) || parseInt(a.economico) - parseInt(b.economico));
 
@@ -244,14 +312,15 @@ export default function DespachoInteligenteContent() {
     total: segmentoUnits.length,
     mov: segmentoUnits.filter(u => u.status === 'moving').length,
     det: segmentoUnits.filter(u => u.status === 'stopped').length,
-    sin: segmentoUnits.filter(u => u.status === 'no_signal' || u.status === 'pending').length,
+    sin: segmentoUnits.filter(u => u.status === 'no_signal' || u.status === 'pending' || u.status === 'gps_issue').length,
+    anomalies: segmentoUnits.filter(u => u.anomaly).length
   };
 
   const openMap = (u: Unit) => u.latitude && window.open(`https://www.google.com/maps?q=${u.latitude},${u.longitude}`, '_blank');
 
   const exportCSV = () => {
-    const rows = [['Eco', 'Empresa', 'Segmento', 'Status', 'Tiempo Detenido', 'Velocidad', 'Ubicación', 'Lat', 'Lon', 'Última Señal']];
-    filtered.forEach(u => rows.push([u.economico, u.empresa, u.segmento, u.status, u.stoppedTime, String(u.speed || 0), u.address, String(u.latitude || ''), String(u.longitude || ''), u.timestamp || '']));
+    const rows = [['Eco', 'Empresa', 'Segmento', 'Status', 'Tiempo Parado', 'Velocidad', 'Ubicación', 'Anomalía', 'Lat', 'Lon', 'Última Señal']];
+    filtered.forEach(u => rows.push([u.economico, u.empresa, u.segmento, u.status, u.stoppedTime, String(u.speed || 0), u.address, u.anomaly || '', String(u.latitude || ''), String(u.longitude || ''), u.timestamp || '']));
     const csv = rows.map(r => r.map(c => `"${c}"`).join(',')).join('\n');
     const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
@@ -270,7 +339,7 @@ export default function DespachoInteligenteContent() {
 
   const getStoppedColor = (time: string) => {
     if (!time || time === '-') return 'text-slate-500';
-    if (time.includes('d') || time.includes('>')) return 'text-red-400';
+    if (time.includes('d')) return 'text-red-400';
     if (time.includes('h')) {
       const h = parseInt(time);
       if (h >= 8) return 'text-red-400';
@@ -279,7 +348,14 @@ export default function DespachoInteligenteContent() {
     return 'text-yellow-400';
   };
 
-  const pct = progress.total > 0 ? Math.round((progress.current / progress.total) * 100) : 0;
+  const getStatusColor = (status: Unit['status']) => {
+    switch(status) {
+      case 'moving': return 'bg-green-500/20 text-green-400';
+      case 'stopped': return 'bg-yellow-500/20 text-yellow-400';
+      case 'gps_issue': return 'bg-purple-500/20 text-purple-400';
+      default: return 'bg-red-500/20 text-red-400';
+    }
+  };
 
   return (
     <div className="min-h-screen p-4" style={{ background: 'linear-gradient(180deg, #1a365d 0%, #0f172a 100%)' }}>
@@ -316,17 +392,29 @@ export default function DespachoInteligenteContent() {
         <button onClick={() => setStatusF('no_signal')} className={`h-10 px-4 rounded-xl font-semibold text-sm flex items-center gap-2 ${statusF === 'no_signal' ? 'bg-gradient-to-b from-red-500 to-red-700 text-white' : 'bg-slate-700/80 text-slate-300'}`}>
           <WifiOff className="w-4 h-4" />{segStats.sin}
         </button>
+        
+        {segStats.anomalies > 0 && (
+          <div className="flex items-center gap-1 px-3 py-1 rounded-lg bg-purple-500/20 text-purple-300 text-sm">
+            <AlertTriangle className="w-4 h-4" />
+            {segStats.anomalies} GPS
+          </div>
+        )}
+
         <div className="w-px h-8 bg-slate-600/50" />
+        
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
           <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Eco..." className="h-10 w-24 pl-9 pr-3 rounded-xl bg-slate-700/60 border border-slate-600/50 text-white text-sm placeholder-slate-400 focus:outline-none" />
         </div>
+
         <div className="flex-1" />
-        <span className="text-slate-400 text-sm">{filtered.length}/{segStats.total}</span>
+
         {lastRefresh && <span className="text-slate-500 text-xs">{lastRefresh.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })}</span>}
-        <button onClick={exportCSV} className="h-10 w-10 flex items-center justify-center rounded-xl bg-gradient-to-b from-slate-600 to-slate-800 text-slate-300">
+
+        <button onClick={exportCSV} className="h-10 w-10 flex items-center justify-center rounded-xl bg-gradient-to-b from-slate-600 to-slate-800 text-slate-300 hover:opacity-80">
           <Download className="w-4 h-4" />
         </button>
+
         <button onClick={() => fetchSegmento(activeSegmento)} disabled={loading} className={`h-10 px-4 rounded-xl font-semibold text-sm flex items-center gap-2 ${loading ? 'bg-gradient-to-b from-orange-500 to-orange-700' : 'bg-gradient-to-b from-blue-500 to-blue-700'} text-white`}>
           <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
           {loading ? `${progress.current}/${progress.total}` : 'Actualizar'}
@@ -339,26 +427,29 @@ export default function DespachoInteligenteContent() {
           <table className="w-full">
             <thead className="sticky top-0 bg-slate-900/95 z-10">
               <tr>
-                <th className="px-3 py-3 text-left text-xs font-semibold text-slate-400 uppercase w-20">ECO</th>
-                <th className="px-3 py-3 text-left text-xs font-semibold text-slate-400 uppercase w-20">EMPRESA</th>
-                <th className="px-3 py-3 text-left text-xs font-semibold text-slate-400 uppercase w-24">STATUS</th>
-                <th className="px-3 py-3 text-left text-xs font-semibold text-slate-400 uppercase w-24">DETENIDO</th>
-                <th className="px-3 py-3 text-left text-xs font-semibold text-slate-400 uppercase w-16">VEL</th>
+                <th className="px-3 py-3 text-left text-xs font-semibold text-slate-400 uppercase w-16">ECO</th>
+                <th className="px-3 py-3 text-left text-xs font-semibold text-slate-400 uppercase w-16">EMP</th>
+                <th className="px-3 py-3 text-left text-xs font-semibold text-slate-400 uppercase w-20">STATUS</th>
+                <th className="px-3 py-3 text-left text-xs font-semibold text-slate-400 uppercase w-20">PARADO</th>
+                <th className="px-3 py-3 text-left text-xs font-semibold text-slate-400 uppercase w-12">VEL</th>
                 <th className="px-3 py-3 text-left text-xs font-semibold text-slate-400 uppercase">UBICACIÓN</th>
-                <th className="px-3 py-3 text-left text-xs font-semibold text-slate-400 uppercase w-32">SEÑAL</th>
+                <th className="px-3 py-3 text-left text-xs font-semibold text-slate-400 uppercase w-28">SEÑAL</th>
               </tr>
             </thead>
             <tbody>
               {filtered.map(u => (
-                <tr key={u.economico} className="border-t border-slate-700/30 hover:bg-slate-700/20">
-                  <td className="px-3 py-2 font-mono font-bold text-white">{u.economico}</td>
+                <tr key={u.economico} className={`border-t border-slate-700/30 hover:bg-slate-700/20 ${u.anomaly ? 'bg-purple-900/10' : ''}`}>
+                  <td className="px-3 py-2 font-mono font-bold text-white">
+                    {u.economico}
+                    {u.anomaly && <AlertTriangle className="w-3 h-3 text-purple-400 inline ml-1" />}
+                  </td>
                   <td className="px-3 py-2">
                     <span className={`px-2 py-0.5 rounded text-xs font-semibold ${u.empresa === 'SHI' ? 'bg-purple-500/20 text-purple-300' : u.empresa === 'TROB' ? 'bg-blue-500/20 text-blue-300' : 'bg-emerald-500/20 text-emerald-300'}`}>{u.empresa}</span>
                   </td>
                   <td className="px-3 py-2">
-                    <button onClick={() => openMap(u)} disabled={!u.latitude} className={`flex items-center gap-1 px-2 py-0.5 rounded text-xs font-semibold ${u.status === 'moving' ? 'bg-green-500/20 text-green-400' : u.status === 'stopped' ? 'bg-yellow-500/20 text-yellow-400' : u.status === 'loading' ? 'bg-blue-500/20 text-blue-400' : 'bg-red-500/20 text-red-400'} ${u.latitude ? 'cursor-pointer hover:opacity-80' : 'cursor-not-allowed opacity-60'}`}>
-                      {u.status === 'moving' ? <Navigation className="w-3 h-3" /> : u.status === 'stopped' ? <Power className="w-3 h-3" /> : u.status === 'loading' ? <RefreshCw className="w-3 h-3 animate-spin" /> : <WifiOff className="w-3 h-3" />}
-                      {u.status === 'moving' ? 'Mov' : u.status === 'stopped' ? 'Det' : u.status === 'loading' ? '...' : 'Sin'}
+                    <button onClick={() => openMap(u)} disabled={!u.latitude} className={`flex items-center gap-1 px-2 py-0.5 rounded text-xs font-semibold ${getStatusColor(u.status)} ${u.latitude ? 'cursor-pointer hover:opacity-80' : 'cursor-not-allowed opacity-60'}`}>
+                      {u.status === 'moving' ? <Navigation className="w-3 h-3" /> : u.status === 'stopped' ? <Power className="w-3 h-3" /> : u.status === 'gps_issue' ? <AlertTriangle className="w-3 h-3" /> : u.status === 'loading' ? <RefreshCw className="w-3 h-3 animate-spin" /> : <WifiOff className="w-3 h-3" />}
+                      {u.status === 'moving' ? 'Mov' : u.status === 'stopped' ? 'Det' : u.status === 'gps_issue' ? 'GPS!' : u.status === 'loading' ? '...' : 'Sin'}
                       {u.latitude && <ExternalLink className="w-2.5 h-2.5" />}
                     </button>
                   </td>
@@ -371,7 +462,12 @@ export default function DespachoInteligenteContent() {
                   <td className="px-3 py-2">
                     <span className={`text-sm font-semibold ${(u.speed || 0) > 0 ? 'text-green-400' : 'text-slate-500'}`}>{u.speed ?? '-'}</span>
                   </td>
-                  <td className="px-3 py-2 text-slate-300 text-sm truncate max-w-[300px]">{u.address}</td>
+                  <td className="px-3 py-2">
+                    <div className="flex flex-col">
+                      <span className="text-slate-300 text-sm truncate max-w-[300px]">{u.address}</span>
+                      {u.anomaly && <span className="text-purple-400 text-xs">{u.anomaly}</span>}
+                    </div>
+                  </td>
                   <td className="px-3 py-2 text-slate-500 text-xs">{fmtTs(u.timestamp)}</td>
                 </tr>
               ))}
