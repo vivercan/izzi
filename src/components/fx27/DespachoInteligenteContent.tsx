@@ -43,7 +43,6 @@ export default function DespachoInteligenteContent({ onBack }: DespachoProps) {
   const [countdown, setCountdown] = useState<string>('');
   const [nextCronTime, setNextCronTime] = useState<string>('');
 
-  // Calcular próximo cron (minutos múltiplos de 5)
   const calcularProximoCron = useCallback(() => {
     const now = new Date();
     const mins = now.getMinutes();
@@ -157,10 +156,10 @@ export default function DespachoInteligenteContent({ onBack }: DespachoProps) {
   const openMap = (u: Unit) => u.latitude && window.open(`https://www.google.com/maps?q=${u.latitude},${u.longitude}`, '_blank');
 
   const exportCSV = () => {
-    const rows = [['Eco', 'Empresa', 'Segmento', 'Status', 'Tiempo Parado', 'Velocidad', 'Ubicación', 'Anomalía', 'Lat', 'Lon', 'Última Señal']];
+    const rows = [['Economico', 'Empresa', 'Segmento', 'Estatus', 'Detencion', 'Velocidad', 'Ubicación', 'Anomalía', 'Lat', 'Lon', 'Última Señal']];
     filtered.forEach(u => rows.push([
       u.economico, u.empresa, u.segmento, u.status,
-      u.stopped_time || '-', String(u.speed || 0), u.address || '-',
+      u.stopped_time || '', String(u.speed || 0), u.address || '',
       u.anomaly || '', String(u.latitude || ''), String(u.longitude || ''),
       u.timestamp_gps || ''
     ]));
@@ -289,7 +288,7 @@ export default function DespachoInteligenteContent({ onBack }: DespachoProps) {
 
         <div className="flex-1" />
 
-        {/* SOLO EL CRON INDICATOR - LIMPIO */}
+        {/* CRON INDICATOR */}
         <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-slate-700/40 border border-slate-600/30">
           <div className={`w-2 h-2 rounded-full ${countdown === 'ejecutando...' ? 'bg-orange-400 animate-pulse' : 'bg-green-400'}`} />
           <span className="text-xs text-slate-400">Cron</span>
@@ -319,11 +318,11 @@ export default function DespachoInteligenteContent({ onBack }: DespachoProps) {
           <table className="w-full">
             <thead className="sticky top-0 bg-slate-900/95 z-10">
               <tr>
-                <th className="px-3 py-3 text-left text-xs font-semibold text-slate-400 uppercase w-16">ECO</th>
-                <th className="px-3 py-3 text-left text-xs font-semibold text-slate-400 uppercase w-16">EMP</th>
-                <th className="px-3 py-3 text-left text-xs font-semibold text-slate-400 uppercase w-20">STATUS</th>
-                <th className="px-3 py-3 text-left text-xs font-semibold text-slate-400 uppercase w-20">PARADO</th>
-                <th className="px-3 py-3 text-left text-xs font-semibold text-slate-400 uppercase w-12">VEL</th>
+                <th className="px-3 py-3 text-left text-xs font-semibold text-slate-400 uppercase w-20">ECONÓMICO</th>
+                <th className="px-3 py-3 text-left text-xs font-semibold text-slate-400 uppercase w-16">EMPRESA</th>
+                <th className="px-3 py-3 text-left text-xs font-semibold text-slate-400 uppercase w-20">ESTATUS</th>
+                <th className="px-3 py-3 text-left text-xs font-semibold text-slate-400 uppercase w-24">DETENCIÓN</th>
+                <th className="px-3 py-3 text-left text-xs font-semibold text-slate-400 uppercase w-20">VELOCIDAD</th>
                 <th className="px-3 py-3 text-left text-xs font-semibold text-slate-400 uppercase">UBICACIÓN</th>
                 <th className="px-3 py-3 text-left text-xs font-semibold text-slate-400 uppercase w-32">SEÑAL</th>
               </tr>
@@ -354,12 +353,12 @@ export default function DespachoInteligenteContent({ onBack }: DespachoProps) {
                   <td className="px-3 py-2">
                     <span className={`text-sm font-semibold flex items-center gap-1 ${getStoppedColor(u.stopped_minutes)}`}>
                       {(u.stopped_minutes || 0) >= 60 && <Clock className="w-3 h-3" />}
-                      {u.stopped_time || '-'}
+                      {u.stopped_time || ''}
                     </span>
                   </td>
                   <td className="px-3 py-2">
                     <span className={`text-sm font-semibold ${(u.speed || 0) > 0 ? 'text-green-400' : 'text-slate-500'}`}>
-                      {u.speed ?? '-'}
+                      {u.speed != null ? `${u.speed} km/h` : '-'}
                     </span>
                   </td>
                   <td className="px-3 py-2">
