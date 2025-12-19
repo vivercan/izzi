@@ -230,56 +230,57 @@ export const DedicadosModule = ({ onBack }: CarrollModuleProps) => {
     }
   };
 
-  // Función para obtener ubicaciones GPS de WideTech
+
+  // Función para obtener ubicaciones GPS desde Supabase (gps_tracking)
   const obtenerUbicacionesGPS = async () => {
     setLoadingGPS(true);
-    console.log('🛰️ [GPS] Obteniendo ubicaciones GPS de WideTech...');
+    console.log('🛰️ [GPS] Obteniendo ubicaciones desde Supabase gps_tracking...');
     
     try {
-      // Obtener TODAS las placas de tractocamiones
       const todasLasUnidades = [...DATOS_ENTREGAS, ...DATOS_REGRESOS];
       const placas = todasLasUnidades.map(u => u.tracto);
       
-      console.log(`🛰️ [GPS] Consultando ${placas.length} unidades en batch:`, placas);
-      
-      // Llamar al endpoint batch de WideTech
-      const response = await fetch(`https://${projectId}.supabase.co/functions/v1/make-server-d84b50bb/widetech/locations/batch`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${publicAnonKey}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ placas })
-      });
+      // Leer directamente de la tabla gps_tracking de Supabase
+      const response = await fetch(
+        `https://${projectId}.supabase.co/rest/v1/gps_tracking?economico=in.(${placas.join(',')})&select=economico,latitude,longitude,speed,address,timestamp_gps,status`,
+        {
+          headers: {
+            'apikey': publicAnonKey,
+            'Authorization': `Bearer ${publicAnonKey}`
+          }
+        }
+      );
       
       const data = await response.json();
+      console.log(`🛰️ [GPS] Supabase response:`, data);
       
-      console.log(`🛰️ [GPS] Batch response:`, data);
-      
-      if (data.success && data.results) {
+      if (Array.isArray(data)) {
         const locations: Record<string, GPSLocation> = {};
         
-        // Procesar resultados del batch
-        data.results.forEach((result: any) => {
-          if (result.success && result.location) {
-            locations[result.placa] = result.location;
-            console.log(`✅ [GPS] ${result.placa}: ${result.location.latitude}, ${result.location.longitude}`);
-          } else {
-            console.log(`⚠️ [GPS] ${result.placa}: ${result.error || 'No data disponible'}`);
+        data.forEach((row: any) => {
+          if (row.latitude && row.longitude) {
+            locations[row.economico] = {
+              placa: row.economico,
+              latitude: row.latitude,
+              longitude: row.longitude,
+              speed: row.speed || 0,
+              timestamp: row.timestamp_gps || '',
+              address: row.address || 'Ubicación disponible'
+            };
+            console.log(`✅ [GPS] ${row.economico}: ${row.address || 'Sin dirección'}`);
           }
         });
         
         setGpsLocations(locations);
-        console.log(`✅ [GPS] Total ubicaciones obtenidas: ${Object.keys(locations).length}/${placas.length}`);
-      } else {
-        console.error('❌ [GPS] Error en batch response:', data);
+        console.log(`✅ [GPS] Total ubicaciones: ${Object.keys(locations).length}/${placas.length}`);
       }
     } catch (error) {
-      console.error('❌ [GPS] Error obteniendo ubicaciones:', error);
+      console.error('❌ [GPS] Error:', error);
     } finally {
       setLoadingGPS(false);
     }
   };
+
 
   // Auto-actualizar ubicaciones GPS cada 30 segundos
   useEffect(() => {
