@@ -4,7 +4,6 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { createClient } from '@supabase/supabase-js';
 import { Truck, Power, RefreshCw, Search, Download, WifiOff, Navigation, ExternalLink, Clock, AlertTriangle, Zap, ArrowLeft } from 'lucide-react';
 
-// Supabase config
 const SUPABASE_URL = 'https://fbxbsslhewchyibdoyzk.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZieGJzc2xoZXdjaHlpYmRveXprIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI1MzczODEsImV4cCI6MjA3ODExMzM4MX0.Z8JPlg7hhKbA624QGHp2bKKTNtCD3WInQMO5twjl6a0';
 
@@ -38,12 +37,11 @@ export default function DespachoInteligenteContent({ onBack }: DespachoProps) {
   const [fleet, setFleet] = useState<Unit[]>([]);
   const [activeSegmento, setActiveSegmento] = useState('IMPEX');
   const [loading, setLoading] = useState(true);
-  const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
   const [search, setSearch] = useState('');
   const [statusF, setStatusF] = useState('ALL');
   const [workerStatus, setWorkerStatus] = useState<'idle' | 'running' | 'error'>('idle');
-  const [nextCronTime, setNextCronTime] = useState<string>('');
   const [countdown, setCountdown] = useState<string>('');
+  const [nextCronTime, setNextCronTime] = useState<string>('');
 
   // Calcular próximo cron (minutos múltiplos de 5)
   const calcularProximoCron = useCallback(() => {
@@ -59,11 +57,9 @@ export default function DespachoInteligenteContent({ onBack }: DespachoProps) {
       next.setMinutes(nextMins, 0, 0);
     }
     
-    // Formato hora
     const horaStr = next.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', hour12: true });
     setNextCronTime(horaStr);
     
-    // Countdown
     const diffMs = next.getTime() - now.getTime();
     const diffMins = Math.floor(diffMs / 60000);
     const diffSecs = Math.floor((diffMs % 60000) / 1000);
@@ -73,11 +69,10 @@ export default function DespachoInteligenteContent({ onBack }: DespachoProps) {
     } else if (diffMins === 0) {
       setCountdown(`${diffSecs}s`);
     } else {
-      setCountdown(`${diffMins}m ${diffSecs}s`);
+      setCountdown(`${diffMins}m`);
     }
   }, []);
 
-  // Cargar datos desde Supabase
   const loadData = useCallback(async () => {
     try {
       const { data, error } = await supabase
@@ -86,18 +81,7 @@ export default function DespachoInteligenteContent({ onBack }: DespachoProps) {
         .order('segmento');
 
       if (error) throw error;
-
-      if (data && data.length > 0) {
-        setFleet(data);
-        
-        // Encontrar última actualización
-        const latest = data.reduce((max, u) => {
-          const d = u.timestamp_updated ? new Date(u.timestamp_updated) : null;
-          return d && (!max || d > max) ? d : max;
-        }, null as Date | null);
-        
-        if (latest) setLastUpdate(latest);
-      }
+      if (data && data.length > 0) setFleet(data);
     } catch (err) {
       console.error('Error loading data:', err);
     } finally {
@@ -105,7 +89,6 @@ export default function DespachoInteligenteContent({ onBack }: DespachoProps) {
     }
   }, []);
 
-  // Trigger manual del worker (llama a la Edge Function)
   const triggerWorker = async () => {
     setWorkerStatus('running');
     try {
@@ -126,12 +109,10 @@ export default function DespachoInteligenteContent({ onBack }: DespachoProps) {
     }
   };
 
-  // Cargar datos al inicio
   useEffect(() => {
     loadData();
     calcularProximoCron();
     
-    // Suscripción a cambios en tiempo real
     const channel = supabase
       .channel('gps_changes')
       .on('postgres_changes', 
@@ -140,15 +121,8 @@ export default function DespachoInteligenteContent({ onBack }: DespachoProps) {
       )
       .subscribe();
 
-    // Actualizar countdown cada segundo
-    const countdownInterval = setInterval(() => {
-      calcularProximoCron();
-    }, 1000);
-
-    // Refrescar datos cada 30 segundos
-    const dataInterval = setInterval(() => {
-      loadData();
-    }, 30000);
+    const countdownInterval = setInterval(calcularProximoCron, 1000);
+    const dataInterval = setInterval(loadData, 30000);
 
     return () => {
       channel.unsubscribe();
@@ -157,7 +131,6 @@ export default function DespachoInteligenteContent({ onBack }: DespachoProps) {
     };
   }, [loadData, calcularProximoCron]);
 
-  // Filtrar y ordenar
   const segmentoUnits = fleet.filter(u => u.segmento === activeSegmento);
   
   const filtered = segmentoUnits.filter(u => {
@@ -176,7 +149,6 @@ export default function DespachoInteligenteContent({ onBack }: DespachoProps) {
     anomalies: segmentoUnits.filter(u => u.anomaly).length
   };
 
-  // Contar por segmento
   const segmentoCounts = SEGMENTOS.reduce((acc, seg) => {
     acc[seg] = fleet.filter(u => u.segmento === seg).length;
     return acc;
@@ -229,7 +201,7 @@ export default function DespachoInteligenteContent({ onBack }: DespachoProps) {
       <div className="min-h-screen flex items-center justify-center" style={{ background: 'linear-gradient(180deg, #1a365d 0%, #0f172a 100%)' }}>
         <div className="text-center">
           <RefreshCw className="w-12 h-12 text-blue-400 animate-spin mx-auto mb-4" />
-          <p className="text-slate-300 text-lg">Cargando flota desde base de datos...</p>
+          <p className="text-slate-300 text-lg">Cargando flota...</p>
         </div>
       </div>
     );
@@ -241,13 +213,10 @@ export default function DespachoInteligenteContent({ onBack }: DespachoProps) {
         <div className="text-center">
           <AlertTriangle className="w-12 h-12 text-yellow-400 mx-auto mb-4" />
           <p className="text-slate-300 text-lg mb-4">No hay datos en la base de datos</p>
-          <button 
-            onClick={triggerWorker}
-            disabled={workerStatus === 'running'}
-            className="px-6 py-3 rounded-xl bg-gradient-to-b from-blue-500 to-blue-700 text-white font-semibold flex items-center gap-2 mx-auto"
-          >
+          <button onClick={triggerWorker} disabled={workerStatus === 'running'}
+            className="px-6 py-3 rounded-xl bg-gradient-to-b from-blue-500 to-blue-700 text-white font-semibold flex items-center gap-2 mx-auto">
             <Zap className={`w-5 h-5 ${workerStatus === 'running' ? 'animate-pulse' : ''}`} />
-            {workerStatus === 'running' ? 'Cargando flota...' : 'Iniciar carga de GPS'}
+            {workerStatus === 'running' ? 'Cargando...' : 'Iniciar carga'}
           </button>
         </div>
       </div>
@@ -257,22 +226,19 @@ export default function DespachoInteligenteContent({ onBack }: DespachoProps) {
   return (
     <div className="min-h-screen p-4" style={{ background: 'linear-gradient(180deg, #1a365d 0%, #0f172a 100%)' }}>
       
-      {/* Header con botón back */}
-      {onBack && (
-        <div className="flex items-center gap-4 mb-4">
-          <button 
-            onClick={onBack}
-            className="p-2 rounded-xl bg-slate-700/50 text-white hover:bg-slate-600/50 transition-colors"
-          >
+      {/* Header */}
+      <div className="flex items-center gap-4 mb-4">
+        {onBack && (
+          <button onClick={onBack} className="p-2 rounded-xl bg-slate-700/50 text-white hover:bg-slate-600/50">
             <ArrowLeft className="w-5 h-5" />
           </button>
-          <h1 className="text-2xl font-bold text-white">Despacho Inteligente</h1>
-          <div className="ml-auto text-right">
-            <div className="text-3xl font-bold text-blue-400" style={{ fontFamily: "'Exo 2', sans-serif" }}>FX27</div>
-            <div className="text-xs text-slate-400">FUTURE EXPERIENCE 27</div>
-          </div>
+        )}
+        <h1 className="text-2xl font-bold text-white">Despacho Inteligente</h1>
+        <div className="ml-auto text-right">
+          <div className="text-3xl font-bold text-blue-400" style={{ fontFamily: "'Exo 2', sans-serif" }}>FX27</div>
+          <div className="text-xs text-slate-400">FUTURE EXPERIENCE 27</div>
         </div>
-      )}
+      </div>
 
       {/* TABS */}
       <div className="flex flex-wrap gap-2 mb-4">
@@ -280,18 +246,12 @@ export default function DespachoInteligenteContent({ onBack }: DespachoProps) {
           const count = segmentoCounts[seg] || 0;
           if (count === 0) return null;
           const isActive = activeSegmento === seg;
-          
           return (
-            <button 
-              key={seg} 
-              onClick={() => setActiveSegmento(seg)}
+            <button key={seg} onClick={() => setActiveSegmento(seg)}
               className={`h-9 px-4 rounded-xl text-sm font-semibold transition-all ${
-                isActive 
-                  ? 'bg-gradient-to-b from-blue-500 to-blue-700 text-white shadow-lg' 
-                  : 'bg-slate-600/80 text-white hover:bg-slate-500/80'
+                isActive ? 'bg-gradient-to-b from-blue-500 to-blue-700 text-white shadow-lg' : 'bg-slate-600/80 text-white hover:bg-slate-500/80'
               }`}
-              style={{ boxShadow: isActive ? '0 4px 12px rgba(59,130,246,0.4)' : 'none' }}
-            >
+              style={{ boxShadow: isActive ? '0 4px 12px rgba(59,130,246,0.4)' : 'none' }}>
               {seg} ({count})
             </button>
           );
@@ -323,60 +283,33 @@ export default function DespachoInteligenteContent({ onBack }: DespachoProps) {
         
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-          <input 
-            value={search} 
-            onChange={e => setSearch(e.target.value)} 
-            placeholder="Eco..." 
-            className="h-10 w-24 pl-9 pr-3 rounded-xl bg-slate-700/60 border border-slate-600/50 text-white text-sm placeholder-slate-400 focus:outline-none" 
-          />
+          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Eco..." 
+            className="h-10 w-24 pl-9 pr-3 rounded-xl bg-slate-700/60 border border-slate-600/50 text-white text-sm placeholder-slate-400 focus:outline-none" />
         </div>
 
         <div className="flex-1" />
 
-        {/* Status del worker - CORREGIDO */}
-        <div className="flex items-center gap-3 px-3 py-2 rounded-xl bg-slate-700/40 border border-slate-600/30">
-          <div className="flex items-center gap-2">
-            <div className={`w-2 h-2 rounded-full ${workerStatus === 'running' ? 'bg-orange-400 animate-pulse' : 'bg-green-400'}`} />
-            <span className="text-xs text-slate-400">Cron</span>
-          </div>
-          <div className="text-xs text-slate-300">
-            <span className="text-blue-400 font-semibold">{countdown}</span>
-            <span className="text-slate-500 mx-1">→</span>
-            <span>{nextCronTime}</span>
-          </div>
+        {/* SOLO EL CRON INDICATOR - LIMPIO */}
+        <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-slate-700/40 border border-slate-600/30">
+          <div className={`w-2 h-2 rounded-full ${countdown === 'ejecutando...' ? 'bg-orange-400 animate-pulse' : 'bg-green-400'}`} />
+          <span className="text-xs text-slate-400">Cron</span>
+          <span className="text-sm text-blue-400 font-semibold">{countdown}</span>
+          <span className="text-xs text-slate-500">→ {nextCronTime}</span>
         </div>
-
-        {lastUpdate && (
-          <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-slate-700/40 border border-slate-600/30">
-            <Clock className="w-4 h-4 text-slate-400" />
-            <span className="text-slate-300 text-sm">
-              {lastUpdate.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', hour12: true })}
-            </span>
-          </div>
-        )}
 
         <button onClick={exportCSV} className="h-10 w-10 flex items-center justify-center rounded-xl bg-gradient-to-b from-slate-600 to-slate-800 text-slate-300 hover:opacity-80">
           <Download className="w-4 h-4" />
         </button>
 
-        <button 
-          onClick={triggerWorker}
-          disabled={workerStatus === 'running'}
+        <button onClick={triggerWorker} disabled={workerStatus === 'running'}
           className={`h-10 px-4 rounded-xl font-semibold text-sm flex items-center gap-2 ${
-            workerStatus === 'running' 
-              ? 'bg-gradient-to-b from-orange-500 to-orange-700' 
-              : workerStatus === 'error'
-              ? 'bg-gradient-to-b from-red-500 to-red-700'
-              : 'bg-gradient-to-b from-blue-500 to-blue-700'
-          } text-white`}
-        >
-          {workerStatus === 'running' ? (
-            <><RefreshCw className="w-4 h-4 animate-spin" />Actualizando</>
-          ) : workerStatus === 'error' ? (
-            <><AlertTriangle className="w-4 h-4" />Error</>
-          ) : (
-            <><Zap className="w-4 h-4" />Actualizar</>
-          )}
+            workerStatus === 'running' ? 'bg-gradient-to-b from-orange-500 to-orange-700' : 
+            workerStatus === 'error' ? 'bg-gradient-to-b from-red-500 to-red-700' : 
+            'bg-gradient-to-b from-blue-500 to-blue-700'
+          } text-white`}>
+          {workerStatus === 'running' ? <><RefreshCw className="w-4 h-4 animate-spin" />Actualizando</> : 
+           workerStatus === 'error' ? <><AlertTriangle className="w-4 h-4" />Error</> : 
+           <><Zap className="w-4 h-4" />Actualizar</>}
         </button>
       </div>
 
@@ -405,23 +338,16 @@ export default function DespachoInteligenteContent({ onBack }: DespachoProps) {
                   <td className="px-3 py-2">
                     <span className={`px-2 py-0.5 rounded text-xs font-semibold ${
                       u.empresa === 'SHI' ? 'bg-purple-500/20 text-purple-300' : 
-                      u.empresa === 'TROB' ? 'bg-blue-500/20 text-blue-300' : 
-                      'bg-emerald-500/20 text-emerald-300'
+                      u.empresa === 'TROB' ? 'bg-blue-500/20 text-blue-300' : 'bg-emerald-500/20 text-emerald-300'
                     }`}>{u.empresa}</span>
                   </td>
                   <td className="px-3 py-2">
-                    <button 
-                      onClick={() => openMap(u)} 
-                      disabled={!u.latitude} 
-                      className={`flex items-center gap-1 px-2 py-0.5 rounded text-xs font-semibold ${getStatusColor(u.status)} ${u.latitude ? 'cursor-pointer hover:opacity-80' : 'cursor-not-allowed opacity-60'}`}
-                    >
+                    <button onClick={() => openMap(u)} disabled={!u.latitude} 
+                      className={`flex items-center gap-1 px-2 py-0.5 rounded text-xs font-semibold ${getStatusColor(u.status)} ${u.latitude ? 'cursor-pointer hover:opacity-80' : 'cursor-not-allowed opacity-60'}`}>
                       {u.status === 'moving' ? <Navigation className="w-3 h-3" /> : 
                        u.status === 'stopped' ? <Power className="w-3 h-3" /> : 
-                       u.status === 'gps_issue' ? <AlertTriangle className="w-3 h-3" /> : 
-                       <WifiOff className="w-3 h-3" />}
-                      {u.status === 'moving' ? 'Mov' : 
-                       u.status === 'stopped' ? 'Det' : 
-                       u.status === 'gps_issue' ? 'GPS!' : 'Sin'}
+                       u.status === 'gps_issue' ? <AlertTriangle className="w-3 h-3" /> : <WifiOff className="w-3 h-3" />}
+                      {u.status === 'moving' ? 'Mov' : u.status === 'stopped' ? 'Det' : u.status === 'gps_issue' ? 'GPS!' : 'Sin'}
                       {u.latitude && <ExternalLink className="w-2.5 h-2.5" />}
                     </button>
                   </td>
