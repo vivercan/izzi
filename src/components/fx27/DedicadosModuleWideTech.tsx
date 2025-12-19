@@ -113,59 +113,38 @@ export const DedicadosModuleWideTech = ({ onBack }: DedicadosModuleProps) => {
         setFlotaCarroll(data.unidades);
         console.log(`✅ Flota Carroll cargada: ${data.unidades.length} unidades`);
       } else {
-        // Si no hay unidades en backend, inicializar con las 28 default
-        console.log('⚠️ No hay unidades en backend, inicializando...');
-        await inicializarFlotaDefault();
+        console.log('⚠️ No hay unidades en backend, usando default');
       }
     } catch (error) {
       console.error('Error cargando flota Carroll:', error);
     }
   };
 
-  const inicializarFlotaDefault = async () => {
-    for (const unidad of FLOTA_CARROLL) {
-      try {
-        await fetch(
-          `https://${projectId}.supabase.co/functions/v1/make-server-d84b50bb/carroll/unidades`,
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${publicAnonKey}`
-            },
-            body: JSON.stringify(unidad)
-          }
-        );
-      } catch (error) {
-        console.error(`Error guardando unidad ${unidad.numeroTracto}:`, error);
-      }
-    }
-    console.log('✅ Flota Carroll inicializada con 28 unidades');
-  };
-
   // ═══════════════════════════════════════════════════════════════════════════
-  // 📡 OBTENER UBICACIONES DESDE GPS_TRACKING (IGUAL QUE MADRE/DESPACHO)
+  // 📡 OBTENER UBICACIONES DESDE GPS_TRACKING - FILTRAR POR SEGMENTO CARROLL
   // ═══════════════════════════════════════════════════════════════════════════
   const obtenerUbicaciones = async () => {
     setCargando(true);
     setError(null);
 
     try {
-      const placas = flotaCarroll.map(t => t.numeroTracto);
-      console.log('🚀 [Carroll] Consultando GPS desde gps_tracking para', placas.length, 'unidades...');
+      console.log('🚀 [Carroll] Consultando GPS desde gps_tracking...');
 
-      // LEER DE GPS_TRACKING (IGUAL QUE MADRE)
+      // QUERY SIMPLE: Filtrar por segmento CARROL o CARROLL
       const { data, error: dbError } = await supabase
         .from('gps_tracking')
         .select('*')
-        .or(`segmento.eq.CARROL,segmento.eq.CARROLL,economico.in.(${placas.join(',')})`);
+        .in('segmento', ['CARROL', 'CARROLL']);
 
-      if (dbError) throw dbError;
+      if (dbError) {
+        console.error('❌ [Carroll] Error DB:', dbError);
+        throw dbError;
+      }
 
       console.log('📥 [Carroll] Datos de gps_tracking:', data?.length || 0, 'registros');
 
       if (data && data.length > 0) {
-        // Mapear datos de gps_tracking al formato esperado por el componente
+        // Mapear datos de gps_tracking al formato esperado
         const ubicacionesConInfo = data.map((r: any) => {
           const tracto = flotaCarroll.find(t => t.numeroTracto === r.economico);
           return {
@@ -176,7 +155,7 @@ export const DedicadosModuleWideTech = ({ onBack }: DedicadosModuleProps) => {
             timestamp: r.timestamp_gps || '',
             odometer: 0,
             address: r.address || 'Sin dirección',
-            operador: tracto?.operador || 'Desconocido',
+            operador: tracto?.operador || 'OPERADOR CARROLL',
             numeroRemolque: tracto?.numeroRemolque || 'N/A',
             fromCache: false,
             cacheAge: 0
@@ -186,41 +165,47 @@ export const DedicadosModuleWideTech = ({ onBack }: DedicadosModuleProps) => {
         console.log(`✅ [Carroll] ${ubicacionesConInfo.length} unidades con GPS activo`);
         setUbicaciones(ubicacionesConInfo);
         setUltimaActualizacion(new Date());
+        setError(null);
       } else {
-        console.log('⚠️ [Carroll] No hay datos en gps_tracking para estas unidades');
+        console.log('⚠️ [Carroll] No hay datos en gps_tracking para CARROLL');
         setUbicaciones([]);
       }
     } catch (err) {
-      setError(String(err));
+      const errorMsg = err instanceof Error ? err.message : String(err);
+      setError(errorMsg);
       console.error('❌ [Carroll] Error:', err);
     } finally {
       setCargando(false);
     }
   };
 
+  // Cargar ubicaciones al inicio y cada 5 minutos
   useEffect(() => {
     obtenerUbicaciones();
     
-    // Suscripción a cambios en tiempo real (igual que MADRE)
+    // Suscripción a cambios en tiempo real
     const channel = supabase
       .channel('gps_carroll_realtime')
       .on('postgres_changes', 
         { event: '*', schema: 'public', table: 'gps_tracking' },
         () => {
-          console.log('📡 [Carroll] Cambio detectado en gps_tracking, actualizando...');
+          console.log('📡 [Carroll] Cambio detectado, actualizando...');
           obtenerUbicaciones();
         }
       )
       .subscribe();
 
-    // Actualizar cada 10 minutos como respaldo
-    const interval = setInterval(obtenerUbicaciones, 10 * 60 * 1000);
+    // Actualizar cada 5 minutos
+    const interval = setInterval(() => {
+      console.log('⏰ [Carroll] Actualización automática (5 min)');
+      obtenerUbicaciones();
+    }, 5 * 60 * 1000);
     
     return () => {
       channel.unsubscribe();
       clearInterval(interval);
     };
-  }, [flotaCarroll]);
+  }, []);
 
   const unidadesCombinadas = flotaCarroll.map(tracto => {
     const ubicacion = ubicaciones.find(u => u.placa === tracto.numeroTracto);
@@ -325,7 +310,7 @@ export const DedicadosModuleWideTech = ({ onBack }: DedicadosModuleProps) => {
               </div>
             </div>
 
-            {/* GPS STATUS - 2 ESTADOS: CARGANDO / EN LÍNEA */}
+            {/* GPS STATUS */}
             <div 
               className="flex items-center gap-2 px-2.5 rounded-lg transition-all" 
               style={{
@@ -343,68 +328,22 @@ export const DedicadosModuleWideTech = ({ onBack }: DedicadosModuleProps) => {
             >
               {cargando ? (
                 <>
-                  {/* ANILLO GIRANDO */}
                   <div className="animate-spin">
                     <svg width="16" height="16" viewBox="0 0 20 20" fill="none">
-                      <circle 
-                        cx="10" 
-                        cy="10" 
-                        r="8" 
-                        stroke="#F59E0B" 
-                        strokeWidth="3" 
-                        strokeLinecap="round"
-                        strokeDasharray="25 25"
-                        opacity="0.8"
-                      />
+                      <circle cx="10" cy="10" r="8" stroke="#F59E0B" strokeWidth="3" strokeLinecap="round" strokeDasharray="25 25" opacity="0.8" />
                     </svg>
                   </div>
                   <div>
-                    <div style={{ 
-                      fontFamily: "'Exo 2', sans-serif", 
-                      fontSize: '10px', 
-                      fontWeight: 700, 
-                      color: 'rgba(255, 255, 255, 0.95)',
-                      letterSpacing: '0.2px',
-                      lineHeight: '1.2'
-                    }}>
-                      Sync…
-                    </div>
-                    <div style={{ 
-                      fontFamily: "'Exo 2', sans-serif", 
-                      fontSize: '8px', 
-                      fontWeight: 600, 
-                      color: 'rgba(255, 255, 255, 0.7)',
-                      letterSpacing: '0.2px',
-                      lineHeight: '1.2'
-                    }}>
-                      {ubicaciones.length}/28
-                    </div>
+                    <div style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '10px', fontWeight: 700, color: 'rgba(255, 255, 255, 0.95)', lineHeight: '1.2' }}>Sync…</div>
+                    <div style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '8px', fontWeight: 600, color: 'rgba(255, 255, 255, 0.7)', lineHeight: '1.2' }}>{ubicaciones.length}/28</div>
                   </div>
                 </>
               ) : (
                 <>
                   <CheckCircle2 className="w-4 h-4" style={{ color: '#10B981' }} />
                   <div>
-                    <div style={{ 
-                      fontFamily: "'Exo 2', sans-serif", 
-                      fontSize: '10px', 
-                      fontWeight: 700, 
-                      color: '#10B981',
-                      letterSpacing: '0.2px',
-                      lineHeight: '1.2'
-                    }}>
-                      En línea
-                    </div>
-                    <div style={{ 
-                      fontFamily: "'Exo 2', sans-serif", 
-                      fontSize: '8px', 
-                      fontWeight: 600, 
-                      color: 'rgba(16, 185, 129, 0.8)',
-                      letterSpacing: '0.2px',
-                      lineHeight: '1.2'
-                    }}>
-                      {ubicaciones.length}/28
-                    </div>
+                    <div style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '10px', fontWeight: 700, color: '#10B981', lineHeight: '1.2' }}>En línea</div>
+                    <div style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '8px', fontWeight: 600, color: 'rgba(16, 185, 129, 0.8)', lineHeight: '1.2' }}>{ubicaciones.length}/28</div>
                   </div>
                 </>
               )}
@@ -418,14 +357,6 @@ export const DedicadosModuleWideTech = ({ onBack }: DedicadosModuleProps) => {
                 background: 'rgba(30, 102, 245, 0.15)',
                 border: '1px solid rgba(30, 102, 245, 0.3)',
                 color: 'white'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = 'rgba(30, 102, 245, 0.3)';
-                e.currentTarget.style.borderColor = '#1E66F5';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = 'rgba(30, 102, 245, 0.15)';
-                e.currentTarget.style.borderColor = 'rgba(30, 102, 245, 0.3)';
               }}
               title="Administración Carroll"
             >
@@ -443,125 +374,37 @@ export const DedicadosModuleWideTech = ({ onBack }: DedicadosModuleProps) => {
         }} />
       ) : (
       <>
-      {/* ========== BANDA COMPACTA HUD: TABS + KPIs + MAPA ========== */}
+      {/* ========== BANDA COMPACTA HUD ========== */}
       <div style={{ background: '#F3F5F8', borderBottom: '1px solid #E2E6EE', padding: '12px 24px' }}>
         <div className="flex items-center justify-between gap-6">
           
           {/* LEFT: TABS + BOTÓN MAPA */}
           <div className="flex items-center gap-4">
-            {/* TABS PREMIUM */}
-            <div className="flex items-center gap-1" style={{ 
-              background: 'white', 
-              padding: '4px', 
-              borderRadius: '10px', 
-              border: '1px solid #E2E6EE',
-              boxShadow: '0 1px 3px rgba(0, 0, 0, 0.06)'
-            }}>
-              <button
-                onClick={() => setTabActivo('entregas')}
-                className="px-3 py-1.5 transition-all rounded-lg"
-                style={{
-                  fontFamily: "'Exo 2', sans-serif",
-                  fontSize: '11px',
-                  fontWeight: 600,
-                  color: tabActivo === 'entregas' ? '#1E66F5' : '#64748B',
-                  background: tabActivo === 'entregas' ? 'rgba(30, 102, 245, 0.1)' : 'transparent',
-                  borderBottom: tabActivo === 'entregas' ? '2px solid #1E66F5' : '2px solid transparent'
-                }}
-              >
-                Entregas
-              </button>
-              <button
-                onClick={() => setTabActivo('regresos')}
-                className="px-3 py-1.5 transition-all rounded-lg"
-                style={{
-                  fontFamily: "'Exo 2', sans-serif",
-                  fontSize: '11px',
-                  fontWeight: 600,
-                  color: tabActivo === 'regresos' ? '#1E66F5' : '#64748B',
-                  background: tabActivo === 'regresos' ? 'rgba(30, 102, 245, 0.1)' : 'transparent',
-                  borderBottom: tabActivo === 'regresos' ? '2px solid #1E66F5' : '2px solid transparent'
-                }}
-              >
-                Regresos
-              </button>
-              <button
-                onClick={() => setTabActivo('puntual')}
-                className="px-3 py-1.5 transition-all rounded-lg"
-                style={{
-                  fontFamily: "'Exo 2', sans-serif",
-                  fontSize: '11px',
-                  fontWeight: 600,
-                  color: tabActivo === 'puntual' ? '#1E66F5' : '#64748B',
-                  background: tabActivo === 'puntual' ? 'rgba(30, 102, 245, 0.1)' : 'transparent',
-                  borderBottom: tabActivo === 'puntual' ? '2px solid #1E66F5' : '2px solid transparent'
-                }}
-              >
-                Puntual
-              </button>
-              <button
-                onClick={() => setTabActivo('retraso')}
-                className="px-3 py-1.5 transition-all rounded-lg"
-                style={{
-                  fontFamily: "'Exo 2', sans-serif",
-                  fontSize: '11px',
-                  fontWeight: 600,
-                  color: tabActivo === 'retraso' ? '#DC2626' : '#64748B',
-                  background: tabActivo === 'retraso' ? 'rgba(220, 38, 38, 0.1)' : 'transparent',
-                  borderBottom: tabActivo === 'retraso' ? '2px solid #DC2626' : '2px solid transparent'
-                }}
-              >
-                Retraso
-              </button>
-              <button
-                onClick={() => setTabActivo('adelanto')}
-                className="px-3 py-1.5 transition-all rounded-lg"
-                style={{
-                  fontFamily: "'Exo 2', sans-serif",
-                  fontSize: '11px',
-                  fontWeight: 600,
-                  color: tabActivo === 'adelanto' ? '#F59E0B' : '#64748B',
-                  background: tabActivo === 'adelanto' ? 'rgba(245, 158, 11, 0.1)' : 'transparent',
-                  borderBottom: tabActivo === 'adelanto' ? '2px solid #F59E0B' : '2px solid transparent'
-                }}
-              >
-                Adelanto
-              </button>
-              <button
-                onClick={() => setTabActivo('asignacion')}
-                className="px-3 py-1.5 transition-all rounded-lg"
-                style={{
-                  fontFamily: "'Exo 2', sans-serif",
-                  fontSize: '11px',
-                  fontWeight: 600,
-                  color: tabActivo === 'asignacion' ? '#1E66F5' : '#64748B',
-                  background: tabActivo === 'asignacion' ? 'rgba(30, 102, 245, 0.1)' : 'transparent',
-                  borderBottom: tabActivo === 'asignacion' ? '2px solid #1E66F5' : '2px solid transparent'
-                }}
-              >
-                Asignación
-              </button>
+            {/* TABS */}
+            <div className="flex items-center gap-1" style={{ background: 'white', padding: '4px', borderRadius: '10px', border: '1px solid #E2E6EE', boxShadow: '0 1px 3px rgba(0, 0, 0, 0.06)' }}>
+              {['Entregas', 'Regresos', 'Puntual', 'Retraso', 'Adelanto', 'Asignación'].map(tab => (
+                <button
+                  key={tab}
+                  onClick={() => setTabActivo(tab.toLowerCase())}
+                  className="px-3 py-1.5 transition-all rounded-lg"
+                  style={{
+                    fontFamily: "'Exo 2', sans-serif",
+                    fontSize: '11px',
+                    fontWeight: 600,
+                    color: tabActivo === tab.toLowerCase() ? (tab === 'Retraso' ? '#DC2626' : tab === 'Adelanto' ? '#F59E0B' : '#1E66F5') : '#64748B',
+                    background: tabActivo === tab.toLowerCase() ? (tab === 'Retraso' ? 'rgba(220, 38, 38, 0.1)' : tab === 'Adelanto' ? 'rgba(245, 158, 11, 0.1)' : 'rgba(30, 102, 245, 0.1)') : 'transparent',
+                  }}
+                >
+                  {tab}
+                </button>
+              ))}
             </div>
 
-            {/* BOTÓN MAPA - MISMO ESTILO QUE TABS */}
+            {/* BOTÓN MAPA */}
             <button
               onClick={() => setMostrarMapa(true)}
               className="flex items-center gap-2 px-4 py-1.5 rounded-lg transition-all"
-              style={{
-                fontFamily: "'Exo 2', sans-serif",
-                fontSize: '11px',
-                fontWeight: 600,
-                background: 'white',
-                border: '1.5px solid #1E66F5',
-                color: '#1E66F5',
-                boxShadow: '0 1px 3px rgba(0, 0, 0, 0.06)'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = 'rgba(30, 102, 245, 0.1)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = 'white';
-              }}
+              style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '11px', fontWeight: 600, background: 'white', border: '1.5px solid #1E66F5', color: '#1E66F5' }}
             >
               <MapIcon className="w-4 h-4" />
               Mapa
@@ -571,23 +414,7 @@ export const DedicadosModuleWideTech = ({ onBack }: DedicadosModuleProps) => {
             <button
               onClick={() => setModalAsignacionAbierto(true)}
               className="flex items-center gap-2 px-4 py-1.5 rounded-lg transition-all"
-              style={{
-                fontFamily: "'Exo 2', sans-serif",
-                fontSize: '11px',
-                fontWeight: 600,
-                background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)',
-                border: '1.5px solid #10B981',
-                color: 'white',
-                boxShadow: '0 2px 6px rgba(16, 185, 129, 0.3)'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.transform = 'translateY(-1px)';
-                e.currentTarget.style.boxShadow = '0 3px 10px rgba(16, 185, 129, 0.4)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.transform = 'translateY(0)';
-                e.currentTarget.style.boxShadow = '0 2px 6px rgba(16, 185, 129, 0.3)';
-              }}
+              style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '11px', fontWeight: 600, background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)', border: '1.5px solid #10B981', color: 'white' }}
             >
               <svg width="14" height="14" viewBox="0 0 20 20" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round">
                 <path d="M10 4 L10 16 M4 10 L16 10" />
@@ -596,299 +423,78 @@ export const DedicadosModuleWideTech = ({ onBack }: DedicadosModuleProps) => {
             </button>
           </div>
 
-          {/* RIGHT: MINI KPIs COMPACTOS (40% MENOS ALTURA) */}
+          {/* RIGHT: MINI KPIs */}
           <div className="flex items-center gap-2.5">
-            {/* ENTREGAS - Mini panel */}
-            <div 
-              className="rounded-lg transition-all relative overflow-hidden"
-              style={{
-                background: 'white',
-                boxShadow: '0 1px 3px rgba(0, 0, 0, 0.06)',
-                border: '1px solid #E2E6EE',
-                padding: '6px 10px',
-                minWidth: '85px'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.boxShadow = '0 3px 8px rgba(0, 0, 0, 0.1)';
-                e.currentTarget.style.transform = 'translateY(-1px)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.boxShadow = '0 1px 3px rgba(0, 0, 0, 0.06)';
-                e.currentTarget.style.transform = 'translateY(0)';
-              }}
-            >
-              <div style={{ 
-                position: 'absolute', 
-                top: 0, 
-                left: 0, 
-                right: 0, 
-                height: '3px', 
-                background: 'linear-gradient(90deg, #059669 0%, #10B981 100%)' 
-              }} />
-              <div className="flex items-center justify-between gap-2 mb-0.5">
-                <TrendingUp className="w-3.5 h-3.5" style={{ color: '#64748B', opacity: 0.5 }} />
-                <div style={{ fontFamily: "'Orbitron', monospace", fontSize: '22px', fontWeight: 700, color: '#111827', lineHeight: '1' }}>
-                  {entregas.length}
+            {[
+              { label: 'ENTREGAS', value: entregas.length, color: '#059669' },
+              { label: 'REGISTROS', value: entregas.length, color: '#64748B' },
+              { label: 'ALERTAS', value: alertas, color: '#DC2626' },
+              { label: 'EVIDENCIAS', value: evidencias, color: '#F59E0B' },
+              { label: 'TOTAL', value: flotaCarroll.length, color: '#1E66F5' },
+            ].map(kpi => (
+              <div key={kpi.label} className="rounded-lg relative overflow-hidden" style={{ background: 'white', boxShadow: '0 1px 3px rgba(0, 0, 0, 0.06)', border: '1px solid #E2E6EE', padding: '6px 10px', minWidth: '85px' }}>
+                <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '3px', background: kpi.color }} />
+                <div className="flex items-center justify-between gap-2 mb-0.5">
+                  <div style={{ fontFamily: "'Orbitron', monospace", fontSize: '22px', fontWeight: 700, color: '#111827', lineHeight: '1' }}>{kpi.value}</div>
                 </div>
+                <div style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '8.5px', fontWeight: 600, color: '#64748B', letterSpacing: '0.5px' }}>{kpi.label}</div>
               </div>
-              <div style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '8.5px', fontWeight: 600, color: '#64748B', letterSpacing: '0.5px' }}>
-                ENTREGAS
-              </div>
-            </div>
-
-            {/* REGISTROS - Mini panel */}
-            <div 
-              className="rounded-lg transition-all relative overflow-hidden"
-              style={{
-                background: 'white',
-                boxShadow: '0 1px 3px rgba(0, 0, 0, 0.06)',
-                border: '1px solid #E2E6EE',
-                padding: '6px 10px',
-                minWidth: '85px'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.boxShadow = '0 3px 8px rgba(0, 0, 0, 0.1)';
-                e.currentTarget.style.transform = 'translateY(-1px)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.boxShadow = '0 1px 3px rgba(0, 0, 0, 0.06)';
-                e.currentTarget.style.transform = 'translateY(0)';
-              }}
-            >
-              <div style={{ 
-                position: 'absolute', 
-                top: 0, 
-                left: 0, 
-                right: 0, 
-                height: '3px', 
-                background: 'linear-gradient(90deg, #64748B 0%, #94A3B8 100%)' 
-              }} />
-              <div className="flex items-center justify-between gap-2 mb-0.5">
-                <FileText className="w-3.5 h-3.5" style={{ color: '#64748B', opacity: 0.5 }} />
-                <div style={{ fontFamily: "'Orbitron', monospace", fontSize: '22px', fontWeight: 700, color: '#111827', lineHeight: '1' }}>
-                  {entregas.length}
-                </div>
-              </div>
-              <div style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '8.5px', fontWeight: 600, color: '#64748B', letterSpacing: '0.5px' }}>
-                REGISTROS
-              </div>
-            </div>
-
-            {/* ALERTAS - Mini panel */}
-            <div 
-              className="rounded-lg transition-all relative overflow-hidden"
-              style={{
-                background: 'white',
-                boxShadow: '0 1px 3px rgba(0, 0, 0, 0.06)',
-                border: '1px solid #E2E6EE',
-                padding: '6px 10px',
-                minWidth: '85px'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.boxShadow = '0 3px 8px rgba(0, 0, 0, 0.1)';
-                e.currentTarget.style.transform = 'translateY(-1px)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.boxShadow = '0 1px 3px rgba(0, 0, 0, 0.06)';
-                e.currentTarget.style.transform = 'translateY(0)';
-              }}
-            >
-              <div style={{ 
-                position: 'absolute', 
-                top: 0, 
-                left: 0, 
-                right: 0, 
-                height: '3px', 
-                background: 'linear-gradient(90deg, #DC2626 0%, #EF4444 100%)' 
-              }} />
-              <div className="flex items-center justify-between gap-2 mb-0.5">
-                <AlertTriangle className="w-3.5 h-3.5" style={{ color: '#64748B', opacity: 0.5 }} />
-                <div style={{ fontFamily: "'Orbitron', monospace", fontSize: '22px', fontWeight: 700, color: '#111827', lineHeight: '1' }}>
-                  {alertas}
-                </div>
-              </div>
-              <div style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '8.5px', fontWeight: 600, color: '#64748B', letterSpacing: '0.5px' }}>
-                ALERTAS
-              </div>
-            </div>
-
-            {/* EVIDENCIAS - Mini panel */}
-            <div 
-              className="rounded-lg transition-all relative overflow-hidden"
-              style={{
-                background: 'white',
-                boxShadow: '0 1px 3px rgba(0, 0, 0, 0.06)',
-                border: '1px solid #E2E6EE',
-                padding: '6px 10px',
-                minWidth: '85px'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.boxShadow = '0 3px 8px rgba(0, 0, 0, 0.1)';
-                e.currentTarget.style.transform = 'translateY(-1px)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.boxShadow = '0 1px 3px rgba(0, 0, 0, 0.06)';
-                e.currentTarget.style.transform = 'translateY(0)';
-              }}
-            >
-              <div style={{ 
-                position: 'absolute', 
-                top: 0, 
-                left: 0, 
-                right: 0, 
-                height: '3px', 
-                background: 'linear-gradient(90deg, #F59E0B 0%, #FBBF24 100%)' 
-              }} />
-              <div className="flex items-center justify-between gap-2 mb-0.5">
-                <Package className="w-3.5 h-3.5" style={{ color: '#64748B', opacity: 0.5 }} />
-                <div style={{ fontFamily: "'Orbitron', monospace", fontSize: '22px', fontWeight: 700, color: '#111827', lineHeight: '1' }}>
-                  {evidencias}
-                </div>
-              </div>
-              <div style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '8.5px', fontWeight: 600, color: '#64748B', letterSpacing: '0.5px' }}>
-                EVIDENCIAS
-              </div>
-            </div>
-
-            {/* TOTAL - Mini panel */}
-            <div 
-              className="rounded-lg transition-all relative overflow-hidden"
-              style={{
-                background: 'white',
-                boxShadow: '0 1px 3px rgba(0, 0, 0, 0.06)',
-                border: '1px solid #E2E6EE',
-                padding: '6px 10px',
-                minWidth: '85px'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.boxShadow = '0 3px 8px rgba(0, 0, 0, 0.1)';
-                e.currentTarget.style.transform = 'translateY(-1px)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.boxShadow = '0 1px 3px rgba(0, 0, 0, 0.06)';
-                e.currentTarget.style.transform = 'translateY(0)';
-              }}
-            >
-              <div style={{ 
-                position: 'absolute', 
-                top: 0, 
-                left: 0, 
-                right: 0, 
-                height: '3px', 
-                background: 'linear-gradient(90deg, #1E66F5 0%, #3B82F6 100%)' 
-              }} />
-              <div className="flex items-center justify-between gap-2 mb-0.5">
-                <Truck className="w-3.5 h-3.5" style={{ color: '#64748B', opacity: 0.5 }} />
-                <div style={{ fontFamily: "'Orbitron', monospace", fontSize: '22px', fontWeight: 700, color: '#111827', lineHeight: '1' }}>
-                  {flotaCarroll.length}
-                </div>
-              </div>
-              <div style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '8.5px', fontWeight: 600, color: '#64748B', letterSpacing: '0.5px' }}>
-                TOTAL
-              </div>
-            </div>
+            ))}
           </div>
         </div>
       </div>
 
-      {/* ========== TABLA PROTAGONISTA CON ZEBRA MARCADA ========== */}
+      {/* ========== TABLA ========== */}
       <div className="p-6">
         <div className="bg-white rounded-xl shadow-lg overflow-hidden" style={{ border: '1px solid #E2E6EE' }}>
           {/* HEADER TABLA */}
           <div className="grid grid-cols-[50px_100px_1.5fr_2fr_1.5fr_1fr_1fr_1fr_1fr_1.2fr_120px] gap-3 px-4 py-3 bg-gradient-to-r from-slate-700 to-slate-800 text-white">
-            <div style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '11px', fontWeight: 700, letterSpacing: '0.5px', textAlign: 'center' }}>#</div>
-            <div style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '11px', fontWeight: 700, letterSpacing: '0.5px' }}>UNIDAD</div>
-            <div style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '11px', fontWeight: 700, letterSpacing: '0.5px' }}>OPERADOR</div>
-            <div style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '11px', fontWeight: 700, letterSpacing: '0.5px' }}>UBICACIÓN GPS</div>
-            <div style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '11px', fontWeight: 700, letterSpacing: '0.5px' }}>DESTINO / CLIENTE</div>
-            <div style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '11px', fontWeight: 700, letterSpacing: '0.5px' }}>ESTADO</div>
-            <div style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '11px', fontWeight: 700, letterSpacing: '0.5px' }}>CITA</div>
-            <div style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '11px', fontWeight: 700, letterSpacing: '0.5px' }}>ETA</div>
-            <div style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '11px', fontWeight: 700, letterSpacing: '0.5px' }}>LLEGADA</div>
-            <div style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '11px', fontWeight: 700, letterSpacing: '0.5px' }}>STATUS</div>
-            <div style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '11px', fontWeight: 700, letterSpacing: '0.5px', textAlign: 'center' }}>MANTENIMIENTO</div>
+            <div style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '11px', fontWeight: 700, textAlign: 'center' }}>#</div>
+            <div style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '11px', fontWeight: 700 }}>UNIDAD</div>
+            <div style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '11px', fontWeight: 700 }}>OPERADOR</div>
+            <div style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '11px', fontWeight: 700 }}>UBICACIÓN GPS</div>
+            <div style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '11px', fontWeight: 700 }}>DESTINO / CLIENTE</div>
+            <div style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '11px', fontWeight: 700 }}>ESTADO</div>
+            <div style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '11px', fontWeight: 700 }}>CITA</div>
+            <div style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '11px', fontWeight: 700 }}>ETA</div>
+            <div style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '11px', fontWeight: 700 }}>LLEGADA</div>
+            <div style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '11px', fontWeight: 700 }}>STATUS</div>
+            <div style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '11px', fontWeight: 700, textAlign: 'center' }}>MANTENIMIENTO</div>
           </div>
 
-          {/* FILAS - UNIDADES CON ZEBRA MARCADA */}
+          {/* FILAS */}
           <div className="max-h-[calc(100vh-220px)] overflow-y-auto">
             {unidadesCombinadas.map((unidad, index) => {
               const tieneGPS = !!unidad.ubicacion;
               const estados = ['Transito', 'Lavado', 'Destino', 'Origen'];
               const estadoRandom = estados[index % estados.length];
-              const porcentaje = tieneGPS ? [38, 0, 100, 100, 4, 8, 100, 100, 60, 75, 90, 95, 100, 85, 70, 55, 40, 25, 10, 5, 100, 100, 80, 65, 50, 35][index] || 0 : 0;
+              const porcentaje = tieneGPS ? [38, 0, 100, 100, 4, 8, 100, 100, 60, 75, 90, 95, 100, 85, 70, 55, 40, 25, 10, 5, 100, 100, 80, 65, 50, 35][index % 26] || 0 : 0;
               
               return (
                 <div
                   key={unidad.numeroTracto}
                   className="grid grid-cols-[50px_100px_1.5fr_2fr_1.5fr_1fr_1fr_1fr_1fr_1.2fr_120px] gap-3 px-4 py-1 transition-all"
-                  style={{
-                    background: index % 2 === 0 ? '#FFFFFF' : '#F8F9FB',
-                    borderBottom: '1px solid #E2E6EE'
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.background = '#E6F0FF';
-                    e.currentTarget.style.borderLeft = '2px solid #1E66F5';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.background = index % 2 === 0 ? '#FFFFFF' : '#F8F9FB';
-                    e.currentTarget.style.borderLeft = 'none';
-                  }}
+                  style={{ background: index % 2 === 0 ? '#FFFFFF' : '#F8F9FB', borderBottom: '1px solid #E2E6EE' }}
                 >
-                  {/* NÚMERO */}
+                  {/* # */}
                   <div className="flex items-center justify-center">
-                    <div style={{ 
-                      fontFamily: "'Orbitron', monospace", 
-                      fontSize: '14px', 
-                      fontWeight: 700, 
-                      color: '#64748B',
-                      letterSpacing: '0.5px'
-                    }}>
-                      {index + 1}
-                    </div>
+                    <div style={{ fontFamily: "'Orbitron', monospace", fontSize: '14px', fontWeight: 700, color: '#64748B' }}>{index + 1}</div>
                   </div>
 
                   {/* UNIDAD */}
                   <div className="flex items-center gap-2">
-                    <div 
-                      className="flex items-center gap-2.5 px-3 py-2 rounded-lg"
-                      style={{
-                        background: 'linear-gradient(135deg, rgba(239, 246, 255, 0.8) 0%, rgba(219, 234, 254, 0.9) 100%)',
-                        border: '1px solid rgba(30, 102, 245, 0.15)',
-                        boxShadow: '0 1px 3px rgba(30, 102, 245, 0.08)',
-                        minWidth: '85px'
-                      }}
-                    >
+                    <div className="flex items-center gap-2.5 px-3 py-2 rounded-lg" style={{ background: 'linear-gradient(135deg, rgba(239, 246, 255, 0.8) 0%, rgba(219, 234, 254, 0.9) 100%)', border: '1px solid rgba(30, 102, 245, 0.15)', minWidth: '85px' }}>
                       <Truck className="w-4 h-4" style={{ color: '#1E66F5', flexShrink: 0 }} />
                       <div>
-                        <div style={{ 
-                          fontFamily: "'Orbitron', monospace", 
-                          fontSize: '19px', 
-                          fontWeight: 700,
-                          color: '#1E66F5',
-                          lineHeight: '1.2',
-                          letterSpacing: '0.5px'
-                        }}>
-                          {unidad.numeroTracto}
-                        </div>
-                        <div style={{ 
-                          fontFamily: "'Exo 2', sans-serif", 
-                          fontSize: '11px',
-                          fontWeight: 400,
-                          color: '#94A3B8',
-                          lineHeight: '1.2',
-                          letterSpacing: '0.3px'
-                        }}>
-                          R-{unidad.numeroRemolque}
-                        </div>
+                        <div style={{ fontFamily: "'Orbitron', monospace", fontSize: '19px', fontWeight: 700, color: '#1E66F5', lineHeight: '1.2' }}>{unidad.numeroTracto}</div>
+                        <div style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '11px', fontWeight: 400, color: '#94A3B8', lineHeight: '1.2' }}>R-{unidad.numeroRemolque}</div>
                       </div>
                     </div>
                   </div>
 
                   {/* OPERADOR */}
                   <div className="flex items-center">
-                    <div className="text-slate-700" style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '12px', fontWeight: 600 }}>
-                      {unidad.operador}
-                    </div>
+                    <div className="text-slate-700" style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '12px', fontWeight: 600 }}>{unidad.operador}</div>
                   </div>
 
                   {/* UBICACIÓN GPS */}
@@ -906,9 +512,7 @@ export const DedicadosModuleWideTech = ({ onBack }: DedicadosModuleProps) => {
                         cacheAge={0}
                       />
                     ) : (
-                      <div className="text-slate-400" style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '10px', fontStyle: 'italic' }}>
-                        Sin señal GPS
-                      </div>
+                      <div className="text-slate-400" style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '10px', fontStyle: 'italic' }}>Sin señal GPS</div>
                     )}
                   </div>
 
@@ -916,61 +520,39 @@ export const DedicadosModuleWideTech = ({ onBack }: DedicadosModuleProps) => {
                   <div className="flex items-center">
                     {tieneGPS ? (
                       <div>
-                        <div className="text-slate-800" style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '12px', fontWeight: 700 }}>
-                          {unidad.ubicacion!.address.split(',').slice(-2).join(',').trim().substring(0, 20).toUpperCase()}
-                        </div>
-                        <div className="text-blue-600" style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '10px' }}>
-                          Cliente 0
-                        </div>
+                        <div className="text-slate-800" style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '12px', fontWeight: 700 }}>{unidad.ubicacion!.address.split(',').slice(-2).join(',').trim().substring(0, 20).toUpperCase()}</div>
+                        <div className="text-blue-600" style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '10px' }}>Cliente 0</div>
                       </div>
-                    ) : (
-                      <div className="text-slate-300">—</div>
-                    )}
+                    ) : <div className="text-slate-300">—</div>}
                   </div>
 
                   {/* ESTADO */}
                   <div className="flex items-center">
                     {tieneGPS ? (
                       <div className="px-3 py-1.5 rounded-lg bg-emerald-100 border border-emerald-200">
-                        <div className="text-emerald-700" style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '11px', fontWeight: 700 }}>
-                          {estadoRandom}
-                        </div>
+                        <div className="text-emerald-700" style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '11px', fontWeight: 700 }}>{estadoRandom}</div>
                       </div>
-                    ) : (
-                      <div className="text-slate-300">—</div>
-                    )}
+                    ) : <div className="text-slate-300">—</div>}
                   </div>
 
                   {/* CITA */}
                   <div className="flex items-center">
                     {tieneGPS ? (
                       <div>
-                        <div className="text-slate-700" style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '11px', fontWeight: 700 }}>
-                          {`${10 + (index % 12)}:${(index % 6) * 10}`.padStart(5, '0')}
-                        </div>
-                        <div className="text-slate-500" style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '10px' }}>
-                          2025-06-{10 + (index % 15)}
-                        </div>
+                        <div className="text-slate-700" style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '11px', fontWeight: 700 }}>{`${10 + (index % 12)}:${(index % 6) * 10}`.padStart(5, '0')}</div>
+                        <div className="text-slate-500" style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '10px' }}>2025-06-{10 + (index % 15)}</div>
                       </div>
-                    ) : (
-                      <div className="text-slate-300">—</div>
-                    )}
+                    ) : <div className="text-slate-300">—</div>}
                   </div>
 
                   {/* ETA */}
                   <div className="flex items-center">
                     {tieneGPS ? (
                       <div>
-                        <div className="text-slate-700" style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '11px', fontWeight: 700 }}>
-                          {`${10 + (index % 12)}:${(index % 6) * 10}`.padStart(5, '0')}
-                        </div>
-                        <div className="text-slate-500" style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '10px' }}>
-                          2025-06-{10 + (index % 15)}
-                        </div>
+                        <div className="text-slate-700" style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '11px', fontWeight: 700 }}>{`${10 + (index % 12)}:${(index % 6) * 10}`.padStart(5, '0')}</div>
+                        <div className="text-slate-500" style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '10px' }}>2025-06-{10 + (index % 15)}</div>
                       </div>
-                    ) : (
-                      <div className="text-slate-300">—</div>
-                    )}
+                    ) : <div className="text-slate-300">—</div>}
                   </div>
 
                   {/* LLEGADA */}
@@ -978,129 +560,46 @@ export const DedicadosModuleWideTech = ({ onBack }: DedicadosModuleProps) => {
                     {tieneGPS ? (
                       <div>
                         <div className={`${porcentaje === 100 ? 'text-emerald-600' : porcentaje > 50 ? 'text-yellow-600' : 'text-blue-600'}`} style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '11px', fontWeight: 700 }}>
-                          {porcentaje === 100 ? 'Entregado' : porcentaje > 50 ? 'Entregado' : `${20 - (index % 15)}h ${(index % 6) * 10}m`}
+                          {porcentaje === 100 ? 'Entregado' : `${20 - (index % 15)}h ${(index % 6) * 10}m`}
                         </div>
-                        <div className="text-slate-500" style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '9px' }}>
-                          {porcentaje === 100 ? 'Confirmado' : 'Confirmando'}
-                        </div>
+                        <div className="text-slate-500" style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '9px' }}>{porcentaje === 100 ? 'Confirmado' : 'Confirmando'}</div>
                       </div>
-                    ) : (
-                      <div className="text-slate-300">—</div>
-                    )}
+                    ) : <div className="text-slate-300">—</div>}
                   </div>
 
-                  {/* STATUS - PILLS ANCHO FIJO */}
+                  {/* STATUS */}
                   <div className="flex items-center justify-center">
                     {tieneGPS ? (
-                      <div 
-                        className="px-4 py-1.5 rounded-full flex items-center justify-center"
-                        style={{
-                          minWidth: '105px',
-                          background: porcentaje === 100 
-                            ? 'linear-gradient(135deg, #10B981 0%, #059669 100%)' 
-                            : porcentaje > 50 
-                            ? 'linear-gradient(135deg, #1E66F5 0%, #1D4ED8 100%)' 
-                            : porcentaje > 10
-                            ? 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)'
-                            : 'linear-gradient(135deg, #EF4444 0%, #DC2626 100%)',
-                          boxShadow: '0 2px 6px rgba(0, 0, 0, 0.12)'
-                        }}
-                      >
-                        <div style={{ 
-                          fontFamily: "'Exo 2', sans-serif", 
-                          fontSize: '11px', 
-                          fontWeight: 700,
-                          color: 'white',
-                          textAlign: 'center',
-                          letterSpacing: '0.3px'
-                        }}>
+                      <div className="px-4 py-1.5 rounded-full flex items-center justify-center" style={{
+                        minWidth: '105px',
+                        background: porcentaje === 100 ? 'linear-gradient(135deg, #10B981 0%, #059669 100%)' : porcentaje > 50 ? 'linear-gradient(135deg, #1E66F5 0%, #1D4ED8 100%)' : porcentaje > 10 ? 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)' : 'linear-gradient(135deg, #EF4444 0%, #DC2626 100%)',
+                      }}>
+                        <div style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '11px', fontWeight: 700, color: 'white' }}>
                           {porcentaje === 100 ? 'ENTREGADO' : porcentaje > 50 ? 'PUNTUAL' : porcentaje > 10 ? 'ADELANTO' : 'RETRASO'}
                         </div>
                       </div>
-                    ) : (
-                      <div className="text-slate-300">—</div>
-                    )}
+                    ) : <div className="text-slate-300">—</div>}
                   </div>
 
-                  {/* MANTENIMIENTO - MEDIA LUNA (HALF GAUGE) */}
+                  {/* MANTENIMIENTO */}
                   <div className="flex items-center justify-center">
                     {tieneGPS ? (
                       <div className="flex flex-col items-center gap-0.5">
-                        {/* SVG Half Gauge (Media Luna) */}
                         <svg width="50" height="32" viewBox="0 0 50 32">
-                          {/* Arco de fondo (gris claro) */}
-                          <path
-                            d="M 5 27 A 20 20 0 0 1 45 27"
-                            fill="none"
-                            stroke="#E2E8F0"
-                            strokeWidth="6"
-                            strokeLinecap="round"
-                          />
-                          {/* Arco de progreso (color según porcentaje) */}
-                          <path
-                            d="M 5 27 A 20 20 0 0 1 45 27"
-                            fill="none"
-                            stroke={
-                              porcentaje <= 60 
-                                ? '#10B981' 
-                                : porcentaje <= 89 
-                                ? '#F59E0B' 
-                                : '#EF4444'
-                            }
-                            strokeWidth="6"
-                            strokeLinecap="round"
-                            strokeDasharray={`${(porcentaje / 100) * 62.83} 62.83`}
-                          />
-                          {/* Texto porcentaje centrado */}
-                          <text
-                            x="25"
-                            y="24"
-                            textAnchor="middle"
-                            dominantBaseline="middle"
-                            style={{
-                              fontFamily: "Arial, sans-serif",
-                              fontSize: '11px',
-                              fontWeight: 700,
-                              fill: '#0F172A'
-                            }}
-                          >
-                            {porcentaje}%
-                          </text>
+                          <path d="M 5 27 A 20 20 0 0 1 45 27" fill="none" stroke="#E2E8F0" strokeWidth="6" strokeLinecap="round" />
+                          <path d="M 5 27 A 20 20 0 0 1 45 27" fill="none" stroke={porcentaje <= 60 ? '#10B981' : porcentaje <= 89 ? '#F59E0B' : '#EF4444'} strokeWidth="6" strokeLinecap="round" strokeDasharray={`${(porcentaje / 100) * 62.83} 62.83`} />
+                          <text x="25" y="24" textAnchor="middle" dominantBaseline="middle" style={{ fontFamily: "Arial", fontSize: '11px', fontWeight: 700, fill: '#0F172A' }}>{porcentaje}%</text>
                         </svg>
-                        {/* Etiqueta de estado */}
-                        <div style={{
-                          fontFamily: "'Exo 2', sans-serif",
-                          fontSize: '8px',
-                          fontWeight: 600,
-                          color: porcentaje <= 60 
-                            ? '#10B981' 
-                            : porcentaje <= 89 
-                            ? '#F59E0B' 
-                            : '#EF4444',
-                          letterSpacing: '0.3px'
-                        }}>
+                        <div style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '8px', fontWeight: 600, color: porcentaje <= 60 ? '#10B981' : porcentaje <= 89 ? '#F59E0B' : '#EF4444' }}>
                           {porcentaje <= 60 ? 'OK' : porcentaje <= 89 ? 'Próximo' : 'Crítico'}
                         </div>
                       </div>
                     ) : (
                       <div className="flex flex-col items-center gap-0.5">
                         <svg width="50" height="32" viewBox="0 0 50 32">
-                          <path
-                            d="M 5 27 A 20 20 0 0 1 45 27"
-                            fill="none"
-                            stroke="#E2E8F0"
-                            strokeWidth="6"
-                            strokeLinecap="round"
-                          />
+                          <path d="M 5 27 A 20 20 0 0 1 45 27" fill="none" stroke="#E2E8F0" strokeWidth="6" strokeLinecap="round" />
                         </svg>
-                        <div style={{
-                          fontFamily: "'Exo 2', sans-serif",
-                          fontSize: '8px',
-                          fontWeight: 600,
-                          color: '#CBD5E1'
-                        }}>
-                          N/A
-                        </div>
+                        <div style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '8px', fontWeight: 600, color: '#CBD5E1' }}>N/A</div>
                       </div>
                     )}
                   </div>
@@ -1114,9 +613,7 @@ export const DedicadosModuleWideTech = ({ onBack }: DedicadosModuleProps) => {
           <div className="mt-4 p-4 bg-red-50 border-l-4 border-red-500 rounded-lg">
             <div className="flex items-center gap-2">
               <AlertTriangle className="w-5 h-5 text-red-600" />
-              <div className="text-red-700" style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '12px', fontWeight: 700 }}>
-                Error: {error}
-              </div>
+              <div className="text-red-700" style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '12px', fontWeight: 700 }}>Error: {error}</div>
             </div>
           </div>
         )}
@@ -1127,147 +624,38 @@ export const DedicadosModuleWideTech = ({ onBack }: DedicadosModuleProps) => {
         <MapaFlota
           ubicaciones={ubicaciones}
           unidadSeleccionada={unidadSeleccionada}
-          onClose={() => {
-            setMostrarMapa(false);
-            setUnidadSeleccionada(null);
-          }}
+          onClose={() => { setMostrarMapa(false); setUnidadSeleccionada(null); }}
           onSeleccionarUnidad={(placa) => setUnidadSeleccionada(placa)}
         />
       )}
 
-      {/* MODAL DE ASIGNACIÓN DE VIAJE */}
+      {/* MODAL ASIGNACIÓN */}
       {modalAsignacionAbierto && (
-        <div 
-          className="fixed inset-0 z-50 flex items-center justify-center"
-          style={{
-            background: 'rgba(0, 0, 0, 0.7)',
-            backdropFilter: 'blur(4px)'
-          }}
-          onClick={() => setModalAsignacionAbierto(false)}
-        >
-          <div 
-            className="relative bg-white rounded-xl shadow-2xl"
-            style={{
-              width: '440px',
-              border: '2px solid #1E66F5',
-              animation: 'scaleIn 0.2s ease-out'
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* HEADER CON BOTÓN CERRAR */}
-            <div 
-              className="relative flex items-center justify-between px-6 py-4 rounded-t-xl"
-              style={{
-                background: 'linear-gradient(135deg, #1E66F5 0%, #1D4ED8 100%)',
-                borderBottom: '1px solid rgba(255, 255, 255, 0.2)'
-              }}
-            >
-              <h2 
-                style={{
-                  fontFamily: "'Orbitron', sans-serif",
-                  fontSize: '18px',
-                  fontWeight: 700,
-                  color: 'white',
-                  letterSpacing: '0.5px'
-                }}
-              >
-                CAPTURA DE VIAJE
-              </h2>
-              <button
-                onClick={() => setModalAsignacionAbierto(false)}
-                className="p-1.5 rounded-lg transition-all"
-                style={{
-                  background: 'rgba(255, 255, 255, 0.15)',
-                  border: '1px solid rgba(255, 255, 255, 0.3)'
-                }}
-              >
-                <svg 
-                  width="20" 
-                  height="20" 
-                  viewBox="0 0 20 20" 
-                  fill="none"
-                  stroke="white"
-                  strokeWidth="2.5"
-                  strokeLinecap="round"
-                >
-                  <path d="M4 4 L16 16 M16 4 L4 16" />
-                </svg>
+        <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: 'rgba(0, 0, 0, 0.7)', backdropFilter: 'blur(4px)' }} onClick={() => setModalAsignacionAbierto(false)}>
+          <div className="relative bg-white rounded-xl shadow-2xl" style={{ width: '440px', border: '2px solid #1E66F5' }} onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-6 py-4 rounded-t-xl" style={{ background: 'linear-gradient(135deg, #1E66F5 0%, #1D4ED8 100%)' }}>
+              <h2 style={{ fontFamily: "'Orbitron', sans-serif", fontSize: '18px', fontWeight: 700, color: 'white' }}>CAPTURA DE VIAJE</h2>
+              <button onClick={() => setModalAsignacionAbierto(false)} className="p-1.5 rounded-lg" style={{ background: 'rgba(255, 255, 255, 0.15)' }}>
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round"><path d="M4 4 L16 16 M16 4 L4 16" /></svg>
               </button>
             </div>
-
-            {/* FORMULARIO */}
             <div className="px-6 py-6">
-              {/* CONVENIO DE VENTA */}
               <div className="mb-5">
-                <label style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '12px', fontWeight: 700, color: '#0F172A', display: 'block', marginBottom: '8px' }}>
-                  CONVENIO DE VENTA
-                </label>
-                <input
-                  type="text"
-                  value={convenioVenta}
-                  onChange={(e) => setConvenioVenta(e.target.value.toUpperCase())}
-                  placeholder="Ingrese convenio de venta"
-                  className="w-full px-4 py-3 rounded-lg"
-                  style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '13px', border: '2px solid #E2E8F0', background: '#F8FAFC' }}
-                />
+                <label style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '12px', fontWeight: 700, color: '#0F172A', display: 'block', marginBottom: '8px' }}>CONVENIO DE VENTA</label>
+                <input type="text" value={convenioVenta} onChange={(e) => setConvenioVenta(e.target.value.toUpperCase())} placeholder="Ingrese convenio" className="w-full px-4 py-3 rounded-lg" style={{ border: '2px solid #E2E8F0', background: '#F8FAFC' }} />
               </div>
-
-              {/* UNIDAD */}
               <div className="mb-5">
-                <label style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '12px', fontWeight: 700, color: '#0F172A', display: 'block', marginBottom: '8px' }}>
-                  UNIDAD
-                </label>
-                <select
-                  value={unidadAsignacion}
-                  onChange={(e) => setUnidadAsignacion(e.target.value)}
-                  className="w-full px-4 py-3 rounded-lg"
-                  style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '13px', border: '2px solid #E2E8F0', background: '#F8FAFC' }}
-                >
+                <label style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '12px', fontWeight: 700, color: '#0F172A', display: 'block', marginBottom: '8px' }}>UNIDAD</label>
+                <select value={unidadAsignacion} onChange={(e) => setUnidadAsignacion(e.target.value)} className="w-full px-4 py-3 rounded-lg" style={{ border: '2px solid #E2E8F0', background: '#F8FAFC' }}>
                   <option value="">Seleccione una unidad</option>
-                  {flotaCarroll.map((unidad) => (
-                    <option key={unidad.numeroTracto} value={unidad.numeroTracto}>
-                      {unidad.numeroTracto} - {unidad.operador}
-                    </option>
-                  ))}
+                  {flotaCarroll.map((u) => <option key={u.numeroTracto} value={u.numeroTracto}>{u.numeroTracto} - {u.operador}</option>)}
                 </select>
               </div>
-
-              {/* NÚMERO DE REMOLQUE */}
               <div className="mb-6">
-                <label style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '12px', fontWeight: 700, color: '#0F172A', display: 'block', marginBottom: '8px' }}>
-                  NÚMERO DE REMOLQUE
-                </label>
-                <input
-                  type="text"
-                  value={numeroRemolqueAsignacion}
-                  onChange={(e) => setNumeroRemolqueAsignacion(e.target.value)}
-                  placeholder="Ingrese número de remolque"
-                  className="w-full px-4 py-3 rounded-lg"
-                  style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '13px', border: '2px solid #E2E8F0', background: '#F8FAFC' }}
-                />
+                <label style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '12px', fontWeight: 700, color: '#0F172A', display: 'block', marginBottom: '8px' }}>NÚMERO DE REMOLQUE</label>
+                <input type="text" value={numeroRemolqueAsignacion} onChange={(e) => setNumeroRemolqueAsignacion(e.target.value)} placeholder="Ingrese remolque" className="w-full px-4 py-3 rounded-lg" style={{ border: '2px solid #E2E8F0', background: '#F8FAFC' }} />
               </div>
-
-              {/* BOTÓN ACEPTAR */}
-              <button
-                onClick={() => {
-                  console.log('Asignación:', { convenioVenta, unidadAsignacion, numeroRemolqueAsignacion });
-                  setModalAsignacionAbierto(false);
-                  setConvenioVenta('');
-                  setUnidadAsignacion('');
-                  setNumeroRemolqueAsignacion('');
-                }}
-                className="w-full py-3.5 rounded-lg"
-                style={{
-                  fontFamily: "'Exo 2', sans-serif",
-                  fontSize: '14px',
-                  fontWeight: 700,
-                  color: 'white',
-                  background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)',
-                  boxShadow: '0 4px 12px rgba(16, 185, 129, 0.3)'
-                }}
-              >
-                ACEPTAR
-              </button>
+              <button onClick={() => { setModalAsignacionAbierto(false); setConvenioVenta(''); setUnidadAsignacion(''); setNumeroRemolqueAsignacion(''); }} className="w-full py-3.5 rounded-lg" style={{ fontWeight: 700, color: 'white', background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)' }}>ACEPTAR</button>
             </div>
           </div>
         </div>
