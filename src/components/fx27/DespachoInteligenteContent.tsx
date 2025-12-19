@@ -74,11 +74,7 @@ export default function DespachoInteligenteContent({ onBack }: DespachoProps) {
 
   const loadData = useCallback(async () => {
     try {
-      const { data, error } = await supabase
-        .from('gps_tracking')
-        .select('*')
-        .order('segmento');
-
+      const { data, error } = await supabase.from('gps_tracking').select('*').order('segmento');
       if (error) throw error;
       if (data && data.length > 0) setFleet(data);
     } catch (err) {
@@ -112,22 +108,14 @@ export default function DespachoInteligenteContent({ onBack }: DespachoProps) {
     loadData();
     calcularProximoCron();
     
-    const channel = supabase
-      .channel('gps_changes')
-      .on('postgres_changes', 
-        { event: '*', schema: 'public', table: 'gps_tracking' },
-        () => loadData()
-      )
+    const channel = supabase.channel('gps_changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'gps_tracking' }, () => loadData())
       .subscribe();
 
     const countdownInterval = setInterval(calcularProximoCron, 1000);
     const dataInterval = setInterval(loadData, 30000);
 
-    return () => {
-      channel.unsubscribe();
-      clearInterval(countdownInterval);
-      clearInterval(dataInterval);
-    };
+    return () => { channel.unsubscribe(); clearInterval(countdownInterval); clearInterval(dataInterval); };
   }, [loadData, calcularProximoCron]);
 
   const segmentoUnits = fleet.filter(u => u.segmento === activeSegmento);
@@ -156,13 +144,8 @@ export default function DespachoInteligenteContent({ onBack }: DespachoProps) {
   const openMap = (u: Unit) => u.latitude && window.open(`https://www.google.com/maps?q=${u.latitude},${u.longitude}`, '_blank');
 
   const exportCSV = () => {
-    const rows = [['Economico', 'Empresa', 'Segmento', 'Estatus', 'Detencion', 'Velocidad', 'Ubicación', 'Anomalía', 'Lat', 'Lon', 'Última Señal']];
-    filtered.forEach(u => rows.push([
-      u.economico, u.empresa, u.segmento, u.status,
-      u.stopped_time || '', String(u.speed || 0), u.address || '',
-      u.anomaly || '', String(u.latitude || ''), String(u.longitude || ''),
-      u.timestamp_gps || ''
-    ]));
+    const rows = [['Economico', 'Empresa', 'Segmento', 'Estatus', 'Detencion', 'Velocidad', 'Ubicación', 'Lat', 'Lon', 'Última Señal']];
+    filtered.forEach(u => rows.push([u.economico, u.empresa, u.segmento, u.status, u.stopped_time || '', String(u.speed || 0), u.address || '', String(u.latitude || ''), String(u.longitude || ''), u.timestamp_gps || '']));
     const blob = new Blob(['\ufeff' + rows.map(r => r.map(c => `"${c}"`).join(',')).join('\n')], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
@@ -172,10 +155,7 @@ export default function DespachoInteligenteContent({ onBack }: DespachoProps) {
 
   const formatTime = (t: string | null) => {
     if (!t) return '-';
-    try {
-      return new Date(t.includes('/') ? t.replace(/\//g, '-') : t)
-        .toLocaleString('es-MX', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit', hour12: true });
-    } catch { return t; }
+    try { return new Date(t.includes('/') ? t.replace(/\//g, '-') : t).toLocaleString('es-MX', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit', hour12: true }); } catch { return t; }
   };
 
   const getStoppedColor = (minutes: number | null) => {
@@ -211,9 +191,8 @@ export default function DespachoInteligenteContent({ onBack }: DespachoProps) {
       <div className="min-h-screen flex items-center justify-center" style={{ background: 'linear-gradient(180deg, #1a365d 0%, #0f172a 100%)' }}>
         <div className="text-center">
           <AlertTriangle className="w-12 h-12 text-yellow-400 mx-auto mb-4" />
-          <p className="text-slate-300 text-lg mb-4">No hay datos en la base de datos</p>
-          <button onClick={triggerWorker} disabled={workerStatus === 'running'}
-            className="px-6 py-3 rounded-xl bg-gradient-to-b from-blue-500 to-blue-700 text-white font-semibold flex items-center gap-2 mx-auto">
+          <p className="text-slate-300 text-lg mb-4">No hay datos</p>
+          <button onClick={triggerWorker} disabled={workerStatus === 'running'} className="px-6 py-3 rounded-xl bg-gradient-to-b from-blue-500 to-blue-700 text-white font-semibold flex items-center gap-2 mx-auto">
             <Zap className={`w-5 h-5 ${workerStatus === 'running' ? 'animate-pulse' : ''}`} />
             {workerStatus === 'running' ? 'Cargando...' : 'Iniciar carga'}
           </button>
@@ -224,155 +203,131 @@ export default function DespachoInteligenteContent({ onBack }: DespachoProps) {
 
   return (
     <div className="min-h-screen" style={{ background: 'linear-gradient(180deg, #1a365d 0%, #0f172a 100%)' }}>
-      
-      {/* HEADER COMPACTO con Logo y Tabs */}
-      <div className="px-4 py-3 border-b border-slate-700/50">
-        <div className="flex items-center gap-4">
-          {/* Back + Titulo */}
-          {onBack && (
-            <button onClick={onBack} className="p-2 rounded-xl bg-slate-700/50 text-white hover:bg-slate-600/50">
-              <ArrowLeft className="w-5 h-5" />
-            </button>
-          )}
-          <h1 className="text-xl font-bold text-white">Despacho Inteligente</h1>
-          
-          {/* TABS DE SEGMENTOS - Ahora en el header */}
-          <div className="flex flex-wrap gap-1.5 ml-4">
-            {SEGMENTOS.map(seg => {
-              const count = segmentoCounts[seg] || 0;
-              if (count === 0) return null;
-              const isActive = activeSegmento === seg;
-              return (
-                <button key={seg} onClick={() => setActiveSegmento(seg)}
-                  className={`h-8 px-3 rounded-lg text-xs font-semibold transition-all ${
-                    isActive ? 'bg-gradient-to-b from-blue-500 to-blue-700 text-white shadow-lg' : 'bg-slate-600/80 text-white hover:bg-slate-500/80'
-                  }`}>
-                  {seg} ({count})
-                </button>
-              );
-            })}
-          </div>
-          
-          {/* Logo FX27 */}
-          <div className="ml-auto text-right">
-            <div className="text-2xl font-bold text-blue-400" style={{ fontFamily: "'Exo 2', sans-serif" }}>FX27</div>
-            <div className="text-[10px] text-slate-400 -mt-1">FUTURE EXPERIENCE 27</div>
-          </div>
+      {/* HEADER - Solo tabs y controles, SIN logo duplicado */}
+      <div className="px-4 py-2 flex items-center gap-3 border-b border-slate-700/50">
+        {onBack && (
+          <button onClick={onBack} className="p-2 rounded-lg bg-slate-700/50 text-white hover:bg-slate-600/50">
+            <ArrowLeft className="w-5 h-5" />
+          </button>
+        )}
+        
+        {/* TABS */}
+        <div className="flex flex-wrap gap-1.5">
+          {SEGMENTOS.map(seg => {
+            const count = segmentoCounts[seg] || 0;
+            if (count === 0) return null;
+            const isActive = activeSegmento === seg;
+            return (
+              <button key={seg} onClick={() => setActiveSegmento(seg)}
+                className={`h-8 px-3 rounded-lg text-xs font-semibold transition-all ${isActive ? 'bg-gradient-to-b from-blue-500 to-blue-700 text-white' : 'bg-slate-600/80 text-white hover:bg-slate-500/80'}`}>
+                {seg} ({count})
+              </button>
+            );
+          })}
         </div>
       </div>
 
-      {/* Toolbar compacto */}
+      {/* Toolbar */}
       <div className="flex items-center gap-2 px-4 py-2">
-        <button onClick={() => setStatusF('ALL')} className={`h-9 px-3 rounded-lg font-semibold text-sm flex items-center gap-1.5 ${statusF === 'ALL' ? 'bg-gradient-to-b from-slate-500 to-slate-700 text-white' : 'bg-slate-700/80 text-slate-300'}`}>
-          <Truck className="w-4 h-4" />{stats.total}
+        <button onClick={() => setStatusF('ALL')} className={`h-8 px-3 rounded-lg font-semibold text-xs flex items-center gap-1.5 ${statusF === 'ALL' ? 'bg-gradient-to-b from-slate-500 to-slate-700 text-white' : 'bg-slate-700/80 text-slate-300'}`}>
+          <Truck className="w-3.5 h-3.5" />{stats.total}
         </button>
-        <button onClick={() => setStatusF('moving')} className={`h-9 px-3 rounded-lg font-semibold text-sm flex items-center gap-1.5 ${statusF === 'moving' ? 'bg-gradient-to-b from-green-500 to-green-700 text-white' : 'bg-slate-700/80 text-slate-300'}`}>
-          <Navigation className="w-4 h-4" />{stats.mov}
+        <button onClick={() => setStatusF('moving')} className={`h-8 px-3 rounded-lg font-semibold text-xs flex items-center gap-1.5 ${statusF === 'moving' ? 'bg-gradient-to-b from-green-500 to-green-700 text-white' : 'bg-slate-700/80 text-slate-300'}`}>
+          <Navigation className="w-3.5 h-3.5" />{stats.mov}
         </button>
-        <button onClick={() => setStatusF('stopped')} className={`h-9 px-3 rounded-lg font-semibold text-sm flex items-center gap-1.5 ${statusF === 'stopped' ? 'bg-gradient-to-b from-yellow-500 to-yellow-600 text-white' : 'bg-slate-700/80 text-slate-300'}`}>
-          <Power className="w-4 h-4" />{stats.det}
+        <button onClick={() => setStatusF('stopped')} className={`h-8 px-3 rounded-lg font-semibold text-xs flex items-center gap-1.5 ${statusF === 'stopped' ? 'bg-gradient-to-b from-yellow-500 to-yellow-600 text-white' : 'bg-slate-700/80 text-slate-300'}`}>
+          <Power className="w-3.5 h-3.5" />{stats.det}
         </button>
-        <button onClick={() => setStatusF('no_signal')} className={`h-9 px-3 rounded-lg font-semibold text-sm flex items-center gap-1.5 ${statusF === 'no_signal' ? 'bg-gradient-to-b from-red-500 to-red-700 text-white' : 'bg-slate-700/80 text-slate-300'}`}>
-          <WifiOff className="w-4 h-4" />{stats.sin}
+        <button onClick={() => setStatusF('no_signal')} className={`h-8 px-3 rounded-lg font-semibold text-xs flex items-center gap-1.5 ${statusF === 'no_signal' ? 'bg-gradient-to-b from-red-500 to-red-700 text-white' : 'bg-slate-700/80 text-slate-300'}`}>
+          <WifiOff className="w-3.5 h-3.5" />{stats.sin}
         </button>
         
         {stats.anomalies > 0 && (
-          <div className="flex items-center gap-1 px-2 py-1 rounded-lg bg-purple-500/20 text-purple-300 text-sm">
-            <AlertTriangle className="w-3.5 h-3.5" />{stats.anomalies}
+          <div className="flex items-center gap-1 px-2 py-1 rounded-lg bg-purple-500/20 text-purple-300 text-xs">
+            <AlertTriangle className="w-3 h-3" />{stats.anomalies}
           </div>
         )}
 
-        <div className="w-px h-6 bg-slate-600/50" />
-        
-        <div className="relative">
-          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+        <div className="relative ml-2">
+          <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
           <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Eco..." 
-            className="h-9 w-20 pl-8 pr-2 rounded-lg bg-slate-700/60 border border-slate-600/50 text-white text-sm placeholder-slate-400 focus:outline-none" />
+            className="h-8 w-20 pl-7 pr-2 rounded-lg bg-slate-700/60 border border-slate-600/50 text-white text-xs placeholder-slate-400 focus:outline-none" />
         </div>
 
         <div className="flex-1" />
 
-        {/* CRON INDICATOR */}
-        <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-slate-700/40 border border-slate-600/30">
-          <div className={`w-2 h-2 rounded-full ${countdown === 'ejecutando...' ? 'bg-orange-400 animate-pulse' : 'bg-green-400'}`} />
-          <span className="text-xs text-slate-400">Cron</span>
-          <span className="text-sm text-blue-400 font-semibold">{countdown}</span>
-          <span className="text-xs text-slate-500">→ {nextCronTime}</span>
+        <div className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-slate-700/40 border border-slate-600/30">
+          <div className={`w-1.5 h-1.5 rounded-full ${countdown === 'ejecutando...' ? 'bg-orange-400 animate-pulse' : 'bg-green-400'}`} />
+          <span className="text-[10px] text-slate-400">Cron</span>
+          <span className="text-xs text-blue-400 font-semibold">{countdown}</span>
+          <span className="text-[10px] text-slate-500">→ {nextCronTime}</span>
         </div>
 
-        <button onClick={exportCSV} className="h-9 w-9 flex items-center justify-center rounded-lg bg-gradient-to-b from-slate-600 to-slate-800 text-slate-300 hover:opacity-80">
-          <Download className="w-4 h-4" />
+        <button onClick={exportCSV} className="h-8 w-8 flex items-center justify-center rounded-lg bg-slate-700/60 text-slate-300 hover:bg-slate-600/60">
+          <Download className="w-3.5 h-3.5" />
         </button>
 
         <button onClick={triggerWorker} disabled={workerStatus === 'running'}
-          className={`h-9 px-3 rounded-lg font-semibold text-sm flex items-center gap-1.5 ${
-            workerStatus === 'running' ? 'bg-gradient-to-b from-orange-500 to-orange-700' : 
-            workerStatus === 'error' ? 'bg-gradient-to-b from-red-500 to-red-700' : 
-            'bg-gradient-to-b from-blue-500 to-blue-700'
+          className={`h-8 px-3 rounded-lg font-semibold text-xs flex items-center gap-1.5 ${
+            workerStatus === 'running' ? 'bg-orange-600' : workerStatus === 'error' ? 'bg-red-600' : 'bg-blue-600'
           } text-white`}>
-          {workerStatus === 'running' ? <><RefreshCw className="w-4 h-4 animate-spin" />Actualizando</> : 
-           workerStatus === 'error' ? <><AlertTriangle className="w-4 h-4" />Error</> : 
-           <><Zap className="w-4 h-4" />Actualizar</>}
+          {workerStatus === 'running' ? <><RefreshCw className="w-3.5 h-3.5 animate-spin" />Actualizando</> : 
+           workerStatus === 'error' ? <><AlertTriangle className="w-3.5 h-3.5" />Error</> : 
+           <><Zap className="w-3.5 h-3.5" />Actualizar</>}
         </button>
       </div>
 
       {/* Table */}
       <div className="px-4 pb-4">
-        <div className="rounded-xl overflow-hidden bg-slate-800/40" style={{ boxShadow: '0 4px 24px rgba(0,0,0,0.3)' }}>
-          <div className="max-h-[calc(100vh-160px)] overflow-y-auto">
+        <div className="rounded-xl overflow-hidden bg-slate-800/40">
+          <div className="max-h-[calc(100vh-120px)] overflow-y-auto">
             <table className="w-full">
               <thead className="sticky top-0 bg-slate-900/95 z-10">
                 <tr>
-                  <th className="px-3 py-2.5 text-left text-xs font-semibold text-slate-400 uppercase w-20">ECONÓMICO</th>
-                  <th className="px-3 py-2.5 text-left text-xs font-semibold text-slate-400 uppercase w-16">EMPRESA</th>
-                  <th className="px-3 py-2.5 text-left text-xs font-semibold text-slate-400 uppercase w-20">ESTATUS</th>
-                  <th className="px-3 py-2.5 text-left text-xs font-semibold text-slate-400 uppercase w-24">DETENCIÓN</th>
-                  <th className="px-3 py-2.5 text-left text-xs font-semibold text-slate-400 uppercase w-20">VELOCIDAD</th>
-                  <th className="px-3 py-2.5 text-left text-xs font-semibold text-slate-400 uppercase">UBICACIÓN</th>
-                  <th className="px-3 py-2.5 text-left text-xs font-semibold text-slate-400 uppercase w-32">SEÑAL</th>
+                  <th className="px-3 py-2 text-left text-[11px] font-semibold text-slate-400 uppercase w-20">ECONÓMICO</th>
+                  <th className="px-3 py-2 text-left text-[11px] font-semibold text-slate-400 uppercase w-14">EMPRESA</th>
+                  <th className="px-3 py-2 text-left text-[11px] font-semibold text-slate-400 uppercase w-16">ESTATUS</th>
+                  <th className="px-3 py-2 text-left text-[11px] font-semibold text-slate-400 uppercase w-20">DETENCIÓN</th>
+                  <th className="px-3 py-2 text-left text-[11px] font-semibold text-slate-400 uppercase w-16">VELOCIDAD</th>
+                  <th className="px-3 py-2 text-left text-[11px] font-semibold text-slate-400 uppercase">UBICACIÓN</th>
+                  <th className="px-3 py-2 text-left text-[11px] font-semibold text-slate-400 uppercase w-28">SEÑAL</th>
                 </tr>
               </thead>
               <tbody>
                 {filtered.map(u => (
                   <tr key={u.economico} className={`border-t border-slate-700/30 hover:bg-slate-700/20 ${u.anomaly ? 'bg-purple-900/10' : ''}`}>
-                    <td className="px-3 py-2 font-mono font-bold text-white">
+                    <td className="px-3 py-1.5 font-mono font-bold text-white text-sm">
                       {u.economico}
                       {u.anomaly && <AlertTriangle className="w-3 h-3 text-purple-400 inline ml-1" />}
                     </td>
-                    <td className="px-3 py-2">
-                      <span className={`px-2 py-0.5 rounded text-xs font-semibold ${
+                    <td className="px-3 py-1.5">
+                      <span className={`px-1.5 py-0.5 rounded text-[10px] font-semibold ${
                         u.empresa === 'SHI' ? 'bg-purple-500/20 text-purple-300' : 
                         u.empresa === 'TROB' ? 'bg-blue-500/20 text-blue-300' : 'bg-emerald-500/20 text-emerald-300'
                       }`}>{u.empresa}</span>
                     </td>
-                    <td className="px-3 py-2">
+                    <td className="px-3 py-1.5">
                       <button onClick={() => openMap(u)} disabled={!u.latitude} 
-                        className={`flex items-center gap-1 px-2 py-0.5 rounded text-xs font-semibold ${getStatusColor(u.status)} ${u.latitude ? 'cursor-pointer hover:opacity-80' : 'cursor-not-allowed opacity-60'}`}>
-                        {u.status === 'moving' ? <Navigation className="w-3 h-3" /> : 
-                         u.status === 'stopped' ? <Power className="w-3 h-3" /> : 
-                         u.status === 'gps_issue' ? <AlertTriangle className="w-3 h-3" /> : <WifiOff className="w-3 h-3" />}
-                        {u.status === 'moving' ? 'Mov' : u.status === 'stopped' ? 'Det' : u.status === 'gps_issue' ? 'GPS!' : 'Sin'}
-                        {u.latitude && <ExternalLink className="w-2.5 h-2.5" />}
+                        className={`flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold ${getStatusColor(u.status)} ${u.latitude ? 'cursor-pointer hover:opacity-80' : 'opacity-60'}`}>
+                        {u.status === 'moving' ? <Navigation className="w-3 h-3" /> : u.status === 'stopped' ? <Power className="w-3 h-3" /> : <WifiOff className="w-3 h-3" />}
+                        {u.status === 'moving' ? 'Mov' : u.status === 'stopped' ? 'Det' : 'Sin'}
+                        {u.latitude && <ExternalLink className="w-2 h-2" />}
                       </button>
                     </td>
-                    <td className="px-3 py-2">
-                      <span className={`text-sm font-semibold flex items-center gap-1 ${getStoppedColor(u.stopped_minutes)}`}>
-                        {(u.stopped_minutes || 0) >= 60 && <Clock className="w-3 h-3" />}
+                    <td className="px-3 py-1.5">
+                      <span className={`text-xs font-semibold ${getStoppedColor(u.stopped_minutes)}`}>
                         {u.stopped_time || ''}
                       </span>
                     </td>
-                    <td className="px-3 py-2">
-                      <span className={`text-sm font-semibold ${(u.speed || 0) > 0 ? 'text-green-400' : 'text-slate-500'}`}>
+                    <td className="px-3 py-1.5">
+                      <span className={`text-xs font-semibold ${(u.speed || 0) > 0 ? 'text-green-400' : 'text-slate-500'}`}>
                         {u.speed != null ? `${u.speed} km/h` : '-'}
                       </span>
                     </td>
-                    <td className="px-3 py-2">
-                      <div className="flex flex-col">
-                        <span className="text-slate-300 text-sm truncate max-w-[400px]">{u.address || '-'}</span>
-                        {u.anomaly && <span className="text-purple-400 text-xs">{u.anomaly}</span>}
-                      </div>
+                    <td className="px-3 py-1.5">
+                      <span className="text-slate-300 text-xs truncate block max-w-[350px]">{u.address || '-'}</span>
                     </td>
-                    <td className="px-3 py-2 text-slate-400 text-xs">{formatTime(u.timestamp_gps)}</td>
+                    <td className="px-3 py-1.5 text-slate-400 text-[10px]">{formatTime(u.timestamp_gps)}</td>
                   </tr>
                 ))}
               </tbody>
