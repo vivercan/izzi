@@ -1,85 +1,100 @@
-import { useState, useEffect } from 'react';
-import { Truck, ArrowLeft, MapPin, Clock, AlertTriangle, FileText, Activity, Map as MapIcon, TrendingUp, Package, CheckCircle2, AlertCircle, Settings } from 'lucide-react';
-import { projectId, publicAnonKey } from '../../utils/supabase/info';
+import { useState, useEffect, useCallback } from 'react';
+import { Truck, ArrowLeft, MapPin, Clock, AlertTriangle, FileText, Activity, Map as MapIcon, TrendingUp, Package, CheckCircle2, AlertCircle, Settings, Power, Navigation, WifiOff, RefreshCw } from 'lucide-react';
+import { createClient } from '@supabase/supabase-js';
 import { MapaFlota } from './MapaFlotaGoogleMaps';
-import { getGoogleMapsApiKey } from '../../utils/supabase/getGoogleMapsKey';
-import { UbicacionGPS } from './UbicacionGPS';
 import { AdministracionCarroll } from './AdministracionCarroll';
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 🔧 CONFIGURACIÓN SUPABASE - IGUAL QUE DESPACHO INTELIGENTE (MADRE)
+// ═══════════════════════════════════════════════════════════════════════════
+const SUPABASE_URL = 'https://fbxbsslhewchyibdoyzk.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZieGJzc2xoZXdjaHlpYmRveXprIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI1MzczODEsImV4cCI6MjA3ODExMzM4MX0.Z8JPlg7hhKbA624QGHp2bKKTNtCD3WInQMO5twjl6a0';
+
+const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 interface DedicadosModuleProps {
   onBack: () => void;
 }
 
-interface Tractocamion {
-  operador: string;
-  numeroTracto: string;
-  numeroRemolque: string;
+// Interface igual que MADRE
+interface Unit {
+  economico: string;
+  empresa: string;
+  segmento: string;
+  latitude: number | null;
+  longitude: number | null;
+  speed: number | null;
+  address: string | null;
+  timestamp_gps: string | null;
+  timestamp_updated: string | null;
+  stopped_minutes: number | null;
+  stopped_time: string | null;
+  status: string;
+  anomaly: string | null;
 }
 
-interface UbicacionTracking {
-  placa: string;
-  latitude: number;
-  longitude: number;
-  speed: number;
-  timestamp: string;
-  odometer: number;
-  address: string;
-  operador?: string;
-  numeroRemolque?: string;
-  heading?: string;
-  ignition?: string;
-  temperatura1?: number | null;
-  temperatura2?: number | null;
-}
-
-// 🚚 28 TRACTOCAMIONES DEDICADOS GRANJAS CARROLL
-const FLOTA_CARROLL: Tractocamion[] = [
-  { operador: 'RAUL BAUTISTA LOPEZ', numeroTracto: '505', numeroRemolque: '1292' },
-  { operador: 'LUIS ANGEL TAPIA RODRIGUEZ', numeroTracto: '777', numeroRemolque: '1356' },
-  { operador: 'MARCELO SANCHEZ RODRIGUEZ', numeroTracto: '893', numeroRemolque: '1406' },
-  { operador: 'MARCELO SANCHEZ RODRIGUEZ', numeroTracto: '931', numeroRemolque: '1288' },
-  { operador: 'VICTOR ISLAS ORIA', numeroTracto: '937', numeroRemolque: '1348' },
-  { operador: 'FEDERICO CLEMENTE QUINTERO', numeroTracto: '891', numeroRemolque: '1350' },
-  { operador: 'FERNANDO GUZMAN SERVN', numeroTracto: '801', numeroRemolque: '1378' },
-  { operador: 'JUAN ALAN DIAZ MARTINEZ', numeroTracto: '905', numeroRemolque: '1260' },
-  { operador: 'ENRIQUE URBAN FLORES', numeroTracto: '911', numeroRemolque: '1256' },
-  { operador: 'RENE ALONSO VAZQUEZ CRUZ', numeroTracto: '841', numeroRemolque: '1262' },
-  { operador: 'OCTAVIO VILLELA TRENADO', numeroTracto: '863', numeroRemolque: '4113' },
-  { operador: 'JUAN FRANCISCO LEOS FRAGOSO', numeroTracto: '861', numeroRemolque: '1208' },
-  { operador: 'JUAN RAMIREZ MONTES', numeroTracto: '817', numeroRemolque: '1278' },
-  { operador: 'JULIO ENRIQUE ARELLANO PEREZ', numeroTracto: '899', numeroRemolque: '1332' },
-  { operador: 'CARLOS SERGIO FLORES VERGES', numeroTracto: '745', numeroRemolque: '1254' },
-  { operador: 'RUBEN CALDERON JASSO', numeroTracto: '799', numeroRemolque: '1322' },
-  { operador: 'JOSE ALBERTO MORANCHEL VILLANUEVA', numeroTracto: '837', numeroRemolque: '1296' },
-  { operador: 'JUAN MANUEL OJEDA VELAZQUEZ', numeroTracto: '933', numeroRemolque: '1328' },
-  { operador: 'CHRISTIAN OJEDA VELAZQUEZ', numeroTracto: '212', numeroRemolque: '838843' },
-  { operador: 'HECTOR CHRISTIAN JAIME LEON', numeroTracto: '765', numeroRemolque: '838855' },
-  { operador: 'MARCO ANTONIO GARCIA RAMIREZ', numeroTracto: '208', numeroRemolque: '1282' },
-  { operador: 'EDGAR IVAN HERNANDEZ', numeroTracto: '813', numeroRemolque: '1360' },
-  { operador: 'ALEJANDRO VILLANUEVA ESPINOZA', numeroTracto: '126', numeroRemolque: '838656' },
-  { operador: 'RUMUALDO BAUTISTA GOMEZ', numeroTracto: '809', numeroRemolque: '28654' },
-  { operador: 'HECTOR ADRIAN LOPEZ MEDINA', numeroTracto: '859', numeroRemolque: '1414' },
-  { operador: 'CRISTIAN CORTEZ PORTILLO', numeroTracto: '178', numeroRemolque: '1376' },
-  { operador: 'MARIO LARA TIBURCIO', numeroTracto: '731', numeroRemolque: '1398' },
-  { operador: 'VICTOR FRANCO MONTAÑO', numeroTracto: '847', numeroRemolque: '1396' }
+// 🚚 31 TRACTOCAMIONES DEDICADOS GRANJAS CARROLL (del Excel)
+const PLACAS_CARROLL = [
+  '505', '643', '727', '731', '745', '765', '777', '801', '809', '813',
+  '837', '841', '847', '859', '861', '863', '891', '893', '899', '905',
+  '911', '931', '933', '937', '126', '178', '208', '212', '817', '799', '929'
 ];
 
+// Mapeo de operadores por placa
+const OPERADORES_CARROLL: Record<string, string> = {
+  '505': 'RAUL BAUTISTA LOPEZ',
+  '777': 'LUIS ANGEL TAPIA RODRIGUEZ',
+  '893': 'MARCELO SANCHEZ RODRIGUEZ',
+  '931': 'MARCELO SANCHEZ RODRIGUEZ',
+  '937': 'VICTOR ISLAS ORIA',
+  '891': 'FEDERICO CLEMENTE QUINTERO',
+  '801': 'FERNANDO GUZMAN SERVN',
+  '905': 'JUAN ALAN DIAZ MARTINEZ',
+  '911': 'ENRIQUE URBAN FLORES',
+  '841': 'RENE ALONSO VAZQUEZ CRUZ',
+  '863': 'OCTAVIO VILLELA TRENADO',
+  '861': 'JUAN FRANCISCO LEOS FRAGOSO',
+  '817': 'JUAN RAMIREZ MONTES',
+  '899': 'JULIO ENRIQUE ARELLANO PEREZ',
+  '745': 'CARLOS SERGIO FLORES VERGES',
+  '799': 'RUBEN CALDERON JASSO',
+  '837': 'JOSE ALBERTO MORANCHEL VILLANUEVA',
+  '933': 'JUAN MANUEL OJEDA VELAZQUEZ',
+  '212': 'CHRISTIAN OJEDA VELAZQUEZ',
+  '765': 'HECTOR CHRISTIAN JAIME LEON',
+  '208': 'MARCO ANTONIO GARCIA RAMIREZ',
+  '813': 'EDGAR IVAN HERNANDEZ',
+  '126': 'ALEJANDRO VILLANUEVA ESPINOZA',
+  '809': 'RUMUALDO BAUTISTA GOMEZ',
+  '859': 'HECTOR ADRIAN LOPEZ MEDINA',
+  '178': 'CRISTIAN CORTEZ PORTILLO',
+  '731': 'MARIO LARA TIBURCIO',
+  '847': 'VICTOR FRANCO MONTAÑO',
+  '643': 'OPERADOR CARROLL',
+  '727': 'OPERADOR CARROLL',
+  '929': 'OPERADOR CARROLL'
+};
+
+// Mapeo de remolques por placa
+const REMOLQUES_CARROLL: Record<string, string> = {
+  '505': '1292', '777': '1356', '893': '1406', '931': '1288', '937': '1348',
+  '891': '1350', '801': '1378', '905': '1260', '911': '1256', '841': '1262',
+  '863': '4113', '861': '1208', '817': '1278', '899': '1332', '745': '1254',
+  '799': '1322', '837': '1296', '933': '1328', '212': '838843', '765': '838855',
+  '208': '1282', '813': '1360', '126': '838656', '809': '28654', '859': '1414',
+  '178': '1376', '731': '1398', '847': '1396', '643': 'N/A', '727': 'N/A', '929': 'N/A'
+};
+
 export const DedicadosModuleWideTech = ({ onBack }: DedicadosModuleProps) => {
-  const [ubicaciones, setUbicaciones] = useState<UbicacionTracking[]>([]);
-  const [cargando, setCargando] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [ultimaActualizacion, setUltimaActualizacion] = useState<Date | null>(null);
-  const [tabActivo, setTabActivo] = useState('entregas');
-  const [datosCache, setDatosCache] = useState({ fromCache: 0, fromAPI: 0 });
+  const [fleet, setFleet] = useState<Unit[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
+  const [horaActual, setHoraActual] = useState(new Date());
   const [mostrarMapa, setMostrarMapa] = useState(false);
   const [unidadSeleccionada, setUnidadSeleccionada] = useState<string | null>(null);
-  const [horaActual, setHoraActual] = useState(new Date());
-  const [modalAsignacionAbierto, setModalAsignacionAbierto] = useState(false);
-  const [convenioVenta, setConvenioVenta] = useState('');
-  const [unidadAsignacion, setUnidadAsignacion] = useState('');
-  const [numeroRemolqueAsignacion, setNumeroRemolqueAsignacion] = useState('');
   const [mostrarAdministracion, setMostrarAdministracion] = useState(false);
-  const [flotaCarroll, setFlotaCarroll] = useState<Tractocamion[]>(FLOTA_CARROLL);
+  const [tabActivo, setTabActivo] = useState('entregas');
+  const [error, setError] = useState<string | null>(null);
 
   // Actualizar reloj cada segundo
   useEffect(() => {
@@ -87,137 +102,151 @@ export const DedicadosModuleWideTech = ({ onBack }: DedicadosModuleProps) => {
     return () => clearInterval(timer);
   }, []);
 
-  // Cargar flota Carroll desde backend
-  useEffect(() => {
-    cargarFlotaCarroll();
-  }, []);
-
-  const cargarFlotaCarroll = async () => {
+  // ═══════════════════════════════════════════════════════════════════════════
+  // 📡 CARGAR DATOS DESDE GPS_TRACKING (IGUAL QUE MADRE)
+  // ═══════════════════════════════════════════════════════════════════════════
+  const loadData = useCallback(async () => {
+    setLoading(true);
     try {
-      const response = await fetch(
-        `https://${projectId}.supabase.co/functions/v1/make-server-d84b50bb/carroll/unidades`,
-        {
-          headers: { 'Authorization': `Bearer ${publicAnonKey}` }
-        }
-      );
-      const data = await response.json();
-      if (data.success && data.unidades.length > 0) {
-        setFlotaCarroll(data.unidades);
-        console.log(`✅ Flota Carroll cargada: ${data.unidades.length} unidades`);
-      } else {
-        // Si no hay unidades en backend, inicializar con las 28 default
-        console.log('⚠️ No hay unidades en backend, inicializando...');
-        await inicializarFlotaDefault();
-      }
-    } catch (error) {
-      console.error('Error cargando flota Carroll:', error);
-    }
-  };
-
-  const inicializarFlotaDefault = async () => {
-    for (const unidad of FLOTA_CARROLL) {
-      try {
-        await fetch(
-          `https://${projectId}.supabase.co/functions/v1/make-server-d84b50bb/carroll/unidades`,
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${publicAnonKey}`
-            },
-            body: JSON.stringify(unidad)
-          }
-        );
-      } catch (error) {
-        console.error(`Error guardando unidad ${unidad.numeroTracto}:`, error);
-      }
-    }
-    console.log('✅ Flota Carroll inicializada con 28 unidades');
-  };
-
-  const obtenerUbicaciones = async () => {
-    setCargando(true);
-    setError(null);
-
-    try {
-      const placas = flotaCarroll.map(t => t.numeroTracto);
-      const url = `https://${projectId}.supabase.co/functions/v1/make-server-d84b50bb/widetech/locations/batch`;
-
-      console.log('🚀 Consultando GPS para', placas.length, 'unidades...');
-      console.log('📋 Placas:', placas);
-
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${publicAnonKey}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ placas })
-      });
-
-      const data = await response.json();
-      console.log('📥 Respuesta completa del servidor:', JSON.stringify(data, null, 2));
-      console.log('📊 Total results:', data.results?.length);
-      console.log('✅ Successful:', data.successful);
-      console.log('❌ Failed:', data.failed);
-
-      if (!data.success) {
-        throw new Error(data.error || 'Error al obtener ubicaciones');
-      }
-
-      const ubicacionesConInfo = data.results
-        .filter((r: any) => r.success)
-        .map((r: any) => {
-          const tracto = flotaCarroll.find(t => t.numeroTracto === r.placa);
-          return {
-            ...r.location,
-            placa: r.placa,
-            operador: tracto?.operador || 'Desconocido',
-            numeroRemolque: tracto?.numeroRemolque || 'N/A',
-            fromCache: r.fromCache || false,
-            cacheAge: r.cacheAge || 0
-          };
-        });
-
-      console.log(`✅ ${ubicacionesConInfo.length} unidades con GPS activo`);
+      console.log('🔄 [Carroll] Cargando GPS desde gps_tracking...');
       
-      const exitosos = data.results.filter((r: any) => r.success);
-      const fallidos = data.results.filter((r: any) => !r.success);
-      console.log('🟢 Primeros 3 exitosos:', exitosos.slice(0, 3));
-      console.log('🔴 Primeros 3 fallidos:', fallidos.slice(0, 3));
+      // Consultar gps_tracking filtrando por CARROL o por las placas específicas
+      const { data, error: dbError } = await supabase
+        .from('gps_tracking')
+        .select('*')
+        .or(`segmento.eq.CARROL,segmento.eq.CARROLL,economico.in.(${PLACAS_CARROLL.join(',')})`);
 
-      setUbicaciones(ubicacionesConInfo);
-      setUltimaActualizacion(new Date());
-      setDatosCache({
-        fromCache: data.fromCache || 0,
-        fromAPI: (data.successful || 0) - (data.fromCache || 0)
-      });
+      if (dbError) throw dbError;
+
+      if (data && data.length > 0) {
+        console.log(`✅ [Carroll] ${data.length} unidades encontradas en gps_tracking`);
+        setFleet(data);
+        
+        // Encontrar última actualización
+        const latest = data.reduce((max, u) => {
+          const d = u.timestamp_updated ? new Date(u.timestamp_updated) : null;
+          return d && (!max || d > max) ? d : max;
+        }, null as Date | null);
+        
+        if (latest) setLastUpdate(latest);
+        setError(null);
+      } else {
+        console.log('⚠️ [Carroll] No hay datos en gps_tracking, mostrando placas sin GPS');
+        // Crear unidades vacías para las placas de Carroll
+        const unidadesVacias: Unit[] = PLACAS_CARROLL.map(placa => ({
+          economico: placa,
+          empresa: 'TROB',
+          segmento: 'CARROL',
+          latitude: null,
+          longitude: null,
+          speed: null,
+          address: null,
+          timestamp_gps: null,
+          timestamp_updated: null,
+          stopped_minutes: null,
+          stopped_time: null,
+          status: 'no_signal',
+          anomaly: null
+        }));
+        setFleet(unidadesVacias);
+      }
     } catch (err) {
+      console.error('❌ [Carroll] Error cargando datos:', err);
       setError(String(err));
-      console.error('❌ Error completo:', err);
     } finally {
-      setCargando(false);
+      setLoading(false);
+    }
+  }, []);
+
+  // Cargar datos al inicio y cada 10 minutos
+  useEffect(() => {
+    loadData();
+    
+    // Suscripción a cambios en tiempo real (igual que MADRE)
+    const channel = supabase
+      .channel('gps_carroll_changes')
+      .on('postgres_changes', 
+        { event: '*', schema: 'public', table: 'gps_tracking' },
+        (payload) => {
+          console.log('📡 [Carroll] Cambio detectado en gps_tracking:', payload);
+          loadData();
+        }
+      )
+      .subscribe();
+
+    // Actualizar cada 10 minutos
+    const interval = setInterval(() => {
+      console.log('⏰ [Carroll] Actualización automática (10 min)');
+      loadData();
+    }, 10 * 60 * 1000);
+
+    return () => {
+      channel.unsubscribe();
+      clearInterval(interval);
+    };
+  }, [loadData]);
+
+  // Filtrar solo unidades de Carroll
+  const unidadesCarroll = fleet.filter(u => 
+    u.segmento === 'CARROL' || 
+    u.segmento === 'CARROLL' || 
+    PLACAS_CARROLL.includes(u.economico)
+  );
+
+  // Stats
+  const stats = {
+    total: unidadesCarroll.length || PLACAS_CARROLL.length,
+    mov: unidadesCarroll.filter(u => u.status === 'moving').length,
+    det: unidadesCarroll.filter(u => u.status === 'stopped').length,
+    sin: unidadesCarroll.filter(u => ['no_signal', 'gps_issue', 'pending'].includes(u.status)).length
+  };
+
+  // Helper functions
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'moving': return 'bg-green-500/20 text-green-400 border-green-500/30';
+      case 'stopped': return 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30';
+      case 'gps_issue': return 'bg-purple-500/20 text-purple-400 border-purple-500/30';
+      default: return 'bg-red-500/20 text-red-400 border-red-500/30';
     }
   };
 
-  useEffect(() => {
-    obtenerUbicaciones();
-    const interval = setInterval(obtenerUbicaciones, 5 * 60 * 1000);
-    return () => clearInterval(interval);
-  }, []);
+  const getStoppedColor = (minutes: number | null) => {
+    if (!minutes || minutes < 1) return 'text-slate-500';
+    if (minutes >= 480) return 'text-red-400';
+    if (minutes >= 240) return 'text-orange-400';
+    if (minutes >= 60) return 'text-yellow-400';
+    return 'text-slate-400';
+  };
 
-  const unidadesCombinadas = FLOTA_CARROLL.map(tracto => {
-    const ubicacion = ubicaciones.find(u => u.placa === tracto.numeroTracto);
-    return {
-      ...tracto,
-      ubicacion
-    };
-  });
+  const formatTime = (t: string | null) => {
+    if (!t) return '-';
+    try {
+      return new Date(t.includes('/') ? t.replace(/\//g, '-') : t)
+        .toLocaleString('es-MX', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit', hour12: true });
+    } catch { return t; }
+  };
 
-  const entregas = unidadesCombinadas.filter(u => u.ubicacion);
-  const registros = entregas.length;
-  const alertas = 4;
-  const evidencias = 6;
+  const openMap = (u: Unit) => u.latitude && window.open(`https://www.google.com/maps?q=${u.latitude},${u.longitude}`, '_blank');
+
+  // Si no hay datos de Carroll, mostrar todas las placas esperadas
+  const unidadesAMostrar = unidadesCarroll.length > 0 
+    ? unidadesCarroll 
+    : PLACAS_CARROLL.map(placa => ({
+        economico: placa,
+        empresa: 'TROB',
+        segmento: 'CARROL',
+        latitude: null,
+        longitude: null,
+        speed: null,
+        address: null,
+        timestamp_gps: null,
+        timestamp_updated: null,
+        stopped_minutes: null,
+        stopped_time: null,
+        status: 'no_signal',
+        anomaly: null
+      } as Unit));
 
   return (
     <div className="min-h-screen" style={{ background: '#FAFBFC' }}>
@@ -239,179 +268,93 @@ export const DedicadosModuleWideTech = ({ onBack }: DedicadosModuleProps) => {
                 border: '1px solid rgba(30, 102, 245, 0.3)',
                 color: 'white'
               }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = 'rgba(30, 102, 245, 0.3)';
-                e.currentTarget.style.borderColor = '#1E66F5';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = 'rgba(30, 102, 245, 0.15)';
-                e.currentTarget.style.borderColor = 'rgba(30, 102, 245, 0.3)';
-              }}
             >
               <ArrowLeft className="w-5 h-5" strokeWidth={2.5} />
             </button>
 
-            <h1
-              style={{
-                fontFamily: "'Exo 2', sans-serif",
-                fontSize: '22px',
-                fontWeight: 700,
-                color: 'white',
-                letterSpacing: '0.5px',
-              }}
-            >
+            <h1 style={{
+              fontFamily: "'Exo 2', sans-serif",
+              fontSize: '22px',
+              fontWeight: 700,
+              color: 'white',
+              letterSpacing: '0.5px',
+            }}>
               OPERATIONS HUB · GRANJAS CARROLL
             </h1>
           </div>
 
           {/* RIGHT: CLOCK + GPS STATUS */}
           <div className="flex items-center gap-4">
-            {/* RELOJ CON DÍA COMPLETO */}
-            <div 
-              className="flex items-center gap-3 px-4 rounded-lg" 
-              style={{ 
-                minWidth: '500px',
-                paddingTop: '16px',
-                paddingBottom: '12px',
-                background: 'transparent',
-                border: '1px solid rgba(30, 102, 245, 0.25)',
-                backdropFilter: 'blur(10px)'
-              }}
-            >
+            {/* RELOJ */}
+            <div className="flex items-center gap-3 px-4 py-2 rounded-lg" style={{ 
+              background: 'transparent',
+              border: '1px solid rgba(30, 102, 245, 0.25)',
+            }}>
               <Clock className="w-5 h-5" style={{ color: '#60A5FA' }} />
-              <div className="flex-1 text-center">
-                <div style={{ 
-                  fontFamily: "'Exo 2', sans-serif", 
-                  fontSize: '14px', 
-                  fontWeight: 600, 
-                  color: 'rgba(255, 255, 255, 0.95)',
-                  letterSpacing: '0.3px'
+              <div style={{ 
+                fontFamily: "'Exo 2', sans-serif", 
+                fontSize: '14px', 
+                fontWeight: 600, 
+                color: 'rgba(255, 255, 255, 0.95)',
+              }}>
+                {horaActual.toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+                <span style={{ margin: '0 8px', color: 'rgba(255, 255, 255, 0.5)' }}>·</span>
+                <span style={{ 
+                  fontFamily: "'Orbitron', monospace",
+                  fontSize: '15px',
+                  fontWeight: 700,
+                  color: '#60A5FA',
                 }}>
-                  {horaActual.toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
-                    .split(' ')
-                    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-                    .join(' ')}
-                  <span style={{ 
-                    margin: '0 8px',
-                    color: 'rgba(255, 255, 255, 0.5)',
-                    fontWeight: 400
-                  }}>·</span>
-                  <span style={{ 
-                    fontFamily: "'Orbitron', monospace",
-                    fontSize: '15px',
-                    fontWeight: 700,
-                    color: '#60A5FA',
-                    letterSpacing: '1px'
-                  }}>
-                    {horaActual.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', hour12: false })}
-                  </span>
-                </div>
+                  {horaActual.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', hour12: false })}
+                </span>
               </div>
             </div>
 
-            {/* GPS STATUS - 2 ESTADOS: CARGANDO / EN LÍNEA */}
-            <div 
-              className="flex items-center gap-2 px-2.5 rounded-lg transition-all" 
-              style={{
-                minWidth: '90px',
-                paddingTop: '5px',
-                paddingBottom: '5px',
-                background: cargando 
-                  ? 'transparent' 
-                  : 'rgba(16, 185, 129, 0.15)',
-                border: cargando 
-                  ? 'none' 
-                  : '1px solid rgba(16, 185, 129, 0.5)',
-                backdropFilter: 'blur(10px)'
-              }}
-            >
-              {cargando ? (
+            {/* GPS STATUS */}
+            <div className="flex items-center gap-2 px-3 py-2 rounded-lg" style={{
+              background: loading ? 'rgba(245, 158, 11, 0.15)' : 'rgba(16, 185, 129, 0.15)',
+              border: `1px solid ${loading ? 'rgba(245, 158, 11, 0.5)' : 'rgba(16, 185, 129, 0.5)'}`,
+            }}>
+              {loading ? (
                 <>
-                  {/* ANILLO GIRANDO */}
-                  <div className="animate-spin">
-                    <svg width="16" height="16" viewBox="0 0 20 20" fill="none">
-                      <circle 
-                        cx="10" 
-                        cy="10" 
-                        r="8" 
-                        stroke="#F59E0B" 
-                        strokeWidth="3" 
-                        strokeLinecap="round"
-                        strokeDasharray="25 25"
-                        opacity="0.8"
-                      />
-                    </svg>
-                  </div>
-                  <div>
-                    <div style={{ 
-                      fontFamily: "'Exo 2', sans-serif", 
-                      fontSize: '10px', 
-                      fontWeight: 700, 
-                      color: 'rgba(255, 255, 255, 0.95)',
-                      letterSpacing: '0.2px',
-                      lineHeight: '1.2'
-                    }}>
-                      Sync…
-                    </div>
-                    <div style={{ 
-                      fontFamily: "'Exo 2', sans-serif", 
-                      fontSize: '8px', 
-                      fontWeight: 600, 
-                      color: 'rgba(255, 255, 255, 0.7)',
-                      letterSpacing: '0.2px',
-                      lineHeight: '1.2'
-                    }}>
-                      {ubicaciones.length}/26
-                    </div>
-                  </div>
+                  <RefreshCw className="w-4 h-4 animate-spin" style={{ color: '#F59E0B' }} />
+                  <span style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '11px', fontWeight: 700, color: '#F59E0B' }}>
+                    Sync... {stats.mov + stats.det}/{stats.total}
+                  </span>
                 </>
               ) : (
                 <>
                   <CheckCircle2 className="w-4 h-4" style={{ color: '#10B981' }} />
-                  <div>
-                    <div style={{ 
-                      fontFamily: "'Exo 2', sans-serif", 
-                      fontSize: '10px', 
-                      fontWeight: 700, 
-                      color: '#10B981',
-                      letterSpacing: '0.2px',
-                      lineHeight: '1.2'
-                    }}>
-                      En línea
-                    </div>
-                    <div style={{ 
-                      fontFamily: "'Exo 2', sans-serif", 
-                      fontSize: '8px', 
-                      fontWeight: 600, 
-                      color: 'rgba(16, 185, 129, 0.8)',
-                      letterSpacing: '0.2px',
-                      lineHeight: '1.2'
-                    }}>
-                      {ubicaciones.length}/26
-                    </div>
-                  </div>
+                  <span style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '11px', fontWeight: 700, color: '#10B981' }}>
+                    En línea {stats.mov + stats.det}/{stats.total}
+                  </span>
                 </>
               )}
             </div>
-            
-            {/* BOTÓN ADMINISTRACIÓN */}
+
+            {/* REFRESH MANUAL */}
             <button
-              onClick={() => setMostrarAdministracion(true)}
-              className="p-2 rounded-lg transition-all ml-3"
+              onClick={loadData}
+              disabled={loading}
+              className="p-2 rounded-lg transition-all"
               style={{
                 background: 'rgba(30, 102, 245, 0.15)',
                 border: '1px solid rgba(30, 102, 245, 0.3)',
                 color: 'white'
               }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = 'rgba(30, 102, 245, 0.3)';
-                e.currentTarget.style.borderColor = '#1E66F5';
+            >
+              <RefreshCw className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
+            </button>
+
+            {/* SETTINGS */}
+            <button
+              onClick={() => setMostrarAdministracion(true)}
+              className="p-2 rounded-lg transition-all"
+              style={{
+                background: 'rgba(30, 102, 245, 0.15)',
+                border: '1px solid rgba(30, 102, 245, 0.3)',
+                color: 'white'
               }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = 'rgba(30, 102, 245, 0.15)';
-                e.currentTarget.style.borderColor = 'rgba(30, 102, 245, 0.3)';
-              }}
-              title="Administración Carroll"
             >
               <Settings className="w-5 h-5" strokeWidth={2.5} />
             </button>
@@ -419,936 +362,194 @@ export const DedicadosModuleWideTech = ({ onBack }: DedicadosModuleProps) => {
         </div>
       </div>
 
-      {/* MOSTRAR ADMINISTRACIÓN O MONITOR */}
       {mostrarAdministracion ? (
-        <AdministracionCarroll onBack={() => {
-          setMostrarAdministracion(false);
-          cargarFlotaCarroll();
-        }} />
+        <AdministracionCarroll onBack={() => setMostrarAdministracion(false)} />
       ) : (
-      <>
-      {/* ========== BANDA COMPACTA HUD: TABS + KPIs + MAPA ========== */}
-      <div style={{ background: '#F3F5F8', borderBottom: '1px solid #E2E6EE', padding: '12px 24px' }}>
-        <div className="flex items-center justify-between gap-6">
-          
-          {/* LEFT: TABS + BOTÓN MAPA */}
-          <div className="flex items-center gap-4">
-            {/* TABS PREMIUM */}
-            <div className="flex items-center gap-1" style={{ 
-              background: 'white', 
-              padding: '4px', 
-              borderRadius: '10px', 
-              border: '1px solid #E2E6EE',
-              boxShadow: '0 1px 3px rgba(0, 0, 0, 0.06)'
-            }}>
-              <button
-                onClick={() => setTabActivo('entregas')}
-                className="px-3 py-1.5 transition-all rounded-lg"
-                style={{
-                  fontFamily: "'Exo 2', sans-serif",
-                  fontSize: '11px',
-                  fontWeight: 600,
-                  color: tabActivo === 'entregas' ? '#1E66F5' : '#64748B',
-                  background: tabActivo === 'entregas' ? 'rgba(30, 102, 245, 0.1)' : 'transparent',
-                  borderBottom: tabActivo === 'entregas' ? '2px solid #1E66F5' : '2px solid transparent'
-                }}
-              >
-                Entregas
-              </button>
-              <button
-                onClick={() => setTabActivo('regresos')}
-                className="px-3 py-1.5 transition-all rounded-lg"
-                style={{
-                  fontFamily: "'Exo 2', sans-serif",
-                  fontSize: '11px',
-                  fontWeight: 600,
-                  color: tabActivo === 'regresos' ? '#1E66F5' : '#64748B',
-                  background: tabActivo === 'regresos' ? 'rgba(30, 102, 245, 0.1)' : 'transparent',
-                  borderBottom: tabActivo === 'regresos' ? '2px solid #1E66F5' : '2px solid transparent'
-                }}
-              >
-                Regresos
-              </button>
-              <button
-                onClick={() => setTabActivo('puntual')}
-                className="px-3 py-1.5 transition-all rounded-lg"
-                style={{
-                  fontFamily: "'Exo 2', sans-serif",
-                  fontSize: '11px',
-                  fontWeight: 600,
-                  color: tabActivo === 'puntual' ? '#1E66F5' : '#64748B',
-                  background: tabActivo === 'puntual' ? 'rgba(30, 102, 245, 0.1)' : 'transparent',
-                  borderBottom: tabActivo === 'puntual' ? '2px solid #1E66F5' : '2px solid transparent'
-                }}
-              >
-                Puntual
-              </button>
-              <button
-                onClick={() => setTabActivo('retraso')}
-                className="px-3 py-1.5 transition-all rounded-lg"
-                style={{
-                  fontFamily: "'Exo 2', sans-serif",
-                  fontSize: '11px',
-                  fontWeight: 600,
-                  color: tabActivo === 'retraso' ? '#DC2626' : '#64748B',
-                  background: tabActivo === 'retraso' ? 'rgba(220, 38, 38, 0.1)' : 'transparent',
-                  borderBottom: tabActivo === 'retraso' ? '2px solid #DC2626' : '2px solid transparent'
-                }}
-              >
-                Retraso
-              </button>
-              <button
-                onClick={() => setTabActivo('adelanto')}
-                className="px-3 py-1.5 transition-all rounded-lg"
-                style={{
-                  fontFamily: "'Exo 2', sans-serif",
-                  fontSize: '11px',
-                  fontWeight: 600,
-                  color: tabActivo === 'adelanto' ? '#F59E0B' : '#64748B',
-                  background: tabActivo === 'adelanto' ? 'rgba(245, 158, 11, 0.1)' : 'transparent',
-                  borderBottom: tabActivo === 'adelanto' ? '2px solid #F59E0B' : '2px solid transparent'
-                }}
-              >
-                Adelanto
-              </button>
-              <button
-                onClick={() => setTabActivo('asignacion')}
-                className="px-3 py-1.5 transition-all rounded-lg"
-                style={{
-                  fontFamily: "'Exo 2', sans-serif",
-                  fontSize: '11px',
-                  fontWeight: 600,
-                  color: tabActivo === 'asignacion' ? '#1E66F5' : '#64748B',
-                  background: tabActivo === 'asignacion' ? 'rgba(30, 102, 245, 0.1)' : 'transparent',
-                  borderBottom: tabActivo === 'asignacion' ? '2px solid #1E66F5' : '2px solid transparent'
-                }}
-              >
-                Asignación
-              </button>
-            </div>
-
-            {/* BOTÓN MAPA - MISMO ESTILO QUE TABS */}
-            <button
-              onClick={() => setMostrarMapa(true)}
-              className="flex items-center gap-2 px-4 py-1.5 rounded-lg transition-all"
-              style={{
-                fontFamily: "'Exo 2', sans-serif",
-                fontSize: '11px',
-                fontWeight: 600,
-                background: 'white',
-                border: '1.5px solid #1E66F5',
-                color: '#1E66F5',
-                boxShadow: '0 1px 3px rgba(0, 0, 0, 0.06)'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = 'rgba(30, 102, 245, 0.1)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = 'white';
-              }}
-            >
-              <MapIcon className="w-4 h-4" />
-              Mapa
-            </button>
-
-            {/* BOTÓN CAPTURAR VIAJE */}
-            <button
-              onClick={() => setModalAsignacionAbierto(true)}
-              className="flex items-center gap-2 px-4 py-1.5 rounded-lg transition-all"
-              style={{
-                fontFamily: "'Exo 2', sans-serif",
-                fontSize: '11px',
-                fontWeight: 600,
-                background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)',
-                border: '1.5px solid #10B981',
-                color: 'white',
-                boxShadow: '0 2px 6px rgba(16, 185, 129, 0.3)'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.transform = 'translateY(-1px)';
-                e.currentTarget.style.boxShadow = '0 3px 10px rgba(16, 185, 129, 0.4)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.transform = 'translateY(0)';
-                e.currentTarget.style.boxShadow = '0 2px 6px rgba(16, 185, 129, 0.3)';
-              }}
-            >
-              <svg width="14" height="14" viewBox="0 0 20 20" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round">
-                <path d="M10 4 L10 16 M4 10 L16 10" />
-              </svg>
-              Capturar Viaje
-            </button>
-          </div>
-
-          {/* RIGHT: MINI KPIs COMPACTOS (40% MENOS ALTURA) */}
-          <div className="flex items-center gap-2.5">
-            {/* ENTREGAS - Mini panel */}
-            <div 
-              className="rounded-lg transition-all relative overflow-hidden"
-              style={{
-                background: 'white',
-                boxShadow: '0 1px 3px rgba(0, 0, 0, 0.06)',
-                border: '1px solid #E2E6EE',
-                padding: '6px 10px',
-                minWidth: '85px'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.boxShadow = '0 3px 8px rgba(0, 0, 0, 0.1)';
-                e.currentTarget.style.transform = 'translateY(-1px)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.boxShadow = '0 1px 3px rgba(0, 0, 0, 0.06)';
-                e.currentTarget.style.transform = 'translateY(0)';
-              }}
-            >
-              <div style={{ 
-                position: 'absolute', 
-                top: 0, 
-                left: 0, 
-                right: 0, 
-                height: '3px', 
-                background: 'linear-gradient(90deg, #059669 0%, #10B981 100%)' 
-              }} />
-              <div className="flex items-center justify-between gap-2 mb-0.5">
-                <TrendingUp className="w-3.5 h-3.5" style={{ color: '#64748B', opacity: 0.5 }} />
-                <div style={{ fontFamily: "'Orbitron', monospace", fontSize: '22px', fontWeight: 700, color: '#111827', lineHeight: '1' }}>
-                  {entregas.length}
-                </div>
-              </div>
-              <div style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '8.5px', fontWeight: 600, color: '#64748B', letterSpacing: '0.5px' }}>
-                ENTREGAS
-              </div>
-            </div>
-
-            {/* REGISTROS - Mini panel */}
-            <div 
-              className="rounded-lg transition-all relative overflow-hidden"
-              style={{
-                background: 'white',
-                boxShadow: '0 1px 3px rgba(0, 0, 0, 0.06)',
-                border: '1px solid #E2E6EE',
-                padding: '6px 10px',
-                minWidth: '85px'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.boxShadow = '0 3px 8px rgba(0, 0, 0, 0.1)';
-                e.currentTarget.style.transform = 'translateY(-1px)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.boxShadow = '0 1px 3px rgba(0, 0, 0, 0.06)';
-                e.currentTarget.style.transform = 'translateY(0)';
-              }}
-            >
-              <div style={{ 
-                position: 'absolute', 
-                top: 0, 
-                left: 0, 
-                right: 0, 
-                height: '3px', 
-                background: 'linear-gradient(90deg, #64748B 0%, #94A3B8 100%)' 
-              }} />
-              <div className="flex items-center justify-between gap-2 mb-0.5">
-                <FileText className="w-3.5 h-3.5" style={{ color: '#64748B', opacity: 0.5 }} />
-                <div style={{ fontFamily: "'Orbitron', monospace", fontSize: '22px', fontWeight: 700, color: '#111827', lineHeight: '1' }}>
-                  {entregas.length}
-                </div>
-              </div>
-              <div style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '8.5px', fontWeight: 600, color: '#64748B', letterSpacing: '0.5px' }}>
-                REGISTROS
-              </div>
-            </div>
-
-            {/* ALERTAS - Mini panel */}
-            <div 
-              className="rounded-lg transition-all relative overflow-hidden"
-              style={{
-                background: 'white',
-                boxShadow: '0 1px 3px rgba(0, 0, 0, 0.06)',
-                border: '1px solid #E2E6EE',
-                padding: '6px 10px',
-                minWidth: '85px'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.boxShadow = '0 3px 8px rgba(0, 0, 0, 0.1)';
-                e.currentTarget.style.transform = 'translateY(-1px)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.boxShadow = '0 1px 3px rgba(0, 0, 0, 0.06)';
-                e.currentTarget.style.transform = 'translateY(0)';
-              }}
-            >
-              <div style={{ 
-                position: 'absolute', 
-                top: 0, 
-                left: 0, 
-                right: 0, 
-                height: '3px', 
-                background: 'linear-gradient(90deg, #DC2626 0%, #EF4444 100%)' 
-              }} />
-              <div className="flex items-center justify-between gap-2 mb-0.5">
-                <AlertTriangle className="w-3.5 h-3.5" style={{ color: '#64748B', opacity: 0.5 }} />
-                <div style={{ fontFamily: "'Orbitron', monospace", fontSize: '22px', fontWeight: 700, color: '#111827', lineHeight: '1' }}>
-                  {alertas}
-                </div>
-              </div>
-              <div style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '8.5px', fontWeight: 600, color: '#64748B', letterSpacing: '0.5px' }}>
-                ALERTAS
-              </div>
-            </div>
-
-            {/* EVIDENCIAS - Mini panel */}
-            <div 
-              className="rounded-lg transition-all relative overflow-hidden"
-              style={{
-                background: 'white',
-                boxShadow: '0 1px 3px rgba(0, 0, 0, 0.06)',
-                border: '1px solid #E2E6EE',
-                padding: '6px 10px',
-                minWidth: '85px'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.boxShadow = '0 3px 8px rgba(0, 0, 0, 0.1)';
-                e.currentTarget.style.transform = 'translateY(-1px)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.boxShadow = '0 1px 3px rgba(0, 0, 0, 0.06)';
-                e.currentTarget.style.transform = 'translateY(0)';
-              }}
-            >
-              <div style={{ 
-                position: 'absolute', 
-                top: 0, 
-                left: 0, 
-                right: 0, 
-                height: '3px', 
-                background: 'linear-gradient(90deg, #F59E0B 0%, #FBBF24 100%)' 
-              }} />
-              <div className="flex items-center justify-between gap-2 mb-0.5">
-                <Package className="w-3.5 h-3.5" style={{ color: '#64748B', opacity: 0.5 }} />
-                <div style={{ fontFamily: "'Orbitron', monospace", fontSize: '22px', fontWeight: 700, color: '#111827', lineHeight: '1' }}>
-                  {evidencias}
-                </div>
-              </div>
-              <div style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '8.5px', fontWeight: 600, color: '#64748B', letterSpacing: '0.5px' }}>
-                EVIDENCIAS
-              </div>
-            </div>
-
-            {/* TOTAL - Mini panel */}
-            <div 
-              className="rounded-lg transition-all relative overflow-hidden"
-              style={{
-                background: 'white',
-                boxShadow: '0 1px 3px rgba(0, 0, 0, 0.06)',
-                border: '1px solid #E2E6EE',
-                padding: '6px 10px',
-                minWidth: '85px'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.boxShadow = '0 3px 8px rgba(0, 0, 0, 0.1)';
-                e.currentTarget.style.transform = 'translateY(-1px)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.boxShadow = '0 1px 3px rgba(0, 0, 0, 0.06)';
-                e.currentTarget.style.transform = 'translateY(0)';
-              }}
-            >
-              <div style={{ 
-                position: 'absolute', 
-                top: 0, 
-                left: 0, 
-                right: 0, 
-                height: '3px', 
-                background: 'linear-gradient(90deg, #1E66F5 0%, #3B82F6 100%)' 
-              }} />
-              <div className="flex items-center justify-between gap-2 mb-0.5">
-                <Truck className="w-3.5 h-3.5" style={{ color: '#64748B', opacity: 0.5 }} />
-                <div style={{ fontFamily: "'Orbitron', monospace", fontSize: '22px', fontWeight: 700, color: '#111827', lineHeight: '1' }}>
-                  26
-                </div>
-              </div>
-              <div style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '8.5px', fontWeight: 600, color: '#64748B', letterSpacing: '0.5px' }}>
-                TOTAL
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* ========== TABLA PROTAGONISTA CON ZEBRA MARCADA ========== */}
-      <div className="p-6">
-        <div className="bg-white rounded-xl shadow-lg overflow-hidden" style={{ border: '1px solid #E2E6EE' }}>
-          {/* HEADER TABLA */}
-          <div className="grid grid-cols-[50px_100px_1.5fr_2fr_1.5fr_1fr_1fr_1fr_1fr_1.2fr_120px] gap-3 px-4 py-3 bg-gradient-to-r from-slate-700 to-slate-800 text-white">
-            <div style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '11px', fontWeight: 700, letterSpacing: '0.5px', textAlign: 'center' }}>#</div>
-            <div style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '11px', fontWeight: 700, letterSpacing: '0.5px' }}>UNIDAD</div>
-            <div style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '11px', fontWeight: 700, letterSpacing: '0.5px' }}>OPERADOR</div>
-            <div style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '11px', fontWeight: 700, letterSpacing: '0.5px' }}>UBICACIÓN GPS</div>
-            <div style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '11px', fontWeight: 700, letterSpacing: '0.5px' }}>DESTINO / CLIENTE</div>
-            <div style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '11px', fontWeight: 700, letterSpacing: '0.5px' }}>ESTADO</div>
-            <div style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '11px', fontWeight: 700, letterSpacing: '0.5px' }}>CITA</div>
-            <div style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '11px', fontWeight: 700, letterSpacing: '0.5px' }}>ETA</div>
-            <div style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '11px', fontWeight: 700, letterSpacing: '0.5px' }}>LLEGADA</div>
-            <div style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '11px', fontWeight: 700, letterSpacing: '0.5px' }}>STATUS</div>
-            <div style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '11px', fontWeight: 700, letterSpacing: '0.5px', textAlign: 'center' }}>MANTENIMIENTO</div>
-          </div>
-
-          {/* FILAS - 26 UNIDADES CON ZEBRA MARCADA */}
-          <div className="max-h-[calc(100vh-220px)] overflow-y-auto">
-            {unidadesCombinadas.map((unidad, index) => {
-              const tieneGPS = !!unidad.ubicacion;
-              const estados = ['Transito', 'Lavado', 'Destino', 'Origen'];
-              const estadoRandom = estados[index % estados.length];
-              const porcentaje = tieneGPS ? [38, 0, 100, 100, 4, 8, 100, 100, 60, 75, 90, 95, 100, 85, 70, 55, 40, 25, 10, 5, 100, 100, 80, 65, 50, 35][index] || 0 : 0;
-              
-              return (
-                <div
-                  key={unidad.numeroTracto}
-                  className="grid grid-cols-[50px_100px_1.5fr_2fr_1.5fr_1fr_1fr_1fr_1fr_1.2fr_120px] gap-3 px-4 py-1 transition-all"
-                  style={{
-                    background: index % 2 === 0 ? '#FFFFFF' : '#F8F9FB',
-                    borderBottom: '1px solid #E2E6EE'
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.background = '#E6F0FF';
-                    e.currentTarget.style.borderLeft = '2px solid #1E66F5';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.background = index % 2 === 0 ? '#FFFFFF' : '#F8F9FB';
-                    e.currentTarget.style.borderLeft = 'none';
-                  }}
-                >
-                  {/* NÚMERO */}
-                  <div className="flex items-center justify-center">
-                    <div style={{ 
-                      fontFamily: "'Orbitron', monospace", 
-                      fontSize: '14px', 
-                      fontWeight: 700, 
-                      color: '#64748B',
-                      letterSpacing: '0.5px'
-                    }}>
-                      {index + 1}
-                    </div>
-                  </div>
-
-                  {/* UNIDAD */}
-                  <div className="flex items-center gap-2">
-                    <div 
-                      className="flex items-center gap-2.5 px-3 py-2 rounded-lg"
+        <>
+          {/* ========== TOOLBAR ========== */}
+          <div style={{ background: '#F3F5F8', borderBottom: '1px solid #E2E6EE', padding: '12px 24px' }}>
+            <div className="flex items-center justify-between gap-6">
+              {/* TABS + MAPA */}
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-1 bg-white p-1 rounded-lg border border-slate-200">
+                  {['Entregas', 'Regresos', 'Puntual', 'Retraso', 'Adelanto', 'Asignación'].map(tab => (
+                    <button
+                      key={tab}
+                      onClick={() => setTabActivo(tab.toLowerCase())}
+                      className="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all"
                       style={{
-                        background: 'linear-gradient(135deg, rgba(239, 246, 255, 0.8) 0%, rgba(219, 234, 254, 0.9) 100%)',
-                        border: '1px solid rgba(30, 102, 245, 0.15)',
-                        boxShadow: '0 1px 3px rgba(30, 102, 245, 0.08)',
-                        minWidth: '85px'
+                        color: tabActivo === tab.toLowerCase() ? '#1E66F5' : '#64748B',
+                        background: tabActivo === tab.toLowerCase() ? 'rgba(30, 102, 245, 0.1)' : 'transparent',
                       }}
                     >
-                      <Truck className="w-4 h-4" style={{ color: '#1E66F5', flexShrink: 0 }} />
-                      <div>
-                        <div style={{ 
-                          fontFamily: "'Orbitron', monospace", 
-                          fontSize: '19px', 
-                          fontWeight: 700,
-                          color: '#1E66F5',
-                          lineHeight: '1.2',
-                          letterSpacing: '0.5px'
-                        }}>
-                          {unidad.numeroTracto}
-                        </div>
-                        <div style={{ 
-                          fontFamily: "'Exo 2', sans-serif", 
-                          fontSize: '11px',
-                          fontWeight: 400,
-                          color: '#94A3B8',
-                          lineHeight: '1.2',
-                          letterSpacing: '0.3px'
-                        }}>
-                          R-{unidad.numeroRemolque}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* OPERADOR */}
-                  <div className="flex items-center">
-                    <div className="text-slate-700" style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '12px', fontWeight: 600 }}>
-                      {unidad.operador}
-                    </div>
-                  </div>
-
-                  {/* UBICACIÓN GPS */}
-                  <div className="flex items-center">
-                    {tieneGPS ? (
-                      <UbicacionGPS
-                        latitude={unidad.ubicacion!.latitude}
-                        longitude={unidad.ubicacion!.longitude}
-                        address={unidad.ubicacion!.address}
-                        onVerMapa={() => {
-                          setUnidadSeleccionada(unidad.numeroTracto);
-                          setMostrarMapa(true);
-                        }}
-                        isCache={(unidad.ubicacion as any).fromCache || false}
-                        cacheAge={(unidad.ubicacion as any).cacheAge || 0}
-                      />
-                    ) : (
-                      <div className="text-slate-400" style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '10px', fontStyle: 'italic' }}>
-                        Sin señal GPS
-                      </div>
-                    )}
-                  </div>
-
-                  {/* DESTINO / CLIENTE */}
-                  <div className="flex items-center">
-                    {tieneGPS ? (
-                      <div>
-                        <div className="text-slate-800" style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '12px', fontWeight: 700 }}>
-                          {unidad.ubicacion!.address.split(',').slice(-2).join(',').trim().substring(0, 20).toUpperCase()}
-                        </div>
-                        <div className="text-blue-600" style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '10px' }}>
-                          Cliente 0
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="text-slate-300">—</div>
-                    )}
-                  </div>
-
-                  {/* ESTADO */}
-                  <div className="flex items-center">
-                    {tieneGPS ? (
-                      <div className="px-3 py-1.5 rounded-lg bg-emerald-100 border border-emerald-200">
-                        <div className="text-emerald-700" style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '11px', fontWeight: 700 }}>
-                          {estadoRandom}
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="text-slate-300">—</div>
-                    )}
-                  </div>
-
-                  {/* CITA */}
-                  <div className="flex items-center">
-                    {tieneGPS ? (
-                      <div>
-                        <div className="text-slate-700" style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '11px', fontWeight: 700 }}>
-                          {`${10 + (index % 12)}:${(index % 6) * 10}`.padStart(5, '0')}
-                        </div>
-                        <div className="text-slate-500" style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '10px' }}>
-                          2025-06-{10 + (index % 15)}
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="text-slate-300">—</div>
-                    )}
-                  </div>
-
-                  {/* ETA */}
-                  <div className="flex items-center">
-                    {tieneGPS ? (
-                      <div>
-                        <div className="text-slate-700" style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '11px', fontWeight: 700 }}>
-                          {`${10 + (index % 12)}:${(index % 6) * 10}`.padStart(5, '0')}
-                        </div>
-                        <div className="text-slate-500" style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '10px' }}>
-                          2025-06-{10 + (index % 15)}
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="text-slate-300">—</div>
-                    )}
-                  </div>
-
-                  {/* LLEGADA */}
-                  <div className="flex items-center">
-                    {tieneGPS ? (
-                      <div>
-                        <div className={`${porcentaje === 100 ? 'text-emerald-600' : porcentaje > 50 ? 'text-yellow-600' : 'text-blue-600'}`} style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '11px', fontWeight: 700 }}>
-                          {porcentaje === 100 ? 'Entregado' : porcentaje > 50 ? 'Entregado' : `${20 - (index % 15)}h ${(index % 6) * 10}m`}
-                        </div>
-                        <div className="text-slate-500" style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '9px' }}>
-                          {porcentaje === 100 ? 'Confirmado' : 'Confirmando'}
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="text-slate-300">—</div>
-                    )}
-                  </div>
-
-                  {/* STATUS - PILLS ANCHO FIJO */}
-                  <div className="flex items-center justify-center">
-                    {tieneGPS ? (
-                      <div 
-                        className="px-4 py-1.5 rounded-full flex items-center justify-center"
-                        style={{
-                          minWidth: '105px',
-                          background: porcentaje === 100 
-                            ? 'linear-gradient(135deg, #10B981 0%, #059669 100%)' 
-                            : porcentaje > 50 
-                            ? 'linear-gradient(135deg, #1E66F5 0%, #1D4ED8 100%)' 
-                            : porcentaje > 10
-                            ? 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)'
-                            : 'linear-gradient(135deg, #EF4444 0%, #DC2626 100%)',
-                          boxShadow: '0 2px 6px rgba(0, 0, 0, 0.12)'
-                        }}
-                      >
-                        <div style={{ 
-                          fontFamily: "'Exo 2', sans-serif", 
-                          fontSize: '11px', 
-                          fontWeight: 700,
-                          color: 'white',
-                          textAlign: 'center',
-                          letterSpacing: '0.3px'
-                        }}>
-                          {porcentaje === 100 ? 'ENTREGADO' : porcentaje > 50 ? 'PUNTUAL' : porcentaje > 10 ? 'ADELANTO' : 'RETRASO'}
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="text-slate-300">—</div>
-                    )}
-                  </div>
-
-                  {/* MANTENIMIENTO - MEDIA LUNA (HALF GAUGE) */}
-                  <div className="flex items-center justify-center">
-                    {tieneGPS ? (
-                      <div className="flex flex-col items-center gap-0.5">
-                        {/* SVG Half Gauge (Media Luna) */}
-                        <svg width="50" height="32" viewBox="0 0 50 32">
-                          {/* Arco de fondo (gris claro) */}
-                          <path
-                            d="M 5 27 A 20 20 0 0 1 45 27"
-                            fill="none"
-                            stroke="#E2E8F0"
-                            strokeWidth="6"
-                            strokeLinecap="round"
-                          />
-                          {/* Arco de progreso (color según porcentaje) */}
-                          <path
-                            d="M 5 27 A 20 20 0 0 1 45 27"
-                            fill="none"
-                            stroke={
-                              porcentaje <= 60 
-                                ? '#10B981' 
-                                : porcentaje <= 89 
-                                ? '#F59E0B' 
-                                : '#EF4444'
-                            }
-                            strokeWidth="6"
-                            strokeLinecap="round"
-                            strokeDasharray={`${(porcentaje / 100) * 62.83} 62.83`}
-                          />
-                          {/* Texto porcentaje centrado */}
-                          <text
-                            x="25"
-                            y="24"
-                            textAnchor="middle"
-                            dominantBaseline="middle"
-                            style={{
-                              fontFamily: "Arial, sans-serif",
-                              fontSize: '11px',
-                              fontWeight: 700,
-                              fill: '#0F172A'
-                            }}
-                          >
-                            {porcentaje}%
-                          </text>
-                        </svg>
-                        {/* Etiqueta de estado */}
-                        <div style={{
-                          fontFamily: "'Exo 2', sans-serif",
-                          fontSize: '8px',
-                          fontWeight: 600,
-                          color: porcentaje <= 60 
-                            ? '#10B981' 
-                            : porcentaje <= 89 
-                            ? '#F59E0B' 
-                            : '#EF4444',
-                          letterSpacing: '0.3px'
-                        }}>
-                          {porcentaje <= 60 ? 'OK' : porcentaje <= 89 ? 'Próximo' : 'Crítico'}
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="flex flex-col items-center gap-0.5">
-                        <svg width="50" height="32" viewBox="0 0 50 32">
-                          <path
-                            d="M 5 27 A 20 20 0 0 1 45 27"
-                            fill="none"
-                            stroke="#E2E8F0"
-                            strokeWidth="6"
-                            strokeLinecap="round"
-                          />
-                        </svg>
-                        <div style={{
-                          fontFamily: "'Exo 2', sans-serif",
-                          fontSize: '8px',
-                          fontWeight: 600,
-                          color: '#CBD5E1'
-                        }}>
-                          N/A
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-
-        {error && (
-          <div className="mt-4 p-4 bg-red-50 border-l-4 border-red-500 rounded-lg">
-            <div className="flex items-center gap-2">
-              <AlertTriangle className="w-5 h-5 text-red-600" />
-              <div className="text-red-700" style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '12px', fontWeight: 700 }}>
-                Error: {error}
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* MAPA */}
-      {mostrarMapa && (
-        <MapaFlota
-          ubicaciones={ubicaciones}
-          unidadSeleccionada={unidadSeleccionada}
-          onClose={() => {
-            setMostrarMapa(false);
-            setUnidadSeleccionada(null);
-          }}
-          onSeleccionarUnidad={(placa) => setUnidadSeleccionada(placa)}
-        />
-      )}
-
-      {/* MODAL DE ASIGNACIÓN DE VIAJE */}
-      {modalAsignacionAbierto && (
-        <div 
-          className="fixed inset-0 z-50 flex items-center justify-center"
-          style={{
-            background: 'rgba(0, 0, 0, 0.7)',
-            backdropFilter: 'blur(4px)'
-          }}
-          onClick={() => setModalAsignacionAbierto(false)}
-        >
-          <div 
-            className="relative bg-white rounded-xl shadow-2xl"
-            style={{
-              width: '440px',
-              border: '2px solid #1E66F5',
-              animation: 'scaleIn 0.2s ease-out'
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* HEADER CON BOTÓN CERRAR */}
-            <div 
-              className="relative flex items-center justify-between px-6 py-4 rounded-t-xl"
-              style={{
-                background: 'linear-gradient(135deg, #1E66F5 0%, #1D4ED8 100%)',
-                borderBottom: '1px solid rgba(255, 255, 255, 0.2)'
-              }}
-            >
-              <h2 
-                style={{
-                  fontFamily: "'Orbitron', sans-serif",
-                  fontSize: '18px',
-                  fontWeight: 700,
-                  color: 'white',
-                  letterSpacing: '0.5px'
-                }}
-              >
-                CAPTURA DE VIAJE
-              </h2>
-              <button
-                onClick={() => setModalAsignacionAbierto(false)}
-                className="p-1.5 rounded-lg transition-all"
-                style={{
-                  background: 'rgba(255, 255, 255, 0.15)',
-                  border: '1px solid rgba(255, 255, 255, 0.3)'
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background = 'rgba(255, 255, 255, 0.25)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = 'rgba(255, 255, 255, 0.15)';
-                }}
-              >
-                <svg 
-                  width="20" 
-                  height="20" 
-                  viewBox="0 0 20 20" 
-                  fill="none"
-                  stroke="white"
-                  strokeWidth="2.5"
-                  strokeLinecap="round"
-                >
-                  <path d="M4 4 L16 16 M16 4 L4 16" />
-                </svg>
-              </button>
-            </div>
-
-            {/* FORMULARIO */}
-            <div className="px-6 py-6">
-              {/* CONVENIO DE VENTA */}
-              <div className="mb-5">
-                <label 
-                  style={{
-                    fontFamily: "'Exo 2', sans-serif",
-                    fontSize: '12px',
-                    fontWeight: 700,
-                    color: '#0F172A',
-                    display: 'block',
-                    marginBottom: '8px',
-                    letterSpacing: '0.3px'
-                  }}
-                >
-                  CONVENIO DE VENTA
-                </label>
-                <input
-                  type="text"
-                  value={convenioVenta}
-                  onChange={(e) => setConvenioVenta(e.target.value.toUpperCase())}
-                  placeholder="Ingrese convenio de venta"
-                  className="w-full px-4 py-3 rounded-lg transition-all"
-                  style={{
-                    fontFamily: "'Exo 2', sans-serif",
-                    fontSize: '13px',
-                    fontWeight: 600,
-                    border: '2px solid #E2E8F0',
-                    outline: 'none',
-                    background: '#F8FAFC'
-                  }}
-                  onFocus={(e) => {
-                    e.currentTarget.style.borderColor = '#1E66F5';
-                    e.currentTarget.style.background = '#FFFFFF';
-                  }}
-                  onBlur={(e) => {
-                    e.currentTarget.style.borderColor = '#E2E8F0';
-                    e.currentTarget.style.background = '#F8FAFC';
-                  }}
-                />
-              </div>
-
-              {/* UNIDAD */}
-              <div className="mb-5">
-                <label 
-                  style={{
-                    fontFamily: "'Exo 2', sans-serif",
-                    fontSize: '12px',
-                    fontWeight: 700,
-                    color: '#0F172A',
-                    display: 'block',
-                    marginBottom: '8px',
-                    letterSpacing: '0.3px'
-                  }}
-                >
-                  UNIDAD
-                </label>
-                <select
-                  value={unidadAsignacion}
-                  onChange={(e) => setUnidadAsignacion(e.target.value)}
-                  className="w-full px-4 py-3 rounded-lg transition-all"
-                  style={{
-                    fontFamily: "'Exo 2', sans-serif",
-                    fontSize: '13px',
-                    fontWeight: 600,
-                    border: '2px solid #E2E8F0',
-                    outline: 'none',
-                    background: '#F8FAFC'
-                  }}
-                  onFocus={(e) => {
-                    e.currentTarget.style.borderColor = '#1E66F5';
-                    e.currentTarget.style.background = '#FFFFFF';
-                  }}
-                  onBlur={(e) => {
-                    e.currentTarget.style.borderColor = '#E2E8F0';
-                    e.currentTarget.style.background = '#F8FAFC';
-                  }}
-                >
-                  <option value="">Seleccione una unidad</option>
-                  {FLOTA_CARROLL.map((unidad) => (
-                    <option key={unidad.numeroTracto} value={unidad.numeroTracto}>
-                      {unidad.numeroTracto} - {unidad.operador}
-                    </option>
+                      {tab}
+                    </button>
                   ))}
-                </select>
-              </div>
+                </div>
 
-              {/* NÚMERO DE REMOLQUE */}
-              <div className="mb-6">
-                <label 
-                  style={{
-                    fontFamily: "'Exo 2', sans-serif",
-                    fontSize: '12px',
-                    fontWeight: 700,
-                    color: '#0F172A',
-                    display: 'block',
-                    marginBottom: '8px',
-                    letterSpacing: '0.3px'
-                  }}
+                <button
+                  onClick={() => setMostrarMapa(true)}
+                  className="flex items-center gap-2 px-4 py-1.5 rounded-lg bg-white border border-blue-500 text-blue-500 text-xs font-semibold"
                 >
-                  NÚMERO DE REMOLQUE
-                </label>
-                <input
-                  type="text"
-                  value={numeroRemolqueAsignacion}
-                  onChange={(e) => setNumeroRemolqueAsignacion(e.target.value)}
-                  placeholder="Ingrese número de remolque"
-                  className="w-full px-4 py-3 rounded-lg transition-all"
-                  style={{
-                    fontFamily: "'Exo 2', sans-serif",
-                    fontSize: '13px',
-                    fontWeight: 600,
-                    border: '2px solid #E2E8F0',
-                    outline: 'none',
-                    background: '#F8FAFC'
-                  }}
-                  onFocus={(e) => {
-                    e.currentTarget.style.borderColor = '#1E66F5';
-                    e.currentTarget.style.background = '#FFFFFF';
-                  }}
-                  onBlur={(e) => {
-                    e.currentTarget.style.borderColor = '#E2E8F0';
-                    e.currentTarget.style.background = '#F8FAFC';
-                  }}
-                />
+                  <MapIcon className="w-4 h-4" />
+                  Mapa
+                </button>
               </div>
 
-              {/* BOTÓN ACEPTAR */}
-              <button
-                onClick={() => {
-                  // Aquí se procesaría la asignación
-                  console.log('Asignación:', { convenioVenta, unidadAsignacion, numeroRemolqueAsignacion });
-                  setModalAsignacionAbierto(false);
-                  setConvenioVenta('');
-                  setUnidadAsignacion('');
-                  setNumeroRemolqueAsignacion('');
-                }}
-                className="w-full py-3.5 rounded-lg transition-all"
-                style={{
-                  fontFamily: "'Exo 2', sans-serif",
-                  fontSize: '14px',
-                  fontWeight: 700,
-                  color: 'white',
-                  background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)',
-                  border: 'none',
-                  letterSpacing: '0.5px',
-                  boxShadow: '0 4px 12px rgba(16, 185, 129, 0.3)'
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.transform = 'translateY(-2px)';
-                  e.currentTarget.style.boxShadow = '0 6px 16px rgba(16, 185, 129, 0.4)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.transform = 'translateY(0)';
-                  e.currentTarget.style.boxShadow = '0 4px 12px rgba(16, 185, 129, 0.3)';
-                }}
-              >
-                ACEPTAR
-              </button>
+              {/* MINI KPIs */}
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2 px-3 py-2 bg-white rounded-lg border border-slate-200">
+                  <Truck className="w-4 h-4 text-slate-400" />
+                  <span className="text-xl font-bold text-slate-800">{stats.total}</span>
+                  <span className="text-xs text-slate-500">Total</span>
+                </div>
+                <div className="flex items-center gap-2 px-3 py-2 bg-white rounded-lg border border-green-200">
+                  <Navigation className="w-4 h-4 text-green-500" />
+                  <span className="text-xl font-bold text-green-600">{stats.mov}</span>
+                  <span className="text-xs text-green-600">Mov</span>
+                </div>
+                <div className="flex items-center gap-2 px-3 py-2 bg-white rounded-lg border border-yellow-200">
+                  <Power className="w-4 h-4 text-yellow-500" />
+                  <span className="text-xl font-bold text-yellow-600">{stats.det}</span>
+                  <span className="text-xs text-yellow-600">Det</span>
+                </div>
+                <div className="flex items-center gap-2 px-3 py-2 bg-white rounded-lg border border-red-200">
+                  <WifiOff className="w-4 h-4 text-red-500" />
+                  <span className="text-xl font-bold text-red-600">{stats.sin}</span>
+                  <span className="text-xs text-red-600">Sin</span>
+                </div>
+              </div>
             </div>
           </div>
-        </div>
-      )}
-      </>
+
+          {/* ========== TABLA ========== */}
+          <div className="p-6">
+            <div className="bg-white rounded-xl shadow-lg overflow-hidden border border-slate-200">
+              {/* HEADER */}
+              <div className="grid grid-cols-[50px_100px_180px_80px_100px_1fr_120px] gap-3 px-4 py-3 bg-gradient-to-r from-slate-700 to-slate-800 text-white">
+                <div className="text-xs font-bold text-center">#</div>
+                <div className="text-xs font-bold">UNIDAD</div>
+                <div className="text-xs font-bold">OPERADOR</div>
+                <div className="text-xs font-bold">STATUS</div>
+                <div className="text-xs font-bold">PARADO</div>
+                <div className="text-xs font-bold">UBICACIÓN GPS</div>
+                <div className="text-xs font-bold">SEÑAL</div>
+              </div>
+
+              {/* FILAS */}
+              <div className="max-h-[calc(100vh-280px)] overflow-y-auto">
+                {unidadesAMostrar.map((u, index) => (
+                  <div
+                    key={u.economico}
+                    className="grid grid-cols-[50px_100px_180px_80px_100px_1fr_120px] gap-3 px-4 py-2 border-b border-slate-100 hover:bg-blue-50 transition-all"
+                    style={{ background: index % 2 === 0 ? '#FFFFFF' : '#F8F9FB' }}
+                  >
+                    {/* # */}
+                    <div className="flex items-center justify-center text-slate-500 font-mono font-bold">
+                      {index + 1}
+                    </div>
+
+                    {/* UNIDAD */}
+                    <div className="flex items-center">
+                      <div className="flex items-center gap-2 px-2 py-1 rounded-lg bg-blue-50 border border-blue-200">
+                        <Truck className="w-4 h-4 text-blue-500" />
+                        <div>
+                          <div className="font-mono font-bold text-blue-600 text-lg">{u.economico}</div>
+                          <div className="text-xs text-slate-400">R-{REMOLQUES_CARROLL[u.economico] || 'N/A'}</div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* OPERADOR */}
+                    <div className="flex items-center">
+                      <span className="text-sm font-semibold text-slate-700 truncate">
+                        {OPERADORES_CARROLL[u.economico] || 'Sin asignar'}
+                      </span>
+                    </div>
+
+                    {/* STATUS */}
+                    <div className="flex items-center">
+                      <button 
+                        onClick={() => openMap(u)}
+                        disabled={!u.latitude}
+                        className={`flex items-center gap-1 px-2 py-1 rounded text-xs font-semibold border ${getStatusColor(u.status)} ${u.latitude ? 'cursor-pointer hover:opacity-80' : 'cursor-not-allowed opacity-60'}`}
+                      >
+                        {u.status === 'moving' ? <Navigation className="w-3 h-3" /> : 
+                         u.status === 'stopped' ? <Power className="w-3 h-3" /> : 
+                         <WifiOff className="w-3 h-3" />}
+                        {u.status === 'moving' ? 'Mov' : 
+                         u.status === 'stopped' ? 'Det' : 'Sin'}
+                      </button>
+                    </div>
+
+                    {/* PARADO */}
+                    <div className="flex items-center">
+                      <span className={`text-sm font-semibold ${getStoppedColor(u.stopped_minutes)}`}>
+                        {u.stopped_time || '-'}
+                      </span>
+                    </div>
+
+                    {/* UBICACIÓN */}
+                    <div className="flex items-center">
+                      {u.latitude ? (
+                        <div className="flex items-center gap-2">
+                          <MapPin className="w-4 h-4 text-green-500 flex-shrink-0" />
+                          <span className="text-sm text-slate-700 truncate">{u.address || 'Sin dirección'}</span>
+                        </div>
+                      ) : (
+                        <span className="text-sm text-slate-400 italic">Sin señal GPS</span>
+                      )}
+                    </div>
+
+                    {/* SEÑAL */}
+                    <div className="flex items-center text-xs text-slate-400">
+                      {formatTime(u.timestamp_gps)}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* ÚLTIMA ACTUALIZACIÓN */}
+            {lastUpdate && (
+              <div className="mt-4 text-center text-sm text-slate-500">
+                Última actualización: {lastUpdate.toLocaleString('es-MX')} · Próxima en 10 min
+              </div>
+            )}
+
+            {error && (
+              <div className="mt-4 p-4 bg-red-50 border-l-4 border-red-500 rounded-lg">
+                <div className="flex items-center gap-2 text-red-700">
+                  <AlertTriangle className="w-5 h-5" />
+                  <span>Error: {error}</span>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* MAPA */}
+          {mostrarMapa && (
+            <MapaFlota
+              ubicaciones={unidadesCarroll.filter(u => u.latitude).map(u => ({
+                placa: u.economico,
+                latitude: u.latitude!,
+                longitude: u.longitude!,
+                speed: u.speed || 0,
+                timestamp: u.timestamp_gps || '',
+                odometer: 0,
+                address: u.address || '',
+                operador: OPERADORES_CARROLL[u.economico],
+                numeroRemolque: REMOLQUES_CARROLL[u.economico]
+              }))}
+              unidadSeleccionada={unidadSeleccionada}
+              onClose={() => {
+                setMostrarMapa(false);
+                setUnidadSeleccionada(null);
+              }}
+              onSeleccionarUnidad={(placa) => setUnidadSeleccionada(placa)}
+            />
+          )}
+        </>
       )}
     </div>
   );
