@@ -2,6 +2,11 @@ import { useState, useEffect } from 'react';
 import { Truck, ArrowLeft, AlertTriangle, CheckCircle, Download, X, Wrench, FileText, Zap, MapPin, Clock, Paperclip, Plus, Calendar, Navigation } from 'lucide-react';
 import { GoogleMap, LoadScript, Marker, Circle, Polyline, InfoWindow } from '@react-google-maps/api';
 import { projectId, publicAnonKey } from '../../utils/supabase/info';
+import { createClient } from '@supabase/supabase-js';
+
+const SUPABASE_URL_GPS = 'https://fbxbsslhewchyibdoyzk.supabase.co';
+const SUPABASE_ANON_KEY_GPS = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZieGJzc2xoZXdjaHlpYmRveXprIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI1MzczODEsImV4cCI6MjA3ODExMzM4MX0.Z8JPlg7hhKbA624QGHp2bKKTNtCD3WInQMO5twjl6a0';
+const supabaseGPS = createClient(SUPABASE_URL_GPS, SUPABASE_ANON_KEY_GPS);
 
 interface CarrollModuleProps {
   onBack: () => void;
@@ -98,6 +103,31 @@ interface GPSLocation {
 
 export const DedicadosModule = ({ onBack }: CarrollModuleProps) => {
   const [vistaActiva, setVistaActiva] = useState<'entregas' | 'regresos'>('entregas');
+  const [gpsData, setGpsData] = useState<Map<string, any>>(new Map());
+  const [gpsLoading, setGpsLoading] = useState(true);
+
+  useEffect(() => {
+    const cargarGPS = async () => {
+      try {
+        const { data } = await supabaseGPS.from('gps_tracking').select('economico, latitude, longitude, speed, timestamp_gps, address, status').eq('segmento', 'CARROLL');
+        const map = new Map<string, any>();
+        if (data) data.forEach((r: any) => map.set(r.economico, r));
+        setGpsData(map);
+      } catch (e) { console.error('GPS error:', e); }
+      setGpsLoading(false);
+    };
+    cargarGPS();
+    const channel = supabaseGPS.channel('carroll_gps_rt').on('postgres_changes', { event: '*', schema: 'public', table: 'gps_tracking', filter: 'segmento=eq.CARROLL' }, () => cargarGPS()).subscribe();
+    return () => { channel.unsubscribe(); };
+  }, []);
+
+  const getUbicacionGPS = (tracto: string): string => {
+    const gps = gpsData.get(tracto);
+    if (!gps) return gpsLoading ? 'Cargando...' : getUbicacionGPS(unidad.tracto);
+    if (gps.address && gps.address !== '-') return gps.address;
+    if (gps.latitude && gps.longitude) return gps.latitude.toFixed(4) + ', ' + gps.longitude.toFixed(4);
+    return getUbicacionGPS(unidad.tracto);
+  };
   const [filtroStatus, setFiltroStatus] = useState<'all' | 'ontime' | 'delayed' | 'early'>('all');
   const [operadorModal, setOperadorModal] = useState<string | null>(null);
   const [mantModal, setMantModal] = useState<Unidad | null>(null);
