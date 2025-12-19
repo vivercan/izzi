@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { createClient } from '@supabase/supabase-js';
-import { Truck, Power, RefreshCw, Search, Download, WifiOff, Navigation, ExternalLink, Clock, AlertTriangle, Zap } from 'lucide-react';
+import { Truck, Power, RefreshCw, Search, Download, WifiOff, Navigation, ExternalLink, Clock, AlertTriangle, Zap, ArrowLeft } from 'lucide-react';
 
 // Supabase config
 const SUPABASE_URL = 'https://fbxbsslhewchyibdoyzk.supabase.co';
@@ -10,7 +10,7 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-const SEGMENTOS = ['IMPEX', 'CARROLL', 'BAFAR', 'NatureSweet', 'Pilgrims', 'ALPURA', 'BARCEL', 'MTTO', 'PATIOS', 'ACCIDENTE', 'INSTITUTO', 'PENDIENTE'];
+const SEGMENTOS = ['IMPEX', 'CARROL', 'BAFAR', 'NatureSweet', 'Pilgrims', 'ALPURA', 'BARCEL', 'PATIOS', 'ACCIDENTE', 'PENDIENTE'];
 
 interface Unit {
   economico: string;
@@ -30,7 +30,11 @@ interface Unit {
 
 const EMP_ORDER: Record<string, number> = { SHI: 1, TROB: 2, WE: 3 };
 
-export default function DespachoInteligenteContent() {
+interface DespachoProps {
+  onBack?: () => void;
+}
+
+export default function DespachoInteligenteContent({ onBack }: DespachoProps) {
   const [fleet, setFleet] = useState<Unit[]>([]);
   const [activeSegmento, setActiveSegmento] = useState('IMPEX');
   const [loading, setLoading] = useState(true);
@@ -38,7 +42,40 @@ export default function DespachoInteligenteContent() {
   const [search, setSearch] = useState('');
   const [statusF, setStatusF] = useState('ALL');
   const [workerStatus, setWorkerStatus] = useState<'idle' | 'running' | 'error'>('idle');
-  const [nextRun, setNextRun] = useState<Date | null>(null);
+  const [nextCronTime, setNextCronTime] = useState<string>('');
+  const [countdown, setCountdown] = useState<string>('');
+
+  // Calcular próximo cron (minutos múltiplos de 5)
+  const calcularProximoCron = useCallback(() => {
+    const now = new Date();
+    const mins = now.getMinutes();
+    const nextMins = Math.ceil((mins + 1) / 5) * 5;
+    const next = new Date(now);
+    
+    if (nextMins >= 60) {
+      next.setHours(next.getHours() + 1);
+      next.setMinutes(nextMins - 60, 0, 0);
+    } else {
+      next.setMinutes(nextMins, 0, 0);
+    }
+    
+    // Formato hora
+    const horaStr = next.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', hour12: true });
+    setNextCronTime(horaStr);
+    
+    // Countdown
+    const diffMs = next.getTime() - now.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffSecs = Math.floor((diffMs % 60000) / 1000);
+    
+    if (diffMins <= 0 && diffSecs <= 30) {
+      setCountdown('ejecutando...');
+    } else if (diffMins === 0) {
+      setCountdown(`${diffSecs}s`);
+    } else {
+      setCountdown(`${diffMins}m ${diffSecs}s`);
+    }
+  }, []);
 
   // Cargar datos desde Supabase
   const loadData = useCallback(async () => {
@@ -68,25 +105,31 @@ export default function DespachoInteligenteContent() {
     }
   }, []);
 
-  // Trigger manual del worker
+  // Trigger manual del worker (llama a la Edge Function)
   const triggerWorker = async () => {
     setWorkerStatus('running');
     try {
-      const res = await fetch('/api/cron/gps-worker', { method: 'POST' });
+      const res = await fetch('https://fbxbsslhewchyibdoyzk.supabase.co/functions/v1/gps-worker', { 
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      });
       if (res.ok) {
         await loadData();
         setWorkerStatus('idle');
       } else {
         setWorkerStatus('error');
+        setTimeout(() => setWorkerStatus('idle'), 3000);
       }
     } catch {
       setWorkerStatus('error');
+      setTimeout(() => setWorkerStatus('idle'), 3000);
     }
   };
 
   // Cargar datos al inicio
   useEffect(() => {
     loadData();
+    calcularProximoCron();
     
     // Suscripción a cambios en tiempo real
     const channel = supabase
@@ -97,31 +140,22 @@ export default function DespachoInteligenteContent() {
       )
       .subscribe();
 
-    // Calcular próxima ejecución del cron (cada 5 minutos)
-    const now = new Date();
-    const mins = now.getMinutes();
-    const nextMins = Math.ceil(mins / 5) * 5;
-    const next = new Date(now);
-    next.setMinutes(nextMins, 0, 0);
-    if (next <= now) next.setMinutes(next.getMinutes() + 5);
-    setNextRun(next);
+    // Actualizar countdown cada segundo
+    const countdownInterval = setInterval(() => {
+      calcularProximoCron();
+    }, 1000);
 
-    // Actualizar countdown cada minuto
-    const interval = setInterval(() => {
-      const now = new Date();
-      const mins = now.getMinutes();
-      const nextMins = Math.ceil(mins / 5) * 5;
-      const next = new Date(now);
-      next.setMinutes(nextMins === mins ? mins + 5 : nextMins, 0, 0);
-      setNextRun(next);
-      loadData(); // Refrescar datos también
-    }, 60000);
+    // Refrescar datos cada 30 segundos
+    const dataInterval = setInterval(() => {
+      loadData();
+    }, 30000);
 
     return () => {
       channel.unsubscribe();
-      clearInterval(interval);
+      clearInterval(countdownInterval);
+      clearInterval(dataInterval);
     };
-  }, [loadData]);
+  }, [loadData, calcularProximoCron]);
 
   // Filtrar y ordenar
   const segmentoUnits = fleet.filter(u => u.segmento === activeSegmento);
@@ -190,12 +224,6 @@ export default function DespachoInteligenteContent() {
     }
   };
 
-  const getMinutesToNext = () => {
-    if (!nextRun) return '';
-    const diff = Math.max(0, Math.floor((nextRun.getTime() - Date.now()) / 60000));
-    return diff === 0 ? 'ahora' : `${diff}m`;
-  };
-
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center" style={{ background: 'linear-gradient(180deg, #1a365d 0%, #0f172a 100%)' }}>
@@ -229,6 +257,23 @@ export default function DespachoInteligenteContent() {
   return (
     <div className="min-h-screen p-4" style={{ background: 'linear-gradient(180deg, #1a365d 0%, #0f172a 100%)' }}>
       
+      {/* Header con botón back */}
+      {onBack && (
+        <div className="flex items-center gap-4 mb-4">
+          <button 
+            onClick={onBack}
+            className="p-2 rounded-xl bg-slate-700/50 text-white hover:bg-slate-600/50 transition-colors"
+          >
+            <ArrowLeft className="w-5 h-5" />
+          </button>
+          <h1 className="text-2xl font-bold text-white">Despacho Inteligente</h1>
+          <div className="ml-auto text-right">
+            <div className="text-3xl font-bold text-blue-400" style={{ fontFamily: "'Exo 2', sans-serif" }}>FX27</div>
+            <div className="text-xs text-slate-400">FUTURE EXPERIENCE 27</div>
+          </div>
+        </div>
+      )}
+
       {/* TABS */}
       <div className="flex flex-wrap gap-2 mb-4">
         {SEGMENTOS.map(seg => {
@@ -288,20 +333,26 @@ export default function DespachoInteligenteContent() {
 
         <div className="flex-1" />
 
-        {/* Status del worker */}
-        <div className="flex items-center gap-2 text-xs text-slate-400">
-          <div className="flex items-center gap-1">
+        {/* Status del worker - CORREGIDO */}
+        <div className="flex items-center gap-3 px-3 py-2 rounded-xl bg-slate-700/40 border border-slate-600/30">
+          <div className="flex items-center gap-2">
             <div className={`w-2 h-2 rounded-full ${workerStatus === 'running' ? 'bg-orange-400 animate-pulse' : 'bg-green-400'}`} />
-            <span>Worker</span>
+            <span className="text-xs text-slate-400">Cron</span>
           </div>
-          <span>•</span>
-          <span>Próximo: {getMinutesToNext()}</span>
+          <div className="text-xs text-slate-300">
+            <span className="text-blue-400 font-semibold">{countdown}</span>
+            <span className="text-slate-500 mx-1">→</span>
+            <span>{nextCronTime}</span>
+          </div>
         </div>
 
         {lastUpdate && (
-          <span className="text-slate-400 text-sm">
-            {lastUpdate.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', hour12: true })}
-          </span>
+          <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-slate-700/40 border border-slate-600/30">
+            <Clock className="w-4 h-4 text-slate-400" />
+            <span className="text-slate-300 text-sm">
+              {lastUpdate.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', hour12: true })}
+            </span>
+          </div>
         )}
 
         <button onClick={exportCSV} className="h-10 w-10 flex items-center justify-center rounded-xl bg-gradient-to-b from-slate-600 to-slate-800 text-slate-300 hover:opacity-80">
@@ -314,11 +365,15 @@ export default function DespachoInteligenteContent() {
           className={`h-10 px-4 rounded-xl font-semibold text-sm flex items-center gap-2 ${
             workerStatus === 'running' 
               ? 'bg-gradient-to-b from-orange-500 to-orange-700' 
+              : workerStatus === 'error'
+              ? 'bg-gradient-to-b from-red-500 to-red-700'
               : 'bg-gradient-to-b from-blue-500 to-blue-700'
           } text-white`}
         >
           {workerStatus === 'running' ? (
             <><RefreshCw className="w-4 h-4 animate-spin" />Actualizando</>
+          ) : workerStatus === 'error' ? (
+            <><AlertTriangle className="w-4 h-4" />Error</>
           ) : (
             <><Zap className="w-4 h-4" />Actualizar</>
           )}
