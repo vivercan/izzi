@@ -5,8 +5,8 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Truck, Power, RefreshCw, Search, Download, WifiOff, Navigation, ExternalLink, Clock, AlertTriangle, Zap } from 'lucide-react';
 
 // Supabase client
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://fbxbsslhewchyibdoyzk.supabase.co';
-const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+const SUPABASE_URL = 'https://fbxbsslhewchyibdoyzk.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZieGJzc2xoZXdjaHlpYmRveXprIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI1MzczODEsImV4cCI6MjA3ODExMzM4MX0.Z8JPlg7hhKbA624QGHp2bKKTNtCD3WInQMO5twjl6a0';
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 // Google Maps API Key
