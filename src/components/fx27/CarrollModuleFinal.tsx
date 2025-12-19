@@ -85,7 +85,7 @@ const formatearTiempo = (minutos: number): { texto: string; color: string; urgen
   return { texto, color, urgente: minutos < 60 };
 };
 
-// Interfaz para ubicaciones GPS de WideTech
+// Interfaz para ubicaciones GPS de Supabase
 interface GPSLocation {
   placa: string;
   latitude: number;
@@ -93,6 +93,7 @@ interface GPSLocation {
   speed: number;
   timestamp: string;
   address: string;
+  status?: string;
 }
 
 export const DedicadosModule = ({ onBack }: CarrollModuleProps) => {
@@ -117,132 +118,15 @@ export const DedicadosModule = ({ onBack }: CarrollModuleProps) => {
   const alertasTemp = [...DATOS_ENTREGAS, ...DATOS_REGRESOS].filter(u => Math.abs(u.temp) > 20 || (u.temp > 5 && u.temp < 15)).length;
   const evidenciasPend = DATOS_ENTREGAS.filter(u => u.estado === 'Destino').length;
 
-  // 🧪 FUNCIÓN DE PRUEBA WIDETECH
-  const probarWideTech = async () => {
-    console.clear();
-    console.log('🧪 [TEST] ========================================');
-    console.log('🧪 [TEST] Iniciando prueba WideTech con económico 777...');
-    console.log('🧪 [TEST] ========================================');
-    
-    try {
-      const response = await fetch(`https://${projectId}.supabase.co/functions/v1/make-server-d84b50bb/widetech/test/777`, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${publicAnonKey}`
-        }
-      });
-      
-      const data = await response.json();
-      
-      console.log('🧪 [TEST] ========================================');
-      console.log('🧪 [TEST] ✅ RESPUESTA RECIBIDA');
-      console.log('🧪 [TEST] RESPONSE STATUS:', response.status);
-      console.log('🧪 [TEST] RESPONSE OK:', response.ok);
-      console.log('🧪 [TEST] DATA COMPLETO:', data);
-      console.log('🧪 [TEST] ¿Tiene WSDL?:', !!data.wsdl);
-      console.log('🧪 [TEST] ========================================');
-      
-      if (data.wsdl) {
-        console.log('📋 [WSDL] MÉTODOS DISPONIBLES EN WIDETECH:');
-        console.log(data.wsdl.availableMethods);
-        console.log('📋 [WSDL] WSDL COMPLETO (primeros 5000 chars):');
-        console.log(data.wsdl.fullWSDL);
-        console.log('🧪 [TEST] ========================================');
-        
-        // Mostrar los métodos en un alert
-        const metodosStr = Array.isArray(data.wsdl.availableMethods) 
-          ? data.wsdl.availableMethods.join(', ') 
-          : String(data.wsdl.availableMethods);
-        alert(`📋 MÉTODOS WSDL ENCONTRADOS:\n\n${metodosStr}\n\nRevisa la consola para más detalles.`);
-      }
-      
-      if (data.metodo1_HistoryGetLastLocation) {
-        console.log('📋 [TEST] MÉTODO 1 (HistoryGetLastLocation):');
-        console.log('Status:', data.metodo1_HistoryGetLastLocation.status);
-        console.log('Funcionó?:', data.metodo1_HistoryGetLastLocation.funciono);
-        console.log('XML completo:', data.metodo1_HistoryGetLastLocation.fullXML);
-        console.log('🧪 [TEST] ========================================');
-      }
-      
-      if (data.metodo2_GetLastLocationByPlate) {
-        console.log('📋 [TEST] MÉTODO 2 (GetLastLocationByPlate):');
-        console.log('Status:', data.metodo2_GetLastLocationByPlate.status);
-        console.log('Funcionó?:', data.metodo2_GetLastLocationByPlate.funciono);
-        console.log('XML completo:', data.metodo2_GetLastLocationByPlate.fullXML);
-        console.log('🧪 [TEST] ========================================');
-      }
-      
-      if (data.metodo3_HistoryGetByPlate) {
-        console.log('📋 [TEST] MÉTODO 3 (HistoryGetByPlate):');
-        console.log('Status:', data.metodo3_HistoryGetByPlate.status);
-        console.log('Funcionó?:', data.metodo3_HistoryGetByPlate.funciono);
-        console.log('XML completo:', data.metodo3_HistoryGetByPlate.fullXML);
-        console.log('🧪 [TEST] ========================================');
-      }
-      
-      console.log('🧪 [TEST] COMPLETO - Revisa los logs arriba ⬆️');
-      console.log('🧪 [TEST] ========================================');
-      
-      alert('✅ Prueba completada!\n\nRevisa la CONSOLA del navegador.\nBusca [WSDL] MÉTODOS DISPONIBLES para ver los nombres correctos.');
-    } catch (error) {
-      console.error('❌ [TEST] Error:', error);
-      alert('❌ Error en prueba. Revisa la consola (F12)');
-    }
-  };
-
-  // Nueva función para probar con económico 777 (SUPERTEST - prueba múltiples formatos)
-  const probarEconomico777 = async () => {
-    console.log('🧪 [SUPERTEST 777] ========================================');
-    console.log('🧪 [SUPERTEST 777] PROBANDO 8 FORMATOS DIFERENTES');
-    console.log('🧪 [SUPERTEST 777] ========================================');
-    
-    try {
-      const response = await fetch(
-        `https://${projectId}.supabase.co/functions/v1/make-server-d84b50bb/widetech/supertest/777`,
-        {
-          headers: {
-            'Authorization': `Bearer ${publicAnonKey}`
-          }
-        }
-      );
-      
-      const data = await response.json();
-      
-      // Guardar en window para fácil acceso desde consola
-      (window as any).lastSuperTestResult = data;
-      
-      console.log('🧪 [SUPERTEST 777] RESPUESTA COMPLETA:', data);
-      console.log('🧪 [SUPERTEST 777] Formatos probados:', data.totalProbados);
-      console.log('🧪 [SUPERTEST 777] Formatos exitosos:', data.exitosos);
-      console.log('🧪 [SUPERTEST 777] Resultados:', data.resultados);
-      console.log('🧪 [SUPERTEST 777] Recomendación:', data.recomendacion);
-      console.log('🧪 [SUPERTEST 777] ========================================');
-      
-      if (data.exitosos > 0) {
-        const exitoso = data.resultados.find((r: any) => r.encontrado);
-        alert(`✅ ¡FORMATO ENCONTRADO!\n\n📋 Formato correcto: "${exitoso.variacion}"\n📊 Registros: ${exitoso.recordCount}\n\n📍 Última ubicación:\nLat: ${exitoso.lastRecord.Latitude}\nLon: ${exitoso.lastRecord.Longitude}\n\n🎯 ${data.recomendacion}\n\nRevisa la consola para ver todos los resultados.`);
-      } else {
-        alert(`⚠️ NINGÚN FORMATO FUNCIONÓ\n\nSe probaron ${data.totalProbados} formatos:\n${data.resultados.map((r: any) => `- ${r.variacion}`).join('\n')}\n\n❌ Ninguno devolvió datos GPS.\n\n📞 Necesitas contactar a WideTech para verificar:\n1. Cómo están registrados los números económicos\n2. Si los GPS están activos y transmitiendo\n\nRevisa la consola (F12) para más detalles.`);
-      }
-    } catch (error) {
-      console.error('❌ [SUPERTEST 777] Error:', error);
-      alert('❌ Error en SUPERTEST. Revisa la consola (F12)');
-    }
-  };
-
-
-  // Función para obtener ubicaciones GPS desde Supabase (gps_tracking)
+  // ✅ FUNCIÓN GPS - LEE DE SUPABASE gps_tracking (segmento=CARROLL)
   const obtenerUbicacionesGPS = async () => {
     setLoadingGPS(true);
-    console.log('🛰️ [GPS] Obteniendo ubicaciones desde Supabase gps_tracking...');
+    console.log('🛰️ [GPS] Obteniendo ubicaciones desde Supabase gps_tracking (CARROLL)...');
     
     try {
-      const todasLasUnidades = [...DATOS_ENTREGAS, ...DATOS_REGRESOS];
-      const placas = todasLasUnidades.map(u => u.tracto);
-      
-      // Leer directamente de la tabla gps_tracking de Supabase
+      // Leer TODAS las unidades de CARROLL desde gps_tracking
       const response = await fetch(
-        `https://${projectId}.supabase.co/rest/v1/gps_tracking?economico=in.(${placas.join(',')})&select=economico,latitude,longitude,speed,address,timestamp_gps,status`,
+        `https://${projectId}.supabase.co/rest/v1/gps_tracking?segmento=eq.CARROLL&select=economico,latitude,longitude,speed,address,timestamp_gps,status`,
         {
           headers: {
             'apikey': publicAnonKey,
@@ -252,27 +136,30 @@ export const DedicadosModule = ({ onBack }: CarrollModuleProps) => {
       );
       
       const data = await response.json();
-      console.log(`🛰️ [GPS] Supabase response:`, data);
+      console.log(`🛰️ [GPS] Supabase response (${Array.isArray(data) ? data.length : 0} unidades CARROLL):`, data);
       
       if (Array.isArray(data)) {
         const locations: Record<string, GPSLocation> = {};
         
         data.forEach((row: any) => {
-          if (row.latitude && row.longitude) {
+          if (row.economico) {
             locations[row.economico] = {
               placa: row.economico,
-              latitude: row.latitude,
-              longitude: row.longitude,
+              latitude: row.latitude || 0,
+              longitude: row.longitude || 0,
               speed: row.speed || 0,
               timestamp: row.timestamp_gps || '',
-              address: row.address || 'Ubicación disponible'
+              address: row.address || '',
+              status: row.status || ''
             };
-            console.log(`✅ [GPS] ${row.economico}: ${row.address || 'Sin dirección'}`);
+            if (row.address) {
+              console.log(`✅ [GPS] ${row.economico}: ${row.address}`);
+            }
           }
         });
         
         setGpsLocations(locations);
-        console.log(`✅ [GPS] Total ubicaciones: ${Object.keys(locations).length}/${placas.length}`);
+        console.log(`✅ [GPS] Total ubicaciones CARROLL cargadas: ${Object.keys(locations).length}`);
       }
     } catch (error) {
       console.error('❌ [GPS] Error:', error);
@@ -280,7 +167,6 @@ export const DedicadosModule = ({ onBack }: CarrollModuleProps) => {
       setLoadingGPS(false);
     }
   };
-
 
   // Auto-actualizar ubicaciones GPS cada 30 segundos
   useEffect(() => {
@@ -292,7 +178,6 @@ export const DedicadosModule = ({ onBack }: CarrollModuleProps) => {
     
     return () => clearInterval(interval);
   }, []);
-
   return (
     <div className="w-full min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-slate-50">
       {/* MODAL MAPA - TODOS LOS 30 CAMIONES */}
