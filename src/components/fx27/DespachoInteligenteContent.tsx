@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { createClient } from '@supabase/supabase-js';
-import { Truck, Power, RefreshCw, Search, Download, WifiOff, Navigation, ExternalLink, Clock, AlertTriangle, Zap, ArrowLeft } from 'lucide-react';
+import { Truck, Power, RefreshCw, Search, Download, WifiOff, Navigation, ExternalLink, AlertTriangle, ArrowLeft, CheckCircle } from 'lucide-react';
 
 const SUPABASE_URL = 'https://fbxbsslhewchyibdoyzk.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZieGJzc2xoZXdjaHlpYmRveXprIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI1MzczODEsImV4cCI6MjA3ODExMzM4MX0.Z8JPlg7hhKbA624QGHp2bKKTNtCD3WInQMO5twjl6a0';
@@ -39,7 +39,7 @@ export default function DespachoInteligenteContent({ onBack }: DespachoProps) {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [statusF, setStatusF] = useState('ALL');
-  const [workerStatus, setWorkerStatus] = useState<'idle' | 'running' | 'error'>('idle');
+  const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
   const [countdown, setCountdown] = useState<string>('');
   const [nextCronTime, setNextCronTime] = useState<string>('');
 
@@ -64,7 +64,7 @@ export default function DespachoInteligenteContent({ onBack }: DespachoProps) {
     const diffSecs = Math.floor((diffMs % 60000) / 1000);
     
     if (diffMins <= 0 && diffSecs <= 30) {
-      setCountdown('ejecutando...');
+      setCountdown('sincronizando...');
     } else if (diffMins === 0) {
       setCountdown(`${diffSecs}s`);
     } else {
@@ -76,7 +76,10 @@ export default function DespachoInteligenteContent({ onBack }: DespachoProps) {
     try {
       const { data, error } = await supabase.from('gps_tracking').select('*').order('segmento');
       if (error) throw error;
-      if (data && data.length > 0) setFleet(data);
+      if (data && data.length > 0) {
+        setFleet(data);
+        setLastUpdate(new Date());
+      }
     } catch (err) {
       console.error('Error loading data:', err);
     } finally {
@@ -84,38 +87,29 @@ export default function DespachoInteligenteContent({ onBack }: DespachoProps) {
     }
   }, []);
 
-  const triggerWorker = async () => {
-    setWorkerStatus('running');
-    try {
-      const res = await fetch('https://fbxbsslhewchyibdoyzk.supabase.co/functions/v1/gps-worker', { 
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' }
-      });
-      if (res.ok) {
-        await loadData();
-        setWorkerStatus('idle');
-      } else {
-        setWorkerStatus('error');
-        setTimeout(() => setWorkerStatus('idle'), 3000);
-      }
-    } catch {
-      setWorkerStatus('error');
-      setTimeout(() => setWorkerStatus('idle'), 3000);
-    }
-  };
-
   useEffect(() => {
+    // Cargar datos inmediatamente
     loadData();
     calcularProximoCron();
     
-    const channel = supabase.channel('gps_changes')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'gps_tracking' }, () => loadData())
+    // Suscribirse a cambios en tiempo real
+    const channel = supabase.channel('gps_realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'gps_tracking' }, () => {
+        loadData();
+      })
       .subscribe();
 
+    // Actualizar countdown cada segundo
     const countdownInterval = setInterval(calcularProximoCron, 1000);
-    const dataInterval = setInterval(loadData, 30000);
+    
+    // Recargar datos cada 15 segundos para asegurar sincronización
+    const dataInterval = setInterval(loadData, 15000);
 
-    return () => { channel.unsubscribe(); clearInterval(countdownInterval); clearInterval(dataInterval); };
+    return () => { 
+      channel.unsubscribe(); 
+      clearInterval(countdownInterval); 
+      clearInterval(dataInterval); 
+    };
   }, [loadData, calcularProximoCron]);
 
   const segmentoUnits = fleet.filter(u => u.segmento === activeSegmento);
@@ -155,7 +149,10 @@ export default function DespachoInteligenteContent({ onBack }: DespachoProps) {
 
   const formatTime = (t: string | null) => {
     if (!t) return '-';
-    try { return new Date(t.includes('/') ? t.replace(/\//g, '-') : t).toLocaleString('es-MX', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit', hour12: true }); } catch { return t; }
+    try { 
+      const date = new Date(t.includes('/') ? t.replace(/\//g, '-') : t);
+      return date.toLocaleString('es-MX', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit', hour12: true }); 
+    } catch { return t; }
   };
 
   const getStoppedColor = (minutes: number | null) => {
@@ -191,11 +188,8 @@ export default function DespachoInteligenteContent({ onBack }: DespachoProps) {
       <div className="min-h-screen flex items-center justify-center" style={{ background: 'linear-gradient(180deg, #1a365d 0%, #0f172a 100%)' }}>
         <div className="text-center">
           <AlertTriangle className="w-12 h-12 text-yellow-400 mx-auto mb-4" />
-          <p className="text-slate-300 text-lg mb-4">No hay datos</p>
-          <button onClick={triggerWorker} disabled={workerStatus === 'running'} className="px-6 py-3 rounded-xl bg-gradient-to-b from-blue-500 to-blue-700 text-white font-semibold flex items-center gap-2 mx-auto">
-            <Zap className={`w-5 h-5 ${workerStatus === 'running' ? 'animate-pulse' : ''}`} />
-            {workerStatus === 'running' ? 'Cargando...' : 'Iniciar carga'}
-          </button>
+          <p className="text-slate-300 text-lg mb-4">No hay datos GPS disponibles</p>
+          <p className="text-slate-500 text-sm">El sistema se actualiza automáticamente cada 5 minutos</p>
         </div>
       </div>
     );
@@ -203,7 +197,7 @@ export default function DespachoInteligenteContent({ onBack }: DespachoProps) {
 
   return (
     <div className="min-h-screen" style={{ background: 'linear-gradient(180deg, #1a365d 0%, #0f172a 100%)' }}>
-      {/* HEADER - Solo tabs y controles, SIN logo duplicado */}
+      {/* HEADER */}
       <div className="px-4 py-2 flex items-center gap-3 border-b border-slate-700/50">
         {onBack && (
           <button onClick={onBack} className="p-2 rounded-lg bg-slate-700/50 text-white hover:bg-slate-600/50">
@@ -256,24 +250,26 @@ export default function DespachoInteligenteContent({ onBack }: DespachoProps) {
 
         <div className="flex-1" />
 
-        <div className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-slate-700/40 border border-slate-600/30">
-          <div className={`w-1.5 h-1.5 rounded-full ${countdown === 'ejecutando...' ? 'bg-orange-400 animate-pulse' : 'bg-green-400'}`} />
-          <span className="text-[10px] text-slate-400">Cron</span>
+        {/* Status indicator - Auto actualización */}
+        <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-700/40 border border-slate-600/30">
+          <div className={`w-2 h-2 rounded-full ${countdown === 'sincronizando...' ? 'bg-orange-400 animate-pulse' : 'bg-green-400 animate-pulse'}`} />
+          <span className="text-[10px] text-slate-400">Auto-sync</span>
           <span className="text-xs text-blue-400 font-semibold">{countdown}</span>
           <span className="text-[10px] text-slate-500">→ {nextCronTime}</span>
         </div>
 
-        <button onClick={exportCSV} className="h-8 w-8 flex items-center justify-center rounded-lg bg-slate-700/60 text-slate-300 hover:bg-slate-600/60">
-          <Download className="w-3.5 h-3.5" />
-        </button>
+        {/* Última actualización local */}
+        {lastUpdate && (
+          <div className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-green-500/10 border border-green-500/20">
+            <CheckCircle className="w-3 h-3 text-green-400" />
+            <span className="text-[10px] text-green-400">
+              {lastUpdate.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+            </span>
+          </div>
+        )}
 
-        <button onClick={triggerWorker} disabled={workerStatus === 'running'}
-          className={`h-8 px-3 rounded-lg font-semibold text-xs flex items-center gap-1.5 ${
-            workerStatus === 'running' ? 'bg-orange-600' : workerStatus === 'error' ? 'bg-red-600' : 'bg-blue-600'
-          } text-white`}>
-          {workerStatus === 'running' ? <><RefreshCw className="w-3.5 h-3.5 animate-spin" />Actualizando</> : 
-           workerStatus === 'error' ? <><AlertTriangle className="w-3.5 h-3.5" />Error</> : 
-           <><Zap className="w-3.5 h-3.5" />Actualizar</>}
+        <button onClick={exportCSV} className="h-8 w-8 flex items-center justify-center rounded-lg bg-slate-700/60 text-slate-300 hover:bg-slate-600/60" title="Exportar CSV">
+          <Download className="w-3.5 h-3.5" />
         </button>
       </div>
 
