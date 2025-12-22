@@ -218,7 +218,7 @@ REGLAS DE NEGOCIO IMPORTANTES:
 - NEXTEER (antes STEERINGMEX): rutas QRO↔Tamaulipas son IMPO/EXPO
 - PILGRIM's NAC se elimina (solo IMPO/EXPO)
 
-Usuario: ${userEmail} (${esAdmin ? 'Admin - ve todo' : `Vendedor ${vendedorFiltro} - solo sus clientes`})
+Usuario: ${userEmail} (${esAdmin ? 'Admin - ve todo' : `Vendedor  - solo sus clientes`})
 
 Responde de forma concisa y útil. Si te preguntan por análisis, usa los datos disponibles.
 `;
@@ -454,3 +454,4 @@ Responde de forma concisa y útil. Si te preguntan por análisis, usa los datos 
 }
 
 export default VentasModule;
+

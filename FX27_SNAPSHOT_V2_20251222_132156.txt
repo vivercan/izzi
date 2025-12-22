@@ -1,0 +1,169 @@
+=== FX27 SNAPSHOT V2 ===
+DATE: 12/22/2025 13:21:56
+USER: jj27\timon
+PATH: C:\Users\timon\Downloads\izzi_sync
+
+--- NODE/NPM ---
+node: v24.11.0
+npm : 11.6.1
+
+--- GIT ---
+origin	https://github.com/vivercan/izzi.git (fetch)
+origin	https://github.com/vivercan/izzi.git (push)
+branch: main
+## main...origin/main
+ ? archivosjjdescomprimidos
+?? FX27_SNAPSHOT_20251222_125710.txt
+?? FX27_SNAPSHOT_20251222_125925.txt
+?? FX27_SNAPSHOT_V2_20251222_132156.txt
+
+LAST 10 COMMITS:
+3adbb1d4 fix: Auto-refresh sin boton actualizar
+ac8d0d7e fix: Sin logo duplicado, dise├▒o compacto final
+3fe59a9b fix: Dise├▒o compacto sin logo duplicado
+4c3137e3 fix: Geocoding para ubicaciones + columnas MTTO Origen Destino
+c4884487 fix: Encabezados tabla Despacho Inteligente
+02643c1e fix: Carroll muestra ubicacion legible y estados correctos
+4b84e2d6 fix: Solo un indicador de cron limpio
+d42f5188 fix: Carroll lee de gps_tracking + hora cron correcta
+fa4c5c3c fix: Hora correcta del cron + countdown en tiempo real
+87a3cb8e fix(carroll): Version simplificada sin crash
+
+--- FX27 TSX (timestamps) ---
+
+Name                               LastWriteTime
+----                               -------------
+AdminCarrollModule.tsx             13/12/2025 12:41:14 p. m.
+AdministracionCarroll.tsx          13/12/2025 12:41:14 p. m.
+AgregarLeadModule_LIGHT.tsx        13/12/2025 12:41:14 p. m.
+AgregarLeadModule.tsx              14/12/2025 01:01:12 a. m.
+AIAssistant.tsx                    27/11/2025 11:42:43 a. m.
+AutocompleteInput.tsx              27/11/2025 11:42:43 a. m.
+Button.tsx                         27/11/2025 11:42:43 a. m.
+CarrollConfigModule.tsx            27/11/2025 11:42:43 a. m.
+CarrollModule.tsx                  13/12/2025 12:41:14 p. m.
+CarrollModuleFinal.tsx             19/12/2025 01:26:33 a. m.
+CarrollModuleFinalV2.tsx           27/11/2025 11:42:43 a. m.
+CarrollModuleFinalV2Compact.tsx    13/12/2025 12:41:14 p. m.
+CatalogoFormatosVenta.tsx          13/12/2025 12:41:14 p. m.
+ConfiguracionModule.tsx            27/11/2025 11:42:43 a. m.
+ControlEquipoModule.tsx            27/11/2025 11:42:43 a. m.
+CotizacionesModule.tsx             27/11/2025 11:42:43 a. m.
+DashboardCard.tsx                  27/11/2025 11:42:43 a. m.
+DashboardScreen.tsx                27/11/2025 11:42:43 a. m.
+DashboardWidgets.tsx               27/11/2025 11:42:43 a. m.
+DedicadosHub.tsx                   13/12/2025 12:41:14 p. m.
+DedicadosModule.tsx                13/12/2025 12:41:14 p. m.
+DedicadosModuleWideTech.tsx        19/12/2025 12:02:14 p. m.
+DespachoInteligenteContent.tsx     21/12/2025 11:29:18 a. m.
+DespachoInteligenteModule.tsx      18/12/2025 02:00:48 p. m.
+EjemploUbicacionesInteligentes.tsx 27/11/2025 11:42:43 a. m.
+EjemploUbicacionGPS.tsx            27/11/2025 11:42:43 a. m.
+FormatosVentaHub.tsx               13/12/2025 12:41:14 p. m.
+Input.tsx                          27/11/2025 11:42:43 a. m.
+KPIsModule.tsx                     27/11/2025 11:42:43 a. m.
+LoginScreen.tsx                    13/12/2025 03:17:07 p. m.
+MapaClim aticoCarroll.tsx          27/11/2025 11:42:43 a. m.
+MapaClimaticoCarroll.tsx           27/11/2025 11:42:43 a. m.
+MapaFlota.tsx                      27/11/2025 11:42:43 a. m.
+MapaFlotaGoogleMaps.tsx            27/11/2025 11:42:43 a. m.
+ModuleTemplate.tsx                 13/12/2025 03:17:05 p. m.
+NewsTicker.tsx                     27/11/2025 11:42:43 a. m.
+NuevoFormatoVenta.tsx              13/12/2025 12:41:14 p. m.
+PanelOportunidadesModule.tsx       17/12/2025 12:21:17 p. m.
+ServicioClientesModule.tsx         27/11/2025 11:42:43 a. m.
+UbicacionDetallada.tsx             27/11/2025 11:42:43 a. m.
+UbicacionGPS.tsx                   27/11/2025 11:42:43 a. m.
+UbicacionInteligenteCompacta.tsx   27/11/2025 11:42:43 a. m.
+UsuariosModule.tsx                 13/12/2025 12:41:14 p. m.
+UtileriasModule.tsx                27/11/2025 11:42:43 a. m.
+VariablesCotizacionModule.tsx      27/11/2025 11:42:43 a. m.
+VentasModule.tsx                   17/12/2025 06:16:00 p. m.
+VerificadorGoogleMapsAPI.tsx       27/11/2025 11:42:43 a. m.
+VistaClientesCarroll.tsx           13/12/2025 12:41:14 p. m.
+
+
+
+--- ENV FILES (solo nombres, NO valores) ---
+
+
+--- App.tsx (bloque render módulos: 40 líneas alrededor de VentasModule) ---
+    }
+    if (role === 'custom') return permisosCustom.includes(module);
+    return false;
+  };
+
+  return (
+    <div className="w-full min-h-screen">
+      {!isLoggedIn ? (
+        <LoginScreen onLogin={handleLogin} loginError={loginError} />
+      ) : currentModule ? (
+        <>
+          {currentModule === 'agregar-lead' && <AgregarLeadModule onBack={handleBack} />}
+          {currentModule === 'panel-oportunidades' && (
+            <PanelOportunidadesModule 
+              onBack={handleBack} 
+              userVendedorLeads={userVendedorLeads}  // Nombre completo para filtrar leads
+            />
+          )}
+          {currentModule === 'operaciones' && <ModuleTemplate title="Operaciones" onBack={handleBack} headerImage={MODULE_IMAGES.OPERACIONES} />}
+          {currentModule === 'despacho-inteligente' && <DespachoInteligenteModule onBack={handleBack} />}
+          {currentModule === 'control-equipo' && <ControlEquipoModule onBack={handleBack} />}
+          {currentModule === 'kpis' && <KPIsModule onBack={handleBack} />}
+          {currentModule === 'configuracion' && <ConfiguracionModule onBack={handleBack} />}
+          {currentModule === 'cotizaciones' && <CotizacionesModule onBack={handleBack} />}
+          {currentModule === 'ventas' && <VentasModule onBack={handleBack} />}
+          {currentModule === 'utilerias' && <UtileriasModule onBack={handleBack} />}
+          {currentModule === 'servicio-clientes' && <ServicioClientesModule onBack={handleBack} />}
+          {currentModule === 'dedicados' && (
+            <DedicadosHub onBack={handleBack} onNavigate={(submodule) => setCurrentModule(submodule)} />
+          )}
+          {currentModule === 'admin-carroll' && <CarrollModuleFinalV2Compact onBack={() => setCurrentModule('dedicados')} />}
+          {currentModule === 'monitor-carroll' && <DedicadosModuleWideTech onBack={() => setCurrentModule('dedicados')} />}
+          {currentModule === 'vista-clientes-carroll' && <VistaClientesCarroll onBack={() => setCurrentModule('dedicados')} />}
+          {currentModule === 'mapa-climatico-carroll' && <MapaClimaticoCarroll onBack={() => setCurrentModule('dedicados')} />}
+        </>
+      ) : (
+        <DashboardScreen 
+          onLogout={handleLogout}
+          onNavigate={handleNavigate}
+          userRole={userRole}
+          userRolDisplay={userRolDisplay}
+          userName={currentUserName}
+        />
+      )}
+    </div>
+  );
+}
+
+--- VentasModule.tsx (firma props + permisos + filtro vendedor: líneas clave) ---
+8: // 📋 PERMISOS DE USUARIOS - ACTUALIZADOS 18/DIC/2025
+10: const PERMISOS: { [email: string]: { vendedor?: string; verTodo: boolean } } = {
+12:   'juan.viveros@trob.com.mx': { verTodo: true },
+13:   'jennifer.sanchez@trob.com.mx': { verTodo: true },
+15:   'customer.service3@trob.com.mx': { verTodo: true },  // Lizeth Rodríguez
+16:   'customer.service1@trob.com.mx': { verTodo: true },  // Elizabeth Rodríguez
+18:   'isis.estrada@wexpress.com.mx': { vendedor: 'ISIS', verTodo: false },
+19:   'paloma.oliva@speedyhaul.com.mx': { vendedor: 'PALOMA', verTodo: false },
+76: interface VentasModuleProps { onBack: () => void; userEmail?: string; }
+82: export function VentasModule({ onBack, userEmail = '' }: VentasModuleProps) {
+98:   // Obtener permisos del usuario
+100:     const permiso = PERMISOS[userEmail.toLowerCase()];
+101:     if (!permiso) return { verTodo: true }; // Default: admin
+103:   }, [userEmail]);
+105:   const vendedorFiltro = permisoUsuario.vendedor || '';
+106:   const esAdmin = permisoUsuario.verTodo;
+112:       let query = supabase.from('ventas_maestro').select('*').eq('year', year);
+115:       if (!esAdmin && vendedorFiltro) {
+116:         query = query.eq('vendedor', vendedorFiltro);
+120:       if (filtros.segmento) query = query.eq('segmento', filtros.segmento);
+121:       if (filtros.tipo) query = query.eq('tipo', filtros.tipo);
+122:       if (filtros.empresa) query = query.eq('empresa', filtros.empresa);
+174:   }, [year, filtros, esAdmin, vendedorFiltro]);
+221: Usuario: ${userEmail} (${esAdmin ? 'Admin - ve todo' : `Vendedor ${vendedorFiltro} - solo sus clientes`})
+310:       {!esAdmin && vendedorFiltro && (
+314:             <span className="text-sm">Mostrando solo clientes asignados a <strong>{vendedorFiltro}</strong></span>
+425:     <ModuleTemplate title="Ventas" subtitle={esAdmin ? "Dashboard General" : `Clientes ${vendedorFiltro}`} onBack={onBack} backgroundImage={MODULE_IMAGES.ventas}>
+
+DONE. Archivo generado:
+C:\Users\timon\Downloads\izzi_sync\FX27_SNAPSHOT_V2_20251222_132156.txt

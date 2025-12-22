@@ -318,7 +318,7 @@ export default function App() {
           {currentModule === 'kpis' && <KPIsModule onBack={handleBack} />}
           {currentModule === 'configuracion' && <ConfiguracionModule onBack={handleBack} />}
           {currentModule === 'cotizaciones' && <CotizacionesModule onBack={handleBack} />}
-          {currentModule === 'ventas' && <VentasModule onBack={handleBack} />}
+          {currentModule === 'ventas' && <VentasModule onBack={handleBack} userEmail={currentUserEmail} />}
           {currentModule === 'utilerias' && <UtileriasModule onBack={handleBack} />}
           {currentModule === 'servicio-clientes' && <ServicioClientesModule onBack={handleBack} />}
           {currentModule === 'dedicados' && (
@@ -341,3 +341,4 @@ export default function App() {
     </div>
   );
 }
+
