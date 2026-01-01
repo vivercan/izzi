@@ -293,7 +293,7 @@ export default function SalesHorizonModule({ onBack }: SalesHorizonProps) {
           {/* Segmentos Grid */}
           <div>
             <h3 className="text-lg font-semibold text-white mb-4">Segmentos de Negocio</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {segmentos.map(seg => {
                 const tractoresSeg = tractores.filter(t => t.segmento_id === seg.id);
                 const facturan = tractoresSeg.filter(t => t.factura).length;
