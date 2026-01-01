@@ -1,4 +1,4 @@
-import { Truck, UserPlus, BarChart3, Route, Wrench, Activity, Settings, FileText, TrendingUp, Package, LogOut, Sparkles, Headphones, Lock, Target } from 'lucide-react';
+import { Truck, UserPlus, BarChart3, Route, Wrench, Activity, Settings, FileText, TrendingUp, Package, LogOut, Sparkles, Headphones, Lock, ArrowRightCircle } from 'lucide-react';
 import React, { useState, useEffect } from 'react';
 import { AIAssistant } from './AIAssistant';
 
