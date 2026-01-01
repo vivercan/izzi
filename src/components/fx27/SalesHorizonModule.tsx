@@ -302,7 +302,7 @@ export default function SalesHorizonModule({ onBack }: SalesHorizonProps) {
                   <button
                     key={seg.id}
                     onClick={() => { setSelectedSegmento(seg.id); setVista('segmento'); }}
-                    className={`bg-gradient-to-br ${SEGMENT_COLORS[seg.id] || 'from-slate-500 to-slate-600'} rounded-xl p-3 text-left hover:scale-[1.02] transition-all shadow-lg`}
+                    className={`bg-gradient-to-br ${'from-blue-600 to-blue-700'} rounded-xl p-3 text-left hover:scale-[1.02] transition-all shadow-lg`}
                   >
                     <div className="flex items-center justify-between mb-3">
                       <span className="text-white/90 text-base font-medium">{seg.nombre}</span>
