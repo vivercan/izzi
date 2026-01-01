@@ -1,4 +1,4 @@
-import { Truck, UserPlus, BarChart3, Route, Wrench, Activity, Settings, FileText, TrendingUp, Package, LogOut, Sparkles, Headphones, Lock, ArrowRightCircle } from 'lucide-react';
+import { Truck, UserPlus, BarChart3, Route, Wrench, Activity, Settings, FileText, TrendingUp, Package, LogOut, Sparkles, Headphones, Lock, Target } from 'lucide-react';
 import React, { useState, useEffect } from 'react';
 import { AIAssistant } from './AIAssistant';
 
@@ -88,6 +88,7 @@ export const DashboardScreen = ({ onLogout, onNavigate, userRole = 'admin', user
     { id: 'utilerias', name: 'Utilerías', icon: Package },
     { id: 'servicio-clientes', name: 'Servicio A Clientes', icon: Headphones },
     { id: 'dedicados', name: 'Dedicados', icon: Route },
+    { id: 'sales-horizon', name: 'Sales Horizon', icon: Target },
     ];
 
   const topModules = modules.slice(0, 7);
