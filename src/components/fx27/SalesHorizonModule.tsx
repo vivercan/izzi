@@ -231,7 +231,7 @@ export default function SalesHorizonModule({ onBack }: SalesHorizonProps) {
                 <span className="text-emerald-400 text-sm font-medium">Meta Anual 2026</span>
                 <Target className="w-5 h-5 text-emerald-400" />
               </div>
-              <div className="text-3xl font-bold text-white">{formatMoney(presupuesto.meta_anual, true)}</div>
+              <div className="text-3xl font-bold text-white">{formatMoney(presupuesto.meta_anual)}</div>
               <div className="text-xs text-slate-400 mt-1">Operatividad: {formatPercent(presupuesto.operatividad)}</div>
             </div>
 
@@ -240,7 +240,7 @@ export default function SalesHorizonModule({ onBack }: SalesHorizonProps) {
                 <span className="text-blue-400 text-sm font-medium">Meta Hoy</span>
                 <Calendar className="w-5 h-5 text-blue-400" />
               </div>
-              <div className="text-3xl font-bold text-white">{formatMoney(metaHoy, true)}</div>
+              <div className="text-3xl font-bold text-white">{formatMoney(metaHoy)}</div>
               <div className="text-xs text-slate-400 mt-1">{new Date().toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'short' })}</div>
             </div>
 
@@ -249,7 +249,7 @@ export default function SalesHorizonModule({ onBack }: SalesHorizonProps) {
                 <span className="text-purple-400 text-sm font-medium">Meta {mesActual?.nombre_mes}</span>
                 <BarChart3 className="w-5 h-5 text-purple-400" />
               </div>
-              <div className="text-3xl font-bold text-white">{formatMoney(mesActual?.meta_total || 0, true)}</div>
+              <div className="text-3xl font-bold text-white">{formatMoney(mesActual?.meta_total || 0)}</div>
               <div className="text-xs text-slate-400 mt-1">{formatPercent(mesActual?.porcentaje || 0)} del año</div>
             </div>
 
@@ -293,7 +293,7 @@ export default function SalesHorizonModule({ onBack }: SalesHorizonProps) {
           {/* Segmentos Grid */}
           <div>
             <h3 className="text-lg font-semibold text-white mb-4">Segmentos de Negocio</h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
               {segmentos.map(seg => {
                 const tractoresSeg = tractores.filter(t => t.segmento_id === seg.id);
                 const facturan = tractoresSeg.filter(t => t.factura).length;
@@ -302,7 +302,7 @@ export default function SalesHorizonModule({ onBack }: SalesHorizonProps) {
                   <button
                     key={seg.id}
                     onClick={() => { setSelectedSegmento(seg.id); setVista('segmento'); }}
-                    className={`bg-gradient-to-br ${SEGMENT_COLORS[seg.id] || 'from-slate-500 to-slate-600'} rounded-2xl p-5 text-left hover:scale-[1.02] transition-all shadow-lg`}
+                    className={`bg-gradient-to-br ${SEGMENT_COLORS[seg.id] || 'from-slate-500 to-slate-600'} rounded-xl p-3 text-left hover:scale-[1.02] transition-all shadow-lg`}
                   >
                     <div className="flex items-center justify-between mb-3">
                       <span className="text-white/90 text-sm font-medium">{seg.nombre}</span>
