@@ -1,0 +1,654 @@
+==========================================================================================
+FX27 - DESPACHO INTELIGENTE (EXPORT PARA REVISION)
+DATE: 12/22/2025 17:32:17
+PATH: C:\Users\timon\Downloads\izzi_sync
+==========================================================================================
+
+==========================================================================================
+FILE: src\components\fx27\DespachoInteligenteModule.tsx
+==========================================================================================
+LASTWRITE: 12/18/2025 14:00:48
+LENGTH   : 536
+
+import { ModuleTemplate } from './ModuleTemplate';
+import { MODULE_IMAGES } from '../../assets/module-images';
+import DespachoInteligenteContent from './DespachoInteligenteContent';
+
+interface DespachoInteligenteModuleProps {
+  onBack: () => void;
+}
+
+export const DespachoInteligenteModule = ({ onBack }: DespachoInteligenteModuleProps) => {
+  return (
+    <ModuleTemplate title="Despacho Inteligente" onBack={onBack} headerImage={MODULE_IMAGES.DESPACHO_INTELIGENTE}>
+      <DespachoInteligenteContent />
+    </ModuleTemplate>
+  );
+};
+
+
+==========================================================================================
+FILE: src\components\fx27\DespachoInteligenteContent.tsx
+==========================================================================================
+LASTWRITE: 12/21/2025 11:29:18
+LENGTH   : 16091
+
+'use client';
+
+import React, { useState, useEffect, useCallback } from 'react';
+import { createClient } from '@supabase/supabase-js';
+import { Truck, Power, RefreshCw, Search, Download, WifiOff, Navigation, ExternalLink, AlertTriangle, ArrowLeft, CheckCircle } from 'lucide-react';
+
+const SUPABASE_URL = 'https://fbxbsslhewchyibdoyzk.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZieGJzc2xoZXdjaHlpYmRveXprIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI1MzczODEsImV4cCI6MjA3ODExMzM4MX0.Z8JPlg7hhKbA624QGHp2bKKTNtCD3WInQMO5twjl6a0';
+
+const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+const SEGMENTOS = ['IMPEX', 'CARROL', 'BAFAR', 'NatureSweet', 'Pilgrims', 'ALPURA', 'BARCEL', 'PATIOS', 'ACCIDENTE', 'PENDIENTE'];
+
+interface Unit {
+  economico: string;
+  empresa: string;
+  segmento: string;
+  latitude: number | null;
+  longitude: number | null;
+  speed: number | null;
+  address: string | null;
+  timestamp_gps: string | null;
+  timestamp_updated: string | null;
+  stopped_minutes: number | null;
+  stopped_time: string | null;
+  status: string;
+  anomaly: string | null;
+}
+
+const EMP_ORDER: Record<string, number> = { SHI: 1, TROB: 2, WE: 3 };
+
+interface DespachoProps {
+  onBack?: () => void;
+}
+
+export default function DespachoInteligenteContent({ onBack }: DespachoProps) {
+  const [fleet, setFleet] = useState<Unit[]>([]);
+  const [activeSegmento, setActiveSegmento] = useState('IMPEX');
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
+  const [statusF, setStatusF] = useState('ALL');
+  const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
+  const [countdown, setCountdown] = useState<string>('');
+  const [nextCronTime, setNextCronTime] = useState<string>('');
+
+  const calcularProximoCron = useCallback(() => {
+    const now = new Date();
+    const mins = now.getMinutes();
+    const nextMins = Math.ceil((mins + 1) / 5) * 5;
+    const next = new Date(now);
+    
+    if (nextMins >= 60) {
+      next.setHours(next.getHours() + 1);
+      next.setMinutes(nextMins - 60, 0, 0);
+    } else {
+      next.setMinutes(nextMins, 0, 0);
+    }
+    
+    const horaStr = next.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', hour12: true });
+    setNextCronTime(horaStr);
+    
+    const diffMs = next.getTime() - now.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffSecs = Math.floor((diffMs % 60000) / 1000);
+    
+    if (diffMins <= 0 && diffSecs <= 30) {
+      setCountdown('sincronizando...');
+    } else if (diffMins === 0) {
+      setCountdown(`${diffSecs}s`);
+    } else {
+      setCountdown(`${diffMins}m`);
+    }
+  }, []);
+
+  const loadData = useCallback(async () => {
+    try {
+      const { data, error } = await supabase.from('gps_tracking').select('*').order('segmento');
+      if (error) throw error;
+      if (data && data.length > 0) {
+        setFleet(data);
+        setLastUpdate(new Date());
+      }
+    } catch (err) {
+      console.error('Error loading data:', err);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    // Cargar datos inmediatamente
+    loadData();
+    calcularProximoCron();
+    
+    // Suscribirse a cambios en tiempo real
+    const channel = supabase.channel('gps_realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'gps_tracking' }, () => {
+        loadData();
+      })
+      .subscribe();
+
+    // Actualizar countdown cada segundo
+    const countdownInterval = setInterval(calcularProximoCron, 1000);
+    
+    // Recargar datos cada 15 segundos para asegurar sincronización
+    const dataInterval = setInterval(loadData, 15000);
+
+    return () => { 
+      channel.unsubscribe(); 
+      clearInterval(countdownInterval); 
+      clearInterval(dataInterval); 
+    };
+  }, [loadData, calcularProximoCron]);
+
+  const segmentoUnits = fleet.filter(u => u.segmento === activeSegmento);
+  
+  const filtered = segmentoUnits.filter(u => {
+    if (search && !u.economico.includes(search)) return false;
+    if (statusF === 'moving' && u.status !== 'moving') return false;
+    if (statusF === 'stopped' && u.status !== 'stopped') return false;
+    if (statusF === 'no_signal' && !['no_signal', 'gps_issue', 'pending'].includes(u.status)) return false;
+    return true;
+  }).sort((a, b) => (EMP_ORDER[a.empresa] || 9) - (EMP_ORDER[b.empresa] || 9) || parseInt(a.economico) - parseInt(b.economico));
+
+  const stats = {
+    total: segmentoUnits.length,
+    mov: segmentoUnits.filter(u => u.status === 'moving').length,
+    det: segmentoUnits.filter(u => u.status === 'stopped').length,
+    sin: segmentoUnits.filter(u => ['no_signal', 'gps_issue', 'pending'].includes(u.status)).length,
+    anomalies: segmentoUnits.filter(u => u.anomaly).length
+  };
+
+  const segmentoCounts = SEGMENTOS.reduce((acc, seg) => {
+    acc[seg] = fleet.filter(u => u.segmento === seg).length;
+    return acc;
+  }, {} as Record<string, number>);
+
+  const openMap = (u: Unit) => u.latitude && window.open(`https://www.google.com/maps?q=${u.latitude},${u.longitude}`, '_blank');
+
+  const exportCSV = () => {
+    const rows = [['Economico', 'Empresa', 'Segmento', 'Estatus', 'Detencion', 'Velocidad', 'Ubicación', 'Lat', 'Lon', 'Última Señal']];
+    filtered.forEach(u => rows.push([u.economico, u.empresa, u.segmento, u.status, u.stopped_time || '', String(u.speed || 0), u.address || '', String(u.latitude || ''), String(u.longitude || ''), u.timestamp_gps || '']));
+    const blob = new Blob(['\ufeff' + rows.map(r => r.map(c => `"${c}"`).join(',')).join('\n')], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `GPS_${activeSegmento}_${new Date().toISOString().slice(0, 10)}.csv`;
+    link.click();
+  };
+
+  const formatTime = (t: string | null) => {
+    if (!t) return '-';
+    try { 
+      const date = new Date(t.includes('/') ? t.replace(/\//g, '-') : t);
+      return date.toLocaleString('es-MX', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit', hour12: true }); 
+    } catch { return t; }
+  };
+
+  const getStoppedColor = (minutes: number | null) => {
+    if (!minutes || minutes < 1) return 'text-slate-500';
+    if (minutes >= 480) return 'text-red-400';
+    if (minutes >= 240) return 'text-orange-400';
+    if (minutes >= 60) return 'text-yellow-400';
+    return 'text-slate-400';
+  };
+
+  const getStatusColor = (status: string) => {
+    switch(status) {
+      case 'moving': return 'bg-green-500/20 text-green-400';
+      case 'stopped': return 'bg-yellow-500/20 text-yellow-400';
+      case 'gps_issue': return 'bg-purple-500/20 text-purple-400';
+      default: return 'bg-red-500/20 text-red-400';
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center" style={{ background: 'linear-gradient(180deg, #1a365d 0%, #0f172a 100%)' }}>
+        <div className="text-center">
+          <RefreshCw className="w-12 h-12 text-blue-400 animate-spin mx-auto mb-4" />
+          <p className="text-slate-300 text-lg">Cargando flota...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (fleet.length === 0) {
+    return (
+      <div className="min-h-screen flex items-center justify-center" style={{ background: 'linear-gradient(180deg, #1a365d 0%, #0f172a 100%)' }}>
+        <div className="text-center">
+          <AlertTriangle className="w-12 h-12 text-yellow-400 mx-auto mb-4" />
+          <p className="text-slate-300 text-lg mb-4">No hay datos GPS disponibles</p>
+          <p className="text-slate-500 text-sm">El sistema se actualiza automáticamente cada 5 minutos</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen" style={{ background: 'linear-gradient(180deg, #1a365d 0%, #0f172a 100%)' }}>
+      {/* HEADER */}
+      <div className="px-4 py-2 flex items-center gap-3 border-b border-slate-700/50">
+        {onBack && (
+          <button onClick={onBack} className="p-2 rounded-lg bg-slate-700/50 text-white hover:bg-slate-600/50">
+            <ArrowLeft className="w-5 h-5" />
+          </button>
+        )}
+        
+        {/* TABS */}
+        <div className="flex flex-wrap gap-1.5">
+          {SEGMENTOS.map(seg => {
+            const count = segmentoCounts[seg] || 0;
+            if (count === 0) return null;
+            const isActive = activeSegmento === seg;
+            return (
+              <button key={seg} onClick={() => setActiveSegmento(seg)}
+                className={`h-8 px-3 rounded-lg text-xs font-semibold transition-all ${isActive ? 'bg-gradient-to-b from-blue-500 to-blue-700 text-white' : 'bg-slate-600/80 text-white hover:bg-slate-500/80'}`}>
+                {seg} ({count})
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Toolbar */}
+      <div className="flex items-center gap-2 px-4 py-2">
+        <button onClick={() => setStatusF('ALL')} className={`h-8 px-3 rounded-lg font-semibold text-xs flex items-center gap-1.5 ${statusF === 'ALL' ? 'bg-gradient-to-b from-slate-500 to-slate-700 text-white' : 'bg-slate-700/80 text-slate-300'}`}>
+          <Truck className="w-3.5 h-3.5" />{stats.total}
+        </button>
+        <button onClick={() => setStatusF('moving')} className={`h-8 px-3 rounded-lg font-semibold text-xs flex items-center gap-1.5 ${statusF === 'moving' ? 'bg-gradient-to-b from-green-500 to-green-700 text-white' : 'bg-slate-700/80 text-slate-300'}`}>
+          <Navigation className="w-3.5 h-3.5" />{stats.mov}
+        </button>
+        <button onClick={() => setStatusF('stopped')} className={`h-8 px-3 rounded-lg font-semibold text-xs flex items-center gap-1.5 ${statusF === 'stopped' ? 'bg-gradient-to-b from-yellow-500 to-yellow-600 text-white' : 'bg-slate-700/80 text-slate-300'}`}>
+          <Power className="w-3.5 h-3.5" />{stats.det}
+        </button>
+        <button onClick={() => setStatusF('no_signal')} className={`h-8 px-3 rounded-lg font-semibold text-xs flex items-center gap-1.5 ${statusF === 'no_signal' ? 'bg-gradient-to-b from-red-500 to-red-700 text-white' : 'bg-slate-700/80 text-slate-300'}`}>
+          <WifiOff className="w-3.5 h-3.5" />{stats.sin}
+        </button>
+        
+        {stats.anomalies > 0 && (
+          <div className="flex items-center gap-1 px-2 py-1 rounded-lg bg-purple-500/20 text-purple-300 text-xs">
+            <AlertTriangle className="w-3 h-3" />{stats.anomalies}
+          </div>
+        )}
+
+        <div className="relative ml-2">
+          <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Eco..." 
+            className="h-8 w-20 pl-7 pr-2 rounded-lg bg-slate-700/60 border border-slate-600/50 text-white text-xs placeholder-slate-400 focus:outline-none" />
+        </div>
+
+        <div className="flex-1" />
+
+        {/* Status indicator - Auto actualización */}
+        <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-700/40 border border-slate-600/30">
+          <div className={`w-2 h-2 rounded-full ${countdown === 'sincronizando...' ? 'bg-orange-400 animate-pulse' : 'bg-green-400 animate-pulse'}`} />
+          <span className="text-[10px] text-slate-400">Auto-sync</span>
+          <span className="text-xs text-blue-400 font-semibold">{countdown}</span>
+          <span className="text-[10px] text-slate-500">→ {nextCronTime}</span>
+        </div>
+
+        {/* Última actualización local */}
+        {lastUpdate && (
+          <div className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-green-500/10 border border-green-500/20">
+            <CheckCircle className="w-3 h-3 text-green-400" />
+            <span className="text-[10px] text-green-400">
+              {lastUpdate.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+            </span>
+          </div>
+        )}
+
+        <button onClick={exportCSV} className="h-8 w-8 flex items-center justify-center rounded-lg bg-slate-700/60 text-slate-300 hover:bg-slate-600/60" title="Exportar CSV">
+          <Download className="w-3.5 h-3.5" />
+        </button>
+      </div>
+
+      {/* Table */}
+      <div className="px-4 pb-4">
+        <div className="rounded-xl overflow-hidden bg-slate-800/40">
+          <div className="max-h-[calc(100vh-120px)] overflow-y-auto">
+            <table className="w-full">
+              <thead className="sticky top-0 bg-slate-900/95 z-10">
+                <tr>
+                  <th className="px-3 py-2 text-left text-[11px] font-semibold text-slate-400 uppercase w-20">ECONÓMICO</th>
+                  <th className="px-3 py-2 text-left text-[11px] font-semibold text-slate-400 uppercase w-14">EMPRESA</th>
+                  <th className="px-3 py-2 text-left text-[11px] font-semibold text-slate-400 uppercase w-16">ESTATUS</th>
+                  <th className="px-3 py-2 text-left text-[11px] font-semibold text-slate-400 uppercase w-20">DETENCIÓN</th>
+                  <th className="px-3 py-2 text-left text-[11px] font-semibold text-slate-400 uppercase w-16">VELOCIDAD</th>
+                  <th className="px-3 py-2 text-left text-[11px] font-semibold text-slate-400 uppercase">UBICACIÓN</th>
+                  <th className="px-3 py-2 text-left text-[11px] font-semibold text-slate-400 uppercase w-28">SEÑAL</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.map(u => (
+                  <tr key={u.economico} className={`border-t border-slate-700/30 hover:bg-slate-700/20 ${u.anomaly ? 'bg-purple-900/10' : ''}`}>
+                    <td className="px-3 py-1.5 font-mono font-bold text-white text-sm">
+                      {u.economico}
+                      {u.anomaly && <AlertTriangle className="w-3 h-3 text-purple-400 inline ml-1" />}
+                    </td>
+                    <td className="px-3 py-1.5">
+                      <span className={`px-1.5 py-0.5 rounded text-[10px] font-semibold ${
+                        u.empresa === 'SHI' ? 'bg-purple-500/20 text-purple-300' : 
+                        u.empresa === 'TROB' ? 'bg-blue-500/20 text-blue-300' : 'bg-emerald-500/20 text-emerald-300'
+                      }`}>{u.empresa}</span>
+                    </td>
+                    <td className="px-3 py-1.5">
+                      <button onClick={() => openMap(u)} disabled={!u.latitude} 
+                        className={`flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold ${getStatusColor(u.status)} ${u.latitude ? 'cursor-pointer hover:opacity-80' : 'opacity-60'}`}>
+                        {u.status === 'moving' ? <Navigation className="w-3 h-3" /> : u.status === 'stopped' ? <Power className="w-3 h-3" /> : <WifiOff className="w-3 h-3" />}
+                        {u.status === 'moving' ? 'Mov' : u.status === 'stopped' ? 'Det' : 'Sin'}
+                        {u.latitude && <ExternalLink className="w-2 h-2" />}
+                      </button>
+                    </td>
+                    <td className="px-3 py-1.5">
+                      <span className={`text-xs font-semibold ${getStoppedColor(u.stopped_minutes)}`}>
+                        {u.stopped_time || ''}
+                      </span>
+                    </td>
+                    <td className="px-3 py-1.5">
+                      <span className={`text-xs font-semibold ${(u.speed || 0) > 0 ? 'text-green-400' : 'text-slate-500'}`}>
+                        {u.speed != null ? `${u.speed} km/h` : '-'}
+                      </span>
+                    </td>
+                    <td className="px-3 py-1.5">
+                      <span className="text-slate-300 text-xs truncate block max-w-[350px]">{u.address || '-'}</span>
+                    </td>
+                    <td className="px-3 py-1.5 text-slate-400 text-[10px]">{formatTime(u.timestamp_gps)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
+==========================================================================================
+FILE: src\components\fx27\ModuleTemplate.tsx
+==========================================================================================
+LASTWRITE: 12/13/2025 15:17:05
+LENGTH   : 9215
+
+import { ArrowLeft } from 'lucide-react';
+import React from 'react';
+
+interface ModuleTemplateProps {
+  title: string;
+  onBack: () => void;
+  children?: React.ReactNode;
+  headerImage?: string;
+}
+
+export const ModuleTemplate = ({ title, onBack, children, headerImage }: ModuleTemplateProps) => {
+  return (
+    <div className="relative w-full h-screen overflow-hidden">
+      {/* Background with gradient */}
+      <div className="absolute inset-0 bg-gradient-to-br from-[#0B1220] via-[#0F172A] to-[#1E66F5]/20"></div>
+
+      {/* Vignette ultra sutil */}
+      <div
+        className="absolute pointer-events-none"
+        style={{
+          top: '119px',
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'radial-gradient(ellipse at center, transparent 0%, transparent 40%, rgba(0,0,0,0.025) 75%, rgba(0,0,0,0.03) 100%)'
+        }}
+      />
+
+      {/* Spotlight de trabajo */}
+      <div
+        className="absolute pointer-events-none"
+        style={{
+          top: '380px',
+          left: '55%',
+          transform: 'translateX(-50%)',
+          width: '900px',
+          height: '700px',
+          background: 'radial-gradient(ellipse at center, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.04) 30%, transparent 70%)',
+          filter: 'blur(60px)'
+        }}
+      />
+
+      {/* Ruido fino premium 4% */}
+      <svg
+        className="absolute w-full pointer-events-none opacity-[0.04]"
+        style={{
+          top: '119px',
+          left: 0,
+          right: 0,
+          bottom: 0,
+          height: 'calc(100vh - 119px)'
+        }}
+      >
+        <filter id="noiseFilter">
+          <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="4" stitchTiles="stitch"/>
+          <feColorMatrix type="saturate" values="0"/>
+        </filter>
+        <rect width="100%" height="100%" filter="url(#noiseFilter)"/>
+      </svg>
+
+      {/* Sheen diagonal lento */}
+      <div
+        className="absolute pointer-events-none"
+        style={{
+          top: '119px',
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'linear-gradient(135deg, transparent 0%, rgba(255,255,255,0.008) 50%, transparent 100%)',
+          backgroundSize: '400% 400%',
+          animation: 'sheen 30s ease-in-out infinite'
+        }}
+      />
+
+      {/* Logo FX27 - COPIADO EXACTO DEL DASHBOARD */}
+      <div className="absolute z-50 flex flex-col items-end" style={{ top: '13px', right: '32px' }}>
+        <div
+          className="text-[72px] font-black leading-none tracking-tight"
+          style={{
+            fontFamily: 'Exo 2, sans-serif',
+            background: 'linear-gradient(135deg, #E8EEF4 0%, #B5C4D8 30%, #D8DFE8 55%, #9FB0C5 80%, #D0D9E4 100%)',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+            backgroundClip: 'text',
+            filter: 'drop-shadow(2px 0 4px rgba(160, 180, 210, 0.2)) drop-shadow(-1px 0 2px rgba(255, 255, 255, 0.1))',
+          }}
+        >
+          FX27
+        </div>
+        <div
+          className="text-[13px] tracking-[0.15em] mt-1 uppercase"
+          style={{
+            fontFamily: 'Exo 2, sans-serif',
+            color: 'rgba(240, 160, 80, 0.75)',
+            fontWeight: 500,
+            letterSpacing: '0.25em',
+            marginRight: '-3px',
+            fontSize: '11px',
+            filter: 'blur(0.5px) drop-shadow(0 0 8px rgba(240, 160, 80, 0.6)) drop-shadow(0 0 16px rgba(240, 160, 80, 0.4))',
+          }}
+        >
+          Future Experience 27
+        </div>
+      </div>
+
+      {/* Barra superior PREMIUM - Gradiente navy/petroleo + noise */}
+      <div
+        className="absolute top-0 left-0 right-0 z-10"
+        style={{
+          height: '119px',
+          overflow: 'hidden'
+        }}
+      >
+        {/* Base: Gradiente oscuro navy -> petroleo */}
+        <div
+          className="absolute inset-0"
+          style={{
+            background: 'linear-gradient(135deg, #0a1628 0%, #0d1f35 25%, #0f2847 50%, #0a1e38 75%, #081420 100%)'
+          }}
+        />
+
+        {/* Capa 2: Gradiente horizontal sutil para profundidad */}
+        <div
+          className="absolute inset-0"
+          style={{
+            background: 'linear-gradient(90deg, rgba(15,30,56,0.9) 0%, rgba(20,45,75,0.6) 30%, rgba(15,35,60,0.7) 70%, rgba(10,20,40,0.9) 100%)'
+          }}
+        />
+
+        {/* Capa 3: Acento azul muy sutil en centro */}
+        <div
+          className="absolute inset-0"
+          style={{
+            background: 'radial-gradient(ellipse 80% 100% at 50% 100%, rgba(59,130,246,0.08) 0%, transparent 60%)'
+          }}
+        />
+
+        {/* Capa 4: Overlay oscuro homogeneizador */}
+        <div
+          className="absolute inset-0"
+          style={{
+            background: 'linear-gradient(180deg, rgba(8,15,28,0.4) 0%, rgba(8,15,28,0.2) 50%, rgba(8,15,28,0.5) 100%)'
+          }}
+        />
+
+        {/* Capa 5: Noise/grain premium 4% */}
+        <svg className="absolute inset-0 w-full h-full opacity-[0.04] pointer-events-none">
+          <filter id="headerNoise">
+            <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="4" stitchTiles="stitch"/>
+            <feColorMatrix type="saturate" values="0"/>
+          </filter>
+          <rect width="100%" height="100%" filter="url(#headerNoise)"/>
+        </svg>
+
+        {/* Linea inferior sutil */}
+        <div
+          className="absolute bottom-0 left-0 right-0 h-px"
+          style={{
+            background: 'linear-gradient(90deg, transparent 0%, rgba(59,130,246,0.2) 20%, rgba(59,130,246,0.3) 50%, rgba(59,130,246,0.2) 80%, transparent 100%)'
+          }}
+        />
+      </div>
+
+      {/* Main Content */}
+      <div
+        className="relative z-10 w-full h-full flex flex-col"
+        style={{
+          animation: 'moduleEnter 150ms ease-out',
+          padding: '0 24px 0px 24px'
+        }}
+      >
+        {/* Header */}
+        <div className="flex items-center gap-6 relative z-20" style={{ paddingTop: '25px', marginBottom: '65px' }}>
+          {/* BOTÓN NARANJA #fe5000 con flecha SVG blanca */}
+          <button
+            onClick={onBack}
+            className="group flex items-center justify-center w-12 h-12 rounded-xl transition-all duration-200 hover:scale-105"
+            style={{
+              background: '#fe5000',
+              border: '1px solid rgba(255,255,255,0.2)',
+              boxShadow: '0 4px 12px rgba(254, 80, 0, 0.4), inset 0 1px 0 rgba(255,255,255,0.2)',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = '#cc4000';
+              e.currentTarget.style.boxShadow = '0 6px 16px rgba(254, 80, 0, 0.5), inset 0 1px 0 rgba(255,255,255,0.15)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = '#fe5000';
+              e.currentTarget.style.boxShadow = '0 4px 12px rgba(254, 80, 0, 0.4), inset 0 1px 0 rgba(255,255,255,0.2)';
+            }}
+          >
+            {/* Flecha SVG blanca */}
+            <svg 
+              width="24" 
+              height="24" 
+              viewBox="0 0 24 24" 
+              fill="none" 
+              stroke="white" 
+              strokeWidth="2.5" 
+              strokeLinecap="round" 
+              strokeLinejoin="round"
+            >
+              <path d="m12 19-7-7 7-7"/>
+              <path d="M19 12H5"/>
+            </svg>
+          </button>
+
+          <h1
+            style={{
+              fontFamily: "'Exo 2', sans-serif",
+              fontWeight: 600,
+              fontSize: '32px',
+              lineHeight: '1',
+              color: 'rgba(255, 255, 255, 1)'
+            }}
+          >
+            {title}
+          </h1>
+        </div>
+
+        {/* Workstage */}
+        <div style={{ height: 'calc(100vh - 167px)' }}>
+          <div
+            className="w-full h-full rounded-[18px] overflow-hidden"
+            style={{
+              background: 'rgba(15, 23, 42, 0.35)',
+              backdropFilter: 'blur(32px) saturate(180%)',
+              WebkitBackdropFilter: 'blur(32px) saturate(180%)',
+              border: '1px solid rgba(255, 255, 255, 0.12)',
+              boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3), inset 0 1px 1px rgba(255, 255, 255, 0.08)',
+              animation: 'panelEnter 150ms ease-out'
+            }}
+          >
+            {children || (
+              <div className="p-8 flex items-center justify-center min-h-[400px]">
+                <p style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '16px', color: 'rgba(255, 255, 255, 0.5)' }}>
+                  Contenido del modulo
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      <style>{`
+        @keyframes sheen {
+          0%, 100% { background-position: 0% 0%; }
+          50% { background-position: 100% 100%; }
+        }
+        @keyframes moduleEnter {
+          from { opacity: 0; transform: translateY(8px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes panelEnter {
+          from { opacity: 0; transform: translateY(12px) scale(0.99); }
+          to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+      `}</style>
+    </div>
+  );
+};
+
+
+==========================================================================================
+DESPACHO - BUSQUEDA RAPIDA (APIS / TABLAS / FETCH / SUPABASE)
+==========================================================================================
+
+---- src\components\fx27\DespachoInteligenteModule.tsx ----
+
+---- src\components\fx27\DespachoInteligenteContent.tsx ----
+L7: const SUPABASE_URL = 'https://fbxbsslhewchyibdoyzk.supabase.co';
+L77: const { data, error } = await supabase.from('gps_tracking').select('*').order('segmento');
+L96: const channel = supabase.channel('gps_realtime')
+L97: .on('postgres_changes', { event: '*', schema: 'public', table: 'gps_tracking' }, () => {
+L109: channel.unsubscribe();
