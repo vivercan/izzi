@@ -338,7 +338,7 @@ export default function SalesHorizonModule({ onBack }: SalesHorizonProps) {
                     <div className={`text-xs font-medium ${esActual ? 'text-slate-300' : 'text-slate-400'}`}>{m.nombre_mes}</div>
                     <div className="text-2xl font-bold text-white mt-1">{formatMoney(m.meta_total, true)}</div>
                     <div className="text-[10px] text-slate-500">{formatPercent(m.porcentaje)}</div>
-                  </div>
+                  </button>
                 );
               })}
             </div>
