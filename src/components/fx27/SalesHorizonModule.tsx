@@ -199,8 +199,8 @@ export default function SalesHorizonModule({ onBack }: SalesHorizonProps) {
                 <Target className="w-6 h-6 text-white" />
               </div>
               <div>
-                <h1 className="text-xl font-bold text-white">Sales Horizon</h1>
-                <p className="text-xs text-slate-400">
+                <h1 className="text-2xl font-bold text-white">Sales Horizon</h1>
+                <p className="text-sm text-slate-400">
                   {vista === 'dashboard' && 'Presupuesto y Metas 2026'}
                   {vista === 'segmento' && segmentoActivo?.nombre}
                   {vista === 'buscar' && 'Buscar Tracto'}
@@ -228,45 +228,45 @@ export default function SalesHorizonModule({ onBack }: SalesHorizonProps) {
           <div className="grid grid-cols-4 gap-3">
             <div className="bg-gradient-to-br from-emerald-500/20 to-teal-500/10 rounded-xl p-3 border border-emerald-500/20">
               <div className="flex items-center justify-between mb-3">
-                <span className="text-emerald-400 text-sm font-medium">Meta Anual 2026</span>
+                <span className="text-emerald-400 text-base font-medium">Meta Anual 2026</span>
                 <Target className="w-5 h-5 text-emerald-400" />
               </div>
-              <div className="text-xl font-bold text-white">{formatMoney(presupuesto.meta_anual)}</div>
-              <div className="text-xs text-slate-400 mt-1">Operatividad: {formatPercent(presupuesto.operatividad)}</div>
+              <div className="text-2xl font-bold text-white">{formatMoney(presupuesto.meta_anual)}</div>
+              <div className="text-sm text-slate-400 mt-1">Operatividad: {formatPercent(presupuesto.operatividad)}</div>
             </div>
 
             <div className="bg-gradient-to-br from-blue-500/20 to-indigo-500/10 rounded-xl p-3 border border-blue-500/20">
               <div className="flex items-center justify-between mb-3">
-                <span className="text-blue-400 text-sm font-medium">Meta Hoy</span>
+                <span className="text-blue-400 text-base font-medium">Meta Hoy</span>
                 <Calendar className="w-5 h-5 text-blue-400" />
               </div>
-              <div className="text-xl font-bold text-white">{formatMoney(metaHoy)}</div>
-              <div className="text-xs text-slate-400 mt-1">{new Date().toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'short' })}</div>
+              <div className="text-2xl font-bold text-white">{formatMoney(metaHoy)}</div>
+              <div className="text-sm text-slate-400 mt-1">{new Date().toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'short' })}</div>
             </div>
 
             <div className="bg-gradient-to-br from-purple-500/20 to-pink-500/10 rounded-xl p-3 border border-purple-500/20">
               <div className="flex items-center justify-between mb-3">
-                <span className="text-purple-400 text-sm font-medium">Meta {mesActual?.nombre_mes}</span>
+                <span className="text-purple-400 text-base font-medium">Meta {mesActual?.nombre_mes}</span>
                 <BarChart3 className="w-5 h-5 text-purple-400" />
               </div>
-              <div className="text-xl font-bold text-white">{formatMoney(mesActual?.meta_total || 0)}</div>
-              <div className="text-xs text-slate-400 mt-1">{formatPercent(mesActual?.porcentaje || 0)} del año</div>
+              <div className="text-2xl font-bold text-white">{formatMoney(mesActual?.meta_total || 0)}</div>
+              <div className="text-sm text-slate-400 mt-1">{formatPercent(mesActual?.porcentaje || 0)} del año</div>
             </div>
 
             <div className="bg-gradient-to-br from-orange-500/20 to-amber-500/10 rounded-xl p-3 border border-orange-500/20">
               <div className="flex items-center justify-between mb-3">
-                <span className="text-orange-400 text-sm font-medium">Flota Activa</span>
+                <span className="text-orange-400 text-base font-medium">Flota Activa</span>
                 <Truck className="w-5 h-5 text-orange-400" />
               </div>
-              <div className="text-xl font-bold text-white">{presupuesto.tractores_facturan}</div>
-              <div className="text-xs text-slate-400 mt-1">de {presupuesto.tractores_totales} tractores</div>
+              <div className="text-2xl font-bold text-white">{presupuesto.tractores_facturan}</div>
+              <div className="text-sm text-slate-400 mt-1">de {presupuesto.tractores_totales} tractores</div>
             </div>
           </div>
 
           {/* Alertas */}
           {(alertas.accidentes.length > 0 || alertas.mtto.length > 0 || alertas.pendientes.length > 0) && (
             <div className="bg-slate-800/50 rounded-xl border border-slate-700/50 p-4">
-              <h3 className="text-sm font-medium text-slate-300 mb-3 flex items-center gap-2">
+              <h3 className="text-base font-medium text-slate-300 mb-3 flex items-center gap-2">
                 <AlertTriangle className="w-4 h-4 text-amber-400" />
                 Alertas Activas
               </h3>
@@ -292,7 +292,7 @@ export default function SalesHorizonModule({ onBack }: SalesHorizonProps) {
 
           {/* Segmentos Grid */}
           <div>
-            <h3 className="text-lg font-semibold text-white mb-4">Segmentos de Negocio</h3>
+            <h3 className="text-xl font-semibold text-white mb-4">Segmentos de Negocio</h3>
             <div className="grid grid-cols-4 lg:grid-cols-7 gap-2">
               {segmentos.map(seg => {
                 const tractoresSeg = tractores.filter(t => t.segmento_id === seg.id);
@@ -305,17 +305,17 @@ export default function SalesHorizonModule({ onBack }: SalesHorizonProps) {
                     className={`bg-gradient-to-br ${SEGMENT_COLORS[seg.id] || 'from-slate-500 to-slate-600'} rounded-xl p-3 text-left hover:scale-[1.02] transition-all shadow-lg`}
                   >
                     <div className="flex items-center justify-between mb-3">
-                      <span className="text-white/90 text-sm font-medium">{seg.nombre}</span>
+                      <span className="text-white/90 text-base font-medium">{seg.nombre}</span>
                       <ChevronRight className="w-4 h-4 text-white/60" />
                     </div>
-                    <div className="text-xl font-bold text-white">{formatMoney(seg.presupuesto_anual, true)}</div>
-                    <div className="flex items-center justify-between text-white/70 text-xs">
+                    <div className="text-2xl font-bold text-white">{formatMoney(seg.presupuesto_anual, true)}</div>
+                    <div className="flex items-center justify-between text-white/70 text-sm">
                       <span>{facturan} tractores</span>
                       <span>{formatPercent(seg.porcentaje_presupuesto)}</span>
                     </div>
                     <div className="mt-3 pt-3 border-t border-white/20">
                       <div className="flex justify-between text-xs">
-                        <span className="text-white/60">$/Tracto/Mes</span>
+                        <span className="text-white/60 text-sm">$/Tracto/Mes</span>
                         <span className="text-white font-medium">{formatMoney(seg.meta_por_tracto_mes, true)}</span>
                       </div>
                     </div>
@@ -327,7 +327,7 @@ export default function SalesHorizonModule({ onBack }: SalesHorizonProps) {
 
           {/* Metas Mensuales */}
           <div className="bg-slate-800/50 rounded-xl border border-slate-700/50 p-5">
-            <h3 className="text-lg font-semibold text-white mb-4">Distribución Mensual 2026</h3>
+            <h3 className="text-xl font-semibold text-white mb-4">Distribución Mensual 2026</h3>
             <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
               {meses.map(m => {
                 const esActual = m.mes === new Date().getMonth() + 1;
@@ -337,7 +337,7 @@ export default function SalesHorizonModule({ onBack }: SalesHorizonProps) {
                     className={`p-3 rounded-xl ${esActual ? 'bg-orange-500/20 border border-orange-500/30' : 'bg-slate-700/50'}`}
                   >
                     <div className={`text-xs font-medium ${esActual ? 'text-orange-400' : 'text-slate-400'}`}>{m.nombre_mes}</div>
-                    <div className="text-xl font-bold text-white mt-1">{formatMoney(m.meta_total, true)}</div>
+                    <div className="text-2xl font-bold text-white mt-1">{formatMoney(m.meta_total, true)}</div>
                     <div className="text-[10px] text-slate-500">{formatPercent(m.porcentaje)}</div>
                   </div>
                 );
@@ -358,7 +358,7 @@ export default function SalesHorizonModule({ onBack }: SalesHorizonProps) {
                 <p className="text-white/70 text-sm mt-1">{segmentoActivo.tipo} • {formatPercent(segmentoActivo.porcentaje_presupuesto)} del presupuesto</p>
               </div>
               <div className="text-right">
-                <div className="text-xl font-bold text-white">{formatMoney(segmentoActivo.presupuesto_anual, true)}</div>
+                <div className="text-2xl font-bold text-white">{formatMoney(segmentoActivo.presupuesto_anual, true)}</div>
                 <div className="text-white/70 text-sm">Meta Anual</div>
               </div>
             </div>
@@ -442,7 +442,7 @@ export default function SalesHorizonModule({ onBack }: SalesHorizonProps) {
         <div className="p-6 space-y-6">
           <div className="max-w-xl mx-auto">
             <div className="bg-slate-800/50 rounded-xl border border-slate-700/50 p-6">
-              <h3 className="text-lg font-semibold text-white mb-4">Buscar Tracto</h3>
+              <h3 className="text-xl font-semibold text-white mb-4">Buscar Tracto</h3>
               <div className="flex gap-3">
                 <input
                   type="number"
@@ -466,9 +466,9 @@ export default function SalesHorizonModule({ onBack }: SalesHorizonProps) {
                 <div className="flex items-center justify-between mb-4">
                   <div>
                     <span className="text-slate-400 text-sm">Tracto</span>
-                    <h2 className="text-xl font-bold text-white">{searchResult.numero}</h2>
+                    <h2 className="text-2xl font-bold text-white">{searchResult.numero}</h2>
                   </div>
-                  <span className={`px-3 py-1 rounded-lg text-sm font-medium text-white ${EMP_COLORS[searchResult.empresa]}`}>
+                  <span className={`px-3 py-1 rounded-lg text-base font-medium text-white ${EMP_COLORS[searchResult.empresa]}`}>
                     {searchResult.empresa}
                   </span>
                 </div>
@@ -494,7 +494,7 @@ export default function SalesHorizonModule({ onBack }: SalesHorizonProps) {
 
                 {searchResult.factura && (
                   <div className="border-t border-slate-700 pt-4 mt-4">
-                    <h4 className="text-sm font-medium text-slate-300 mb-3">Metas del Tracto</h4>
+                    <h4 className="text-base font-medium text-slate-300 mb-3">Metas del Tracto</h4>
                     {(() => {
                       const seg = segmentos.find(s => s.id === searchResult.segmento_id);
                       if (!seg) return null;
@@ -502,19 +502,19 @@ export default function SalesHorizonModule({ onBack }: SalesHorizonProps) {
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                           <div className="bg-slate-700/50 rounded-lg p-3">
                             <div className="text-slate-400 text-xs">Meta/Día</div>
-                            <div className="text-xl font-bold text-white">{formatMoney(seg.meta_por_tracto_dia)}</div>
+                            <div className="text-2xl font-bold text-white">{formatMoney(seg.meta_por_tracto_dia)}</div>
                           </div>
                           <div className="bg-slate-700/50 rounded-lg p-3">
                             <div className="text-slate-400 text-xs">Meta/Semana</div>
-                            <div className="text-xl font-bold text-white">{formatMoney(seg.meta_por_tracto_dia * 7)}</div>
+                            <div className="text-2xl font-bold text-white">{formatMoney(seg.meta_por_tracto_dia * 7)}</div>
                           </div>
                           <div className="bg-slate-700/50 rounded-lg p-3">
                             <div className="text-slate-400 text-xs">Meta/Mes</div>
-                            <div className="text-xl font-bold text-white">{formatMoney(seg.meta_por_tracto_mes)}</div>
+                            <div className="text-2xl font-bold text-white">{formatMoney(seg.meta_por_tracto_mes)}</div>
                           </div>
                           <div className="bg-slate-700/50 rounded-lg p-3">
                             <div className="text-slate-400 text-xs">Meta/Año</div>
-                            <div className="text-xl font-bold text-white">{formatMoney(seg.meta_por_tracto_año)}</div>
+                            <div className="text-2xl font-bold text-white">{formatMoney(seg.meta_por_tracto_año)}</div>
                           </div>
                         </div>
                       );
