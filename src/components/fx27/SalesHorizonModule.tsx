@@ -225,7 +225,7 @@ export default function SalesHorizonModule({ onBack }: SalesHorizonProps) {
       {vista === 'dashboard' && presupuesto && (
         <div className="p-6 space-y-6">
           {/* KPIs Principales */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div className="bg-gradient-to-br from-emerald-500/20 to-teal-500/10 rounded-2xl p-5 border border-emerald-500/20">
               <div className="flex items-center justify-between mb-3">
                 <span className="text-emerald-400 text-sm font-medium">Meta Anual 2026</span>
@@ -293,7 +293,7 @@ export default function SalesHorizonModule({ onBack }: SalesHorizonProps) {
           {/* Segmentos Grid */}
           <div>
             <h3 className="text-lg font-semibold text-white mb-4">Segmentos de Negocio</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {segmentos.map(seg => {
                 const tractoresSeg = tractores.filter(t => t.segmento_id === seg.id);
                 const facturan = tractoresSeg.filter(t => t.factura).length;
@@ -328,7 +328,7 @@ export default function SalesHorizonModule({ onBack }: SalesHorizonProps) {
           {/* Metas Mensuales */}
           <div className="bg-slate-800/50 rounded-xl border border-slate-700/50 p-5">
             <h3 className="text-lg font-semibold text-white mb-4">Distribución Mensual 2026</h3>
-            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
+            <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
               {meses.map(m => {
                 const esActual = m.mes === new Date().getMonth() + 1;
                 return (
