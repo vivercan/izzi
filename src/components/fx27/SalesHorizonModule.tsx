@@ -308,7 +308,7 @@ export default function SalesHorizonModule({ onBack }: SalesHorizonProps) {
                       <span className="text-white/90 text-sm font-medium">{seg.nombre}</span>
                       <ChevronRight className="w-4 h-4 text-white/60" />
                     </div>
-                    <div className="text-lg font-bold text-white">{formatMoney(seg.presupuesto_anual, true)}</div>
+                    <div className="text-xl font-bold text-white">{formatMoney(seg.presupuesto_anual, true)}</div>
                     <div className="flex items-center justify-between text-white/70 text-xs">
                       <span>{facturan} tractores</span>
                       <span>{formatPercent(seg.porcentaje_presupuesto)}</span>
@@ -337,7 +337,7 @@ export default function SalesHorizonModule({ onBack }: SalesHorizonProps) {
                     className={`p-3 rounded-xl ${esActual ? 'bg-orange-500/20 border border-orange-500/30' : 'bg-slate-700/50'}`}
                   >
                     <div className={`text-xs font-medium ${esActual ? 'text-orange-400' : 'text-slate-400'}`}>{m.nombre_mes}</div>
-                    <div className="text-lg font-bold text-white mt-1">{formatMoney(m.meta_total, true)}</div>
+                    <div className="text-xl font-bold text-white mt-1">{formatMoney(m.meta_total, true)}</div>
                     <div className="text-[10px] text-slate-500">{formatPercent(m.porcentaje)}</div>
                   </div>
                 );
@@ -502,19 +502,19 @@ export default function SalesHorizonModule({ onBack }: SalesHorizonProps) {
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                           <div className="bg-slate-700/50 rounded-lg p-3">
                             <div className="text-slate-400 text-xs">Meta/Día</div>
-                            <div className="text-lg font-bold text-white">{formatMoney(seg.meta_por_tracto_dia)}</div>
+                            <div className="text-xl font-bold text-white">{formatMoney(seg.meta_por_tracto_dia)}</div>
                           </div>
                           <div className="bg-slate-700/50 rounded-lg p-3">
                             <div className="text-slate-400 text-xs">Meta/Semana</div>
-                            <div className="text-lg font-bold text-white">{formatMoney(seg.meta_por_tracto_dia * 7)}</div>
+                            <div className="text-xl font-bold text-white">{formatMoney(seg.meta_por_tracto_dia * 7)}</div>
                           </div>
                           <div className="bg-slate-700/50 rounded-lg p-3">
                             <div className="text-slate-400 text-xs">Meta/Mes</div>
-                            <div className="text-lg font-bold text-white">{formatMoney(seg.meta_por_tracto_mes)}</div>
+                            <div className="text-xl font-bold text-white">{formatMoney(seg.meta_por_tracto_mes)}</div>
                           </div>
                           <div className="bg-slate-700/50 rounded-lg p-3">
                             <div className="text-slate-400 text-xs">Meta/Año</div>
-                            <div className="text-lg font-bold text-white">{formatMoney(seg.meta_por_tracto_año)}</div>
+                            <div className="text-xl font-bold text-white">{formatMoney(seg.meta_por_tracto_año)}</div>
                           </div>
                         </div>
                       );
