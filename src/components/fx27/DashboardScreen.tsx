@@ -88,7 +88,7 @@ export const DashboardScreen = ({ onLogout, onNavigate, userRole = 'admin', user
     { id: 'utilerias', name: 'Utilerías', icon: Package },
     { id: 'servicio-clientes', name: 'Servicio A Clientes', icon: Headphones },
     { id: 'dedicados', name: 'Dedicados', icon: Route },
-    { id: 'sales-horizon', name: 'Sales Horizon', icon: TrendingUp },
+    { id: 'sales-horizon', name: 'Sales Horizon', icon: CandlestickChart },
     { id: 'sales-horizon', name: 'Sales Horizon', icon: CandlestickChart },
   ];
 
