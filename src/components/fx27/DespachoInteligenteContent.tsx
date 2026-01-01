@@ -20,7 +20,7 @@ const SEGMENTOS_CONFIG = [
   { key: 'DEDICADO_NS', label: 'NatureSweet', match: ['DEDICADO NS', 'NS/MULA'] },
   { key: 'DEDICADO_PILGRIMS', label: 'Pilgrims', match: ['DEDICADO PILGRIMS'] },
   { key: 'PATIOS', label: 'PATIOS', match: ['PATIO', 'PATIERO', 'MULA QRO', 'MULA AGS'] },
-  { key: 'OTROS', label: 'OTROS', match: ['INSTITUTO', 'PENDIENTE', 'ZAPATA'] },
+  { key: 'OTROS', label: 'UNIDADES DE SERVICIO', match: ['INSTITUTO', 'PENDIENTE', 'ZAPATA'] },
 ];
 
 interface Unit {
