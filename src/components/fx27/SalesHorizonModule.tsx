@@ -392,7 +392,7 @@ export default function SalesHorizonModule({ onBack }: SalesHorizonProps) {
             </div>
             <div className="overflow-auto max-h-[400px]">
               <table className="w-full text-sm">
-                <thead className="bg-slate-700/50 sticky top-0">
+                <thead className="bg-slate-800 sticky top-0 z-20 shadow-md">
                   <tr>
                     <th className="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase">Tracto</th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase">Empresa</th>
