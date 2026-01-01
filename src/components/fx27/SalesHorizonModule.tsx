@@ -55,7 +55,7 @@ interface Mes {
   meta_total: number;
 }
 
-type Vista = 'dashboard' | 'segmento' | 'buscar' | 'movimientos';
+type Vista = 'dashboard' | 'segmento' | 'buscar' | 'movimientos' | 'mes';
 
 interface SalesHorizonProps {
   onBack: () => void;
@@ -102,6 +102,7 @@ export default function SalesHorizonModule({ onBack }: SalesHorizonProps) {
   const [selectedSegmento, setSelectedSegmento] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResult, setSearchResult] = useState<Tracto | null>(null);
+  const [selectedMes, setSelectedMes] = useState<number | null>(null);
 
   // Cargar datos
   const loadData = useCallback(async () => {
@@ -332,9 +333,7 @@ export default function SalesHorizonModule({ onBack }: SalesHorizonProps) {
               {meses.map(m => {
                 const esActual = m.mes === new Date().getMonth() + 1;
                 return (
-                  <div 
-                    key={m.mes}
-                    className={`p-3 rounded-xl ${esActual ? 'bg-orange-500/20 border border-orange-500/30' : 'bg-slate-700/50'}`}
+                  <button onClick={() => { setSelectedMes(m.mes); setVista('mes'); }} key={m.mes} className={`p-3 rounded-xl cursor-pointer hover:scale-105 transition-all ${esActual ? 'bg-orange-500/20 border border-orange-500/30' : 'bg-slate-700/50'}`}
                   >
                     <div className={`text-xs font-medium ${esActual ? 'text-slate-300' : 'text-slate-400'}`}>{m.nombre_mes}</div>
                     <div className="text-2xl font-bold text-white mt-1">{formatMoney(m.meta_total, true)}</div>
