@@ -305,9 +305,9 @@ export default function DespachoInteligenteContent({ onBack }: DespachoProps) {
 
         {/* Tabla */}
         <div className="bg-slate-800/50 rounded-xl border border-slate-700/50 overflow-hidden">
-          <div className="overflow-x-auto max-h-[calc(100vh-320px)]">
+          <div className="overflow-y-auto max-h-[calc(100vh-340px)]" style={{ scrollSnapType: "y mandatory" }}>
             <table className="w-full text-sm">
-              <thead className="bg-slate-700/50 sticky top-0">
+              <thead className="bg-slate-800 sticky top-0 z-20 shadow-md">
                 <tr>
                   <th className="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase">Económico</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase">Empresa</th>
@@ -336,7 +336,7 @@ export default function DespachoInteligenteContent({ onBack }: DespachoProps) {
                   </tr>
                 ) : (
                   filteredFleet.map(u => (
-                    <tr key={u.economico} className="hover:bg-slate-700/30 transition-colors">
+                    <tr key={u.economico} className="hover:bg-slate-700/30 transition-colors h-14" style={{ scrollSnapAlign: "start" }}>
                       <td className="px-4 py-3">
                         <span className="font-mono font-bold text-white">{u.economico}</span>
                       </td>
