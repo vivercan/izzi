@@ -14,7 +14,6 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-// Tipos
 interface Presupuesto {
   año: number;
   presupuesto_base: number;
@@ -55,13 +54,12 @@ interface Mes {
   meta_total: number;
 }
 
-type Vista = 'dashboard' | 'segmento' | 'buscar' | 'movimientos' | 'mes';
+type Vista = 'dashboard' | 'segmento' | 'buscar' | 'mes';
 
 interface SalesHorizonProps {
   onBack: () => void;
 }
 
-// Formatear moneda
 const formatMoney = (value: number, compact = false): string => {
   if (compact) {
     if (value >= 1000000000) return `$${(value / 1000000000).toFixed(1)}B`;
@@ -71,21 +69,8 @@ const formatMoney = (value: number, compact = false): string => {
   return new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN', maximumFractionDigits: 0 }).format(value);
 };
 
-// Formatear porcentaje
 const formatPercent = (value: number): string => `${(value * 100).toFixed(1)}%`;
 
-// Colores por segmento
-const SEGMENT_COLORS: Record<string, string> = {
-  BAFAR: 'from-red-500 to-red-600',
-  CARROLL: 'from-green-500 to-green-600',
-  BARCEL: 'from-amber-500 to-amber-600',
-  NATURE_SWEET: 'from-emerald-500 to-teal-600',
-  ALPURA: 'from-blue-500 to-blue-600',
-  IMPEX: 'from-purple-500 to-purple-600',
-  PILGRIMS: 'from-pink-500 to-pink-600',
-};
-
-// Colores de empresa
 const EMP_COLORS: Record<string, string> = {
   TROB: 'bg-blue-600',
   WE: 'bg-purple-600',
@@ -100,11 +85,10 @@ export default function SalesHorizonModule({ onBack }: SalesHorizonProps) {
   const [tractores, setTractores] = useState<Tracto[]>([]);
   const [meses, setMeses] = useState<Mes[]>([]);
   const [selectedSegmento, setSelectedSegmento] = useState<string | null>(null);
+  const [selectedMes, setSelectedMes] = useState<number | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResult, setSearchResult] = useState<Tracto | null>(null);
-  const [selectedMes, setSelectedMes] = useState<number | null>(null);
 
-  // Cargar datos
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
@@ -130,7 +114,6 @@ export default function SalesHorizonModule({ onBack }: SalesHorizonProps) {
     loadData();
   }, [loadData]);
 
-  // Buscar tracto
   const handleSearch = () => {
     const numero = parseInt(searchQuery);
     if (isNaN(numero)) return;
@@ -138,7 +121,6 @@ export default function SalesHorizonModule({ onBack }: SalesHorizonProps) {
     setSearchResult(tracto || null);
   };
 
-  // Calcular alertas
   const alertas = useMemo(() => {
     const accidentes = tractores.filter(t => t.estatus === 'ACCIDENTE');
     const mtto = tractores.filter(t => t.estatus === 'MTTO');
@@ -146,34 +128,21 @@ export default function SalesHorizonModule({ onBack }: SalesHorizonProps) {
     return { accidentes, mtto, pendientes };
   }, [tractores]);
 
-  // Calcular meta del día actual
   const metaHoy = useMemo(() => {
     const hoy = new Date();
     const mes = hoy.getMonth() + 1;
     const mesData = meses.find(m => m.mes === mes);
     if (!mesData) return 0;
-    
     const diaSemana = hoy.getDay();
     const curvas: Record<number, number> = { 0: 0.019, 1: 0.038, 2: 0.038, 3: 0.038, 4: 0.0476, 5: 0.038, 6: 0.028 };
     const curva = curvas[diaSemana] || 0.038;
-    
     return mesData.meta_total * curva;
   }, [meses]);
 
-  // Calcular semana actual
-  const semanaActual = useMemo(() => {
-    const hoy = new Date();
-    const inicioAño = new Date(hoy.getFullYear(), 0, 1);
-    const dias = Math.floor((hoy.getTime() - inicioAño.getTime()) / (24 * 60 * 60 * 1000));
-    return Math.ceil((dias + inicioAño.getDay() + 1) / 7);
-  }, []);
-
-  // Obtener segmento seleccionado
   const segmentoActivo = segmentos.find(s => s.id === selectedSegmento);
   const tractoresSegmento = tractores.filter(t => t.segmento_id === selectedSegmento);
-
-  // Mes actual
   const mesActual = meses.find(m => m.mes === new Date().getMonth() + 1);
+  const mesSeleccionado = meses.find(m => m.mes === selectedMes);
 
   if (loading) {
     return (
@@ -192,7 +161,7 @@ export default function SalesHorizonModule({ onBack }: SalesHorizonProps) {
       <div className="bg-slate-800/50 border-b border-slate-700/50 px-6 py-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <button onClick={vista === 'dashboard' ? onBack : () => { setVista('dashboard'); setSelectedSegmento(null); }} className="p-2 hover:bg-slate-700 rounded-lg transition-colors">
+            <button onClick={vista === 'dashboard' ? onBack : () => { setVista('dashboard'); setSelectedSegmento(null); setSelectedMes(null); }} className="p-2 hover:bg-slate-700 rounded-lg transition-colors">
               <ArrowLeft className="w-5 h-5 text-slate-400" />
             </button>
             <div className="flex items-center gap-3">
@@ -205,7 +174,7 @@ export default function SalesHorizonModule({ onBack }: SalesHorizonProps) {
                   {vista === 'dashboard' && 'Presupuesto y Metas 2026'}
                   {vista === 'segmento' && segmentoActivo?.nombre}
                   {vista === 'buscar' && 'Buscar Tracto'}
-                  {vista === 'movimientos' && 'Control de Movimientos'}
+                  {vista === 'mes' && mesSeleccionado?.nombre_mes}
                 </p>
               </div>
             </div>
@@ -284,7 +253,7 @@ export default function SalesHorizonModule({ onBack }: SalesHorizonProps) {
                 )}
                 {alertas.pendientes.length > 0 && (
                   <div className="flex items-center gap-2 px-3 py-2 bg-blue-500/20 rounded-lg border border-blue-500/30">
-                    <span className="text-slate-300 text-sm">{alertas.pendientes.length} PENDIENTE ENTREGA</span>
+                    <span className="text-blue-400 text-sm">{alertas.pendientes.length} PENDIENTE ENTREGA</span>
                   </div>
                 )}
               </div>
@@ -303,20 +272,20 @@ export default function SalesHorizonModule({ onBack }: SalesHorizonProps) {
                   <button
                     key={seg.id}
                     onClick={() => { setSelectedSegmento(seg.id); setVista('segmento'); }}
-                    className={`bg-gradient-to-br ${'from-blue-600 to-blue-700'} rounded-xl p-3 text-left hover:scale-[1.02] transition-all shadow-lg`}
+                    className="bg-gradient-to-br from-blue-600 to-blue-700 rounded-xl p-3 text-left hover:scale-105 transition-all shadow-lg"
                   >
-                    <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center justify-between mb-2">
                       <span className="text-white/90 text-base font-medium">{seg.nombre}</span>
                       <ChevronRight className="w-4 h-4 text-white/60" />
                     </div>
-                    <div className="text-2xl font-bold text-white">{formatMoney(seg.presupuesto_anual, true)}</div>
-                    <div className="flex items-center justify-between text-white/70 text-sm">
+                    <div className="text-xl font-bold text-white">{formatMoney(seg.presupuesto_anual, true)}</div>
+                    <div className="flex items-center justify-between text-white/70 text-sm mt-1">
                       <span>{facturan} tractores</span>
                       <span>{formatPercent(seg.porcentaje_presupuesto)}</span>
                     </div>
-                    <div className="mt-3 pt-3 border-t border-white/20">
-                      <div className="flex justify-between text-xs">
-                        <span className="text-white/60 text-sm">$/Tracto/Mes</span>
+                    <div className="mt-2 pt-2 border-t border-white/20">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-white/60">$/Tracto/Mes</span>
                         <span className="text-white font-medium">{formatMoney(seg.meta_por_tracto_mes, true)}</span>
                       </div>
                     </div>
@@ -333,11 +302,14 @@ export default function SalesHorizonModule({ onBack }: SalesHorizonProps) {
               {meses.map(m => {
                 const esActual = m.mes === new Date().getMonth() + 1;
                 return (
-                  <button onClick={() => { setSelectedMes(m.mes); setVista('mes'); }} key={m.mes} className={`p-3 rounded-xl cursor-pointer hover:scale-105 transition-all ${esActual ? 'bg-orange-500/20 border border-orange-500/30' : 'bg-slate-700/50'}`}
+                  <button
+                    key={m.mes}
+                    onClick={() => { setSelectedMes(m.mes); setVista('mes'); }}
+                    className={`p-3 rounded-xl cursor-pointer hover:scale-105 transition-all text-left ${esActual ? 'bg-orange-500/20 border border-orange-500/30' : 'bg-slate-700/50'}`}
                   >
-                    <div className={`text-xs font-medium ${esActual ? 'text-slate-300' : 'text-slate-400'}`}>{m.nombre_mes}</div>
-                    <div className="text-2xl font-bold text-white mt-1">{formatMoney(m.meta_total, true)}</div>
-                    <div className="text-[10px] text-slate-500">{formatPercent(m.porcentaje)}</div>
+                    <div className={`text-sm font-medium ${esActual ? 'text-orange-400' : 'text-slate-400'}`}>{m.nombre_mes}</div>
+                    <div className="text-xl font-bold text-white mt-1">{formatMoney(m.meta_total, true)}</div>
+                    <div className="text-xs text-slate-500">{formatPercent(m.porcentaje)}</div>
                   </button>
                 );
               })}
@@ -349,22 +321,20 @@ export default function SalesHorizonModule({ onBack }: SalesHorizonProps) {
       {/* Vista Segmento */}
       {vista === 'segmento' && segmentoActivo && (
         <div className="p-6 space-y-6">
-          {/* Header del segmento */}
-          <div className={`bg-gradient-to-br ${SEGMENT_COLORS[segmentoActivo.id] || 'from-slate-500 to-slate-600'} rounded-2xl p-6`}>
+          <div className="bg-gradient-to-br from-blue-600 to-blue-700 rounded-2xl p-6">
             <div className="flex items-center justify-between">
               <div>
                 <h2 className="text-2xl font-bold text-white">{segmentoActivo.nombre}</h2>
                 <p className="text-white/70 text-sm mt-1">{segmentoActivo.tipo} • {formatPercent(segmentoActivo.porcentaje_presupuesto)} del presupuesto</p>
               </div>
               <div className="text-right">
-                <div className="text-2xl font-bold text-white">{formatMoney(segmentoActivo.presupuesto_anual, true)}</div>
+                <div className="text-3xl font-bold text-white">{formatMoney(segmentoActivo.presupuesto_anual, true)}</div>
                 <div className="text-white/70 text-sm">Meta Anual</div>
               </div>
             </div>
           </div>
 
-          {/* KPIs del segmento */}
-          <div className="grid grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div className="bg-slate-800/50 rounded-xl p-4 border border-slate-700/50">
               <div className="text-slate-400 text-xs mb-1">Tractores</div>
               <div className="text-2xl font-bold text-white">{segmentoActivo.tractores_facturan}</div>
@@ -384,7 +354,6 @@ export default function SalesHorizonModule({ onBack }: SalesHorizonProps) {
             </div>
           </div>
 
-          {/* Lista de tractores */}
           <div className="bg-slate-800/50 rounded-xl border border-slate-700/50 overflow-hidden">
             <div className="px-5 py-4 border-b border-slate-700/50">
               <h3 className="font-semibold text-white">Tractores del Segmento</h3>
@@ -436,12 +405,63 @@ export default function SalesHorizonModule({ onBack }: SalesHorizonProps) {
         </div>
       )}
 
+      {/* Vista Mes */}
+      {vista === 'mes' && mesSeleccionado && (
+        <div className="p-6 space-y-6">
+          <div className="bg-gradient-to-br from-orange-500 to-amber-600 rounded-2xl p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-2xl font-bold text-white">{mesSeleccionado.nombre_mes} 2026</h2>
+                <p className="text-white/70 text-sm mt-1">{mesSeleccionado.dias} días • {formatPercent(mesSeleccionado.porcentaje)} del año</p>
+              </div>
+              <div className="text-right">
+                <div className="text-3xl font-bold text-white">{formatMoney(mesSeleccionado.meta_total)}</div>
+                <div className="text-white/70 text-sm">Meta del Mes</div>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-3 gap-4">
+            <div className="bg-slate-800/50 rounded-xl p-4 border border-slate-700/50">
+              <div className="text-slate-400 text-xs mb-1">Meta Diaria Promedio</div>
+              <div className="text-2xl font-bold text-white">{formatMoney(mesSeleccionado.meta_total / mesSeleccionado.dias)}</div>
+            </div>
+            <div className="bg-slate-800/50 rounded-xl p-4 border border-slate-700/50">
+              <div className="text-slate-400 text-xs mb-1">Meta Semanal Promedio</div>
+              <div className="text-2xl font-bold text-white">{formatMoney((mesSeleccionado.meta_total / mesSeleccionado.dias) * 7)}</div>
+            </div>
+            <div className="bg-slate-800/50 rounded-xl p-4 border border-slate-700/50">
+              <div className="text-slate-400 text-xs mb-1">% del Presupuesto</div>
+              <div className="text-2xl font-bold text-white">{formatPercent(mesSeleccionado.porcentaje)}</div>
+            </div>
+          </div>
+
+          <div className="bg-slate-800/50 rounded-xl border border-slate-700/50 p-5">
+            <h3 className="text-lg font-semibold text-white mb-4">Distribución por Empresa</h3>
+            <div className="grid grid-cols-3 gap-4">
+              <div className="bg-blue-600/20 rounded-xl p-4 border border-blue-500/30">
+                <div className="text-blue-400 text-sm font-medium">TROB (59.5%)</div>
+                <div className="text-xl font-bold text-white mt-1">{formatMoney(mesSeleccionado.meta_total * 0.595)}</div>
+              </div>
+              <div className="bg-purple-600/20 rounded-xl p-4 border border-purple-500/30">
+                <div className="text-purple-400 text-sm font-medium">WEXPRESS (25.5%)</div>
+                <div className="text-xl font-bold text-white mt-1">{formatMoney(mesSeleccionado.meta_total * 0.255)}</div>
+              </div>
+              <div className="bg-emerald-600/20 rounded-xl p-4 border border-emerald-500/30">
+                <div className="text-emerald-400 text-sm font-medium">SPEEDYHAUL (15%)</div>
+                <div className="text-xl font-bold text-white mt-1">{formatMoney(mesSeleccionado.meta_total * 0.15)}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Vista Buscar */}
       {vista === 'buscar' && (
         <div className="p-6 space-y-6">
           <div className="max-w-xl mx-auto">
             <div className="bg-slate-800/50 rounded-xl border border-slate-700/50 p-6">
-              <h3 className="text-xl font-semibold text-white mb-4">Buscar Tracto</h3>
+              <h3 className="text-lg font-semibold text-white mb-4">Buscar Tracto</h3>
               <div className="flex gap-3">
                 <input
                   type="number"
@@ -465,9 +485,9 @@ export default function SalesHorizonModule({ onBack }: SalesHorizonProps) {
                 <div className="flex items-center justify-between mb-4">
                   <div>
                     <span className="text-slate-400 text-sm">Tracto</span>
-                    <h2 className="text-2xl font-bold text-white">{searchResult.numero}</h2>
+                    <h2 className="text-3xl font-bold text-white">{searchResult.numero}</h2>
                   </div>
-                  <span className={`px-3 py-1 rounded-lg text-base font-medium text-white ${EMP_COLORS[searchResult.empresa]}`}>
+                  <span className={`px-3 py-1 rounded-lg text-sm font-medium text-white ${EMP_COLORS[searchResult.empresa]}`}>
                     {searchResult.empresa}
                   </span>
                 </div>
@@ -481,45 +501,35 @@ export default function SalesHorizonModule({ onBack }: SalesHorizonProps) {
                     <span className="text-slate-400 text-xs">Estatus</span>
                     <p className={`font-medium ${searchResult.factura ? 'text-green-400' : 'text-red-400'}`}>{searchResult.estatus}</p>
                   </div>
-                  <div>
-                    <span className="text-slate-400 text-xs">¿Factura?</span>
-                    <p className={`font-medium ${searchResult.factura ? 'text-green-400' : 'text-red-400'}`}>{searchResult.factura ? 'SÍ' : 'NO'}</p>
-                  </div>
-                  <div>
-                    <span className="text-slate-400 text-xs">Alerta</span>
-                    <p className="text-white">{searchResult.alerta || '-'}</p>
-                  </div>
                 </div>
 
-                {searchResult.factura && (
-                  <div className="border-t border-slate-700 pt-4 mt-4">
-                    <h4 className="text-base font-medium text-slate-300 mb-3">Metas del Tracto</h4>
-                    {(() => {
-                      const seg = segmentos.find(s => s.id === searchResult.segmento_id);
-                      if (!seg) return null;
-                      return (
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                          <div className="bg-slate-700/50 rounded-lg p-3">
-                            <div className="text-slate-400 text-xs">Meta/Día</div>
-                            <div className="text-2xl font-bold text-white">{formatMoney(seg.meta_por_tracto_dia)}</div>
-                          </div>
-                          <div className="bg-slate-700/50 rounded-lg p-3">
-                            <div className="text-slate-400 text-xs">Meta/Semana</div>
-                            <div className="text-2xl font-bold text-white">{formatMoney(seg.meta_por_tracto_dia * 7)}</div>
-                          </div>
-                          <div className="bg-slate-700/50 rounded-lg p-3">
-                            <div className="text-slate-400 text-xs">Meta/Mes</div>
-                            <div className="text-2xl font-bold text-white">{formatMoney(seg.meta_por_tracto_mes)}</div>
-                          </div>
-                          <div className="bg-slate-700/50 rounded-lg p-3">
-                            <div className="text-slate-400 text-xs">Meta/Año</div>
-                            <div className="text-2xl font-bold text-white">{formatMoney(seg.meta_por_tracto_año)}</div>
-                          </div>
+                {searchResult.factura && (() => {
+                  const seg = segmentos.find(s => s.id === searchResult.segmento_id);
+                  if (!seg) return null;
+                  return (
+                    <div className="border-t border-slate-700 pt-4 mt-4">
+                      <h4 className="text-sm font-medium text-slate-300 mb-3">Metas del Tracto</h4>
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                        <div className="bg-slate-700/50 rounded-lg p-3">
+                          <div className="text-slate-400 text-xs">Meta/Día</div>
+                          <div className="text-lg font-bold text-white">{formatMoney(seg.meta_por_tracto_dia)}</div>
                         </div>
-                      );
-                    })()}
-                  </div>
-                )}
+                        <div className="bg-slate-700/50 rounded-lg p-3">
+                          <div className="text-slate-400 text-xs">Meta/Semana</div>
+                          <div className="text-lg font-bold text-white">{formatMoney(seg.meta_por_tracto_dia * 7)}</div>
+                        </div>
+                        <div className="bg-slate-700/50 rounded-lg p-3">
+                          <div className="text-slate-400 text-xs">Meta/Mes</div>
+                          <div className="text-lg font-bold text-white">{formatMoney(seg.meta_por_tracto_mes)}</div>
+                        </div>
+                        <div className="bg-slate-700/50 rounded-lg p-3">
+                          <div className="text-slate-400 text-xs">Meta/Año</div>
+                          <div className="text-lg font-bold text-white">{formatMoney(seg.meta_por_tracto_año)}</div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()}
               </div>
             )}
 
