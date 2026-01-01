@@ -226,37 +226,37 @@ export default function SalesHorizonModule({ onBack }: SalesHorizonProps) {
         <div className="p-6 space-y-6">
           {/* KPIs Principales */}
           <div className="grid grid-cols-4 gap-3">
-            <div className="bg-gradient-to-br from-emerald-500/20 to-teal-500/10 rounded-xl p-3 border border-emerald-500/20">
+            <div className="bg-gradient-to-br from-slate-600/50 to-slate-700/50 rounded-xl p-3 border border-slate-500/30">
               <div className="flex items-center justify-between mb-3">
-                <span className="text-emerald-400 text-base font-medium">Meta Anual 2026</span>
-                <Target className="w-5 h-5 text-emerald-400" />
+                <span className="text-slate-300 text-base font-medium">Meta Anual 2026</span>
+                <Target className="w-5 h-5 text-slate-300" />
               </div>
               <div className="text-2xl font-bold text-white">{formatMoney(presupuesto.meta_anual)}</div>
               <div className="text-sm text-slate-400 mt-1">Operatividad: {formatPercent(presupuesto.operatividad)}</div>
             </div>
 
-            <div className="bg-gradient-to-br from-blue-500/20 to-indigo-500/10 rounded-xl p-3 border border-blue-500/20">
+            <div className="bg-gradient-to-br from-slate-600/50 to-slate-700/50 rounded-xl p-3 border border-slate-500/30">
               <div className="flex items-center justify-between mb-3">
-                <span className="text-blue-400 text-base font-medium">Meta Hoy</span>
-                <Calendar className="w-5 h-5 text-blue-400" />
+                <span className="text-slate-300 text-base font-medium">Meta Hoy</span>
+                <Calendar className="w-5 h-5 text-slate-300" />
               </div>
               <div className="text-2xl font-bold text-white">{formatMoney(metaHoy)}</div>
               <div className="text-sm text-slate-400 mt-1">{new Date().toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'short' })}</div>
             </div>
 
-            <div className="bg-gradient-to-br from-purple-500/20 to-pink-500/10 rounded-xl p-3 border border-purple-500/20">
+            <div className="bg-gradient-to-br from-slate-600/50 to-slate-700/50 rounded-xl p-3 border border-slate-500/30">
               <div className="flex items-center justify-between mb-3">
-                <span className="text-purple-400 text-base font-medium">Meta {mesActual?.nombre_mes}</span>
-                <BarChart3 className="w-5 h-5 text-purple-400" />
+                <span className="text-slate-300 text-base font-medium">Meta {mesActual?.nombre_mes}</span>
+                <BarChart3 className="w-5 h-5 text-slate-300" />
               </div>
               <div className="text-2xl font-bold text-white">{formatMoney(mesActual?.meta_total || 0)}</div>
               <div className="text-sm text-slate-400 mt-1">{formatPercent(mesActual?.porcentaje || 0)} del año</div>
             </div>
 
-            <div className="bg-gradient-to-br from-orange-500/20 to-amber-500/10 rounded-xl p-3 border border-orange-500/20">
+            <div className="bg-gradient-to-br from-slate-600/50 to-slate-700/50 rounded-xl p-3 border border-slate-500/30">
               <div className="flex items-center justify-between mb-3">
-                <span className="text-orange-400 text-base font-medium">Flota Activa</span>
-                <Truck className="w-5 h-5 text-orange-400" />
+                <span className="text-slate-300 text-base font-medium">Flota Activa</span>
+                <Truck className="w-5 h-5 text-slate-300" />
               </div>
               <div className="text-2xl font-bold text-white">{presupuesto.tractores_facturan}</div>
               <div className="text-sm text-slate-400 mt-1">de {presupuesto.tractores_totales} tractores</div>
@@ -283,7 +283,7 @@ export default function SalesHorizonModule({ onBack }: SalesHorizonProps) {
                 )}
                 {alertas.pendientes.length > 0 && (
                   <div className="flex items-center gap-2 px-3 py-2 bg-blue-500/20 rounded-lg border border-blue-500/30">
-                    <span className="text-blue-400 text-sm">{alertas.pendientes.length} PENDIENTE ENTREGA</span>
+                    <span className="text-slate-300 text-sm">{alertas.pendientes.length} PENDIENTE ENTREGA</span>
                   </div>
                 )}
               </div>
@@ -336,7 +336,7 @@ export default function SalesHorizonModule({ onBack }: SalesHorizonProps) {
                     key={m.mes}
                     className={`p-3 rounded-xl ${esActual ? 'bg-orange-500/20 border border-orange-500/30' : 'bg-slate-700/50'}`}
                   >
-                    <div className={`text-xs font-medium ${esActual ? 'text-orange-400' : 'text-slate-400'}`}>{m.nombre_mes}</div>
+                    <div className={`text-xs font-medium ${esActual ? 'text-slate-300' : 'text-slate-400'}`}>{m.nombre_mes}</div>
                     <div className="text-2xl font-bold text-white mt-1">{formatMoney(m.meta_total, true)}</div>
                     <div className="text-[10px] text-slate-500">{formatPercent(m.porcentaje)}</div>
                   </div>
