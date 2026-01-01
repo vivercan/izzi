@@ -225,40 +225,40 @@ export default function SalesHorizonModule({ onBack }: SalesHorizonProps) {
       {vista === 'dashboard' && presupuesto && (
         <div className="p-6 space-y-6">
           {/* KPIs Principales */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="bg-gradient-to-br from-emerald-500/20 to-teal-500/10 rounded-2xl p-5 border border-emerald-500/20">
+          <div className="grid grid-cols-4 gap-3">
+            <div className="bg-gradient-to-br from-emerald-500/20 to-teal-500/10 rounded-xl p-3 border border-emerald-500/20">
               <div className="flex items-center justify-between mb-3">
                 <span className="text-emerald-400 text-sm font-medium">Meta Anual 2026</span>
                 <Target className="w-5 h-5 text-emerald-400" />
               </div>
-              <div className="text-3xl font-bold text-white">{formatMoney(presupuesto.meta_anual)}</div>
+              <div className="text-xl font-bold text-white">{formatMoney(presupuesto.meta_anual)}</div>
               <div className="text-xs text-slate-400 mt-1">Operatividad: {formatPercent(presupuesto.operatividad)}</div>
             </div>
 
-            <div className="bg-gradient-to-br from-blue-500/20 to-indigo-500/10 rounded-2xl p-5 border border-blue-500/20">
+            <div className="bg-gradient-to-br from-blue-500/20 to-indigo-500/10 rounded-xl p-3 border border-blue-500/20">
               <div className="flex items-center justify-between mb-3">
                 <span className="text-blue-400 text-sm font-medium">Meta Hoy</span>
                 <Calendar className="w-5 h-5 text-blue-400" />
               </div>
-              <div className="text-3xl font-bold text-white">{formatMoney(metaHoy)}</div>
+              <div className="text-xl font-bold text-white">{formatMoney(metaHoy)}</div>
               <div className="text-xs text-slate-400 mt-1">{new Date().toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'short' })}</div>
             </div>
 
-            <div className="bg-gradient-to-br from-purple-500/20 to-pink-500/10 rounded-2xl p-5 border border-purple-500/20">
+            <div className="bg-gradient-to-br from-purple-500/20 to-pink-500/10 rounded-xl p-3 border border-purple-500/20">
               <div className="flex items-center justify-between mb-3">
                 <span className="text-purple-400 text-sm font-medium">Meta {mesActual?.nombre_mes}</span>
                 <BarChart3 className="w-5 h-5 text-purple-400" />
               </div>
-              <div className="text-3xl font-bold text-white">{formatMoney(mesActual?.meta_total || 0)}</div>
+              <div className="text-xl font-bold text-white">{formatMoney(mesActual?.meta_total || 0)}</div>
               <div className="text-xs text-slate-400 mt-1">{formatPercent(mesActual?.porcentaje || 0)} del año</div>
             </div>
 
-            <div className="bg-gradient-to-br from-orange-500/20 to-amber-500/10 rounded-2xl p-5 border border-orange-500/20">
+            <div className="bg-gradient-to-br from-orange-500/20 to-amber-500/10 rounded-xl p-3 border border-orange-500/20">
               <div className="flex items-center justify-between mb-3">
                 <span className="text-orange-400 text-sm font-medium">Flota Activa</span>
                 <Truck className="w-5 h-5 text-orange-400" />
               </div>
-              <div className="text-3xl font-bold text-white">{presupuesto.tractores_facturan}</div>
+              <div className="text-xl font-bold text-white">{presupuesto.tractores_facturan}</div>
               <div className="text-xs text-slate-400 mt-1">de {presupuesto.tractores_totales} tractores</div>
             </div>
           </div>
@@ -293,7 +293,7 @@ export default function SalesHorizonModule({ onBack }: SalesHorizonProps) {
           {/* Segmentos Grid */}
           <div>
             <h3 className="text-lg font-semibold text-white mb-4">Segmentos de Negocio</h3>
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+            <div className="grid grid-cols-4 lg:grid-cols-7 gap-2">
               {segmentos.map(seg => {
                 const tractoresSeg = tractores.filter(t => t.segmento_id === seg.id);
                 const facturan = tractoresSeg.filter(t => t.factura).length;
@@ -308,7 +308,7 @@ export default function SalesHorizonModule({ onBack }: SalesHorizonProps) {
                       <span className="text-white/90 text-sm font-medium">{seg.nombre}</span>
                       <ChevronRight className="w-4 h-4 text-white/60" />
                     </div>
-                    <div className="text-2xl font-bold text-white mb-1">{formatMoney(seg.presupuesto_anual, true)}</div>
+                    <div className="text-lg font-bold text-white">{formatMoney(seg.presupuesto_anual, true)}</div>
                     <div className="flex items-center justify-between text-white/70 text-xs">
                       <span>{facturan} tractores</span>
                       <span>{formatPercent(seg.porcentaje_presupuesto)}</span>
@@ -358,14 +358,14 @@ export default function SalesHorizonModule({ onBack }: SalesHorizonProps) {
                 <p className="text-white/70 text-sm mt-1">{segmentoActivo.tipo} • {formatPercent(segmentoActivo.porcentaje_presupuesto)} del presupuesto</p>
               </div>
               <div className="text-right">
-                <div className="text-3xl font-bold text-white">{formatMoney(segmentoActivo.presupuesto_anual, true)}</div>
+                <div className="text-xl font-bold text-white">{formatMoney(segmentoActivo.presupuesto_anual, true)}</div>
                 <div className="text-white/70 text-sm">Meta Anual</div>
               </div>
             </div>
           </div>
 
           {/* KPIs del segmento */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-4 gap-3">
             <div className="bg-slate-800/50 rounded-xl p-4 border border-slate-700/50">
               <div className="text-slate-400 text-xs mb-1">Tractores</div>
               <div className="text-2xl font-bold text-white">{segmentoActivo.tractores_facturan}</div>
@@ -466,7 +466,7 @@ export default function SalesHorizonModule({ onBack }: SalesHorizonProps) {
                 <div className="flex items-center justify-between mb-4">
                   <div>
                     <span className="text-slate-400 text-sm">Tracto</span>
-                    <h2 className="text-3xl font-bold text-white">{searchResult.numero}</h2>
+                    <h2 className="text-xl font-bold text-white">{searchResult.numero}</h2>
                   </div>
                   <span className={`px-3 py-1 rounded-lg text-sm font-medium text-white ${EMP_COLORS[searchResult.empresa]}`}>
                     {searchResult.empresa}
