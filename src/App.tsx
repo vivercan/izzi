@@ -20,7 +20,6 @@ import { AdminCarrollModule } from './components/fx27/AdminCarrollModule';
 import { VistaClientesCarroll } from './components/fx27/VistaClientesCarroll';
 import { MapaClimaticoCarroll } from './components/fx27/MapaClimaticoCarroll';
 import SalesHorizonModule from './components/fx27/SalesHorizonModule';
-import SalesHorizonModule from './components/fx27/SalesHorizonModule';
 import { MODULE_IMAGES } from './assets/module-images';
 import { projectId, publicAnonKey } from './utils/supabase/info';
 import './styles/globals.css';
@@ -330,7 +329,6 @@ export default function App() {
           {currentModule === 'monitor-carroll' && <DedicadosModuleWideTech onBack={() => setCurrentModule('dedicados')} />}
           {currentModule === 'vista-clientes-carroll' && <VistaClientesCarroll onBack={() => setCurrentModule('dedicados')} />}
           {currentModule === 'mapa-climatico-carroll' && <MapaClimaticoCarroll onBack={() => setCurrentModule('dedicados')} />}
-          {currentModule === 'sales-horizon' && <SalesHorizonModule onBack={handleBack} />}
           {currentModule === 'sales-horizon' && <SalesHorizonModule onBack={handleBack} />}
         </>
       ) : (
