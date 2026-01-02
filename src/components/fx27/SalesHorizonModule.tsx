@@ -71,6 +71,66 @@ const fetchSupabase = async (table: string, query: string = '') => {
   }
 };
 
+// Fetch tractores por segmento con ilike para matchear valores en BD
+const fetchTractoresPorSegmento = async (segmentoId: string) => {
+  if (!supabaseUrl || !supabaseKey) return [];
+  
+  // Mapeo de segmento UI → patrón de búsqueda en BD
+  const patronBusqueda: Record<string, string> = {
+    'BAFAR': 'BAFAR',
+    'CARROLL': 'CARROL',      // BD tiene "CARROL" sin segunda L
+    'BARCEL': 'BARCEL',
+    'NATURE_SWEET': 'DEDICADO NS',  // BD tiene "DEDICADO NS"
+    'ALPURA': 'ALPURA',
+    'IMPEX': 'IMPEX',         // BD tiene "IMPEX/NEXTEER/CLARIOS"
+    'PILGRIMS': 'PILGRIMS',   // BD tiene "DEDICADO PILGRIMS"
+  };
+  
+  const patron = patronBusqueda[segmentoId] || segmentoId;
+  const query = `segmento=ilike.*${patron}*&select=economico,tracto,velocidad,estado,municipio,latitud,longitud,ultima_actualizacion&order=economico`;
+  
+  try {
+    const res = await fetch(`${supabaseUrl}/rest/v1/gps_tracking?${query}`, {
+      headers: {
+        'apikey': supabaseKey,
+        'Authorization': `Bearer ${supabaseKey}`,
+      }
+    });
+    if (!res.ok) return [];
+    return await res.json();
+  } catch {
+    return [];
+  }
+};
+
+// Fetch tractores por empresa con mapeo correcto
+const fetchTractoresPorEmpresa = async (empresaId: string) => {
+  if (!supabaseUrl || !supabaseKey) return [];
+  
+  // Mapeo de empresa UI → valor en BD
+  const empresaEnBD: Record<string, string> = {
+    'SPEEDYHAUL': 'SHI',
+    'TROB': 'TROB',
+    'WEXPRESS': 'WE',
+  };
+  
+  const empresa = empresaEnBD[empresaId] || empresaId;
+  const query = `empresa=eq.${empresa}&select=economico,tracto,velocidad,estado,municipio,latitud,longitud,ultima_actualizacion&order=economico`;
+  
+  try {
+    const res = await fetch(`${supabaseUrl}/rest/v1/gps_tracking?${query}`, {
+      headers: {
+        'apikey': supabaseKey,
+        'Authorization': `Bearer ${supabaseKey}`,
+      }
+    });
+    if (!res.ok) return [];
+    return await res.json();
+  } catch {
+    return [];
+  }
+};
+
 // ===== HELPERS =====
 const fmt = (v: number, c = false): string => {
   if (c) {
@@ -181,9 +241,7 @@ export default function SalesHorizonModule({ onBack }: Props) {
     if (!unidadesSegmento) return;
     const cargar = async () => {
       setLoadingTractores(true);
-      const seg = SEGMENTOS.find(s => s.id === unidadesSegmento);
-      if (!seg) return;
-      const data = await fetchSupabase('gps_tracking', `segmento=ilike.*${seg.nombre}*&select=economico,tracto,velocidad,estado,municipio,latitud,longitud,ultima_actualizacion&order=economico`);
+      const data = await fetchTractoresPorSegmento(unidadesSegmento);
       setTractoresLista(data || []);
       setLoadingTractores(false);
     };
@@ -195,9 +253,7 @@ export default function SalesHorizonModule({ onBack }: Props) {
     if (!unidadesEmpresa) return;
     const cargar = async () => {
       setLoadingTractores(true);
-      const emp = EMPRESAS.find(e => e.id === unidadesEmpresa);
-      if (!emp) return;
-      const data = await fetchSupabase('gps_tracking', `empresa=ilike.*${emp.nombre}*&select=economico,tracto,velocidad,estado,municipio,latitud,longitud,ultima_actualizacion&order=economico`);
+      const data = await fetchTractoresPorEmpresa(unidadesEmpresa);
       setTractoresLista(data || []);
       setLoadingTractores(false);
     };
