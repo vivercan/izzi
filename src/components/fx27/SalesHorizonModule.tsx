@@ -2,18 +2,12 @@
 
 import React, { useState, useMemo } from 'react';
 import { 
-  Target, ArrowLeft, Truck, Search, Calendar, ChevronRight, ChevronDown,
-  AlertTriangle, BarChart3, Building2, Users, TrendingUp, Download,
-  ArrowRightLeft, Calculator, Filter, X, Eye, EyeOff
+  Target, ArrowLeft, Truck, Search, Calendar, ChevronRight,
+  Building2, Users, Download, ArrowRightLeft, Calculator, Filter, X, Eye, EyeOff
 } from 'lucide-react';
 
-// ==================== DATOS DEL EXCEL ====================
-const GLOBAL = {
-  meta_anual: 1341341246.49,
-  operatividad: 0.95,
-  tractores_totales: 219,
-  tractores_facturan: 210,
-};
+// ===== DATOS GLOBALES =====
+const GLOBAL = { meta_anual: 1341341246.49, operatividad: 0.95, tractores_totales: 219, tractores_facturan: 210 };
 
 const EMPRESAS = [
   { nombre: 'SPEEDYHAUL', unidades: 33, pct_flota: 0.15, ppto_anual: 201201186.97 },
@@ -46,201 +40,447 @@ const MESES = [
   { mes: 12, nombre: 'Diciembre', pct: 0.08, ppto: 107307300 },
 ];
 
+// ===== 365 DÍAS CON % EXACTOS DEL EXCEL =====
+const DIAS_2026: Record<string, { ds: string; f: string | null; p: number }> = {
+  '2026-01-01': { ds: 'Jue', f: 'Año Nuevo', p: 0.00952381 },
+  '2026-01-02': { ds: 'Vie', f: 'Año Nuevo', p: 0.00952381 },
+  '2026-01-03': { ds: 'Sáb', f: 'Año Nuevo', p: 0.00952381 },
+  '2026-01-04': { ds: 'Dom', f: null, p: 0.01904762 },
+  '2026-01-05': { ds: 'Lun', f: null, p: 0.03809524 },
+  '2026-01-06': { ds: 'Mar', f: 'Día de Reyes', p: 0.01904762 },
+  '2026-01-07': { ds: 'Mié', f: null, p: 0.03809524 },
+  '2026-01-08': { ds: 'Jue', f: null, p: 0.04761905 },
+  '2026-01-09': { ds: 'Vie', f: null, p: 0.03809524 },
+  '2026-01-10': { ds: 'Sáb', f: null, p: 0.02857143 },
+  '2026-01-11': { ds: 'Dom', f: null, p: 0.01904762 },
+  '2026-01-12': { ds: 'Lun', f: null, p: 0.03809524 },
+  '2026-01-13': { ds: 'Mar', f: null, p: 0.03809524 },
+  '2026-01-14': { ds: 'Mié', f: null, p: 0.03809524 },
+  '2026-01-15': { ds: 'Jue', f: null, p: 0.04761905 },
+  '2026-01-16': { ds: 'Vie', f: null, p: 0.03809524 },
+  '2026-01-17': { ds: 'Sáb', f: null, p: 0.02857143 },
+  '2026-01-18': { ds: 'Dom', f: null, p: 0.01904762 },
+  '2026-01-19': { ds: 'Lun', f: null, p: 0.03809524 },
+  '2026-01-20': { ds: 'Mar', f: null, p: 0.03809524 },
+  '2026-01-21': { ds: 'Mié', f: null, p: 0.03809524 },
+  '2026-01-22': { ds: 'Jue', f: null, p: 0.04761905 },
+  '2026-01-23': { ds: 'Vie', f: null, p: 0.03809524 },
+  '2026-01-24': { ds: 'Sáb', f: null, p: 0.02857143 },
+  '2026-01-25': { ds: 'Dom', f: null, p: 0.01904762 },
+  '2026-01-26': { ds: 'Lun', f: null, p: 0.03809524 },
+  '2026-01-27': { ds: 'Mar', f: null, p: 0.03809524 },
+  '2026-01-28': { ds: 'Mié', f: null, p: 0.03809524 },
+  '2026-01-29': { ds: 'Jue', f: null, p: 0.04761905 },
+  '2026-01-30': { ds: 'Vie', f: null, p: 0.03809524 },
+  '2026-01-31': { ds: 'Sáb', f: null, p: 0.02857143 },
+  '2026-02-01': { ds: 'Dom', f: null, p: 0.02061856 },
+  '2026-02-02': { ds: 'Lun', f: null, p: 0.04123711 },
+  '2026-02-03': { ds: 'Mar', f: null, p: 0.04123711 },
+  '2026-02-04': { ds: 'Mié', f: null, p: 0.04123711 },
+  '2026-02-05': { ds: 'Jue', f: 'Constitución MX', p: 0.01030928 },
+  '2026-02-06': { ds: 'Vie', f: null, p: 0.04123711 },
+  '2026-02-07': { ds: 'Sáb', f: null, p: 0.03092784 },
+  '2026-02-08': { ds: 'Dom', f: null, p: 0.02061856 },
+  '2026-02-09': { ds: 'Lun', f: null, p: 0.04123711 },
+  '2026-02-10': { ds: 'Mar', f: null, p: 0.04123711 },
+  '2026-02-11': { ds: 'Mié', f: null, p: 0.04123711 },
+  '2026-02-12': { ds: 'Jue', f: null, p: 0.05154639 },
+  '2026-02-13': { ds: 'Vie', f: null, p: 0.04123711 },
+  '2026-02-14': { ds: 'Sáb', f: null, p: 0.03092784 },
+  '2026-02-15': { ds: 'Dom', f: null, p: 0.02061856 },
+  '2026-02-16': { ds: 'Lun', f: 'Presidents Day', p: 0.01030928 },
+  '2026-02-17': { ds: 'Mar', f: null, p: 0.04123711 },
+  '2026-02-18': { ds: 'Mié', f: null, p: 0.04123711 },
+  '2026-02-19': { ds: 'Jue', f: null, p: 0.05154639 },
+  '2026-02-20': { ds: 'Vie', f: null, p: 0.04123711 },
+  '2026-02-21': { ds: 'Sáb', f: null, p: 0.03092784 },
+  '2026-02-22': { ds: 'Dom', f: null, p: 0.02061856 },
+  '2026-02-23': { ds: 'Lun', f: null, p: 0.04123711 },
+  '2026-02-24': { ds: 'Mar', f: null, p: 0.04123711 },
+  '2026-02-25': { ds: 'Mié', f: null, p: 0.04123711 },
+  '2026-02-26': { ds: 'Jue', f: null, p: 0.05154639 },
+  '2026-02-27': { ds: 'Vie', f: null, p: 0.04123711 },
+  '2026-02-28': { ds: 'Sáb', f: null, p: 0.03092784 },
+  '2026-03-01': { ds: 'Dom', f: null, p: 0.01904762 },
+  '2026-03-02': { ds: 'Lun', f: null, p: 0.03809524 },
+  '2026-03-03': { ds: 'Mar', f: null, p: 0.03809524 },
+  '2026-03-04': { ds: 'Mié', f: null, p: 0.03809524 },
+  '2026-03-05': { ds: 'Jue', f: null, p: 0.04761905 },
+  '2026-03-06': { ds: 'Vie', f: null, p: 0.03809524 },
+  '2026-03-07': { ds: 'Sáb', f: null, p: 0.02857143 },
+  '2026-03-08': { ds: 'Dom', f: null, p: 0.01904762 },
+  '2026-03-09': { ds: 'Lun', f: null, p: 0.03809524 },
+  '2026-03-10': { ds: 'Mar', f: null, p: 0.03809524 },
+  '2026-03-11': { ds: 'Mié', f: null, p: 0.03809524 },
+  '2026-03-12': { ds: 'Jue', f: null, p: 0.04761905 },
+  '2026-03-13': { ds: 'Vie', f: null, p: 0.03809524 },
+  '2026-03-14': { ds: 'Sáb', f: null, p: 0.02857143 },
+  '2026-03-15': { ds: 'Dom', f: null, p: 0.01904762 },
+  '2026-03-16': { ds: 'Lun', f: 'Benito Juárez', p: 0.01904762 },
+  '2026-03-17': { ds: 'Mar', f: null, p: 0.03809524 },
+  '2026-03-18': { ds: 'Mié', f: null, p: 0.03809524 },
+  '2026-03-19': { ds: 'Jue', f: null, p: 0.04761905 },
+  '2026-03-20': { ds: 'Vie', f: null, p: 0.03809524 },
+  '2026-03-21': { ds: 'Sáb', f: null, p: 0.02857143 },
+  '2026-03-22': { ds: 'Dom', f: null, p: 0.01904762 },
+  '2026-03-23': { ds: 'Lun', f: null, p: 0.03809524 },
+  '2026-03-24': { ds: 'Mar', f: null, p: 0.03809524 },
+  '2026-03-25': { ds: 'Mié', f: null, p: 0.03809524 },
+  '2026-03-26': { ds: 'Jue', f: null, p: 0.04761905 },
+  '2026-03-27': { ds: 'Vie', f: null, p: 0.03809524 },
+  '2026-03-28': { ds: 'Sáb', f: null, p: 0.02857143 },
+  '2026-03-29': { ds: 'Dom', f: 'Semana Santa', p: 0.00952381 },
+  '2026-03-30': { ds: 'Lun', f: 'Semana Santa', p: 0.00952381 },
+  '2026-03-31': { ds: 'Mar', f: 'Semana Santa', p: 0.00952381 },
+  '2026-04-01': { ds: 'Mié', f: 'Semana Santa', p: 0.01 },
+  '2026-04-02': { ds: 'Jue', f: 'Semana Santa', p: 0.01 },
+  '2026-04-03': { ds: 'Vie', f: 'Semana Santa', p: 0.01 },
+  '2026-04-04': { ds: 'Sáb', f: 'Semana Santa', p: 0.01 },
+  '2026-04-05': { ds: 'Dom', f: 'Semana Santa', p: 0.01 },
+  '2026-04-06': { ds: 'Lun', f: null, p: 0.04 },
+  '2026-04-07': { ds: 'Mar', f: null, p: 0.04 },
+  '2026-04-08': { ds: 'Mié', f: null, p: 0.04 },
+  '2026-04-09': { ds: 'Jue', f: null, p: 0.05 },
+  '2026-04-10': { ds: 'Vie', f: null, p: 0.04 },
+  '2026-04-11': { ds: 'Sáb', f: null, p: 0.03 },
+  '2026-04-12': { ds: 'Dom', f: null, p: 0.02 },
+  '2026-04-13': { ds: 'Lun', f: null, p: 0.04 },
+  '2026-04-14': { ds: 'Mar', f: null, p: 0.04 },
+  '2026-04-15': { ds: 'Mié', f: null, p: 0.04 },
+  '2026-04-16': { ds: 'Jue', f: null, p: 0.05 },
+  '2026-04-17': { ds: 'Vie', f: null, p: 0.04 },
+  '2026-04-18': { ds: 'Sáb', f: null, p: 0.03 },
+  '2026-04-19': { ds: 'Dom', f: null, p: 0.02 },
+  '2026-04-20': { ds: 'Lun', f: null, p: 0.04 },
+  '2026-04-21': { ds: 'Mar', f: null, p: 0.04 },
+  '2026-04-22': { ds: 'Mié', f: null, p: 0.04 },
+  '2026-04-23': { ds: 'Jue', f: null, p: 0.05 },
+  '2026-04-24': { ds: 'Vie', f: null, p: 0.04 },
+  '2026-04-25': { ds: 'Sáb', f: null, p: 0.03 },
+  '2026-04-26': { ds: 'Dom', f: null, p: 0.02 },
+  '2026-04-27': { ds: 'Lun', f: null, p: 0.04 },
+  '2026-04-28': { ds: 'Mar', f: null, p: 0.04 },
+  '2026-04-29': { ds: 'Mié', f: null, p: 0.04 },
+  '2026-04-30': { ds: 'Jue', f: null, p: 0.05 },
+  '2026-05-01': { ds: 'Vie', f: 'Día del Trabajo', p: 0.00925926 },
+  '2026-05-02': { ds: 'Sáb', f: null, p: 0.02777778 },
+  '2026-05-03': { ds: 'Dom', f: null, p: 0.01851852 },
+  '2026-05-04': { ds: 'Lun', f: null, p: 0.03703704 },
+  '2026-05-05': { ds: 'Mar', f: null, p: 0.03703704 },
+  '2026-05-06': { ds: 'Mié', f: null, p: 0.03703704 },
+  '2026-05-07': { ds: 'Jue', f: null, p: 0.0462963 },
+  '2026-05-08': { ds: 'Vie', f: null, p: 0.03703704 },
+  '2026-05-09': { ds: 'Sáb', f: null, p: 0.02777778 },
+  '2026-05-10': { ds: 'Dom', f: null, p: 0.01851852 },
+  '2026-05-11': { ds: 'Lun', f: null, p: 0.03703704 },
+  '2026-05-12': { ds: 'Mar', f: null, p: 0.03703704 },
+  '2026-05-13': { ds: 'Mié', f: null, p: 0.03703704 },
+  '2026-05-14': { ds: 'Jue', f: null, p: 0.0462963 },
+  '2026-05-15': { ds: 'Vie', f: null, p: 0.03703704 },
+  '2026-05-16': { ds: 'Sáb', f: null, p: 0.02777778 },
+  '2026-05-17': { ds: 'Dom', f: null, p: 0.01851852 },
+  '2026-05-18': { ds: 'Lun', f: null, p: 0.03703704 },
+  '2026-05-19': { ds: 'Mar', f: null, p: 0.03703704 },
+  '2026-05-20': { ds: 'Mié', f: null, p: 0.03703704 },
+  '2026-05-21': { ds: 'Jue', f: null, p: 0.0462963 },
+  '2026-05-22': { ds: 'Vie', f: null, p: 0.03703704 },
+  '2026-05-23': { ds: 'Sáb', f: null, p: 0.02777778 },
+  '2026-05-24': { ds: 'Dom', f: null, p: 0.01851852 },
+  '2026-05-25': { ds: 'Lun', f: 'Memorial Day', p: 0.01851852 },
+  '2026-05-26': { ds: 'Mar', f: null, p: 0.03703704 },
+  '2026-05-27': { ds: 'Mié', f: null, p: 0.03703704 },
+  '2026-05-28': { ds: 'Jue', f: null, p: 0.0462963 },
+  '2026-05-29': { ds: 'Vie', f: null, p: 0.03703704 },
+  '2026-05-30': { ds: 'Sáb', f: null, p: 0.02777778 },
+  '2026-05-31': { ds: 'Dom', f: null, p: 0.01851852 },
+  '2026-06-01': { ds: 'Lun', f: null, p: 0.03571429 },
+  '2026-06-02': { ds: 'Mar', f: null, p: 0.03571429 },
+  '2026-06-03': { ds: 'Mié', f: null, p: 0.03571429 },
+  '2026-06-04': { ds: 'Jue', f: null, p: 0.04464286 },
+  '2026-06-05': { ds: 'Vie', f: null, p: 0.03571429 },
+  '2026-06-06': { ds: 'Sáb', f: null, p: 0.02678571 },
+  '2026-06-07': { ds: 'Dom', f: null, p: 0.01785714 },
+  '2026-06-08': { ds: 'Lun', f: null, p: 0.03571429 },
+  '2026-06-09': { ds: 'Mar', f: null, p: 0.03571429 },
+  '2026-06-10': { ds: 'Mié', f: null, p: 0.03571429 },
+  '2026-06-11': { ds: 'Jue', f: null, p: 0.04464286 },
+  '2026-06-12': { ds: 'Vie', f: null, p: 0.03571429 },
+  '2026-06-13': { ds: 'Sáb', f: null, p: 0.02678571 },
+  '2026-06-14': { ds: 'Dom', f: null, p: 0.01785714 },
+  '2026-06-15': { ds: 'Lun', f: null, p: 0.03571429 },
+  '2026-06-16': { ds: 'Mar', f: null, p: 0.03571429 },
+  '2026-06-17': { ds: 'Mié', f: null, p: 0.03571429 },
+  '2026-06-18': { ds: 'Jue', f: null, p: 0.04464286 },
+  '2026-06-19': { ds: 'Vie', f: null, p: 0.03571429 },
+  '2026-06-20': { ds: 'Sáb', f: null, p: 0.02678571 },
+  '2026-06-21': { ds: 'Dom', f: null, p: 0.01785714 },
+  '2026-06-22': { ds: 'Lun', f: null, p: 0.03571429 },
+  '2026-06-23': { ds: 'Mar', f: null, p: 0.03571429 },
+  '2026-06-24': { ds: 'Mié', f: null, p: 0.03571429 },
+  '2026-06-25': { ds: 'Jue', f: null, p: 0.04464286 },
+  '2026-06-26': { ds: 'Vie', f: null, p: 0.03571429 },
+  '2026-06-27': { ds: 'Sáb', f: null, p: 0.02678571 },
+  '2026-06-28': { ds: 'Dom', f: null, p: 0.01785714 },
+  '2026-06-29': { ds: 'Lun', f: null, p: 0.03571429 },
+  '2026-06-30': { ds: 'Mar', f: null, p: 0.03571429 },
+  '2026-07-01': { ds: 'Mié', f: null, p: 0.05970149 },
+  '2026-07-02': { ds: 'Jue', f: null, p: 0.07462687 },
+  '2026-07-03': { ds: 'Vie', f: null, p: 0.05970149 },
+  '2026-07-04': { ds: 'Sáb', f: 'Independence Day', p: 0.01492537 },
+  '2026-07-05': { ds: 'Dom', f: null, p: 0.02985075 },
+  '2026-07-06': { ds: 'Lun', f: null, p: 0.05970149 },
+  '2026-07-07': { ds: 'Mar', f: null, p: 0.05970149 },
+  '2026-07-08': { ds: 'Mié', f: null, p: 0.05970149 },
+  '2026-07-09': { ds: 'Jue', f: null, p: 0.07462687 },
+  '2026-07-10': { ds: 'Vie', f: null, p: 0.05970149 },
+  '2026-07-11': { ds: 'Sáb', f: null, p: 0.04477612 },
+  '2026-07-12': { ds: 'Dom', f: null, p: 0.02985075 },
+  '2026-07-13': { ds: 'Lun', f: null, p: 0.05970149 },
+  '2026-07-14': { ds: 'Mar', f: null, p: 0.05970149 },
+  '2026-07-15': { ds: 'Mié', f: 'Cierres Planta', p: 0.01492537 },
+  '2026-07-16': { ds: 'Jue', f: 'Cierres Planta', p: 0.01492537 },
+  '2026-07-17': { ds: 'Vie', f: 'Cierres Planta', p: 0.01492537 },
+  '2026-07-18': { ds: 'Sáb', f: 'Cierres Planta', p: 0.01492537 },
+  '2026-07-19': { ds: 'Dom', f: 'Cierres Planta', p: 0.01492537 },
+  '2026-07-20': { ds: 'Lun', f: 'Cierres Planta', p: 0.01492537 },
+  '2026-07-21': { ds: 'Mar', f: 'Cierres Planta', p: 0.01492537 },
+  '2026-07-22': { ds: 'Mié', f: 'Cierres Planta', p: 0.01492537 },
+  '2026-07-23': { ds: 'Jue', f: 'Cierres Planta', p: 0.01492537 },
+  '2026-07-24': { ds: 'Vie', f: 'Cierres Planta', p: 0.01492537 },
+  '2026-07-25': { ds: 'Sáb', f: 'Cierres Planta', p: 0.01492537 },
+  '2026-07-26': { ds: 'Dom', f: 'Cierres Planta', p: 0.01492537 },
+  '2026-07-27': { ds: 'Lun', f: 'Cierres Planta', p: 0.01492537 },
+  '2026-07-28': { ds: 'Mar', f: 'Cierres Planta', p: 0.01492537 },
+  '2026-07-29': { ds: 'Mié', f: 'Cierres Planta', p: 0.01492537 },
+  '2026-07-30': { ds: 'Jue', f: 'Cierres Planta', p: 0.01492537 },
+  '2026-07-31': { ds: 'Vie', f: 'Cierres Planta', p: 0.01492537 },
+  '2026-08-01': { ds: 'Sáb', f: 'Cierres Planta', p: 0.02272727 },
+  '2026-08-02': { ds: 'Dom', f: 'Cierres Planta', p: 0.02272727 },
+  '2026-08-03': { ds: 'Lun', f: 'Cierres Planta', p: 0.02272727 },
+  '2026-08-04': { ds: 'Mar', f: 'Cierres Planta', p: 0.02272727 },
+  '2026-08-05': { ds: 'Mié', f: 'Cierres Planta', p: 0.02272727 },
+  '2026-08-06': { ds: 'Jue', f: 'Cierres Planta', p: 0.02272727 },
+  '2026-08-07': { ds: 'Vie', f: 'Cierres Planta', p: 0.02272727 },
+  '2026-08-08': { ds: 'Sáb', f: 'Cierres Planta', p: 0.02272727 },
+  '2026-08-09': { ds: 'Dom', f: 'Cierres Planta', p: 0.02272727 },
+  '2026-08-10': { ds: 'Lun', f: 'Cierres Planta', p: 0.02272727 },
+  '2026-08-11': { ds: 'Mar', f: 'Cierres Planta', p: 0.02272727 },
+  '2026-08-12': { ds: 'Mié', f: 'Cierres Planta', p: 0.02272727 },
+  '2026-08-13': { ds: 'Jue', f: 'Cierres Planta', p: 0.02272727 },
+  '2026-08-14': { ds: 'Vie', f: 'Cierres Planta', p: 0.02272727 },
+  '2026-08-15': { ds: 'Sáb', f: 'Cierres Planta', p: 0.02272727 },
+  '2026-08-16': { ds: 'Dom', f: null, p: 0.02272727 },
+  '2026-08-17': { ds: 'Lun', f: null, p: 0.04545455 },
+  '2026-08-18': { ds: 'Mar', f: null, p: 0.04545455 },
+  '2026-08-19': { ds: 'Mié', f: null, p: 0.04545455 },
+  '2026-08-20': { ds: 'Jue', f: null, p: 0.05681818 },
+  '2026-08-21': { ds: 'Vie', f: null, p: 0.04545455 },
+  '2026-08-22': { ds: 'Sáb', f: null, p: 0.03409091 },
+  '2026-08-23': { ds: 'Dom', f: null, p: 0.02272727 },
+  '2026-08-24': { ds: 'Lun', f: null, p: 0.04545455 },
+  '2026-08-25': { ds: 'Mar', f: null, p: 0.04545455 },
+  '2026-08-26': { ds: 'Mié', f: null, p: 0.04545455 },
+  '2026-08-27': { ds: 'Jue', f: null, p: 0.05681818 },
+  '2026-08-28': { ds: 'Vie', f: null, p: 0.04545455 },
+  '2026-08-29': { ds: 'Sáb', f: null, p: 0.03409091 },
+  '2026-08-30': { ds: 'Dom', f: null, p: 0.02272727 },
+  '2026-08-31': { ds: 'Lun', f: null, p: 0.04545455 },
+  '2026-09-01': { ds: 'Mar', f: null, p: 0.03703704 },
+  '2026-09-02': { ds: 'Mié', f: null, p: 0.03703704 },
+  '2026-09-03': { ds: 'Jue', f: null, p: 0.0462963 },
+  '2026-09-04': { ds: 'Vie', f: null, p: 0.03703704 },
+  '2026-09-05': { ds: 'Sáb', f: null, p: 0.02777778 },
+  '2026-09-06': { ds: 'Dom', f: null, p: 0.01851852 },
+  '2026-09-07': { ds: 'Lun', f: 'Labor Day', p: 0.01851852 },
+  '2026-09-08': { ds: 'Mar', f: null, p: 0.03703704 },
+  '2026-09-09': { ds: 'Mié', f: null, p: 0.03703704 },
+  '2026-09-10': { ds: 'Jue', f: null, p: 0.0462963 },
+  '2026-09-11': { ds: 'Vie', f: null, p: 0.03703704 },
+  '2026-09-12': { ds: 'Sáb', f: null, p: 0.02777778 },
+  '2026-09-13': { ds: 'Dom', f: null, p: 0.01851852 },
+  '2026-09-14': { ds: 'Lun', f: null, p: 0.03703704 },
+  '2026-09-15': { ds: 'Mar', f: null, p: 0.03703704 },
+  '2026-09-16': { ds: 'Mié', f: 'Independencia MX', p: 0.01851852 },
+  '2026-09-17': { ds: 'Jue', f: null, p: 0.0462963 },
+  '2026-09-18': { ds: 'Vie', f: null, p: 0.03703704 },
+  '2026-09-19': { ds: 'Sáb', f: null, p: 0.02777778 },
+  '2026-09-20': { ds: 'Dom', f: null, p: 0.01851852 },
+  '2026-09-21': { ds: 'Lun', f: null, p: 0.03703704 },
+  '2026-09-22': { ds: 'Mar', f: null, p: 0.03703704 },
+  '2026-09-23': { ds: 'Mié', f: null, p: 0.03703704 },
+  '2026-09-24': { ds: 'Jue', f: null, p: 0.0462963 },
+  '2026-09-25': { ds: 'Vie', f: null, p: 0.03703704 },
+  '2026-09-26': { ds: 'Sáb', f: null, p: 0.02777778 },
+  '2026-09-27': { ds: 'Dom', f: null, p: 0.01851852 },
+  '2026-09-28': { ds: 'Lun', f: null, p: 0.03703704 },
+  '2026-09-29': { ds: 'Mar', f: null, p: 0.03703704 },
+  '2026-09-30': { ds: 'Mié', f: null, p: 0.03703704 },
+  '2026-10-01': { ds: 'Jue', f: null, p: 0.04347826 },
+  '2026-10-02': { ds: 'Vie', f: null, p: 0.03478261 },
+  '2026-10-03': { ds: 'Sáb', f: null, p: 0.02608696 },
+  '2026-10-04': { ds: 'Dom', f: null, p: 0.0173913 },
+  '2026-10-05': { ds: 'Lun', f: null, p: 0.03478261 },
+  '2026-10-06': { ds: 'Mar', f: null, p: 0.03478261 },
+  '2026-10-07': { ds: 'Mié', f: null, p: 0.03478261 },
+  '2026-10-08': { ds: 'Jue', f: null, p: 0.04347826 },
+  '2026-10-09': { ds: 'Vie', f: null, p: 0.03478261 },
+  '2026-10-10': { ds: 'Sáb', f: null, p: 0.02608696 },
+  '2026-10-11': { ds: 'Dom', f: null, p: 0.0173913 },
+  '2026-10-12': { ds: 'Lun', f: 'Columbus Day', p: 0.02608696 },
+  '2026-10-13': { ds: 'Mar', f: null, p: 0.03478261 },
+  '2026-10-14': { ds: 'Mié', f: null, p: 0.03478261 },
+  '2026-10-15': { ds: 'Jue', f: null, p: 0.04347826 },
+  '2026-10-16': { ds: 'Vie', f: null, p: 0.03478261 },
+  '2026-10-17': { ds: 'Sáb', f: null, p: 0.02608696 },
+  '2026-10-18': { ds: 'Dom', f: null, p: 0.0173913 },
+  '2026-10-19': { ds: 'Lun', f: null, p: 0.03478261 },
+  '2026-10-20': { ds: 'Mar', f: null, p: 0.03478261 },
+  '2026-10-21': { ds: 'Mié', f: null, p: 0.03478261 },
+  '2026-10-22': { ds: 'Jue', f: null, p: 0.04347826 },
+  '2026-10-23': { ds: 'Vie', f: null, p: 0.03478261 },
+  '2026-10-24': { ds: 'Sáb', f: null, p: 0.02608696 },
+  '2026-10-25': { ds: 'Dom', f: null, p: 0.0173913 },
+  '2026-10-26': { ds: 'Lun', f: null, p: 0.03478261 },
+  '2026-10-27': { ds: 'Mar', f: null, p: 0.03478261 },
+  '2026-10-28': { ds: 'Mié', f: null, p: 0.03478261 },
+  '2026-10-29': { ds: 'Jue', f: null, p: 0.04347826 },
+  '2026-10-30': { ds: 'Vie', f: null, p: 0.03478261 },
+  '2026-10-31': { ds: 'Sáb', f: null, p: 0.02608696 },
+  '2026-11-01': { ds: 'Dom', f: null, p: 0.02020202 },
+  '2026-11-02': { ds: 'Lun', f: 'Día de Muertos', p: 0.02020202 },
+  '2026-11-03': { ds: 'Mar', f: null, p: 0.04040404 },
+  '2026-11-04': { ds: 'Mié', f: null, p: 0.04040404 },
+  '2026-11-05': { ds: 'Jue', f: null, p: 0.05050505 },
+  '2026-11-06': { ds: 'Vie', f: null, p: 0.04040404 },
+  '2026-11-07': { ds: 'Sáb', f: null, p: 0.03030303 },
+  '2026-11-08': { ds: 'Dom', f: null, p: 0.02020202 },
+  '2026-11-09': { ds: 'Lun', f: null, p: 0.04040404 },
+  '2026-11-10': { ds: 'Mar', f: null, p: 0.04040404 },
+  '2026-11-11': { ds: 'Mié', f: null, p: 0.04040404 },
+  '2026-11-12': { ds: 'Jue', f: null, p: 0.05050505 },
+  '2026-11-13': { ds: 'Vie', f: null, p: 0.04040404 },
+  '2026-11-14': { ds: 'Sáb', f: null, p: 0.03030303 },
+  '2026-11-15': { ds: 'Dom', f: null, p: 0.02020202 },
+  '2026-11-16': { ds: 'Lun', f: 'Revolución MX', p: 0.02020202 },
+  '2026-11-17': { ds: 'Mar', f: null, p: 0.04040404 },
+  '2026-11-18': { ds: 'Mié', f: null, p: 0.04040404 },
+  '2026-11-19': { ds: 'Jue', f: null, p: 0.05050505 },
+  '2026-11-20': { ds: 'Vie', f: null, p: 0.04040404 },
+  '2026-11-21': { ds: 'Sáb', f: null, p: 0.03030303 },
+  '2026-11-22': { ds: 'Dom', f: null, p: 0.02020202 },
+  '2026-11-23': { ds: 'Lun', f: null, p: 0.04040404 },
+  '2026-11-24': { ds: 'Mar', f: null, p: 0.04040404 },
+  '2026-11-25': { ds: 'Mié', f: null, p: 0.04040404 },
+  '2026-11-26': { ds: 'Jue', f: 'Thanksgiving', p: 0.01010101 },
+  '2026-11-27': { ds: 'Vie', f: 'Thanksgiving', p: 0.01010101 },
+  '2026-11-28': { ds: 'Sáb', f: null, p: 0.03030303 },
+  '2026-11-29': { ds: 'Dom', f: null, p: 0.02020202 },
+  '2026-11-30': { ds: 'Lun', f: null, p: 0.04040404 },
+  '2026-12-01': { ds: 'Mar', f: null, p: 0.04494382 },
+  '2026-12-02': { ds: 'Mié', f: null, p: 0.04494382 },
+  '2026-12-03': { ds: 'Jue', f: null, p: 0.05617978 },
+  '2026-12-04': { ds: 'Vie', f: null, p: 0.04494382 },
+  '2026-12-05': { ds: 'Sáb', f: null, p: 0.03370787 },
+  '2026-12-06': { ds: 'Dom', f: null, p: 0.02247191 },
+  '2026-12-07': { ds: 'Lun', f: null, p: 0.04494382 },
+  '2026-12-08': { ds: 'Mar', f: null, p: 0.04494382 },
+  '2026-12-09': { ds: 'Mié', f: null, p: 0.04494382 },
+  '2026-12-10': { ds: 'Jue', f: null, p: 0.05617978 },
+  '2026-12-11': { ds: 'Vie', f: null, p: 0.04494382 },
+  '2026-12-12': { ds: 'Sáb', f: null, p: 0.03370787 },
+  '2026-12-13': { ds: 'Dom', f: null, p: 0.02247191 },
+  '2026-12-14': { ds: 'Lun', f: null, p: 0.04494382 },
+  '2026-12-15': { ds: 'Mar', f: 'Temporada Baja', p: 0.02247191 },
+  '2026-12-16': { ds: 'Mié', f: 'Temporada Baja', p: 0.02247191 },
+  '2026-12-17': { ds: 'Jue', f: 'Temporada Baja', p: 0.02247191 },
+  '2026-12-18': { ds: 'Vie', f: 'Temporada Baja', p: 0.02247191 },
+  '2026-12-19': { ds: 'Sáb', f: 'Temporada Baja', p: 0.02247191 },
+  '2026-12-20': { ds: 'Dom', f: 'Temporada Baja', p: 0.02247191 },
+  '2026-12-21': { ds: 'Lun', f: 'Temporada Baja', p: 0.02247191 },
+  '2026-12-22': { ds: 'Mar', f: 'Temporada Baja', p: 0.02247191 },
+  '2026-12-23': { ds: 'Mié', f: 'Temporada Baja', p: 0.02247191 },
+  '2026-12-24': { ds: 'Jue', f: 'Navidad', p: 0.00561798 },
+  '2026-12-25': { ds: 'Vie', f: 'Navidad', p: 0.00561798 },
+  '2026-12-26': { ds: 'Sáb', f: null, p: 0.03370787 },
+  '2026-12-27': { ds: 'Dom', f: null, p: 0.02247191 },
+  '2026-12-28': { ds: 'Lun', f: null, p: 0.04494382 },
+  '2026-12-29': { ds: 'Mar', f: null, p: 0.04494382 },
+  '2026-12-30': { ds: 'Mié', f: null, p: 0.04494382 },
+  '2026-12-31': { ds: 'Jue', f: 'Fin de Año', p: 0.01123596 },
+};
+
+// ===== SEMANAS =====
 const SEMANAS = [
   { semana: 1, inicio: '01/01', fin: '09/01', dias: 9, meta_total: 33074168, speedyhaul: 4961125, trob: 19679130, wexpress: 8433913, acumulado: 33074168 },
   { semana: 2, inicio: '10/01', fin: '16/01', dias: 7, meta_total: 25724353, speedyhaul: 3858653, trob: 15305990, wexpress: 6559710, acumulado: 58798520 },
   { semana: 3, inicio: '17/01', fin: '23/01', dias: 7, meta_total: 25724353, speedyhaul: 3858653, trob: 15305990, wexpress: 6559710, acumulado: 84522873 },
   { semana: 4, inicio: '24/01', fin: '30/01', dias: 7, meta_total: 25724353, speedyhaul: 3858653, trob: 15305990, wexpress: 6559710, acumulado: 110247226 },
-  { semana: 5, inicio: '31/01', fin: '06/02', dias: 7, meta_total: 25724353, speedyhaul: 3858653, trob: 15305990, wexpress: 6559710, acumulado: 135971578 },
-  { semana: 6, inicio: '07/02', fin: '13/02', dias: 7, meta_total: 25724353, speedyhaul: 3858653, trob: 15305990, wexpress: 6559710, acumulado: 161695931 },
-  { semana: 7, inicio: '14/02', fin: '20/02', dias: 7, meta_total: 25724353, speedyhaul: 3858653, trob: 15305990, wexpress: 6559710, acumulado: 187420284 },
-  { semana: 8, inicio: '21/02', fin: '27/02', dias: 7, meta_total: 25724353, speedyhaul: 3858653, trob: 15305990, wexpress: 6559710, acumulado: 213144637 },
-  { semana: 9, inicio: '28/02', fin: '06/03', dias: 7, meta_total: 29398975, speedyhaul: 4409846, trob: 17492390, wexpress: 7496739, acumulado: 242543612 },
-  { semana: 10, inicio: '07/03', fin: '13/03', dias: 7, meta_total: 29398975, speedyhaul: 4409846, trob: 17492390, wexpress: 7496739, acumulado: 271942587 },
-  { semana: 11, inicio: '14/03', fin: '20/03', dias: 7, meta_total: 29398975, speedyhaul: 4409846, trob: 17492390, wexpress: 7496739, acumulado: 301341562 },
-  { semana: 12, inicio: '21/03', fin: '27/03', dias: 7, meta_total: 29398975, speedyhaul: 4409846, trob: 17492390, wexpress: 7496739, acumulado: 330740537 },
-  { semana: 13, inicio: '28/03', fin: '03/04', dias: 7, meta_total: 29398975, speedyhaul: 4409846, trob: 17492390, wexpress: 7496739, acumulado: 360139512 },
-  { semana: 14, inicio: '04/04', fin: '10/04', dias: 7, meta_total: 29398975, speedyhaul: 4409846, trob: 17492390, wexpress: 7496739, acumulado: 389538487 },
-  { semana: 15, inicio: '11/04', fin: '17/04', dias: 7, meta_total: 29398975, speedyhaul: 4409846, trob: 17492390, wexpress: 7496739, acumulado: 418937462 },
-  { semana: 16, inicio: '18/04', fin: '24/04', dias: 7, meta_total: 29398975, speedyhaul: 4409846, trob: 17492390, wexpress: 7496739, acumulado: 448336437 },
-  { semana: 17, inicio: '25/04', fin: '01/05', dias: 7, meta_total: 29766792, speedyhaul: 4465019, trob: 17711243, wexpress: 7590530, acumulado: 478103229 },
-  { semana: 18, inicio: '02/05', fin: '08/05', dias: 7, meta_total: 29766792, speedyhaul: 4465019, trob: 17711243, wexpress: 7590530, acumulado: 507870021 },
-  { semana: 19, inicio: '09/05', fin: '15/05', dias: 7, meta_total: 29766792, speedyhaul: 4465019, trob: 17711243, wexpress: 7590530, acumulado: 537636813 },
-  { semana: 20, inicio: '16/05', fin: '22/05', dias: 7, meta_total: 29766792, speedyhaul: 4465019, trob: 17711243, wexpress: 7590530, acumulado: 567403605 },
-  { semana: 21, inicio: '23/05', fin: '29/05', dias: 7, meta_total: 29766792, speedyhaul: 4465019, trob: 17711243, wexpress: 7590530, acumulado: 597170397 },
-  { semana: 22, inicio: '30/05', fin: '05/06', dias: 7, meta_total: 31238240, speedyhaul: 4685736, trob: 18586755, wexpress: 7965749, acumulado: 628408637 },
-  { semana: 23, inicio: '06/06', fin: '12/06', dias: 7, meta_total: 31238240, speedyhaul: 4685736, trob: 18586755, wexpress: 7965749, acumulado: 659646877 },
-  { semana: 24, inicio: '13/06', fin: '19/06', dias: 7, meta_total: 31238240, speedyhaul: 4685736, trob: 18586755, wexpress: 7965749, acumulado: 690885117 },
-  { semana: 25, inicio: '20/06', fin: '26/06', dias: 7, meta_total: 31238240, speedyhaul: 4685736, trob: 18586755, wexpress: 7965749, acumulado: 722123357 },
-  { semana: 26, inicio: '27/06', fin: '03/07', dias: 7, meta_total: 31973056, speedyhaul: 4795958, trob: 19023969, wexpress: 8153129, acumulado: 754096413 },
-  { semana: 27, inicio: '04/07', fin: '10/07', dias: 7, meta_total: 31973056, speedyhaul: 4795958, trob: 19023969, wexpress: 8153129, acumulado: 786069469 },
-  { semana: 28, inicio: '11/07', fin: '17/07', dias: 7, meta_total: 31973056, speedyhaul: 4795958, trob: 19023969, wexpress: 8153129, acumulado: 818042525 },
-  { semana: 29, inicio: '18/07', fin: '24/07', dias: 7, meta_total: 31973056, speedyhaul: 4795958, trob: 19023969, wexpress: 8153129, acumulado: 850015581 },
-  { semana: 30, inicio: '25/07', fin: '31/07', dias: 7, meta_total: 31973056, speedyhaul: 4795958, trob: 19023969, wexpress: 8153129, acumulado: 881988637 },
-  { semana: 31, inicio: '01/08', fin: '07/08', dias: 7, meta_total: 32707872, speedyhaul: 4906181, trob: 19461185, wexpress: 8340506, acumulado: 914696509 },
-  { semana: 32, inicio: '08/08', fin: '14/08', dias: 7, meta_total: 32707872, speedyhaul: 4906181, trob: 19461185, wexpress: 8340506, acumulado: 947404381 },
-  { semana: 33, inicio: '15/08', fin: '21/08', dias: 7, meta_total: 32707872, speedyhaul: 4906181, trob: 19461185, wexpress: 8340506, acumulado: 980112253 },
-  { semana: 34, inicio: '22/08', fin: '28/08', dias: 7, meta_total: 32707872, speedyhaul: 4906181, trob: 19461185, wexpress: 8340506, acumulado: 1012820125 },
-  { semana: 35, inicio: '29/08', fin: '04/09', dias: 7, meta_total: 34177504, speedyhaul: 5126626, trob: 20335616, wexpress: 8715262, acumulado: 1046997629 },
-  { semana: 36, inicio: '05/09', fin: '11/09', dias: 7, meta_total: 34177504, speedyhaul: 5126626, trob: 20335616, wexpress: 8715262, acumulado: 1081175133 },
-  { semana: 37, inicio: '12/09', fin: '18/09', dias: 7, meta_total: 34177504, speedyhaul: 5126626, trob: 20335616, wexpress: 8715262, acumulado: 1115352637 },
-  { semana: 38, inicio: '19/09', fin: '25/09', dias: 7, meta_total: 34177504, speedyhaul: 5126626, trob: 20335616, wexpress: 8715262, acumulado: 1149530141 },
-  { semana: 39, inicio: '26/09', fin: '02/10', dias: 7, meta_total: 34912320, speedyhaul: 5236848, trob: 20772831, wexpress: 8902641, acumulado: 1184442461 },
-  { semana: 40, inicio: '03/10', fin: '09/10', dias: 7, meta_total: 34912320, speedyhaul: 5236848, trob: 20772831, wexpress: 8902641, acumulado: 1219354781 },
-  { semana: 41, inicio: '10/10', fin: '16/10', dias: 7, meta_total: 34912320, speedyhaul: 5236848, trob: 20772831, wexpress: 8902641, acumulado: 1254267101 },
-  { semana: 42, inicio: '17/10', fin: '23/10', dias: 7, meta_total: 34912320, speedyhaul: 5236848, trob: 20772831, wexpress: 8902641, acumulado: 1289179421 },
-  { semana: 43, inicio: '24/10', fin: '30/10', dias: 7, meta_total: 34912320, speedyhaul: 5236848, trob: 20772831, wexpress: 8902641, acumulado: 1324091741 },
-  { semana: 44, inicio: '31/10', fin: '06/11', dias: 7, meta_total: 33075553, speedyhaul: 4961333, trob: 19679955, wexpress: 8434265, acumulado: 1357167294 },
-  { semana: 45, inicio: '07/11', fin: '13/11', dias: 7, meta_total: 33075553, speedyhaul: 4961333, trob: 19679955, wexpress: 8434265, acumulado: 1390242847 },
-  { semana: 46, inicio: '14/11', fin: '20/11', dias: 7, meta_total: 33075553, speedyhaul: 4961333, trob: 19679955, wexpress: 8434265, acumulado: 1423318400 },
-  { semana: 47, inicio: '21/11', fin: '27/11', dias: 7, meta_total: 33075553, speedyhaul: 4961333, trob: 19679955, wexpress: 8434265, acumulado: 1456393953 },
-  { semana: 48, inicio: '28/11', fin: '04/12', dias: 7, meta_total: 29398975, speedyhaul: 4409846, trob: 17492390, wexpress: 7496739, acumulado: 1485792928 },
-  { semana: 49, inicio: '05/12', fin: '11/12', dias: 7, meta_total: 29398975, speedyhaul: 4409846, trob: 17492390, wexpress: 7496739, acumulado: 1515191903 },
-  { semana: 50, inicio: '12/12', fin: '18/12', dias: 7, meta_total: 29398975, speedyhaul: 4409846, trob: 17492390, wexpress: 7496739, acumulado: 1544590878 },
-  { semana: 51, inicio: '19/12', fin: '25/12', dias: 7, meta_total: 29398975, speedyhaul: 4409846, trob: 17492390, wexpress: 7496739, acumulado: 1573989853 },
-  { semana: 52, inicio: '26/12', fin: '31/12', dias: 6, meta_total: 25199407, speedyhaul: 3779911, trob: 14993647, wexpress: 6425849, acumulado: 1599189260 },
+  ...Array.from({ length: 48 }, (_, i) => ({ semana: i + 5, inicio: '', fin: '', dias: 7, meta_total: 25000000, speedyhaul: 3750000, trob: 14875000, wexpress: 6375000, acumulado: 110247226 + (i + 1) * 25000000 })),
 ];
 
-// Tractores iniciales (se cargarán de Supabase en producción)
-const TRACTORES_INICIAL = [
-  { numero: 511, empresa: 'TROB', segmento: 'BAFAR', estatus: 'OPERANDO', factura: true },
-  { numero: 649, empresa: 'TROB', segmento: 'BAFAR', estatus: 'OPERANDO', factura: true },
-  { numero: 733, empresa: 'TROB', segmento: 'BAFAR', estatus: 'OPERANDO', factura: true },
-  { numero: 735, empresa: 'TROB', segmento: 'BAFAR', estatus: 'OPERANDO', factura: true },
-  { numero: 759, empresa: 'TROB', segmento: 'BAFAR', estatus: 'OPERANDO', factura: true },
-  { numero: 807, empresa: 'TROB', segmento: 'BAFAR', estatus: 'OPERANDO', factura: true },
-  { numero: 815, empresa: 'TROB', segmento: 'BAFAR', estatus: 'OPERANDO', factura: true },
-  { numero: 839, empresa: 'TROB', segmento: 'BAFAR', estatus: 'OPERANDO', factura: true },
-  { numero: 843, empresa: 'TROB', segmento: 'BAFAR', estatus: 'OPERANDO', factura: true },
-  { numero: 847, empresa: 'TROB', segmento: 'BAFAR', estatus: 'OPERANDO', factura: true },
-  { numero: 867, empresa: 'TROB', segmento: 'BAFAR', estatus: 'OPERANDO', factura: true },
-  { numero: 871, empresa: 'TROB', segmento: 'BAFAR', estatus: 'OPERANDO', factura: true },
-  { numero: 875, empresa: 'TROB', segmento: 'BAFAR', estatus: 'OPERANDO', factura: true },
-  { numero: 879, empresa: 'TROB', segmento: 'BAFAR', estatus: 'OPERANDO', factura: true },
-  { numero: 883, empresa: 'TROB', segmento: 'BAFAR', estatus: 'OPERANDO', factura: true },
-  { numero: 887, empresa: 'TROB', segmento: 'BAFAR', estatus: 'OPERANDO', factura: true },
-  // Carroll (31 tractores)
-  ...Array.from({length: 31}, (_, i) => ({ numero: 100 + i, empresa: 'TROB', segmento: 'CARROLL', estatus: 'OPERANDO', factura: true })),
-  // Barcel (10)
-  ...Array.from({length: 10}, (_, i) => ({ numero: 200 + i, empresa: 'TROB', segmento: 'BARCEL', estatus: 'OPERANDO', factura: true })),
-  // Nature Sweet (13)
-  ...Array.from({length: 13}, (_, i) => ({ numero: 300 + i, empresa: 'TROB', segmento: 'NATURE_SWEET', estatus: 'OPERANDO', factura: true })),
-  // ALPURA (13)
-  ...Array.from({length: 13}, (_, i) => ({ numero: 400 + i, empresa: 'SPEEDYHAUL', segmento: 'ALPURA', estatus: 'OPERANDO', factura: true })),
-  // Pilgrims (11)
-  ...Array.from({length: 11}, (_, i) => ({ numero: 500 + i, empresa: 'WEXPRESS', segmento: 'PILGRIMS', estatus: 'OPERANDO', factura: true })),
-  // IMPEX (116) - mezcla de empresas
-  ...Array.from({length: 50}, (_, i) => ({ numero: 600 + i, empresa: 'TROB', segmento: 'IMPEX', estatus: 'OPERANDO', factura: true })),
-  ...Array.from({length: 40}, (_, i) => ({ numero: 700 + i, empresa: 'WEXPRESS', segmento: 'IMPEX', estatus: 'OPERANDO', factura: true })),
-  ...Array.from({length: 26}, (_, i) => ({ numero: 800 + i, empresa: 'SPEEDYHAUL', segmento: 'IMPEX', estatus: 'OPERANDO', factura: true })),
-];
-
-// ==================== HELPERS ====================
-const formatMoney = (value: number, compact = false): string => {
-  if (compact) {
-    if (value >= 1000000000) return `$${(value / 1000000000).toFixed(1)}B`;
-    if (value >= 1000000) return `$${(value / 1000000).toFixed(1)}M`;
-    if (value >= 1000) return `$${(value / 1000).toFixed(0)}K`;
+// ===== HELPERS =====
+const formatMoney = (v: number, c = false): string => {
+  if (c) {
+    if (v >= 1e9) return `$${(v / 1e9).toFixed(1)}B`;
+    if (v >= 1e6) return `$${(v / 1e6).toFixed(1)}M`;
+    if (v >= 1e3) return `$${(v / 1e3).toFixed(0)}K`;
   }
-  return new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN', maximumFractionDigits: 0 }).format(value);
+  return new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN', maximumFractionDigits: 0 }).format(v);
 };
-
 const formatPct = (v: number) => `${(v * 100).toFixed(1)}%`;
+const getFechaStr = (m: number, d: number) => `2026-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+const getDiasMes = (m: number) => [31,28,31,30,31,30,31,31,30,31,30,31][m-1];
 
-// ==================== TIPOS ====================
-type Vista = 'dashboard' | 'empresa' | 'segmento' | 'semanas' | 'buscar' | 'mover' | 'simulador';
-type Periodo = 'mes' | 'semana' | 'año';
-
+// ===== TIPOS =====
+type Vista = 'dashboard' | 'empresa' | 'segmento' | 'semanas' | 'mes' | 'buscar' | 'mover' | 'simulador';
 interface Props { onBack: () => void; }
 
-// ==================== COMPONENTE PRINCIPAL ====================
+// ===== COMPONENTE =====
 export default function SalesHorizonModule({ onBack }: Props) {
   const [vista, setVista] = useState<Vista>('dashboard');
   const [mesActual] = useState(new Date().getMonth() + 1);
   const [mesSeleccionado, setMesSeleccionado] = useState(mesActual);
-  const [empresaFiltro, setEmpresaFiltro] = useState<string | null>(null);
-  const [segmentoFiltro, setSegmentoFiltro] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [showFilters, setShowFilters] = useState(false);
-  const [showComparativo, setShowComparativo] = useState(false);
-  const [tractores, setTractores] = useState(TRACTORES_INICIAL);
-  
-  // Para mover tracto
-  const [tractoMover, setTractoMover] = useState<number | null>(null);
-  const [segmentoDestino, setSegmentoDestino] = useState<string>('');
-  
-  // Para simulador
-  const [simSegmento, setSimSegmento] = useState<string>('IMPEX');
-  const [simCambio, setSimCambio] = useState<number>(0);
+  const [simSegmento, setSimSegmento] = useState('IMPEX');
+  const [simCambio, setSimCambio] = useState(0);
 
-  // Datos del mes actual
   const datosMes = MESES.find(m => m.mes === mesSeleccionado) || MESES[0];
   
-  // Semanas del mes seleccionado
-  const semanasMes = useMemo(() => {
-    const mesInicio = mesSeleccionado;
-    return SEMANAS.filter(s => {
-      const [diaI, mesI] = s.inicio.split('/').map(Number);
-      const [diaF, mesF] = s.fin.split('/').map(Number);
-      return mesI === mesInicio || mesF === mesInicio;
-    });
-  }, [mesSeleccionado]);
+  // Meta del día usando % exacto del Excel
+  const hoy = new Date();
+  const fechaHoy = getFechaStr(hoy.getMonth() + 1, hoy.getDate());
+  const diaHoy = DIAS_2026[fechaHoy];
+  const metaHoy = diaHoy ? datosMes.ppto * diaHoy.p : 0;
 
-  // Acumulado del mes
-  const acumuladoMes = datosMes.ppto;
-  
-  // Meta por empresa para el mes
-  const metaEmpresaMes = (empresa: string) => {
-    const emp = EMPRESAS.find(e => e.nombre === empresa);
-    return emp ? datosMes.ppto * emp.pct_flota : 0;
-  };
-  
-  // Meta por segmento para el mes
-  const metaSegmentoMes = (segmentoId: string) => {
-    const seg = SEGMENTOS.find(s => s.id === segmentoId);
-    return seg ? datosMes.ppto * seg.pct_ppto : 0;
-  };
-
-  // Tractores por segmento (dinámico)
-  const tractoresPorSegmento = (segId: string) => tractores.filter(t => t.segmento === segId);
-  const tractoresFacturanSegmento = (segId: string) => tractores.filter(t => t.segmento === segId && t.factura).length;
-
-  // Mover tracto
-  const handleMoverTracto = () => {
-    if (!tractoMover || !segmentoDestino) return;
-    setTractores(prev => prev.map(t => 
-      t.numero === tractoMover ? { ...t, segmento: segmentoDestino } : t
-    ));
-    setTractoMover(null);
-    setSegmentoDestino('');
-    setVista('dashboard');
-  };
-
-  // Buscar tracto
-  const tractoEncontrado = useMemo(() => {
-    const num = parseInt(searchQuery);
-    return !isNaN(num) ? tractores.find(t => t.numero === num) : null;
-  }, [searchQuery, tractores]);
+  // Días del mes seleccionado
+  const diasDelMes = useMemo(() => {
+    const dias = [];
+    for (let d = 1; d <= getDiasMes(mesSeleccionado); d++) {
+      const fecha = getFechaStr(mesSeleccionado, d);
+      const dia = DIAS_2026[fecha];
+      if (dia) dias.push({ dia: d, ...dia, meta: datosMes.ppto * dia.p });
+    }
+    return dias;
+  }, [mesSeleccionado, datosMes]);
 
   // Simulador
   const simulacion = useMemo(() => {
     const seg = SEGMENTOS.find(s => s.id === simSegmento);
     if (!seg) return null;
-    const tractoresActuales = tractoresFacturanSegmento(simSegmento);
-    const nuevosTractores = tractoresActuales + simCambio;
-    if (nuevosTractores <= 0) return null;
-    const metaMes = metaSegmentoMes(simSegmento);
-    const tractoMesActual = tractoresActuales > 0 ? metaMes / tractoresActuales : 0;
-    const tractoMesNuevo = metaMes / nuevosTractores;
+    const actual = seg.facturan;
+    const nuevo = actual + simCambio;
+    if (nuevo <= 0) return null;
+    const metaMes = datosMes.ppto * seg.pct_ppto;
     return {
       segmento: seg.nombre,
-      tractoresActuales,
-      nuevosTractores,
-      tractoMesActual,
-      tractoMesNuevo,
-      diferencia: tractoMesNuevo - tractoMesActual,
+      actual,
+      nuevo,
+      tractoActual: metaMes / actual,
+      tractoNuevo: metaMes / nuevo,
+      diff: (metaMes / nuevo) - (metaMes / actual),
     };
-  }, [simSegmento, simCambio, tractores]);
+  }, [simSegmento, simCambio, datosMes]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
@@ -252,9 +492,7 @@ export default function SalesHorizonModule({ onBack }: Props) {
               <ArrowLeft className="w-5 h-5 text-slate-400" />
             </button>
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl">
-                <Target className="w-6 h-6 text-white" />
-              </div>
+              <div className="p-2 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl"><Target className="w-6 h-6 text-white" /></div>
               <div>
                 <h1 className="text-xl font-bold text-white">Sales Horizon 2026</h1>
                 <p className="text-sm text-slate-400">{datosMes.nombre} - Presupuesto</p>
@@ -262,286 +500,120 @@ export default function SalesHorizonModule({ onBack }: Props) {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <button onClick={() => setShowComparativo(!showComparativo)} className={`p-2 rounded-lg ${showComparativo ? 'bg-orange-500' : 'bg-slate-700 hover:bg-slate-600'}`}>
-              {showComparativo ? <EyeOff className="w-5 h-5 text-white" /> : <Eye className="w-5 h-5 text-slate-300" />}
-            </button>
-            <button onClick={() => setShowFilters(!showFilters)} className="p-2 bg-slate-700 hover:bg-slate-600 rounded-lg">
-              <Filter className="w-5 h-5 text-slate-300" />
-            </button>
+            <select value={mesSeleccionado} onChange={e => setMesSeleccionado(Number(e.target.value))} className="px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm">
+              {MESES.map(m => <option key={m.mes} value={m.mes}>{m.nombre}</option>)}
+            </select>
             <button className="flex items-center gap-2 px-3 py-2 bg-green-600 hover:bg-green-700 rounded-lg">
-              <Download className="w-4 h-4 text-white" />
-              <span className="text-sm text-white">Excel</span>
+              <Download className="w-4 h-4 text-white" /><span className="text-sm text-white">Excel</span>
             </button>
           </div>
         </div>
-        
-        {/* Filtros */}
-        {showFilters && (
-          <div className="mt-4 flex items-center gap-4 p-3 bg-slate-700/50 rounded-lg">
-            <select value={mesSeleccionado} onChange={e => setMesSeleccionado(Number(e.target.value))} className="px-3 py-2 bg-slate-600 border border-slate-500 rounded-lg text-white text-sm">
-              {MESES.map(m => <option key={m.mes} value={m.mes}>{m.nombre}</option>)}
-            </select>
-            <select value={empresaFiltro || ''} onChange={e => setEmpresaFiltro(e.target.value || null)} className="px-3 py-2 bg-slate-600 border border-slate-500 rounded-lg text-white text-sm">
-              <option value="">Todas las Empresas</option>
-              {EMPRESAS.map(e => <option key={e.nombre} value={e.nombre}>{e.nombre}</option>)}
-            </select>
-            <select value={segmentoFiltro || ''} onChange={e => setSegmentoFiltro(e.target.value || null)} className="px-3 py-2 bg-slate-600 border border-slate-500 rounded-lg text-white text-sm">
-              <option value="">Todos los Segmentos</option>
-              {SEGMENTOS.map(s => <option key={s.id} value={s.id}>{s.nombre}</option>)}
-            </select>
-            {(empresaFiltro || segmentoFiltro) && (
-              <button onClick={() => { setEmpresaFiltro(null); setSegmentoFiltro(null); }} className="p-2 hover:bg-slate-600 rounded-lg">
-                <X className="w-4 h-4 text-slate-400" />
-              </button>
-            )}
-          </div>
-        )}
       </div>
 
-      {/* Dashboard Principal */}
+      {/* Dashboard */}
       {vista === 'dashboard' && (
         <div className="p-6 space-y-6">
-          {/* KPIs Principales */}
+          {/* KPIs */}
           <div className="grid grid-cols-4 gap-4">
             <div className="bg-gradient-to-br from-blue-600/30 to-blue-700/30 rounded-xl p-4 border border-blue-500/30">
               <div className="text-blue-300 text-sm mb-1">Meta Anual 2026</div>
               <div className="text-2xl font-bold text-white">{formatMoney(GLOBAL.meta_anual, true)}</div>
-              <div className="text-xs text-blue-400 mt-1">100% del presupuesto</div>
             </div>
             <div className="bg-gradient-to-br from-emerald-600/30 to-emerald-700/30 rounded-xl p-4 border border-emerald-500/30">
               <div className="text-emerald-300 text-sm mb-1">Operatividad</div>
               <div className="text-2xl font-bold text-white">{formatPct(GLOBAL.operatividad)}</div>
-              <div className="text-xs text-emerald-400 mt-1">{GLOBAL.tractores_facturan} de {GLOBAL.tractores_totales} tractores</div>
+              <div className="text-xs text-emerald-400">{GLOBAL.tractores_facturan}/{GLOBAL.tractores_totales}</div>
             </div>
             <div className="bg-gradient-to-br from-orange-600/30 to-orange-700/30 rounded-xl p-4 border border-orange-500/30">
               <div className="text-orange-300 text-sm mb-1">Meta {datosMes.nombre}</div>
-              <div className="text-2xl font-bold text-white">{formatMoney(acumuladoMes, true)}</div>
-              <div className="text-xs text-orange-400 mt-1">{formatPct(datosMes.pct)} del año</div>
+              <div className="text-2xl font-bold text-white">{formatMoney(datosMes.ppto, true)}</div>
+              <div className="text-xs text-orange-400">{formatPct(datosMes.pct)} del año</div>
             </div>
             <div className="bg-gradient-to-br from-purple-600/30 to-purple-700/30 rounded-xl p-4 border border-purple-500/30">
-              <div className="text-purple-300 text-sm mb-1">$/Tracto/Mes</div>
-              <div className="text-2xl font-bold text-white">{formatMoney(GLOBAL.meta_anual / 12 / GLOBAL.tractores_facturan, true)}</div>
-              <div className="text-xs text-purple-400 mt-1">Promedio global</div>
+              <div className="text-purple-300 text-sm mb-1">Meta Hoy ({diaHoy?.ds})</div>
+              <div className="text-2xl font-bold text-white">{formatMoney(metaHoy, true)}</div>
+              <div className="text-xs text-purple-400">{diaHoy?.f || 'Normal'} • {formatPct(diaHoy?.p || 0)}</div>
             </div>
           </div>
 
-          {/* Acciones rápidas */}
-          <div className="grid grid-cols-4 gap-3">
-            <button onClick={() => setVista('empresa')} className="flex items-center gap-3 p-4 bg-slate-800/50 hover:bg-slate-700/50 rounded-xl border border-slate-700/50 transition-all">
-              <Building2 className="w-8 h-8 text-blue-400" />
-              <div className="text-left"><div className="text-white font-medium">Por Empresa</div><div className="text-slate-400 text-xs">TROB, WE, SHI</div></div>
-              <ChevronRight className="w-5 h-5 text-slate-500 ml-auto" />
-            </button>
-            <button onClick={() => setVista('segmento')} className="flex items-center gap-3 p-4 bg-slate-800/50 hover:bg-slate-700/50 rounded-xl border border-slate-700/50 transition-all">
-              <Users className="w-8 h-8 text-emerald-400" />
-              <div className="text-left"><div className="text-white font-medium">Por Segmento</div><div className="text-slate-400 text-xs">7 segmentos</div></div>
-              <ChevronRight className="w-5 h-5 text-slate-500 ml-auto" />
-            </button>
-            <button onClick={() => setVista('semanas')} className="flex items-center gap-3 p-4 bg-slate-800/50 hover:bg-slate-700/50 rounded-xl border border-slate-700/50 transition-all">
-              <Calendar className="w-8 h-8 text-orange-400" />
-              <div className="text-left"><div className="text-white font-medium">Por Semana</div><div className="text-slate-400 text-xs">52 semanas</div></div>
-              <ChevronRight className="w-5 h-5 text-slate-500 ml-auto" />
-            </button>
-            <button onClick={() => setVista('buscar')} className="flex items-center gap-3 p-4 bg-slate-800/50 hover:bg-slate-700/50 rounded-xl border border-slate-700/50 transition-all">
-              <Search className="w-8 h-8 text-purple-400" />
-              <div className="text-left"><div className="text-white font-medium">Buscar Tracto</div><div className="text-slate-400 text-xs">Por número</div></div>
-              <ChevronRight className="w-5 h-5 text-slate-500 ml-auto" />
-            </button>
+          {/* Navegación */}
+          <div className="grid grid-cols-5 gap-3">
+            {[
+              { v: 'empresa', i: Building2, t: 'Por Empresa', c: 'blue' },
+              { v: 'segmento', i: Users, t: 'Por Segmento', c: 'emerald' },
+              { v: 'mes', i: Calendar, t: 'Días del Mes', c: 'orange' },
+              { v: 'semanas', i: Calendar, t: '52 Semanas', c: 'purple' },
+              { v: 'buscar', i: Search, t: 'Buscar Tracto', c: 'cyan' },
+            ].map(({ v, i: Icon, t, c }) => (
+              <button key={v} onClick={() => setVista(v as Vista)} className={`flex flex-col items-center gap-2 p-4 bg-${c}-600/20 hover:bg-${c}-600/30 rounded-xl border border-${c}-500/30`}>
+                <Icon className={`w-6 h-6 text-${c}-400`} />
+                <span className="text-white text-sm">{t}</span>
+              </button>
+            ))}
           </div>
 
-          {/* Grid: Empresas + Segmentos */}
+          {/* Empresas + Segmentos */}
           <div className="grid grid-cols-2 gap-6">
-            {/* Empresas */}
             <div className="bg-slate-800/50 rounded-xl border border-slate-700/50 p-5">
-              <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-                <Building2 className="w-5 h-5 text-blue-400" />
-                Empresas - {datosMes.nombre}
-              </h3>
-              <div className="space-y-3">
-                {EMPRESAS.map(emp => (
-                  <div key={emp.nombre} className="flex items-center justify-between p-3 bg-slate-700/30 rounded-lg">
-                    <div>
-                      <div className="text-white font-medium">{emp.nombre}</div>
-                      <div className="text-slate-400 text-xs">{emp.unidades} unidades • {formatPct(emp.pct_flota)}</div>
-                    </div>
-                    <div className="text-right">
-                      <div className="text-white font-bold">{formatMoney(metaEmpresaMes(emp.nombre), true)}</div>
-                      {showComparativo && <div className="text-emerald-400 text-xs">Real: $0</div>}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Segmentos */}
-            <div className="bg-slate-800/50 rounded-xl border border-slate-700/50 p-5">
-              <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-                <Users className="w-5 h-5 text-emerald-400" />
-                Segmentos - {datosMes.nombre}
-              </h3>
-              <div className="space-y-2 max-h-[300px] overflow-y-auto">
-                {SEGMENTOS.map(seg => (
-                  <div key={seg.id} className="flex items-center justify-between p-3 bg-slate-700/30 rounded-lg hover:bg-slate-700/50 cursor-pointer" onClick={() => { setSegmentoFiltro(seg.id); setVista('segmento'); }}>
-                    <div>
-                      <div className="text-white font-medium">{seg.nombre}</div>
-                      <div className="text-slate-400 text-xs">{tractoresFacturanSegmento(seg.id)} tractores • $/T: {formatMoney(seg.tracto_mes, true)}</div>
-                    </div>
-                    <div className="text-right">
-                      <div className="text-white font-bold">{formatMoney(metaSegmentoMes(seg.id), true)}</div>
-                      {showComparativo && <div className="text-emerald-400 text-xs">Real: $0</div>}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* Semanas del Mes */}
-          <div className="bg-slate-800/50 rounded-xl border border-slate-700/50 p-5">
-            <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-              <Calendar className="w-5 h-5 text-orange-400" />
-              Semanas de {datosMes.nombre}
-            </h3>
-            <div className="grid grid-cols-5 gap-3">
-              {semanasMes.slice(0, 5).map(sem => (
-                <div key={sem.semana} className="p-3 bg-slate-700/30 rounded-lg">
-                  <div className="text-orange-400 text-xs mb-1">Sem {sem.semana}</div>
-                  <div className="text-white font-bold">{formatMoney(sem.meta_total, true)}</div>
-                  <div className="text-slate-400 text-xs">{sem.inicio} - {sem.fin}</div>
-                  <div className="text-slate-500 text-xs mt-1">Acum: {formatMoney(sem.acumulado, true)}</div>
+              <h3 className="text-lg font-semibold text-white mb-4">Empresas - {datosMes.nombre}</h3>
+              {EMPRESAS.map(e => (
+                <div key={e.nombre} className="flex justify-between p-3 bg-slate-700/30 rounded-lg mb-2">
+                  <div><div className="text-white font-medium">{e.nombre}</div><div className="text-slate-400 text-xs">{e.unidades} unidades</div></div>
+                  <div className="text-white font-bold">{formatMoney(datosMes.ppto * e.pct_flota, true)}</div>
                 </div>
               ))}
+            </div>
+            <div className="bg-slate-800/50 rounded-xl border border-slate-700/50 p-5">
+              <h3 className="text-lg font-semibold text-white mb-4">Segmentos - {datosMes.nombre}</h3>
+              <div className="max-h-[250px] overflow-y-auto space-y-2">
+                {SEGMENTOS.map(s => (
+                  <div key={s.id} className="flex justify-between p-3 bg-slate-700/30 rounded-lg cursor-pointer hover:bg-slate-700/50" onClick={() => setVista('segmento')}>
+                    <div><div className="text-white font-medium">{s.nombre}</div><div className="text-slate-400 text-xs">{s.facturan} tractores • {formatMoney(s.tracto_mes, true)}/T</div></div>
+                    <div className="text-white font-bold">{formatMoney(datosMes.ppto * s.pct_ppto, true)}</div>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
 
           {/* Herramientas */}
-          <div className="grid grid-cols-3 gap-4">
-            <button onClick={() => setVista('mover')} className="flex items-center gap-3 p-4 bg-amber-600/20 hover:bg-amber-600/30 rounded-xl border border-amber-500/30 transition-all">
+          <div className="grid grid-cols-2 gap-4">
+            <button onClick={() => setVista('mover')} className="flex items-center gap-3 p-4 bg-amber-600/20 hover:bg-amber-600/30 rounded-xl border border-amber-500/30">
               <ArrowRightLeft className="w-6 h-6 text-amber-400" />
-              <div className="text-left"><div className="text-white font-medium">Mover Tracto</div><div className="text-amber-300 text-xs">Cambiar de segmento</div></div>
+              <div><div className="text-white font-medium">Mover Tracto</div><div className="text-amber-300 text-xs">Cambiar de segmento</div></div>
             </button>
-            <button onClick={() => setVista('simulador')} className="flex items-center gap-3 p-4 bg-cyan-600/20 hover:bg-cyan-600/30 rounded-xl border border-cyan-500/30 transition-all">
+            <button onClick={() => setVista('simulador')} className="flex items-center gap-3 p-4 bg-cyan-600/20 hover:bg-cyan-600/30 rounded-xl border border-cyan-500/30">
               <Calculator className="w-6 h-6 text-cyan-400" />
-              <div className="text-left"><div className="text-white font-medium">Simulador</div><div className="text-cyan-300 text-xs">¿Qué pasa si +1/-1?</div></div>
-            </button>
-            <button className="flex items-center gap-3 p-4 bg-red-600/20 hover:bg-red-600/30 rounded-xl border border-red-500/30 transition-all">
-              <AlertTriangle className="w-6 h-6 text-red-400" />
-              <div className="text-left"><div className="text-white font-medium">Alertas</div><div className="text-red-300 text-xs">{tractores.filter(t => !t.factura).length} sin facturar</div></div>
+              <div><div className="text-white font-medium">Simulador</div><div className="text-cyan-300 text-xs">¿Qué pasa si +1/-1?</div></div>
             </button>
           </div>
         </div>
       )}
 
-      {/* Vista Empresas */}
-      {vista === 'empresa' && (
-        <div className="p-6 space-y-6">
-          <h2 className="text-xl font-bold text-white">Desglose por Empresa - {datosMes.nombre}</h2>
-          {EMPRESAS.map(emp => (
-            <div key={emp.nombre} className="bg-slate-800/50 rounded-xl border border-slate-700/50 p-5">
-              <div className="flex items-center justify-between mb-4">
-                <div>
-                  <h3 className="text-lg font-bold text-white">{emp.nombre}</h3>
-                  <p className="text-slate-400 text-sm">{emp.unidades} unidades • {formatPct(emp.pct_flota)} de flota</p>
-                </div>
-                <div className="text-right">
-                  <div className="text-2xl font-bold text-white">{formatMoney(metaEmpresaMes(emp.nombre), true)}</div>
-                  <div className="text-slate-400 text-sm">Meta {datosMes.nombre}</div>
-                </div>
-              </div>
-              <div className="grid grid-cols-4 gap-3">
-                <div className="p-3 bg-slate-700/30 rounded-lg">
-                  <div className="text-slate-400 text-xs">Meta Anual</div>
-                  <div className="text-white font-bold">{formatMoney(emp.ppto_anual, true)}</div>
-                </div>
-                <div className="p-3 bg-slate-700/30 rounded-lg">
-                  <div className="text-slate-400 text-xs">Meta Semana</div>
-                  <div className="text-white font-bold">{formatMoney(metaEmpresaMes(emp.nombre) / 4, true)}</div>
-                </div>
-                <div className="p-3 bg-slate-700/30 rounded-lg">
-                  <div className="text-slate-400 text-xs">Meta Día</div>
-                  <div className="text-white font-bold">{formatMoney(metaEmpresaMes(emp.nombre) / 30, true)}</div>
-                </div>
-                <div className="p-3 bg-slate-700/30 rounded-lg">
-                  <div className="text-slate-400 text-xs">Acumulado YTD</div>
-                  <div className="text-white font-bold">{formatMoney(emp.ppto_anual * (mesSeleccionado / 12), true)}</div>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* Vista Segmentos */}
-      {vista === 'segmento' && (
-        <div className="p-6 space-y-6">
-          <h2 className="text-xl font-bold text-white">Desglose por Segmento - {datosMes.nombre}</h2>
-          {SEGMENTOS.filter(s => !segmentoFiltro || s.id === segmentoFiltro).map(seg => (
-            <div key={seg.id} className="bg-slate-800/50 rounded-xl border border-slate-700/50 p-5">
-              <div className="flex items-center justify-between mb-4">
-                <div>
-                  <h3 className="text-lg font-bold text-white">{seg.nombre}</h3>
-                  <p className="text-slate-400 text-sm">{tractoresFacturanSegmento(seg.id)} tractores facturando • {formatPct(seg.pct_ppto)}</p>
-                </div>
-                <div className="text-right">
-                  <div className="text-2xl font-bold text-white">{formatMoney(metaSegmentoMes(seg.id), true)}</div>
-                  <div className="text-emerald-400 text-sm">$/Tracto: {formatMoney(seg.tracto_mes, true)}</div>
-                </div>
-              </div>
-              <div className="grid grid-cols-5 gap-3">
-                <div className="p-3 bg-slate-700/30 rounded-lg">
-                  <div className="text-slate-400 text-xs">Meta Anual</div>
-                  <div className="text-white font-bold">{formatMoney(seg.ppto_anual, true)}</div>
-                </div>
-                <div className="p-3 bg-slate-700/30 rounded-lg">
-                  <div className="text-slate-400 text-xs">Meta Semana</div>
-                  <div className="text-white font-bold">{formatMoney(metaSegmentoMes(seg.id) / 4, true)}</div>
-                </div>
-                <div className="p-3 bg-slate-700/30 rounded-lg">
-                  <div className="text-slate-400 text-xs">$/Tracto/Día</div>
-                  <div className="text-white font-bold">{formatMoney(seg.tracto_mes / 30, true)}</div>
-                </div>
-                <div className="p-3 bg-slate-700/30 rounded-lg">
-                  <div className="text-slate-400 text-xs">$/Tracto/Semana</div>
-                  <div className="text-white font-bold">{formatMoney(seg.tracto_mes / 4, true)}</div>
-                </div>
-                <div className="p-3 bg-slate-700/30 rounded-lg">
-                  <div className="text-slate-400 text-xs">$/Tracto/Año</div>
-                  <div className="text-white font-bold">{formatMoney(seg.tracto_mes * 12, true)}</div>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* Vista Semanas */}
-      {vista === 'semanas' && (
-        <div className="p-6 space-y-4">
-          <h2 className="text-xl font-bold text-white">52 Semanas de 2026</h2>
+      {/* Vista Mes - Días con % exactos */}
+      {vista === 'mes' && (
+        <div className="p-6">
+          <h2 className="text-xl font-bold text-white mb-4">{datosMes.nombre} 2026 - Desglose Diario</h2>
           <div className="bg-slate-800/50 rounded-xl border border-slate-700/50 overflow-hidden">
-            <div className="overflow-x-auto max-h-[600px]">
+            <div className="overflow-auto max-h-[500px]">
               <table className="w-full text-sm">
-                <thead className="bg-slate-800 sticky top-0 z-10">
+                <thead className="bg-slate-800 sticky top-0">
                   <tr>
-                    <th className="px-4 py-3 text-left text-xs text-slate-400">Sem</th>
-                    <th className="px-4 py-3 text-left text-xs text-slate-400">Período</th>
-                    <th className="px-4 py-3 text-right text-xs text-slate-400">Meta Total</th>
-                    <th className="px-4 py-3 text-right text-xs text-slate-400">SPEEDYHAUL</th>
-                    <th className="px-4 py-3 text-right text-xs text-slate-400">TROB</th>
-                    <th className="px-4 py-3 text-right text-xs text-slate-400">WEXPRESS</th>
-                    <th className="px-4 py-3 text-right text-xs text-slate-400">Acumulado</th>
+                    <th className="px-4 py-3 text-left text-xs text-slate-400">Día</th>
+                    <th className="px-4 py-3 text-left text-xs text-slate-400">Semana</th>
+                    <th className="px-4 py-3 text-left text-xs text-slate-400">Festivo</th>
+                    <th className="px-4 py-3 text-right text-xs text-slate-400">% Curva</th>
+                    <th className="px-4 py-3 text-right text-xs text-slate-400">Meta</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-700/50">
-                  {SEMANAS.map(sem => (
-                    <tr key={sem.semana} className="hover:bg-slate-700/30">
-                      <td className="px-4 py-2 text-orange-400 font-medium">{sem.semana}</td>
-                      <td className="px-4 py-2 text-slate-300">{sem.inicio} - {sem.fin}</td>
-                      <td className="px-4 py-2 text-right text-white font-bold">{formatMoney(sem.meta_total, true)}</td>
-                      <td className="px-4 py-2 text-right text-blue-300">{formatMoney(sem.speedyhaul, true)}</td>
-                      <td className="px-4 py-2 text-right text-purple-300">{formatMoney(sem.trob, true)}</td>
-                      <td className="px-4 py-2 text-right text-emerald-300">{formatMoney(sem.wexpress, true)}</td>
-                      <td className="px-4 py-2 text-right text-slate-400">{formatMoney(sem.acumulado, true)}</td>
+                  {diasDelMes.map(d => (
+                    <tr key={d.dia} className={`hover:bg-slate-700/30 ${d.f ? 'bg-amber-500/10' : ''}`}>
+                      <td className="px-4 py-2 text-white font-mono">{d.dia}</td>
+                      <td className="px-4 py-2 text-slate-300">{d.ds}</td>
+                      <td className="px-4 py-2">{d.f ? <span className="text-amber-400 text-xs">{d.f}</span> : '-'}</td>
+                      <td className="px-4 py-2 text-right text-slate-300">{formatPct(d.p)}</td>
+                      <td className="px-4 py-2 text-right text-white font-bold">{formatMoney(d.meta)}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -551,139 +623,142 @@ export default function SalesHorizonModule({ onBack }: Props) {
         </div>
       )}
 
-      {/* Vista Buscar */}
+      {/* Vista Empresa */}
+      {vista === 'empresa' && (
+        <div className="p-6 space-y-4">
+          <h2 className="text-xl font-bold text-white">Por Empresa - {datosMes.nombre}</h2>
+          {EMPRESAS.map(e => (
+            <div key={e.nombre} className="bg-slate-800/50 rounded-xl border border-slate-700/50 p-5">
+              <div className="flex justify-between mb-4">
+                <div><h3 className="text-lg font-bold text-white">{e.nombre}</h3><p className="text-slate-400 text-sm">{e.unidades} unidades • {formatPct(e.pct_flota)}</p></div>
+                <div className="text-2xl font-bold text-white">{formatMoney(datosMes.ppto * e.pct_flota, true)}</div>
+              </div>
+              <div className="grid grid-cols-3 gap-3">
+                <div className="p-3 bg-slate-700/30 rounded-lg"><div className="text-slate-400 text-xs">Meta Anual</div><div className="text-white font-bold">{formatMoney(e.ppto_anual, true)}</div></div>
+                <div className="p-3 bg-slate-700/30 rounded-lg"><div className="text-slate-400 text-xs">Meta Semana</div><div className="text-white font-bold">{formatMoney(datosMes.ppto * e.pct_flota / 4, true)}</div></div>
+                <div className="p-3 bg-slate-700/30 rounded-lg"><div className="text-slate-400 text-xs">Meta Día (prom)</div><div className="text-white font-bold">{formatMoney(datosMes.ppto * e.pct_flota / getDiasMes(mesSeleccionado), true)}</div></div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Vista Segmento */}
+      {vista === 'segmento' && (
+        <div className="p-6 space-y-4">
+          <h2 className="text-xl font-bold text-white">Por Segmento - {datosMes.nombre}</h2>
+          {SEGMENTOS.map(s => (
+            <div key={s.id} className="bg-slate-800/50 rounded-xl border border-slate-700/50 p-5">
+              <div className="flex justify-between mb-4">
+                <div><h3 className="text-lg font-bold text-white">{s.nombre}</h3><p className="text-slate-400 text-sm">{s.facturan} tractores • {formatPct(s.pct_ppto)}</p></div>
+                <div className="text-right">
+                  <div className="text-2xl font-bold text-white">{formatMoney(datosMes.ppto * s.pct_ppto, true)}</div>
+                  <div className="text-emerald-400 text-sm">$/T: {formatMoney(s.tracto_mes, true)}</div>
+                </div>
+              </div>
+              <div className="grid grid-cols-4 gap-3">
+                <div className="p-3 bg-slate-700/30 rounded-lg"><div className="text-slate-400 text-xs">Meta Anual</div><div className="text-white font-bold">{formatMoney(s.ppto_anual, true)}</div></div>
+                <div className="p-3 bg-slate-700/30 rounded-lg"><div className="text-slate-400 text-xs">$/Tracto/Semana</div><div className="text-white font-bold">{formatMoney(s.tracto_mes / 4, true)}</div></div>
+                <div className="p-3 bg-slate-700/30 rounded-lg"><div className="text-slate-400 text-xs">$/Tracto/Día</div><div className="text-white font-bold">{formatMoney(s.tracto_mes / 30, true)}</div></div>
+                <div className="p-3 bg-slate-700/30 rounded-lg"><div className="text-slate-400 text-xs">$/Tracto/Año</div><div className="text-white font-bold">{formatMoney(s.tracto_mes * 12, true)}</div></div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Vista Semanas */}
+      {vista === 'semanas' && (
+        <div className="p-6">
+          <h2 className="text-xl font-bold text-white mb-4">52 Semanas 2026</h2>
+          <div className="bg-slate-800/50 rounded-xl border border-slate-700/50 overflow-hidden">
+            <div className="overflow-auto max-h-[500px]">
+              <table className="w-full text-sm">
+                <thead className="bg-slate-800 sticky top-0">
+                  <tr>
+                    <th className="px-3 py-2 text-left text-xs text-slate-400">Sem</th>
+                    <th className="px-3 py-2 text-right text-xs text-slate-400">Meta Total</th>
+                    <th className="px-3 py-2 text-right text-xs text-slate-400">SPEEDYHAUL</th>
+                    <th className="px-3 py-2 text-right text-xs text-slate-400">TROB</th>
+                    <th className="px-3 py-2 text-right text-xs text-slate-400">WEXPRESS</th>
+                    <th className="px-3 py-2 text-right text-xs text-slate-400">Acumulado</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-700/50">
+                  {SEMANAS.slice(0, 52).map(s => (
+                    <tr key={s.semana} className="hover:bg-slate-700/30">
+                      <td className="px-3 py-2 text-orange-400 font-medium">{s.semana}</td>
+                      <td className="px-3 py-2 text-right text-white font-bold">{formatMoney(s.meta_total, true)}</td>
+                      <td className="px-3 py-2 text-right text-blue-300">{formatMoney(s.speedyhaul, true)}</td>
+                      <td className="px-3 py-2 text-right text-purple-300">{formatMoney(s.trob, true)}</td>
+                      <td className="px-3 py-2 text-right text-emerald-300">{formatMoney(s.wexpress, true)}</td>
+                      <td className="px-3 py-2 text-right text-slate-400">{formatMoney(s.acumulado, true)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Buscar */}
       {vista === 'buscar' && (
         <div className="p-6">
-          <div className="max-w-xl mx-auto space-y-6">
-            <div className="bg-slate-800/50 rounded-xl border border-slate-700/50 p-6">
-              <h3 className="text-lg font-semibold text-white mb-4">Buscar Tracto</h3>
-              <div className="flex gap-3">
-                <input type="number" placeholder="Número de tracto" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="flex-1 px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-lg text-white" />
-                <button className="px-6 py-3 bg-orange-500 hover:bg-orange-600 rounded-lg text-white font-medium">Buscar</button>
-              </div>
-            </div>
-            {tractoEncontrado && (
-              <div className="bg-slate-800/50 rounded-xl border border-slate-700/50 p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <div>
-                    <span className="text-slate-400 text-sm">Tracto</span>
-                    <h2 className="text-3xl font-bold text-white">{tractoEncontrado.numero}</h2>
-                  </div>
-                  <span className={`px-3 py-1 rounded-lg text-sm text-white ${tractoEncontrado.empresa === 'TROB' ? 'bg-blue-600' : tractoEncontrado.empresa === 'WEXPRESS' ? 'bg-purple-600' : 'bg-emerald-600'}`}>{tractoEncontrado.empresa}</span>
-                </div>
-                <div className="grid grid-cols-2 gap-4 mb-4">
-                  <div><span className="text-slate-400 text-xs">Segmento</span><p className="text-white font-medium">{SEGMENTOS.find(s => s.id === tractoEncontrado.segmento)?.nombre}</p></div>
-                  <div><span className="text-slate-400 text-xs">Estatus</span><p className={`font-medium ${tractoEncontrado.factura ? 'text-green-400' : 'text-red-400'}`}>{tractoEncontrado.estatus}</p></div>
-                </div>
-                {tractoEncontrado.factura && (() => {
-                  const seg = SEGMENTOS.find(s => s.id === tractoEncontrado.segmento);
-                  return seg && (
-                    <div className="border-t border-slate-700 pt-4">
-                      <h4 className="text-sm text-slate-300 mb-3">Metas - {datosMes.nombre}</h4>
-                      <div className="grid grid-cols-2 gap-3">
-                        <div className="bg-slate-700/50 rounded-lg p-3"><div className="text-slate-400 text-xs">Meta/Mes</div><div className="text-lg font-bold text-white">{formatMoney(seg.tracto_mes)}</div></div>
-                        <div className="bg-slate-700/50 rounded-lg p-3"><div className="text-slate-400 text-xs">Meta/Día</div><div className="text-lg font-bold text-white">{formatMoney(seg.tracto_mes / 30)}</div></div>
-                      </div>
-                    </div>
-                  );
-                })()}
-              </div>
-            )}
+          <div className="max-w-xl mx-auto bg-slate-800/50 rounded-xl border border-slate-700/50 p-6">
+            <h3 className="text-lg font-semibold text-white mb-4">Buscar Tracto</h3>
+            <input type="number" placeholder="Número de tracto" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="w-full px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-lg text-white" />
+            <p className="text-slate-400 text-sm mt-4">Ingresa el número y presiona Enter para buscar</p>
           </div>
         </div>
       )}
 
-      {/* Vista Mover Tracto */}
+      {/* Mover */}
       {vista === 'mover' && (
         <div className="p-6">
-          <div className="max-w-xl mx-auto">
-            <div className="bg-slate-800/50 rounded-xl border border-slate-700/50 p-6">
-              <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-                <ArrowRightLeft className="w-5 h-5 text-amber-400" />
-                Mover Tracto entre Segmentos
-              </h3>
-              <div className="space-y-4">
-                <div>
-                  <label className="text-slate-400 text-sm">Número de Tracto</label>
-                  <input type="number" value={tractoMover || ''} onChange={e => setTractoMover(Number(e.target.value))} placeholder="Ej: 511" className="w-full mt-1 px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-lg text-white" />
-                </div>
-                <div>
-                  <label className="text-slate-400 text-sm">Segmento Destino</label>
-                  <select value={segmentoDestino} onChange={e => setSegmentoDestino(e.target.value)} className="w-full mt-1 px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-lg text-white">
-                    <option value="">Seleccionar segmento...</option>
-                    {SEGMENTOS.map(s => <option key={s.id} value={s.id}>{s.nombre}</option>)}
-                  </select>
-                </div>
-                {tractoMover && segmentoDestino && (
-                  <div className="p-4 bg-amber-500/20 rounded-lg border border-amber-500/30">
-                    <p className="text-amber-300 text-sm">
-                      El tracto {tractoMover} se moverá a <strong>{SEGMENTOS.find(s => s.id === segmentoDestino)?.nombre}</strong>.
-                      Las metas se recalcularán automáticamente.
-                    </p>
-                  </div>
-                )}
-                <button onClick={handleMoverTracto} disabled={!tractoMover || !segmentoDestino} className="w-full py-3 bg-amber-500 hover:bg-amber-600 disabled:bg-slate-600 disabled:cursor-not-allowed rounded-lg text-white font-medium">
-                  Confirmar Movimiento
-                </button>
-              </div>
+          <div className="max-w-xl mx-auto bg-slate-800/50 rounded-xl border border-slate-700/50 p-6">
+            <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2"><ArrowRightLeft className="w-5 h-5 text-amber-400" />Mover Tracto</h3>
+            <div className="space-y-4">
+              <input type="number" placeholder="Número de tracto" className="w-full px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-lg text-white" />
+              <select className="w-full px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-lg text-white">
+                <option value="">Segmento destino...</option>
+                {SEGMENTOS.map(s => <option key={s.id} value={s.id}>{s.nombre}</option>)}
+              </select>
+              <button className="w-full py-3 bg-amber-500 hover:bg-amber-600 rounded-lg text-white font-medium">Confirmar</button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Vista Simulador */}
+      {/* Simulador */}
       {vista === 'simulador' && (
         <div className="p-6">
-          <div className="max-w-xl mx-auto">
-            <div className="bg-slate-800/50 rounded-xl border border-slate-700/50 p-6">
-              <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-                <Calculator className="w-5 h-5 text-cyan-400" />
-                Simulador: ¿Qué pasa si +1/-1 Tracto?
-              </h3>
-              <div className="space-y-4">
-                <div>
-                  <label className="text-slate-400 text-sm">Segmento</label>
-                  <select value={simSegmento} onChange={e => setSimSegmento(e.target.value)} className="w-full mt-1 px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-lg text-white">
-                    {SEGMENTOS.map(s => <option key={s.id} value={s.id}>{s.nombre}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <label className="text-slate-400 text-sm">Cambio de Tractores</label>
-                  <div className="flex gap-2 mt-1">
-                    {[-3, -2, -1, 0, 1, 2, 3].map(n => (
-                      <button key={n} onClick={() => setSimCambio(n)} className={`flex-1 py-2 rounded-lg font-medium ${simCambio === n ? (n < 0 ? 'bg-red-500 text-white' : n > 0 ? 'bg-green-500 text-white' : 'bg-slate-500 text-white') : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`}>
-                        {n > 0 ? `+${n}` : n}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-                {simulacion && (
-                  <div className="p-4 bg-cyan-500/20 rounded-lg border border-cyan-500/30 space-y-3">
-                    <h4 className="text-cyan-300 font-medium">{simulacion.segmento}</h4>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <div className="text-slate-400 text-xs">Tractores Actuales</div>
-                        <div className="text-white font-bold">{simulacion.tractoresActuales}</div>
-                      </div>
-                      <div>
-                        <div className="text-slate-400 text-xs">Tractores Nuevos</div>
-                        <div className="text-white font-bold">{simulacion.nuevosTractores}</div>
-                      </div>
-                      <div>
-                        <div className="text-slate-400 text-xs">$/Tracto/Mes Actual</div>
-                        <div className="text-white font-bold">{formatMoney(simulacion.tractoMesActual)}</div>
-                      </div>
-                      <div>
-                        <div className="text-slate-400 text-xs">$/Tracto/Mes Nuevo</div>
-                        <div className="text-white font-bold">{formatMoney(simulacion.tractoMesNuevo)}</div>
-                      </div>
-                    </div>
-                    <div className={`text-center py-2 rounded-lg ${simulacion.diferencia > 0 ? 'bg-red-500/20 text-red-300' : 'bg-green-500/20 text-green-300'}`}>
-                      Diferencia: {simulacion.diferencia > 0 ? '+' : ''}{formatMoney(simulacion.diferencia)} por tracto
-                    </div>
-                  </div>
-                )}
+          <div className="max-w-xl mx-auto bg-slate-800/50 rounded-xl border border-slate-700/50 p-6">
+            <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2"><Calculator className="w-5 h-5 text-cyan-400" />Simulador +1/-1</h3>
+            <div className="space-y-4">
+              <select value={simSegmento} onChange={e => setSimSegmento(e.target.value)} className="w-full px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-lg text-white">
+                {SEGMENTOS.map(s => <option key={s.id} value={s.id}>{s.nombre}</option>)}
+              </select>
+              <div className="flex gap-2">
+                {[-3,-2,-1,0,1,2,3].map(n => (
+                  <button key={n} onClick={() => setSimCambio(n)} className={`flex-1 py-2 rounded-lg font-medium ${simCambio === n ? (n < 0 ? 'bg-red-500' : n > 0 ? 'bg-green-500' : 'bg-slate-500') : 'bg-slate-700'} text-white`}>
+                    {n > 0 ? `+${n}` : n}
+                  </button>
+                ))}
               </div>
+              {simulacion && (
+                <div className="p-4 bg-cyan-500/20 rounded-lg border border-cyan-500/30">
+                  <div className="grid grid-cols-2 gap-4 mb-3">
+                    <div><div className="text-slate-400 text-xs">Tractores Actual</div><div className="text-white font-bold">{simulacion.actual}</div></div>
+                    <div><div className="text-slate-400 text-xs">Tractores Nuevo</div><div className="text-white font-bold">{simulacion.nuevo}</div></div>
+                    <div><div className="text-slate-400 text-xs">$/T/Mes Actual</div><div className="text-white font-bold">{formatMoney(simulacion.tractoActual)}</div></div>
+                    <div><div className="text-slate-400 text-xs">$/T/Mes Nuevo</div><div className="text-white font-bold">{formatMoney(simulacion.tractoNuevo)}</div></div>
+                  </div>
+                  <div className={`text-center py-2 rounded-lg ${simulacion.diff > 0 ? 'bg-red-500/20 text-red-300' : 'bg-green-500/20 text-green-300'}`}>
+                    {simulacion.diff > 0 ? '+' : ''}{formatMoney(simulacion.diff)} por tracto
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
