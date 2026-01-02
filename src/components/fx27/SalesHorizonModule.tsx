@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState } from 'react';
-import { Target, ArrowLeft, Download } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Target, ArrowLeft, Download, MapPin, Gauge, Clock, AlertTriangle } from 'lucide-react';
 import * as XLSX from 'xlsx';
 
 // ===== DATOS GLOBALES =====
@@ -50,6 +50,26 @@ const SEMANAS_2026 = [
   { semana: 3, inicio: new Date(2026, 0, 17), fin: new Date(2026, 0, 23), meta: 25724353 },
   { semana: 4, inicio: new Date(2026, 0, 24), fin: new Date(2026, 0, 31), meta: 30000000 },
 ];
+
+// ===== SUPABASE FETCH HELPER =====
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+const fetchSupabase = async (table: string, query: string = '') => {
+  if (!supabaseUrl || !supabaseKey) return null;
+  try {
+    const res = await fetch(`${supabaseUrl}/rest/v1/${table}?${query}`, {
+      headers: {
+        'apikey': supabaseKey,
+        'Authorization': `Bearer ${supabaseKey}`,
+      }
+    });
+    if (!res.ok) return null;
+    return await res.json();
+  } catch {
+    return null;
+  }
+};
 
 // ===== HELPERS =====
 const fmt = (v: number, c = false): string => {
@@ -146,6 +166,43 @@ export default function SalesHorizonModule({ onBack }: Props) {
   const [empresaSeleccionada, setEmpresaSeleccionada] = useState<string | null>(null);
   const [segmentoSeleccionado, setSegmentoSeleccionado] = useState<string | null>(null);
   const [mesSeleccionadoModal, setMesSeleccionadoModal] = useState(mesActual);
+  
+  // Estados para modales de unidades
+  const [unidadesSegmento, setUnidadesSegmento] = useState<string | null>(null);
+  const [unidadesEmpresa, setUnidadesEmpresa] = useState<string | null>(null);
+  const [tractoresLista, setTractoresLista] = useState<any[]>([]);
+  const [loadingTractores, setLoadingTractores] = useState(false);
+  
+  // Estados para modal GPS
+  const [tractoSeleccionado, setTractoSeleccionado] = useState<any | null>(null);
+
+  // Cargar tractores por segmento
+  useEffect(() => {
+    if (!unidadesSegmento) return;
+    const cargar = async () => {
+      setLoadingTractores(true);
+      const seg = SEGMENTOS.find(s => s.id === unidadesSegmento);
+      if (!seg) return;
+      const data = await fetchSupabase('gps_tracking', `segmento=ilike.*${seg.nombre}*&select=economico,tracto,velocidad,estado,municipio,latitud,longitud,ultima_actualizacion&order=economico`);
+      setTractoresLista(data || []);
+      setLoadingTractores(false);
+    };
+    cargar();
+  }, [unidadesSegmento]);
+
+  // Cargar tractores por empresa
+  useEffect(() => {
+    if (!unidadesEmpresa) return;
+    const cargar = async () => {
+      setLoadingTractores(true);
+      const emp = EMPRESAS.find(e => e.id === unidadesEmpresa);
+      if (!emp) return;
+      const data = await fetchSupabase('gps_tracking', `empresa=ilike.*${emp.nombre}*&select=economico,tracto,velocidad,estado,municipio,latitud,longitud,ultima_actualizacion&order=economico`);
+      setTractoresLista(data || []);
+      setLoadingTractores(false);
+    };
+    cargar();
+  }, [unidadesEmpresa]);
 
   const datosMesActual = MESES[mesActual - 1];
   const acumuladoYTD = MESES.slice(0, mesActual).reduce((a, m) => a + m.ppto, 0);
@@ -243,7 +300,12 @@ export default function SalesHorizonModule({ onBack }: Props) {
               >
                 <div className="text-white text-xs font-medium uppercase">{s.nombre}</div>
                 <div className="text-blue-300 font-bold text-xs mt-1">{fmt(Math.round(datosMesActual.ppto * s.pct))}</div>
-                <div className="text-amber-400 text-xs mt-1">{s.tractores} Unidades</div>
+                <div 
+                  onClick={(e) => { e.stopPropagation(); setUnidadesSegmento(s.id); }}
+                  className="text-amber-400 text-xs mt-1 hover:text-amber-300 hover:underline cursor-pointer font-medium"
+                >
+                  {s.tractores} Unidades ›
+                </div>
               </div>
             ))}
           </div>
@@ -279,9 +341,12 @@ export default function SalesHorizonModule({ onBack }: Props) {
                     <div className="text-slate-500">Meta Anual</div>
                     <div className="text-blue-300">{fmt(e.ppto)}</div>
                   </div>
-                  <div className="text-right">
+                  <div 
+                    onClick={(ev) => { ev.stopPropagation(); setUnidadesEmpresa(e.id); }}
+                    className="text-right cursor-pointer"
+                  >
                     <div className="text-slate-500">Unidades</div>
-                    <div className="text-amber-400">{e.unidades}</div>
+                    <div className="text-amber-400 hover:text-amber-300 hover:underline font-medium">{e.unidades} ›</div>
                   </div>
                 </div>
               </div>
@@ -418,6 +483,274 @@ export default function SalesHorizonModule({ onBack }: Props) {
                     <div className="font-semibold">{fmt(Math.round(m.ppto * emp.pct), true)}</div>
                   </div>
                 ))}
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* MODAL - Unidades por Segmento */}
+      {unidadesSegmento && (() => {
+        const seg = SEGMENTOS.find(s => s.id === unidadesSegmento);
+        if (!seg) return null;
+        
+        return (
+          <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[60]" onClick={() => { setUnidadesSegmento(null); setTractoresLista([]); }}>
+            <div className="bg-gradient-to-b from-slate-900 to-slate-950 rounded-xl p-6 border-2 border-amber-500/50 shadow-2xl shadow-amber-500/20 max-w-2xl w-full mx-4 max-h-[80vh] overflow-hidden" onClick={e => e.stopPropagation()}>
+              <div className="flex justify-between items-center mb-4">
+                <div className="flex items-center gap-3">
+                  <div className="bg-amber-500 text-slate-900 px-3 py-1 rounded-md font-bold text-sm">{tractoresLista.length || seg.tractores}</div>
+                  <div className="text-white text-xl font-bold uppercase tracking-wide">Unidades {seg.nombre}</div>
+                </div>
+                <button onClick={() => { setUnidadesSegmento(null); setTractoresLista([]); }} className="text-slate-400 hover:text-white text-2xl font-light">&times;</button>
+              </div>
+              
+              {loadingTractores ? (
+                <div className="flex items-center justify-center py-12">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-amber-500"></div>
+                  <span className="ml-3 text-slate-400">Cargando unidades...</span>
+                </div>
+              ) : (
+                <div className="overflow-y-auto max-h-[60vh] pr-2">
+                  <div className="grid grid-cols-6 gap-2">
+                    {tractoresLista.map((t, i) => {
+                      const vel = parseFloat(t.velocidad) || 0;
+                      const enMovimiento = vel > 0;
+                      return (
+                        <div 
+                          key={i} 
+                          onClick={() => setTractoSeleccionado(t)}
+                          className={`text-white text-center py-2 px-1 rounded-lg text-xs font-semibold border shadow-md transition-all cursor-pointer ${
+                            enMovimiento 
+                              ? 'bg-gradient-to-br from-green-600 to-green-700 border-green-500 hover:from-green-500 hover:to-green-600' 
+                              : 'bg-gradient-to-br from-amber-600 to-amber-700 border-amber-500 hover:from-amber-500 hover:to-amber-600'
+                          }`}
+                          title={enMovimiento ? `${vel} km/h - ${t.municipio || ''}` : `Detenido - ${t.municipio || ''}`}
+                        >
+                          {t.economico || t.tracto}
+                        </div>
+                      );
+                    })}
+                  </div>
+                  {tractoresLista.length === 0 && !loadingTractores && (
+                    <div className="text-center py-8 text-slate-400">No se encontraron unidades</div>
+                  )}
+                </div>
+              )}
+              
+              <div className="mt-4 flex gap-4 text-xs text-slate-400">
+                <div className="flex items-center gap-2">
+                  <span className="w-3 h-3 rounded bg-green-600"></span> En movimiento
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="w-3 h-3 rounded bg-amber-600"></span> Detenido
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* MODAL - Unidades por Empresa */}
+      {unidadesEmpresa && (() => {
+        const emp = EMPRESAS.find(e => e.id === unidadesEmpresa);
+        if (!emp) return null;
+        
+        return (
+          <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[60]" onClick={() => { setUnidadesEmpresa(null); setTractoresLista([]); }}>
+            <div className="bg-gradient-to-b from-slate-900 to-slate-950 rounded-xl p-6 border-2 border-amber-500/50 shadow-2xl shadow-amber-500/20 max-w-2xl w-full mx-4 max-h-[80vh] overflow-hidden" onClick={e => e.stopPropagation()}>
+              <div className="flex justify-between items-center mb-4">
+                <div className="flex items-center gap-3">
+                  <div className="bg-amber-500 text-slate-900 px-3 py-1 rounded-md font-bold text-sm">{tractoresLista.length || emp.unidades}</div>
+                  <div className="text-white text-xl font-bold tracking-wide">Unidades {emp.nombre}</div>
+                </div>
+                <button onClick={() => { setUnidadesEmpresa(null); setTractoresLista([]); }} className="text-slate-400 hover:text-white text-2xl font-light">&times;</button>
+              </div>
+              
+              {loadingTractores ? (
+                <div className="flex items-center justify-center py-12">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-amber-500"></div>
+                  <span className="ml-3 text-slate-400">Cargando unidades...</span>
+                </div>
+              ) : (
+                <div className="overflow-y-auto max-h-[60vh] pr-2">
+                  <div className="grid grid-cols-6 gap-2">
+                    {tractoresLista.map((t, i) => {
+                      const vel = parseFloat(t.velocidad) || 0;
+                      const enMovimiento = vel > 0;
+                      return (
+                        <div 
+                          key={i} 
+                          onClick={() => setTractoSeleccionado(t)}
+                          className={`text-white text-center py-2 px-1 rounded-lg text-xs font-semibold border shadow-md transition-all cursor-pointer ${
+                            enMovimiento 
+                              ? 'bg-gradient-to-br from-green-600 to-green-700 border-green-500 hover:from-green-500 hover:to-green-600' 
+                              : 'bg-gradient-to-br from-amber-600 to-amber-700 border-amber-500 hover:from-amber-500 hover:to-amber-600'
+                          }`}
+                          title={enMovimiento ? `${vel} km/h - ${t.municipio || ''}` : `Detenido - ${t.municipio || ''}`}
+                        >
+                          {t.economico || t.tracto}
+                        </div>
+                      );
+                    })}
+                  </div>
+                  {tractoresLista.length === 0 && !loadingTractores && (
+                    <div className="text-center py-8 text-slate-400">No se encontraron unidades</div>
+                  )}
+                </div>
+              )}
+              
+              <div className="mt-4 flex gap-4 text-xs text-slate-400">
+                <div className="flex items-center gap-2">
+                  <span className="w-3 h-3 rounded bg-green-600"></span> En movimiento
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="w-3 h-3 rounded bg-amber-600"></span> Detenido
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* MODAL - Detalles GPS del Tracto */}
+      {tractoSeleccionado && (() => {
+        const t = tractoSeleccionado;
+        const vel = parseFloat(t.velocidad) || 0;
+        const enMovimiento = vel > 0;
+        
+        // Calcular tiempo parado
+        let tiempoParado = '';
+        if (!enMovimiento && t.ultima_actualizacion) {
+          const ahora = new Date();
+          const ultima = new Date(t.ultima_actualizacion);
+          const diffMins = (ahora.getTime() - ultima.getTime()) / (1000 * 60);
+          tiempoParado = diffMins >= 60 ? `${(diffMins / 60).toFixed(1)} hrs` : `${diffMins.toFixed(1)} min`;
+        }
+        
+        // GPS desactualizado (más de 2 horas)
+        const horasDesde = t.ultima_actualizacion ? (new Date().getTime() - new Date(t.ultima_actualizacion).getTime()) / (1000 * 60 * 60) : 0;
+        const gpsDesactualizado = horasDesde > 2;
+        
+        return (
+          <div className="fixed inset-0 bg-black/85 flex items-center justify-center z-[70]" onClick={() => setTractoSeleccionado(null)}>
+            <div className="bg-gradient-to-b from-slate-800 to-slate-900 rounded-xl p-6 border-2 border-blue-500/50 shadow-2xl shadow-blue-500/20 max-w-3xl w-full mx-4" onClick={e => e.stopPropagation()}>
+              <div className="flex justify-between items-center mb-4">
+                <div className="flex items-center gap-3">
+                  <MapPin className="w-6 h-6 text-blue-400" />
+                  <div className="text-white text-xl font-bold tracking-wide">Ubicación {t.economico || t.tracto}</div>
+                </div>
+                <button onClick={() => setTractoSeleccionado(null)} className="text-slate-400 hover:text-white text-2xl font-light">&times;</button>
+              </div>
+
+              {/* Mapa */}
+              <div className="rounded-lg overflow-hidden border border-slate-600 h-64 mb-4">
+                {t.latitud && t.longitud ? (
+                  <iframe
+                    width="100%"
+                    height="100%"
+                    frameBorder="0"
+                    scrolling="no"
+                    src={`https://www.openstreetmap.org/export/embed.html?bbox=${t.longitud - 0.02},${t.latitud - 0.015},${t.longitud + 0.02},${t.latitud + 0.015}&layer=mapnik&marker=${t.latitud},${t.longitud}`}
+                    style={{ border: 0 }}
+                  />
+                ) : (
+                  <div className="h-full flex items-center justify-center bg-slate-700">
+                    <span className="text-slate-400">Sin coordenadas disponibles</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Datos */}
+              <div className="grid grid-cols-2 gap-3">
+                {/* Ubicación */}
+                <div className="bg-slate-700/50 rounded-lg p-4 border border-slate-600">
+                  <div className="flex items-center gap-2 mb-2">
+                    <MapPin className="w-4 h-4 text-blue-400" />
+                    <span className="text-slate-400 text-xs uppercase tracking-wide">Ubicación</span>
+                  </div>
+                  <div className="text-white font-semibold">{t.estado || 'N/A'}</div>
+                  <div className="text-slate-300 text-sm">{t.municipio || 'N/A'}</div>
+                </div>
+
+                {/* Estado de movimiento */}
+                <div className={`rounded-lg p-4 border ${enMovimiento ? 'bg-green-900/30 border-green-600' : 'bg-amber-900/30 border-amber-600'}`}>
+                  <div className="flex items-center gap-2 mb-2">
+                    <Gauge className="w-4 h-4 text-blue-400" />
+                    <span className="text-slate-400 text-xs uppercase tracking-wide">Estado</span>
+                  </div>
+                  {enMovimiento ? (
+                    <>
+                      <div className="text-green-400 font-semibold flex items-center gap-2">
+                        <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
+                        En Movimiento
+                      </div>
+                      <div className="text-white text-lg font-bold">{vel} km/h</div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="text-amber-400 font-semibold flex items-center gap-2">
+                        <span className="w-2 h-2 bg-amber-400 rounded-full"></span>
+                        Detenido
+                      </div>
+                      {tiempoParado && <div className="text-white text-lg font-bold">{tiempoParado}</div>}
+                    </>
+                  )}
+                </div>
+
+                {/* Velocidad promedio placeholder */}
+                <div className="bg-slate-700/50 rounded-lg p-4 border border-slate-600">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Gauge className="w-4 h-4 text-blue-400" />
+                    <span className="text-slate-400 text-xs uppercase tracking-wide">Vel. Actual</span>
+                  </div>
+                  <div className="text-white font-semibold text-lg">{vel} km/h</div>
+                </div>
+
+                {/* Última actualización */}
+                <div className={`rounded-lg p-4 border ${gpsDesactualizado ? 'bg-red-900/30 border-red-600' : 'bg-slate-700/50 border-slate-600'}`}>
+                  <div className="flex items-center gap-2 mb-2">
+                    <Clock className="w-4 h-4 text-blue-400" />
+                    <span className="text-slate-400 text-xs uppercase tracking-wide">Última Actualización</span>
+                  </div>
+                  {gpsDesactualizado ? (
+                    <>
+                      <div className="text-red-400 font-semibold flex items-center gap-2">
+                        <AlertTriangle className="w-4 h-4" />
+                        GPS Desactualizado
+                      </div>
+                      <div className="text-slate-300 text-sm">
+                        {t.ultima_actualizacion ? new Date(t.ultima_actualizacion).toLocaleString('es-MX') : 'N/A'}
+                      </div>
+                      <div className="text-red-300 text-xs">Hace {horasDesde.toFixed(1)} hrs</div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="text-green-400 font-semibold text-sm">GPS Activo</div>
+                      <div className="text-slate-300 text-sm">
+                        {t.ultima_actualizacion ? new Date(t.ultima_actualizacion).toLocaleString('es-MX') : 'N/A'}
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
+
+              {/* Coordenadas */}
+              <div className="bg-slate-800 rounded-lg p-3 border border-slate-700 flex items-center justify-between mt-3">
+                <div className="text-slate-400 text-xs">
+                  <span className="text-slate-500">LAT:</span> {t.latitud?.toFixed(6) || 'N/A'} | 
+                  <span className="text-slate-500 ml-2">LON:</span> {t.longitud?.toFixed(6) || 'N/A'}
+                </div>
+                {t.latitud && t.longitud && (
+                  <a 
+                    href={`https://www.google.com/maps?q=${t.latitud},${t.longitud}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-400 text-xs hover:text-blue-300 hover:underline"
+                  >
+                    Abrir en Google Maps →
+                  </a>
+                )}
               </div>
             </div>
           </div>
