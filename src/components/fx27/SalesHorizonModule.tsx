@@ -86,8 +86,8 @@ const fetchTractoresPorSegmento = async (segmentoId: string) => {
   
   const patron = patronBusqueda[segmentoId] || segmentoId;
   const likePattern = encodeURIComponent(`*${patron}*`);
-  // Columnas REALES: economico, empresa, segmento, latitud, longitud, velocidad, ubicacion, estatus, ultima_actualizacion
-  const query = `segmento=ilike.${likePattern}&select=economico,latitud,longitud,velocidad,ubicacion,estatus,ultima_actualizacion&order=economico`;
+  // Columnas incluyendo estado_geo y municipio_geo
+  const query = `segmento=ilike.${likePattern}&select=economico,latitud,longitud,velocidad,ubicacion,estatus,ultima_actualizacion,estado_geo,municipio_geo&order=economico`;
   
   try {
     const res = await fetch(`${SUPABASE_URL}/rest/v1/gps_tracking?${query}`, {
@@ -108,6 +108,9 @@ const fetchTractoresPorSegmento = async (segmentoId: string) => {
       latitud: t.latitud,
       longitud: t.longitud,
       ultima_actualizacion: t.ultima_actualizacion,
+      // Nuevos campos de geocoding
+      estado_geo: t.estado_geo || '',
+      municipio_geo: t.municipio_geo || '',
     }));
   } catch {
     return [];
@@ -124,8 +127,8 @@ const fetchTractoresPorEmpresa = async (empresaId: string) => {
   };
   
   const empresa = empresaEnBD[empresaId] || empresaId;
-  // Columnas REALES de gps_tracking
-  const query = `empresa=eq.${encodeURIComponent(empresa)}&select=economico,latitud,longitud,velocidad,ubicacion,estatus,ultima_actualizacion&order=economico`;
+  // Columnas incluyendo estado_geo y municipio_geo
+  const query = `empresa=eq.${encodeURIComponent(empresa)}&select=economico,latitud,longitud,velocidad,ubicacion,estatus,ultima_actualizacion,estado_geo,municipio_geo&order=economico`;
   
   try {
     const res = await fetch(`${SUPABASE_URL}/rest/v1/gps_tracking?${query}`, {
@@ -146,6 +149,9 @@ const fetchTractoresPorEmpresa = async (empresaId: string) => {
       latitud: t.latitud,
       longitud: t.longitud,
       ultima_actualizacion: t.ultima_actualizacion,
+      // Nuevos campos de geocoding
+      estado_geo: t.estado_geo || '',
+      municipio_geo: t.municipio_geo || '',
     }));
   } catch {
     return [];
@@ -710,8 +716,8 @@ export default function SalesHorizonModule({ onBack }: Props) {
         const gpsDesactualizado = horasDesde > 2;
         
         return (
-          <div className="fixed inset-0 bg-black/85 flex items-center justify-center z-[70]" onClick={() => setTractoSeleccionado(null)}>
-            <div className="bg-gradient-to-b from-slate-800 to-slate-900 rounded-xl p-6 border-2 border-blue-500/50 shadow-2xl shadow-blue-500/20 max-w-3xl w-full mx-4" onClick={e => e.stopPropagation()}>
+          <div className="fixed inset-0 bg-black/85 flex items-center justify-center z-[70] p-4" onClick={() => setTractoSeleccionado(null)}>
+            <div className="bg-gradient-to-b from-slate-800 to-slate-900 rounded-xl p-6 border-2 border-blue-500/50 shadow-2xl shadow-blue-500/20 w-full max-w-4xl max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
               <div className="flex justify-between items-center mb-4">
                 <div className="flex items-center gap-3">
                   <MapPin className="w-6 h-6 text-blue-400" />
@@ -720,15 +726,15 @@ export default function SalesHorizonModule({ onBack }: Props) {
                 <button onClick={() => setTractoSeleccionado(null)} className="text-slate-400 hover:text-white text-2xl font-light">&times;</button>
               </div>
 
-              {/* Mapa */}
-              <div className="rounded-lg overflow-hidden border border-slate-600 h-64 mb-4">
+              {/* Mapa - más ancho y proporcional */}
+              <div className="rounded-lg overflow-hidden border border-slate-600 h-72 mb-4">
                 {t.latitud && t.longitud ? (
                   <iframe
                     width="100%"
                     height="100%"
                     frameBorder="0"
                     scrolling="no"
-                    src={`https://www.openstreetmap.org/export/embed.html?bbox=${t.longitud - 0.02},${t.latitud - 0.015},${t.longitud + 0.02},${t.latitud + 0.015}&layer=mapnik&marker=${t.latitud},${t.longitud}`}
+                    src={`https://www.openstreetmap.org/export/embed.html?bbox=${t.longitud - 0.05},${t.latitud - 0.03},${t.longitud + 0.05},${t.latitud + 0.03}&layer=mapnik&marker=${t.latitud},${t.longitud}`}
                     style={{ border: 0 }}
                   />
                 ) : (
@@ -740,7 +746,7 @@ export default function SalesHorizonModule({ onBack }: Props) {
 
               {/* Datos */}
               <div className="grid grid-cols-2 gap-3">
-                {/* Ubicación - Simplificado */}
+                {/* Ubicación - Datos de BD (sin espera) */}
                 <div className="col-span-2 bg-slate-700/50 rounded-lg p-4 border border-slate-600">
                   <div className="flex items-center gap-2 mb-3">
                     <MapPin className="w-4 h-4 text-blue-400" />
@@ -749,11 +755,11 @@ export default function SalesHorizonModule({ onBack }: Props) {
                   <div className="space-y-2 text-sm">
                     <div>
                       <span className="text-slate-500">Estado:</span>
-                      <span className="text-white ml-2">{t.estado_republica || 'N/A'}</span>
+                      <span className="text-white ml-2">{t.estado_geo || 'Actualizando...'}</span>
                     </div>
                     <div>
                       <span className="text-slate-500">Municipio:</span>
-                      <span className="text-white ml-2">{t.municipio_nombre || 'N/A'}</span>
+                      <span className="text-white ml-2">{t.municipio_geo || 'Actualizando...'}</span>
                     </div>
                     <div>
                       <span className="text-slate-500">Descripción:</span>
