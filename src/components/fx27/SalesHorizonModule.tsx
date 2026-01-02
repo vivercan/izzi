@@ -740,14 +740,27 @@ export default function SalesHorizonModule({ onBack }: Props) {
 
               {/* Datos */}
               <div className="grid grid-cols-2 gap-3">
-                {/* Ubicación */}
-                <div className="bg-slate-700/50 rounded-lg p-4 border border-slate-600">
-                  <div className="flex items-center gap-2 mb-2">
+                {/* Ubicación - Simplificado */}
+                <div className="col-span-2 bg-slate-700/50 rounded-lg p-4 border border-slate-600">
+                  <div className="flex items-center gap-2 mb-3">
                     <MapPin className="w-4 h-4 text-blue-400" />
                     <span className="text-slate-400 text-xs uppercase tracking-wide">Ubicación</span>
                   </div>
-                  <div className="text-white font-semibold">{t.estado || 'N/A'}</div>
-                  <div className="text-slate-300 text-sm">{t.municipio || 'N/A'}</div>
+                  <div className="space-y-2 text-sm">
+                    <div>
+                      <span className="text-slate-500">Estado:</span>
+                      <span className="text-white ml-2">{t.estado_republica || 'N/A'}</span>
+                    </div>
+                    <div>
+                      <span className="text-slate-500">Municipio:</span>
+                      <span className="text-white ml-2">{t.municipio_nombre || 'N/A'}</span>
+                    </div>
+                    <div>
+                      <span className="text-slate-500">Descripción:</span>
+                      <span className="text-slate-300 ml-2">{t.municipio || 'N/A'}</span>
+                      {t.cliente_ubicacion && <span className="text-cyan-400 ml-2">• {t.cliente_ubicacion}</span>}
+                    </div>
+                  </div>
                 </div>
 
                 {/* Estado de movimiento */}
@@ -773,6 +786,24 @@ export default function SalesHorizonModule({ onBack }: Props) {
                       {tiempoParado && <div className="text-white text-lg font-bold">{tiempoParado}</div>}
                     </>
                   )}
+                </div>
+
+                {/* Tipo de Viaje - Preparado */}
+                <div className="bg-slate-700/50 rounded-lg p-4 border border-slate-600">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Target className="w-4 h-4 text-yellow-400" />
+                    <span className="text-slate-400 text-xs uppercase tracking-wide">Tipo Viaje</span>
+                  </div>
+                  <div className={`font-semibold ${
+                    t.tipo_viaje === 'IMPO' ? 'text-blue-400' :
+                    t.tipo_viaje === 'EXPO' ? 'text-green-400' :
+                    t.tipo_viaje === 'NAC' ? 'text-purple-400' :
+                    t.tipo_viaje === 'VACIO' ? 'text-amber-400' :
+                    'text-amber-400'
+                  }`}>
+                    {t.tipo_viaje || 'Sin asignación'}
+                  </div>
+                  <div className="text-slate-500 text-xs mt-1">{t.numero_viaje || ''}</div>
                 </div>
 
                 {/* Velocidad Actual */}
