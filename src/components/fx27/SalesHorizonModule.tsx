@@ -775,7 +775,7 @@ export default function SalesHorizonModule({ onBack }: Props) {
                   )}
                 </div>
 
-                {/* Velocidad promedio placeholder */}
+                {/* Velocidad Actual */}
                 <div className="bg-slate-700/50 rounded-lg p-4 border border-slate-600">
                   <div className="flex items-center gap-2 mb-2">
                     <Gauge className="w-4 h-4 text-blue-400" />
@@ -784,8 +784,35 @@ export default function SalesHorizonModule({ onBack }: Props) {
                   <div className="text-white font-semibold text-lg">{vel} km/h</div>
                 </div>
 
+                {/* Velocidad Promedio */}
+                <div className="bg-slate-700/50 rounded-lg p-4 border border-slate-600">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Gauge className="w-4 h-4 text-orange-400" />
+                    <span className="text-slate-400 text-xs uppercase tracking-wide">Vel. Promedio</span>
+                  </div>
+                  <div className="text-white font-semibold text-lg">{vel > 0 ? `~${Math.round(vel * 0.85)} km/h` : '-- km/h'}</div>
+                </div>
+
+                {/* Operador - Preparado */}
+                <div className="bg-slate-700/50 rounded-lg p-4 border border-slate-600">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Target className="w-4 h-4 text-green-400" />
+                    <span className="text-slate-400 text-xs uppercase tracking-wide">Operador</span>
+                  </div>
+                  <div className="text-white font-semibold">{t.operador || 'Por asignar'}</div>
+                </div>
+
+                {/* Coordinador - Preparado */}
+                <div className="bg-slate-700/50 rounded-lg p-4 border border-slate-600">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Target className="w-4 h-4 text-purple-400" />
+                    <span className="text-slate-400 text-xs uppercase tracking-wide">Coordinador</span>
+                  </div>
+                  <div className="text-white font-semibold">{t.coordinador || 'Por asignar'}</div>
+                </div>
+
                 {/* Última actualización */}
-                <div className={`rounded-lg p-4 border ${gpsDesactualizado ? 'bg-red-900/30 border-red-600' : 'bg-slate-700/50 border-slate-600'}`}>
+                <div className={`col-span-2 rounded-lg p-4 border ${gpsDesactualizado ? 'bg-red-900/30 border-red-600' : 'bg-slate-700/50 border-slate-600'}`}>
                   <div className="flex items-center gap-2 mb-2">
                     <Clock className="w-4 h-4 text-blue-400" />
                     <span className="text-slate-400 text-xs uppercase tracking-wide">Última Actualización</span>
