@@ -71,23 +71,25 @@ const fetchSupabase = async (table: string, query: string = '') => {
   }
 };
 
-// Fetch tractores por segmento con ilike para matchear valores en BD
+// Fetch tractores por segmento con columnas correctas de gps_tracking
 const fetchTractoresPorSegmento = async (segmentoId: string) => {
   if (!supabaseUrl || !supabaseKey) return [];
   
-  // Mapeo de segmento UI → patrón de búsqueda en BD
+  // Mapeo UI → patrón BD (basado en query real de gps_tracking)
   const patronBusqueda: Record<string, string> = {
     'BAFAR': 'BAFAR',
-    'CARROLL': 'CARROL',      // BD tiene "CARROL" sin segunda L
+    'CARROLL': 'CARROL',           // BD: CARROL (31)
     'BARCEL': 'BARCEL',
-    'NATURE_SWEET': 'DEDICADO NS',  // BD tiene "DEDICADO NS"
+    'NATURE_SWEET': 'DEDICADO NS', // BD: DEDICADO NS (12) + DEDICADO NS/MULA (1)
     'ALPURA': 'ALPURA',
-    'IMPEX': 'IMPEX',         // BD tiene "IMPEX/NEXTEER/CLARIOS"
-    'PILGRIMS': 'PILGRIMS',   // BD tiene "DEDICADO PILGRIMS"
+    'IMPEX': 'IMPEX',              // BD: IMPEX/NEXTEER/CLARIOS (101) + IMPEX/MTTO (8)
+    'PILGRIMS': 'DEDICADO PILGRIMS',
   };
   
   const patron = patronBusqueda[segmentoId] || segmentoId;
-  const query = `segmento=ilike.*${patron}*&select=economico,tracto,velocidad,estado,municipio,latitud,longitud,ultima_actualizacion&order=economico`;
+  const likePattern = encodeURIComponent(`*${patron}*`);
+  // Columnas REALES: economico, empresa, segmento, latitud, longitud, velocidad, ubicacion, estatus, ultima_actualizacion
+  const query = `segmento=ilike.${likePattern}&select=economico,latitud,longitud,velocidad,ubicacion,estatus,ultima_actualizacion&order=economico`;
   
   try {
     const res = await fetch(`${supabaseUrl}/rest/v1/gps_tracking?${query}`, {
@@ -97,17 +99,28 @@ const fetchTractoresPorSegmento = async (segmentoId: string) => {
       }
     });
     if (!res.ok) return [];
-    return await res.json();
+    const data = await res.json();
+    // Mapear a lo que espera el UI
+    return (data || []).map((t: any) => ({
+      economico: t.economico,
+      tracto: t.economico,
+      velocidad: t.velocidad || 0,
+      estado: t.estatus || '',
+      municipio: t.ubicacion || '',
+      latitud: t.latitud,
+      longitud: t.longitud,
+      ultima_actualizacion: t.ultima_actualizacion,
+    }));
   } catch {
     return [];
   }
 };
 
-// Fetch tractores por empresa con mapeo correcto
+// Fetch tractores por empresa con columnas correctas de gps_tracking
 const fetchTractoresPorEmpresa = async (empresaId: string) => {
   if (!supabaseUrl || !supabaseKey) return [];
   
-  // Mapeo de empresa UI → valor en BD
+  // Mapeo UI → BD
   const empresaEnBD: Record<string, string> = {
     'SPEEDYHAUL': 'SHI',
     'TROB': 'TROB',
@@ -115,7 +128,8 @@ const fetchTractoresPorEmpresa = async (empresaId: string) => {
   };
   
   const empresa = empresaEnBD[empresaId] || empresaId;
-  const query = `empresa=eq.${empresa}&select=economico,tracto,velocidad,estado,municipio,latitud,longitud,ultima_actualizacion&order=economico`;
+  // Columnas REALES de gps_tracking
+  const query = `empresa=eq.${encodeURIComponent(empresa)}&select=economico,latitud,longitud,velocidad,ubicacion,estatus,ultima_actualizacion&order=economico`;
   
   try {
     const res = await fetch(`${supabaseUrl}/rest/v1/gps_tracking?${query}`, {
@@ -125,7 +139,18 @@ const fetchTractoresPorEmpresa = async (empresaId: string) => {
       }
     });
     if (!res.ok) return [];
-    return await res.json();
+    const data = await res.json();
+    // Mapear a lo que espera el UI
+    return (data || []).map((t: any) => ({
+      economico: t.economico,
+      tracto: t.economico,
+      velocidad: t.velocidad || 0,
+      estado: t.estatus || '',
+      municipio: t.ubicacion || '',
+      latitud: t.latitud,
+      longitud: t.longitud,
+      ultima_actualizacion: t.ultima_actualizacion,
+    }));
   } catch {
     return [];
   }
