@@ -52,16 +52,16 @@ const SEMANAS_2026 = [
 ];
 
 // ===== SUPABASE FETCH HELPER =====
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+// Credenciales directas (igual que DedicadosModuleWideTech que SÍ funciona)
+const SUPABASE_URL = 'https://fbxbsslhewchyibdoyzk.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZieGJzc2xoZXdjaHlpYmRveXprIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI1MzczODEsImV4cCI6MjA3ODExMzM4MX0.Z8JPlg7hhKbA624QGHp2bKKTNtCD3WInQMO5twjl6a0';
 
 const fetchSupabase = async (table: string, query: string = '') => {
-  if (!supabaseUrl || !supabaseKey) return null;
   try {
-    const res = await fetch(`${supabaseUrl}/rest/v1/${table}?${query}`, {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}?${query}`, {
       headers: {
-        'apikey': supabaseKey,
-        'Authorization': `Bearer ${supabaseKey}`,
+        'apikey': SUPABASE_ANON_KEY,
+        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
       }
     });
     if (!res.ok) return null;
@@ -73,8 +73,6 @@ const fetchSupabase = async (table: string, query: string = '') => {
 
 // Fetch tractores por segmento con columnas correctas de gps_tracking
 const fetchTractoresPorSegmento = async (segmentoId: string) => {
-  if (!supabaseUrl || !supabaseKey) return [];
-  
   // Mapeo UI → patrón BD (basado en query real de gps_tracking)
   const patronBusqueda: Record<string, string> = {
     'BAFAR': 'BAFAR',
@@ -92,10 +90,10 @@ const fetchTractoresPorSegmento = async (segmentoId: string) => {
   const query = `segmento=ilike.${likePattern}&select=economico,latitud,longitud,velocidad,ubicacion,estatus,ultima_actualizacion&order=economico`;
   
   try {
-    const res = await fetch(`${supabaseUrl}/rest/v1/gps_tracking?${query}`, {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/gps_tracking?${query}`, {
       headers: {
-        'apikey': supabaseKey,
-        'Authorization': `Bearer ${supabaseKey}`,
+        'apikey': SUPABASE_ANON_KEY,
+        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
       }
     });
     if (!res.ok) return [];
@@ -118,8 +116,6 @@ const fetchTractoresPorSegmento = async (segmentoId: string) => {
 
 // Fetch tractores por empresa con columnas correctas de gps_tracking
 const fetchTractoresPorEmpresa = async (empresaId: string) => {
-  if (!supabaseUrl || !supabaseKey) return [];
-  
   // Mapeo UI → BD
   const empresaEnBD: Record<string, string> = {
     'SPEEDYHAUL': 'SHI',
@@ -132,10 +128,10 @@ const fetchTractoresPorEmpresa = async (empresaId: string) => {
   const query = `empresa=eq.${encodeURIComponent(empresa)}&select=economico,latitud,longitud,velocidad,ubicacion,estatus,ultima_actualizacion&order=economico`;
   
   try {
-    const res = await fetch(`${supabaseUrl}/rest/v1/gps_tracking?${query}`, {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/gps_tracking?${query}`, {
       headers: {
-        'apikey': supabaseKey,
-        'Authorization': `Bearer ${supabaseKey}`,
+        'apikey': SUPABASE_ANON_KEY,
+        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
       }
     });
     if (!res.ok) return [];
