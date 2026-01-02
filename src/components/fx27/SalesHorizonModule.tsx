@@ -86,8 +86,7 @@ const fetchTractoresPorSegmento = async (segmentoId: string) => {
   
   const patron = patronBusqueda[segmentoId] || segmentoId;
   const likePattern = encodeURIComponent(`*${patron}*`);
-  // Columnas incluyendo estado_geo y municipio_geo
-  const query = `segmento=ilike.${likePattern}&select=economico,latitud,longitud,velocidad,ubicacion,estatus,ultima_actualizacion,estado_geo,municipio_geo&order=economico`;
+  const query = `segmento=ilike.${likePattern}&select=economico,latitud,longitud,velocidad,ubicacion,estatus,ultima_actualizacion&order=economico`;
   
   try {
     const res = await fetch(`${SUPABASE_URL}/rest/v1/gps_tracking?${query}`, {
@@ -98,7 +97,6 @@ const fetchTractoresPorSegmento = async (segmentoId: string) => {
     });
     if (!res.ok) return [];
     const data = await res.json();
-    // Mapear a lo que espera el UI
     return (data || []).map((t: any) => ({
       economico: t.economico,
       tracto: t.economico,
@@ -108,9 +106,6 @@ const fetchTractoresPorSegmento = async (segmentoId: string) => {
       latitud: t.latitud,
       longitud: t.longitud,
       ultima_actualizacion: t.ultima_actualizacion,
-      // Nuevos campos de geocoding
-      estado_geo: t.estado_geo || '',
-      municipio_geo: t.municipio_geo || '',
     }));
   } catch {
     return [];
@@ -127,8 +122,7 @@ const fetchTractoresPorEmpresa = async (empresaId: string) => {
   };
   
   const empresa = empresaEnBD[empresaId] || empresaId;
-  // Columnas incluyendo estado_geo y municipio_geo
-  const query = `empresa=eq.${encodeURIComponent(empresa)}&select=economico,latitud,longitud,velocidad,ubicacion,estatus,ultima_actualizacion,estado_geo,municipio_geo&order=economico`;
+  const query = `empresa=eq.${encodeURIComponent(empresa)}&select=economico,latitud,longitud,velocidad,ubicacion,estatus,ultima_actualizacion&order=economico`;
   
   try {
     const res = await fetch(`${SUPABASE_URL}/rest/v1/gps_tracking?${query}`, {
@@ -139,7 +133,6 @@ const fetchTractoresPorEmpresa = async (empresaId: string) => {
     });
     if (!res.ok) return [];
     const data = await res.json();
-    // Mapear a lo que espera el UI
     return (data || []).map((t: any) => ({
       economico: t.economico,
       tracto: t.economico,
@@ -149,9 +142,6 @@ const fetchTractoresPorEmpresa = async (empresaId: string) => {
       latitud: t.latitud,
       longitud: t.longitud,
       ultima_actualizacion: t.ultima_actualizacion,
-      // Nuevos campos de geocoding
-      estado_geo: t.estado_geo || '',
-      municipio_geo: t.municipio_geo || '',
     }));
   } catch {
     return [];
@@ -286,6 +276,41 @@ export default function SalesHorizonModule({ onBack }: Props) {
     };
     cargar();
   }, [unidadesEmpresa]);
+
+  // Estado para geocoding del modal
+  const [geoData, setGeoData] = useState<{estado: string, municipio: string} | null>(null);
+  const [loadingGeo, setLoadingGeo] = useState(false);
+
+  // Reverse geocoding cuando se selecciona un tracto
+  useEffect(() => {
+    if (!tractoSeleccionado || !tractoSeleccionado.latitud || !tractoSeleccionado.longitud) {
+      setGeoData(null);
+      return;
+    }
+    
+    const fetchGeo = async () => {
+      setLoadingGeo(true);
+      try {
+        const res = await fetch(
+          `https://nominatim.openstreetmap.org/reverse?format=json&lat=${tractoSeleccionado.latitud}&lon=${tractoSeleccionado.longitud}&zoom=10&addressdetails=1`,
+          { headers: { 'Accept-Language': 'es' } }
+        );
+        if (res.ok) {
+          const data = await res.json();
+          const addr = data.address || {};
+          setGeoData({
+            estado: addr.state || addr.region || 'N/A',
+            municipio: addr.city || addr.town || addr.municipality || addr.county || 'N/A',
+          });
+        }
+      } catch {
+        setGeoData({ estado: 'N/A', municipio: 'N/A' });
+      }
+      setLoadingGeo(false);
+    };
+    
+    fetchGeo();
+  }, [tractoSeleccionado]);
 
   const datosMesActual = MESES[mesActual - 1];
   const acumuladoYTD = MESES.slice(0, mesActual).reduce((a, m) => a + m.ppto, 0);
@@ -746,20 +771,21 @@ export default function SalesHorizonModule({ onBack }: Props) {
 
               {/* Datos */}
               <div className="grid grid-cols-2 gap-3">
-                {/* Ubicación - Datos de BD (sin espera) */}
+                {/* Ubicación - Con Geocoding del Frontend */}
                 <div className="col-span-2 bg-slate-700/50 rounded-lg p-4 border border-slate-600">
                   <div className="flex items-center gap-2 mb-3">
                     <MapPin className="w-4 h-4 text-blue-400" />
                     <span className="text-slate-400 text-xs uppercase tracking-wide">Ubicación</span>
+                    {loadingGeo && <span className="text-xs text-blue-400 animate-pulse">Cargando...</span>}
                   </div>
                   <div className="space-y-2 text-sm">
                     <div>
                       <span className="text-slate-500">Estado:</span>
-                      <span className="text-white ml-2">{t.estado_geo || 'Actualizando...'}</span>
+                      <span className="text-white ml-2">{geoData?.estado || (loadingGeo ? '...' : 'N/A')}</span>
                     </div>
                     <div>
                       <span className="text-slate-500">Municipio:</span>
-                      <span className="text-white ml-2">{t.municipio_geo || 'Actualizando...'}</span>
+                      <span className="text-white ml-2">{geoData?.municipio || (loadingGeo ? '...' : 'N/A')}</span>
                     </div>
                     <div>
                       <span className="text-slate-500">Descripción:</span>
