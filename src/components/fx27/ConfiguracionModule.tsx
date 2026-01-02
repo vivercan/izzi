@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState } from 'react';
-import { ArrowLeft, Users, Database, FolderOpen, Target } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { ArrowLeft, Users, Database, FolderOpen, Target, Lock } from 'lucide-react';
 import SalesHorizonModule from './SalesHorizonModule';
 
 interface Props { onBack: () => void; }
@@ -10,16 +10,41 @@ type SubModulo = null | 'usuarios' | 'backup' | 'archivos' | 'sales_horizon';
 
 export function ConfiguracionModule({ onBack }: Props) {
   const [subModulo, setSubModulo] = useState<SubModulo>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    const userData = localStorage.getItem('fx27_user');
+    if (userData) {
+      const user = JSON.parse(userData);
+      // Administradores: Juan Viveros, Jennifer Sánchez
+      const admins = ['juan.viveros', 'jennifer.sanchez', 'admin', 'jviveros', 'jsanchez'];
+      setIsAdmin(admins.includes(user.username?.toLowerCase()) || user.role === 'admin' || user.rol === 'administrador');
+    }
+  }, []);
 
   if (subModulo === 'sales_horizon') {
+    if (!isAdmin) {
+      return (
+        <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center">
+          <div className="bg-slate-800/50 rounded-xl p-8 border border-red-500/30 text-center max-w-md">
+            <Lock className="w-16 h-16 text-red-400 mx-auto mb-4" />
+            <h2 className="text-xl font-bold text-white mb-2">Acceso Restringido</h2>
+            <p className="text-slate-400 mb-4">Solo los administradores pueden acceder a Sales Horizon.</p>
+            <button onClick={() => setSubModulo(null)} className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-md text-white">
+              Volver
+            </button>
+          </div>
+        </div>
+      );
+    }
     return <SalesHorizonModule onBack={() => setSubModulo(null)} />;
   }
 
   const opciones = [
-    { id: 'usuarios', titulo: 'Usuarios', descripcion: 'Gestionar usuarios y permisos', icono: Users, color: 'from-blue-500 to-blue-600' },
-    { id: 'backup', titulo: 'Backup', descripcion: 'Respaldo de leads eliminados', icono: Database, color: 'from-emerald-500 to-emerald-600' },
-    { id: 'archivos', titulo: 'Archivos', descripcion: 'Cotizaciones y contratos', icono: FolderOpen, color: 'from-purple-500 to-purple-600' },
-    { id: 'sales_horizon', titulo: 'Sales Horizon', descripcion: 'Presupuesto y metas 2026', icono: Target, color: 'from-orange-500 to-amber-600' },
+    { id: 'usuarios', titulo: 'Usuarios', descripcion: 'Gestionar usuarios y permisos', icono: Users, color: 'from-blue-500 to-blue-600', adminOnly: false },
+    { id: 'backup', titulo: 'Backup', descripcion: 'Respaldo de leads eliminados', icono: Database, color: 'from-emerald-500 to-emerald-600', adminOnly: false },
+    { id: 'archivos', titulo: 'Archivos', descripcion: 'Cotizaciones y contratos', icono: FolderOpen, color: 'from-purple-500 to-purple-600', adminOnly: false },
+    { id: 'sales_horizon', titulo: 'Sales Horizon', descripcion: isAdmin ? 'Presupuesto y metas 2026' : '🔒 Solo Administradores', icono: Target, color: isAdmin ? 'from-orange-500 to-amber-600' : 'from-slate-500 to-slate-600', adminOnly: true },
   ];
 
   return (
@@ -42,8 +67,13 @@ export function ConfiguracionModule({ onBack }: Props) {
         <div className="grid grid-cols-3 gap-4 max-w-5xl mx-auto">
           {opciones.map((op) => {
             const Icono = op.icono;
+            const disabled = op.adminOnly && !isAdmin;
             return (
-              <button key={op.id} onClick={() => setSubModulo(op.id as SubModulo)} className="bg-white rounded-2xl p-6 text-center hover:shadow-xl hover:scale-[1.02] transition-all">
+              <button 
+                key={op.id} 
+                onClick={() => !disabled && setSubModulo(op.id as SubModulo)} 
+                className={`bg-white rounded-2xl p-6 text-center transition-all ${disabled ? 'opacity-60 cursor-not-allowed' : 'hover:shadow-xl hover:scale-[1.02]'}`}
+              >
                 <div className={`w-14 h-14 mx-auto mb-4 rounded-xl bg-gradient-to-br ${op.color} flex items-center justify-center`}>
                   <Icono className="w-7 h-7 text-white" />
                 </div>

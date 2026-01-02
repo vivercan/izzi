@@ -1,9 +1,8 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 import { 
-  Target, ArrowLeft, ChevronDown, ChevronUp, Download, Calendar,
-  Building2, Users, Truck, Filter
+  Target, ArrowLeft, Download, Building2, Users, Truck, X
 } from 'lucide-react';
 
 // ===== DATOS =====
@@ -54,33 +53,11 @@ interface Props { onBack: () => void; }
 
 export default function SalesHorizonModule({ onBack }: Props) {
   const mesActual = new Date().getMonth() + 1;
-  const [showFiltros, setShowFiltros] = useState(false);
-  const [fechaInicio, setFechaInicio] = useState('2026-01-01');
-  const [fechaFin, setFechaFin] = useState('2026-12-31');
-  
-  const [checks, setChecks] = useState({
-    empresas: false,
-    segmentos: false,
-    meses: false,
-    tractores: false,
-  });
-
-  const toggleCheck = (key: keyof typeof checks) => {
-    setChecks(prev => ({ ...prev, [key]: !prev[key] }));
-  };
+  const [empresaSeleccionada, setEmpresaSeleccionada] = useState<string | null>(null);
+  const [segmentoSeleccionado, setSegmentoSeleccionado] = useState<string | null>(null);
 
   const datosMesActual = MESES[mesActual - 1];
   const acumuladoYTD = MESES.slice(0, mesActual).reduce((a, m) => a + m.ppto, 0);
-
-  const mesesEnRango = useMemo(() => {
-    const inicio = new Date(fechaInicio);
-    const fin = new Date(fechaFin);
-    const mesI = inicio.getMonth() + 1;
-    const mesF = fin.getMonth() + 1;
-    return MESES.filter(m => m.mes >= mesI && m.mes <= mesF);
-  }, [fechaInicio, fechaFin]);
-
-  const pptoRango = mesesEnRango.reduce((a, m) => a + m.ppto, 0);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
@@ -92,13 +69,16 @@ export default function SalesHorizonModule({ onBack }: Props) {
               <ArrowLeft className="w-5 h-5 text-slate-400" />
             </button>
             <div className="flex items-center gap-2">
-              <Target className="w-5 h-5 text-orange-500" />
-              <span className="text-lg font-bold text-white">Sales Horizon 2026</span>
+              <Target className="w-5 h-5 text-orange-400" />
+              <span className="text-lg font-bold text-white tracking-wide">SALES HORIZON 2026</span>
             </div>
           </div>
-          <button className="flex items-center gap-1 px-3 py-1.5 bg-gradient-to-b from-blue-800 to-blue-950 hover:from-blue-700 hover:to-blue-900 rounded-md text-xs text-white font-medium border border-blue-600/30 shadow-lg">
-            <Download className="w-3 h-3" /> Excel
-          </button>
+          <div className="flex items-center gap-2">
+            <span className="text-xs px-3 py-1.5 bg-gradient-to-b from-blue-800 to-blue-950 rounded-md text-blue-100 border border-blue-600/30 font-light tracking-wide">{GLOBAL.tractores_facturan} tractores</span>
+            <button className="text-xs px-3 py-1.5 bg-gradient-to-b from-blue-800 to-blue-950 hover:from-blue-700 hover:to-blue-900 rounded-md text-blue-100 font-light tracking-wide border border-blue-600/30 shadow-lg flex items-center gap-1">
+              <Download className="w-3 h-3" /> Excel
+            </button>
+          </div>
         </div>
       </div>
 
@@ -130,7 +110,7 @@ export default function SalesHorizonModule({ onBack }: Props) {
         {/* Barra de meses - COLORES VIVOS */}
         <div className="bg-slate-800/50 rounded-md p-3 border border-slate-700/50">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm text-slate-400">Distribución Mensual</span>
+            <span className="text-sm text-slate-400">Presupuesto Mensual</span>
           </div>
           <div className="flex gap-1">
             {MESES.map(m => (
@@ -138,7 +118,7 @@ export default function SalesHorizonModule({ onBack }: Props) {
                 key={m.mes} 
                 className={`flex-1 rounded text-center py-2 cursor-pointer transition-all ${
                   m.mes === mesActual 
-                    ? 'bg-gradient-to-br from-orange-500 to-red-500 text-white shadow-lg shadow-orange-500/30' 
+                    ? 'bg-gradient-to-br from-orange-400 to-orange-500 text-white shadow-lg shadow-orange-500/20' 
                     : 'bg-slate-700/50 text-slate-300 hover:bg-slate-600'
                 }`}
                 title={`${m.nombre}: ${fmt(m.ppto, true)}`}
@@ -150,173 +130,160 @@ export default function SalesHorizonModule({ onBack }: Props) {
           </div>
         </div>
 
-        {/* Botón Filtros Avanzados - COLOR VIVO */}
-        <button 
-          onClick={() => setShowFiltros(!showFiltros)}
-          className={`w-full flex items-center justify-between p-3 rounded-md border transition-all ${
-            showFiltros 
-              ? 'bg-gradient-to-r from-orange-500 to-amber-500 border-orange-400 shadow-lg shadow-orange-500/25' 
-              : 'bg-slate-800/50 hover:bg-slate-700/50 border-slate-700/50'
-          }`}
-        >
-          <div className="flex items-center gap-2">
-            <Filter className={`w-4 h-4 ${showFiltros ? 'text-white' : 'text-orange-400'}`} />
-            <span className={`font-medium ${showFiltros ? 'text-white' : 'text-white'}`}>Filtros y Desglose Avanzado</span>
-          </div>
-          {showFiltros ? <ChevronUp className="w-5 h-5 text-white" /> : <ChevronDown className="w-5 h-5 text-slate-400" />}
-        </button>
-
-        {/* Panel de Filtros */}
-        {showFiltros && (
-          <div className="bg-slate-800/50 rounded-md p-4 border border-slate-700/50 space-y-4">
-            {/* Rango de fechas */}
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-2">
-                <Calendar className="w-4 h-4 text-slate-400" />
-                <span className="text-sm text-slate-300">Rango:</span>
-              </div>
-              <input type="date" value={fechaInicio} onChange={e => setFechaInicio(e.target.value)} className="px-2 py-1 bg-slate-700 border border-slate-600 rounded text-white text-sm" />
-              <span className="text-slate-500">a</span>
-              <input type="date" value={fechaFin} onChange={e => setFechaFin(e.target.value)} className="px-2 py-1 bg-slate-700 border border-slate-600 rounded text-white text-sm" />
-              <div className="ml-auto px-3 py-1 bg-gradient-to-r from-orange-500 to-amber-500 rounded-md text-white font-bold text-sm shadow-lg shadow-orange-500/25">
-                Ppto Rango: {fmt(pptoRango, true)}
-              </div>
-            </div>
-
-            {/* Checkboxes - COLORES VIVOS */}
-            <div className="flex flex-wrap gap-3">
-              {[
-                { key: 'empresas', label: 'Por Empresa', icon: Building2, color: 'blue' },
-                { key: 'segmentos', label: 'Por Segmento', icon: Users, color: 'blue' },
-                { key: 'meses', label: 'Por Mes', icon: Calendar, color: 'orange' },
-                { key: 'tractores', label: '$/Tracto', icon: Truck, color: 'purple' },
-              ].map(({ key, label, icon: Icon, color }) => (
-                <label 
-                  key={key} 
-                  className={`flex items-center gap-2 px-4 py-2 rounded-md cursor-pointer transition-all ${
-                    checks[key as keyof typeof checks] 
-                      ? `bg-gradient-to-r from-${color}-500 to-${color}-600 shadow-lg shadow-${color}-500/25 border-transparent` 
-                      : 'bg-slate-700/50 border-slate-600 hover:bg-slate-600'
-                  } border`}
-                >
-                  <input type="checkbox" checked={checks[key as keyof typeof checks]} onChange={() => toggleCheck(key as keyof typeof checks)} className="w-4 h-4 accent-white" />
-                  <Icon className="w-4 h-4 text-white" />
-                  <span className="text-sm text-white font-medium">{label}</span>
-                </label>
-              ))}
-            </div>
-
-            {/* Resultados según checks */}
-            <div className="space-y-3">
-              {checks.empresas && (
-                <div className="bg-gradient-to-br from-blue-500/20 to-blue-600/20 rounded-md p-3 border border-blue-500/30">
-                  <h4 className="text-sm font-bold text-blue-300 mb-2 flex items-center gap-2"><Building2 className="w-4 h-4" /> Por Empresa</h4>
-                  <div className="grid grid-cols-3 gap-2">
-                    {EMPRESAS.map(e => (
-                      <div key={e.id} className="bg-blue-500/20 rounded-md p-3 flex justify-between items-center border border-blue-400/30">
-                        <span className="text-white text-sm font-medium">{e.nombre}</span>
-                        <span className="text-blue-200 font-black text-lg">{fmt(pptoRango * e.pct, true)}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {checks.segmentos && (
-                <div className="bg-gradient-to-br from-blue-800/20 to-blue-900/20 rounded-md p-3 border border-blue-600/30">
-                  <h4 className="text-sm font-bold text-blue-300 mb-2 flex items-center gap-2"><Users className="w-4 h-4" /> Por Segmento</h4>
-                  <div className="grid grid-cols-4 gap-2">
-                    {SEGMENTOS.map(s => (
-                      <div key={s.id} className="bg-blue-800/20 rounded-md p-2 border border-blue-600/30">
-                        <div className="flex justify-between items-start">
-                          <span className="text-white text-xs font-medium">{s.nombre}</span>
-                          <span className="text-blue-200 font-black text-sm">{fmt(pptoRango * s.pct, true)}</span>
-                        </div>
-                        <div className="text-blue-300/70 text-xs mt-1">{s.tractores}T • {fmt(s.tmes, true)}/T</div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {checks.meses && (
-                <div className="bg-gradient-to-br from-orange-500/20 to-orange-600/20 rounded-md p-3 border border-orange-500/30">
-                  <h4 className="text-sm font-bold text-orange-300 mb-2 flex items-center gap-2"><Calendar className="w-4 h-4" /> Por Mes (en rango)</h4>
-                  <div className="grid grid-cols-6 gap-2">
-                    {mesesEnRango.map(m => (
-                      <div key={m.mes} className={`rounded-md p-2 text-center border ${
-                        m.mes === mesActual 
-                          ? 'bg-gradient-to-br from-orange-500 to-red-500 border-orange-400 shadow-lg' 
-                          : 'bg-orange-500/20 border-orange-400/30'
-                      }`}>
-                        <div className="text-white text-xs font-medium">{m.nombre}</div>
-                        <div className="text-white font-black text-sm">{fmt(m.ppto, true)}</div>
-                        <div className="text-orange-200/70 text-xs">{Math.round(m.pct * 100)}%</div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {checks.tractores && (
-                <div className="bg-gradient-to-br from-purple-500/20 to-purple-600/20 rounded-md p-3 border border-purple-500/30">
-                  <h4 className="text-sm font-bold text-purple-300 mb-2 flex items-center gap-2"><Truck className="w-4 h-4" /> $/Tracto por Segmento</h4>
-                  <div className="grid grid-cols-4 gap-2">
-                    {SEGMENTOS.map(s => (
-                      <div key={s.id} className="bg-purple-500/20 rounded-md p-2 border border-purple-400/30">
-                        <div className="text-white text-xs font-medium">{s.nombre}</div>
-                        <div className="text-purple-200 font-black text-lg">{fmt(s.tmes)}</div>
-                        <div className="text-purple-300/70 text-xs">
-                          Día: {fmt(Math.round(s.tmes / 30))} • Sem: {fmt(Math.round(s.tmes / 4), true)}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {!checks.empresas && !checks.segmentos && !checks.meses && !checks.tractores && (
-                <div className="text-center text-slate-400 py-6 bg-slate-700/30 rounded-md">
-                  ☝️ Selecciona una o más opciones para ver el desglose
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* Resumen rápido por Segmento - COLORES VIVOS */}
+        {/* Resumen rápido por Segmento */}
         <div className="bg-slate-800/50 rounded-md p-3 border border-slate-700/50">
           <div className="flex items-center justify-between mb-2">
             <span className="text-sm text-slate-400">Segmentos - {datosMesActual.nombre}</span>
-            <span className="text-xs px-2 py-1 bg-gradient-to-b from-blue-800 to-blue-950 rounded-md text-blue-100 border border-blue-600/30 font-light tracking-wide">{GLOBAL.tractores_facturan} tractores</span>
           </div>
           <div className="grid grid-cols-7 gap-2">
             {SEGMENTOS.map(s => (
-              <div key={s.id} className="bg-gradient-to-br from-slate-700 to-slate-800 rounded-md p-2 text-center hover:from-blue-700 hover:to-blue-800 cursor-pointer transition-all border border-slate-600 hover:border-blue-500">
+              <div 
+                key={s.id} 
+                onClick={() => setSegmentoSeleccionado(segmentoSeleccionado === s.id ? null : s.id)}
+                className={`rounded-md p-2 text-center cursor-pointer transition-all border ${
+                  segmentoSeleccionado === s.id 
+                    ? 'bg-gradient-to-br from-blue-600 to-blue-700 border-blue-400 shadow-lg shadow-blue-500/20' 
+                    : 'bg-gradient-to-br from-slate-700 to-slate-800 border-slate-600 hover:from-blue-700 hover:to-blue-800 hover:border-blue-500'
+                }`}
+              >
                 <div className="text-white text-xs font-medium truncate uppercase">{s.nombre}</div>
-                <div className="text-blue-400 font-black text-sm">{fmt(datosMesActual.ppto * s.pct, true)}</div>
+                <div className="text-blue-300 font-bold text-xs mt-1">{fmt(Math.round(datosMesActual.ppto * s.pct))}</div>
                 <div className="text-slate-400 text-xs">{s.tractores} Unidades</div>
               </div>
             ))}
           </div>
         </div>
 
-        {/* Empresas compacto */}
+        {/* Empresas - Meta Mensual */}
         <div className="bg-slate-800/50 rounded-md p-3 border border-slate-700/50">
           <span className="text-sm text-slate-400">Empresas - {datosMesActual.nombre}</span>
-          <div className="grid grid-cols-3 gap-2 mt-2">
+          <div className="grid grid-cols-3 gap-3 mt-2">
             {EMPRESAS.map(e => (
-              <div key={e.id} className="bg-gradient-to-br from-slate-700 to-slate-800 rounded-md p-3 flex justify-between items-center hover:from-blue-600 hover:to-blue-700 cursor-pointer transition-all border border-slate-600 hover:border-blue-500">
-                <div>
+              <div 
+                key={e.id} 
+                onClick={() => setEmpresaSeleccionada(empresaSeleccionada === e.id ? null : e.id)}
+                className={`rounded-md p-3 cursor-pointer transition-all border ${
+                  empresaSeleccionada === e.id 
+                    ? 'bg-gradient-to-br from-blue-600 to-blue-700 border-blue-400 shadow-lg shadow-blue-500/20' 
+                    : 'bg-gradient-to-br from-slate-700 to-slate-800 border-slate-600 hover:from-blue-600 hover:to-blue-700 hover:border-blue-500'
+                }`}
+              >
+                <div className="flex justify-between items-start mb-2">
                   <div className="text-white text-sm font-bold">{e.nombre}</div>
-                  <div className="text-slate-400 text-xs">{Math.round(e.pct * 100)}% del ppto • {e.unidades} Unidades</div>
+                  <div className="text-right">
+                    <div className="text-blue-100 text-xs">Meta Mes</div>
+                    <div className="text-blue-200 font-bold text-sm">{fmt(Math.round(datosMesActual.ppto * e.pct))}</div>
+                  </div>
                 </div>
-                <div className="text-blue-400 font-black text-lg">{fmt(datosMesActual.ppto * e.pct, true)}</div>
+                <div className="flex justify-between items-center text-xs mt-2">
+                  <div>
+                    <div className="text-slate-500">% Ppto</div>
+                    <div className="text-slate-300">{Math.round(e.pct * 100)}%</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-slate-500">Meta Anual</div>
+                    <div className="text-blue-300 font-medium">{fmt(e.ppto)}</div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-slate-500">Unidades</div>
+                    <div className="text-slate-300">{e.unidades}</div>
+                  </div>
+                </div>
               </div>
             ))}
           </div>
         </div>
       </div>
+
+      {/* MODAL SUPERPUESTO - Segmento */}
+      {segmentoSeleccionado && (() => {
+        const seg = SEGMENTOS.find(s => s.id === segmentoSeleccionado);
+        if (!seg) return null;
+        return (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setSegmentoSeleccionado(null)}>
+            <div className="bg-gradient-to-br from-slate-800 to-slate-900 rounded-xl p-8 border border-blue-500/30 shadow-2xl max-w-3xl w-full mx-4" onClick={e => e.stopPropagation()}>
+              <div className="flex justify-between items-center mb-6">
+                <div className="text-blue-200 text-2xl font-bold uppercase">{seg.nombre}</div>
+                <button onClick={() => setSegmentoSeleccionado(null)} className="text-slate-400 hover:text-white text-3xl">&times;</button>
+              </div>
+              <div className="grid grid-cols-5 gap-3 mb-6">
+                <div className="bg-blue-800/40 rounded-lg p-4 text-center">
+                  <div className="text-blue-300 text-sm mb-1">Anual</div>
+                  <div className="text-white font-bold text-xl">{fmt(seg.ppto, true)}</div>
+                </div>
+                <div className="bg-blue-800/40 rounded-lg p-4 text-center">
+                  <div className="text-blue-300 text-sm mb-1">Mensual</div>
+                  <div className="text-white font-bold text-xl">{fmt(datosMesActual.ppto * seg.pct, true)}</div>
+                </div>
+                <div className="bg-blue-800/40 rounded-lg p-4 text-center">
+                  <div className="text-blue-300 text-sm mb-1">Semanal</div>
+                  <div className="text-white font-bold text-xl">{fmt(datosMesActual.ppto * seg.pct / 4, true)}</div>
+                </div>
+                <div className="bg-blue-800/40 rounded-lg p-4 text-center">
+                  <div className="text-blue-300 text-sm mb-1">Diario</div>
+                  <div className="text-white font-bold text-xl">{fmt(datosMesActual.ppto * seg.pct / 30, true)}</div>
+                </div>
+                <div className="bg-blue-800/40 rounded-lg p-4 text-center">
+                  <div className="text-blue-300 text-sm mb-1">$/Unidad</div>
+                  <div className="text-white font-bold text-xl">{fmt(seg.tmes, true)}</div>
+                </div>
+              </div>
+              <div className="text-sm text-slate-400 mb-3">Presupuesto por mes:</div>
+              <div className="grid grid-cols-6 gap-2">
+                {MESES.map(m => (
+                  <div key={m.mes} className={`text-center p-3 rounded-lg text-sm ${m.mes === mesActual ? 'bg-orange-500/40 text-orange-100' : 'bg-slate-700/50 text-slate-300'}`}>
+                    <div className="font-medium">{m.nombre.slice(0,3)}</div>
+                    <div className="font-bold text-lg">{fmt(m.ppto * seg.pct, true)}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* MODAL SUPERPUESTO - Empresa */}
+      {empresaSeleccionada && (() => {
+        const emp = EMPRESAS.find(e => e.id === empresaSeleccionada);
+        if (!emp) return null;
+        return (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setEmpresaSeleccionada(null)}>
+            <div className="bg-gradient-to-br from-slate-800 to-slate-900 rounded-xl p-8 border border-blue-500/30 shadow-2xl max-w-3xl w-full mx-4" onClick={e => e.stopPropagation()}>
+              <div className="flex justify-between items-center mb-6">
+                <div className="text-blue-200 text-2xl font-bold">{emp.nombre}</div>
+                <button onClick={() => setEmpresaSeleccionada(null)} className="text-slate-400 hover:text-white text-3xl">&times;</button>
+              </div>
+              <div className="grid grid-cols-4 gap-3 mb-6">
+                <div className="bg-blue-800/40 rounded-lg p-4 text-center">
+                  <div className="text-blue-300 text-sm mb-1">Anual</div>
+                  <div className="text-white font-bold text-xl">{fmt(emp.ppto, true)}</div>
+                </div>
+                <div className="bg-blue-800/40 rounded-lg p-4 text-center">
+                  <div className="text-blue-300 text-sm mb-1">Mensual</div>
+                  <div className="text-white font-bold text-xl">{fmt(datosMesActual.ppto * emp.pct, true)}</div>
+                </div>
+                <div className="bg-blue-800/40 rounded-lg p-4 text-center">
+                  <div className="text-blue-300 text-sm mb-1">Semanal</div>
+                  <div className="text-white font-bold text-xl">{fmt(datosMesActual.ppto * emp.pct / 4, true)}</div>
+                </div>
+                <div className="bg-blue-800/40 rounded-lg p-4 text-center">
+                  <div className="text-blue-300 text-sm mb-1">Diario</div>
+                  <div className="text-white font-bold text-xl">{fmt(datosMesActual.ppto * emp.pct / 30, true)}</div>
+                </div>
+              </div>
+              <div className="text-sm text-slate-400 mb-3">Presupuesto por mes:</div>
+              <div className="grid grid-cols-6 gap-2">
+                {MESES.map(m => (
+                  <div key={m.mes} className={`text-center p-3 rounded-lg text-sm ${m.mes === mesActual ? 'bg-orange-500/40 text-orange-100' : 'bg-slate-700/50 text-slate-300'}`}>
+                    <div className="font-medium">{m.nombre.slice(0,3)}</div>
+                    <div className="font-bold text-lg">{fmt(m.ppto * emp.pct, true)}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }
