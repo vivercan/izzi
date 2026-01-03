@@ -52,16 +52,16 @@ const SEMANAS_2026 = [
 ];
 
 // ===== SUPABASE FETCH HELPER =====
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+// Credenciales directas (igual que DedicadosModuleWideTech que SÍ funciona)
+const SUPABASE_URL = 'https://fbxbsslhewchyibdoyzk.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZieGJzc2xoZXdjaHlpYmRveXprIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI1MzczODEsImV4cCI6MjA3ODExMzM4MX0.Z8JPlg7hhKbA624QGHp2bKKTNtCD3WInQMO5twjl6a0';
 
 const fetchSupabase = async (table: string, query: string = '') => {
-  if (!supabaseUrl || !supabaseKey) return null;
   try {
-    const res = await fetch(`${supabaseUrl}/rest/v1/${table}?${query}`, {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}?${query}`, {
       headers: {
-        'apikey': supabaseKey,
-        'Authorization': `Bearer ${supabaseKey}`,
+        'apikey': SUPABASE_ANON_KEY,
+        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
       }
     });
     if (!res.ok) return null;
@@ -71,48 +71,51 @@ const fetchSupabase = async (table: string, query: string = '') => {
   }
 };
 
-// Fetch tractores por segmento con ilike para matchear valores en BD
+// Fetch tractores por segmento con columnas correctas de gps_tracking
 const fetchTractoresPorSegmento = async (segmentoId: string) => {
-  if (!supabaseUrl || !supabaseKey) return [];
-  
-  // Mapeo de segmento UI → patrón de búsqueda en BD
+  // Mapeo UI → patrón BD (basado en query real de gps_tracking)
   const patronBusqueda: Record<string, string> = {
     'BAFAR': 'BAFAR',
-    'CARROLL': 'CARROL',      // BD tiene "CARROL" sin segunda L
+    'CARROLL': 'CARROL',           // BD: CARROL (31)
     'BARCEL': 'BARCEL',
+    'NATURE_SWEET': 'DEDICADO NS', // BD: DEDICADO NS (12) + DEDICADO NS/MULA (1)
     'ALPURA': 'ALPURA',
-    'IMPEX': 'IMPEX',         // BD tiene "IMPEX/NEXTEER/CLARIOS"
-    'PILGRIMS': 'PILGRIMS',   // BD tiene "DEDICADO PILGRIMS"
+    'IMPEX': 'IMPEX',              // BD: IMPEX/NEXTEER/CLARIOS (101) + IMPEX/MTTO (8)
+    'PILGRIMS': 'DEDICADO PILGRIMS',
   };
   
-  // Nature Sweet tiene múltiples valores en BD: "NatureSweet", "DEDICADO NS", "DEDICADO NS/MULA"
-  let query: string;
-  if (segmentoId === 'NATURE_SWEET') {
-    query = `or=(segmento.ilike.*NatureSweet*,segmento.ilike.*DEDICADO%20NS*)&select=economico,velocidad,estatus,ubicacion,latitud,longitud,ultima_actualizacion,estado_geo,municipio_geo&order=economico`;
-  } else {
-    const patron = patronBusqueda[segmentoId] || segmentoId;
-    query = `segmento=ilike.*${patron}*&select=economico,velocidad,estatus,ubicacion,latitud,longitud,ultima_actualizacion,estado_geo,municipio_geo&order=economico`;
-  }
+  const patron = patronBusqueda[segmentoId] || segmentoId;
+  const likePattern = encodeURIComponent(`*${patron}*`);
+  const query = `segmento=ilike.${likePattern}&select=economico,latitud,longitud,velocidad,ubicacion,estatus,ultima_actualizacion,estado_geo,municipio_geo&order=economico`;
   
   try {
-    const res = await fetch(`${supabaseUrl}/rest/v1/gps_tracking?${query}`, {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/gps_tracking?${query}`, {
       headers: {
-        'apikey': supabaseKey,
-        'Authorization': `Bearer ${supabaseKey}`,
+        'apikey': SUPABASE_ANON_KEY,
+        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
       }
     });
     if (!res.ok) return [];
-    return await res.json();
+    const data = await res.json();
+    return (data || []).map((t: any) => ({
+      economico: t.economico,
+      tracto: t.economico,
+      velocidad: t.velocidad || 0,
+      estado: t.estatus || '',
+      municipio: t.ubicacion || '',
+      latitud: t.latitud,
+      longitud: t.longitud,
+      ultima_actualizacion: t.ultima_actualizacion,
+      estado_geo: t.estado_geo || '',
+      municipio_geo: t.municipio_geo || '',
+    }));
   } catch {
     return [];
   }
 };
 
-// Fetch tractores por empresa con mapeo correcto
+// Fetch tractores por empresa con columnas correctas de gps_tracking
 const fetchTractoresPorEmpresa = async (empresaId: string) => {
-  if (!supabaseUrl || !supabaseKey) return [];
-  
-  // Mapeo de empresa UI → valor en BD
   const empresaEnBD: Record<string, string> = {
     'SPEEDYHAUL': 'SHI',
     'TROB': 'TROB',
@@ -120,17 +123,29 @@ const fetchTractoresPorEmpresa = async (empresaId: string) => {
   };
   
   const empresa = empresaEnBD[empresaId] || empresaId;
-  const query = `empresa=eq.${empresa}&select=economico,velocidad,estatus,ubicacion,latitud,longitud,ultima_actualizacion,estado_geo,municipio_geo&order=economico`;
+  const query = `empresa=eq.${encodeURIComponent(empresa)}&select=economico,latitud,longitud,velocidad,ubicacion,estatus,ultima_actualizacion,estado_geo,municipio_geo&order=economico`;
   
   try {
-    const res = await fetch(`${supabaseUrl}/rest/v1/gps_tracking?${query}`, {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/gps_tracking?${query}`, {
       headers: {
-        'apikey': supabaseKey,
-        'Authorization': `Bearer ${supabaseKey}`,
+        'apikey': SUPABASE_ANON_KEY,
+        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
       }
     });
     if (!res.ok) return [];
-    return await res.json();
+    const data = await res.json();
+    return (data || []).map((t: any) => ({
+      economico: t.economico,
+      tracto: t.economico,
+      velocidad: t.velocidad || 0,
+      estado: t.estatus || '',
+      municipio: t.ubicacion || '',
+      latitud: t.latitud,
+      longitud: t.longitud,
+      ultima_actualizacion: t.ultima_actualizacion,
+      estado_geo: t.estado_geo || '',
+      municipio_geo: t.municipio_geo || '',
+    }));
   } catch {
     return [];
   }
@@ -183,54 +198,59 @@ const exportarExcel = () => {
   const semana = getSemanaActual();
   
   const resumenData = [
-    ['SALES HORIZON 2026'],
-    [''],
-    ['RESUMEN GENERAL'],
-    ['Meta Anual', GLOBAL.meta_anual],
-    ['Meta Mes (' + datosMes.nombre + ')', datosMes.ppto],
-    ['Meta Semana ' + semana.semana, semana.meta],
-    ['Meta Hoy (Día ' + diaActual + ')', Math.round(metaDiaTotal)],
-    ['Operatividad', GLOBAL.operatividad],
-    ['Tractores Facturan', GLOBAL.tractores_facturan],
-    ['Tractores Totales', GLOBAL.tractores_totales],
-    [''],
-    ['PRESUPUESTO MENSUAL'],
-    ['Mes', '% del Año', 'Presupuesto'],
-    ...MESES.map(m => [m.nombre, m.pct, m.ppto])
+    ['SALES HORIZON 2026 - RESUMEN EJECUTIVO', '', '', ''],
+    ['', '', '', ''],
+    ['META ANUAL', fmt(GLOBAL.meta_anual), '', ''],
+    ['META MES (' + datosMes.nombre.toUpperCase() + ')', fmt(datosMes.ppto), '', ''],
+    ['META DÍA (Día ' + diaActual + ')', fmt(metaDiaTotal), '', ''],
+    ['META SEMANA ' + semana.semana, fmt(semana.meta), '', ''],
+    ['', '', '', ''],
+    ['TRACTORES OPERATIVOS', GLOBAL.tractores_facturan + ' / ' + GLOBAL.tractores_totales, '', ''],
+    ['OPERATIVIDAD', (GLOBAL.operatividad * 100).toFixed(0) + '%', '', ''],
   ];
+  
   const wsResumen = XLSX.utils.aoa_to_sheet(resumenData);
-  wsResumen['!cols'] = [{ wch: 20 }, { wch: 15 }, { wch: 18 }];
   XLSX.utils.book_append_sheet(wb, wsResumen, 'Resumen');
-
-  const segHeader = ['Segmento', 'Tractores', '% Ppto', 'Meta Anual', 'Meta Mes'];
-  const segData = SEGMENTOS.map(s => [s.nombre, s.tractores, s.pct, s.ppto, Math.round(datosMes.ppto * s.pct)]);
-  const segSheet = [['SEGMENTOS'], [''], segHeader, ...segData];
-  const wsSegmentos = XLSX.utils.aoa_to_sheet(segSheet);
+  
+  const segmentosData = [
+    ['SEGMENTO', 'TRACTORES', 'PARTICIPACIÓN', 'PPTO ANUAL', 'META MES'],
+    ...SEGMENTOS.map(s => [
+      s.nombre,
+      s.tractores,
+      (s.pct * 100).toFixed(1) + '%',
+      fmt(s.ppto),
+      fmt(s.tmes),
+    ])
+  ];
+  
+  const wsSegmentos = XLSX.utils.aoa_to_sheet(segmentosData);
   XLSX.utils.book_append_sheet(wb, wsSegmentos, 'Segmentos');
-
-  const empHeader = ['Empresa', 'Unidades', '% Ppto', 'Meta Anual', 'Meta Mes'];
-  const empData = EMPRESAS.map(e => [e.nombre, e.unidades, e.pct, e.ppto, Math.round(datosMes.ppto * e.pct)]);
-  const empSheet = [['EMPRESAS'], [''], empHeader, ...empData];
-  const wsEmpresas = XLSX.utils.aoa_to_sheet(empSheet);
+  
+  const empresasData = [
+    ['EMPRESA', 'UNIDADES', 'PARTICIPACIÓN', 'PPTO ANUAL'],
+    ...EMPRESAS.map(e => [
+      e.nombre,
+      e.unidades,
+      (e.pct * 100).toFixed(1) + '%',
+      fmt(e.ppto),
+    ])
+  ];
+  
+  const wsEmpresas = XLSX.utils.aoa_to_sheet(empresasData);
   XLSX.utils.book_append_sheet(wb, wsEmpresas, 'Empresas');
-
-  const fecha = hoy.toISOString().split('T')[0];
-  XLSX.writeFile(wb, `Sales_Horizon_2026_${fecha}.xlsx`);
+  
+  XLSX.writeFile(wb, `SalesHorizon_${hoy.toISOString().split('T')[0]}.xlsx`);
 };
 
-interface Props { onBack: () => void; }
+// ===== COMPONENTE PRINCIPAL =====
+interface SalesHorizonModuleProps {
+  onBack: () => void;
+}
 
-export default function SalesHorizonModule({ onBack }: Props) {
-  const mesActual = new Date().getMonth() + 1;
-  const diaActual = new Date().getDate();
-  const diaSemana = new Date().getDay();
-  const nombreDia = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'][diaSemana];
-  const nombreMesCorto = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'][mesActual - 1];
-  const textoHoy = `Hoy ${nombreDia} ${diaActual} ${nombreMesCorto} 2026`;
-  
-  const [empresaSeleccionada, setEmpresaSeleccionada] = useState<string | null>(null);
-  const [segmentoSeleccionado, setSegmentoSeleccionado] = useState<string | null>(null);
-  const [mesSeleccionadoModal, setMesSeleccionadoModal] = useState(mesActual);
+export default function SalesHorizonModule({ onBack }: SalesHorizonModuleProps) {
+  const hoy = new Date();
+  const mesActual = hoy.getMonth() + 1;
+  const diaActual = hoy.getDate();
   
   // Estados para modales de unidades
   const [unidadesSegmento, setUnidadesSegmento] = useState<string | null>(null);
@@ -317,7 +337,7 @@ export default function SalesHorizonModule({ onBack }: Props) {
           </div>
           <div className="bg-gradient-to-b from-blue-800 to-blue-950 rounded-md p-4 shadow-[0_8px_30px_rgba(0,0,0,0.4)] border border-blue-600/30 text-center">
             <div className="text-blue-200 text-lg font-bold tracking-wide uppercase mb-1">Operatividad</div>
-            <div className="text-white text-2xl font-semibold">{Math.round(GLOBAL.operatividad * 100)}%</div>
+            <div className="text-white text-2xl font-semibold">{(GLOBAL.operatividad * 100).toFixed(0)}%</div>
           </div>
           <div className="bg-gradient-to-b from-blue-800 to-blue-950 rounded-md p-4 shadow-[0_8px_30px_rgba(0,0,0,0.4)] border border-blue-600/30 text-center">
             <div className="text-blue-200 text-lg font-bold tracking-wide uppercase mb-1">Tractores</div>
@@ -326,376 +346,222 @@ export default function SalesHorizonModule({ onBack }: Props) {
         </div>
 
         {/* Presupuesto Mensual */}
-        <div className="bg-slate-800/50 rounded-md p-3 border border-slate-700/50">
-          <span className="text-sm text-slate-400">Presupuesto Mensual</span>
-          <div className="flex gap-1 mt-2">
-            {MESES.map(m => (
-              <div 
-                key={m.mes} 
-                className={`flex-1 rounded text-center py-2 ${
-                  m.mes === mesActual 
-                    ? 'bg-gradient-to-br from-orange-400 to-orange-500 text-white' 
-                    : 'bg-slate-700/50 text-slate-300'
+        <div>
+          <h2 className="text-slate-400 text-sm font-medium tracking-wide mb-3">Presupuesto Mensual</h2>
+          <div className="grid grid-cols-12 gap-2">
+            {MESES.map((m) => (
+              <div
+                key={m.mes}
+                className={`rounded-md p-2 text-center transition-all ${
+                  m.mes === mesActual
+                    ? 'bg-gradient-to-b from-orange-700 to-orange-900 ring-2 ring-orange-400 shadow-lg shadow-orange-500/30'
+                    : 'bg-slate-800/60 hover:bg-slate-700/60'
                 }`}
               >
-                <div className="text-xs font-medium">{m.nombre}</div>
-                <div className="text-xs font-bold">{fmt(m.ppto, true)}</div>
+                <div className={`text-xs font-medium ${m.mes === mesActual ? 'text-orange-100' : 'text-slate-400'}`}>
+                  {m.nombre.substring(0, 3)}
+                </div>
+                <div className={`text-sm font-bold ${m.mes === mesActual ? 'text-white' : 'text-slate-300'}`}>
+                  {fmtDec(m.ppto)}
+                </div>
               </div>
             ))}
           </div>
         </div>
 
-        {/* Segmentos */}
-        <div className="bg-slate-800/50 rounded-md p-3 border border-slate-700/50">
-          <span className="text-sm text-slate-400">Segmentos - {datosMesActual.nombre}</span>
-          <div className="grid grid-cols-7 gap-2 mt-2">
-            {SEGMENTOS.map(s => (
-              <div 
-                key={s.id} 
-                onClick={() => setSegmentoSeleccionado(segmentoSeleccionado === s.id ? null : s.id)}
-                className={`rounded-md p-2 text-center cursor-pointer transition-all border ${
-                  segmentoSeleccionado === s.id 
-                    ? 'bg-gradient-to-br from-blue-600 to-blue-700 border-blue-400' 
-                    : 'bg-gradient-to-br from-slate-700 to-slate-800 border-slate-600 hover:border-blue-500'
-                }`}
-              >
-                <div className="text-white text-xs font-medium uppercase">{s.nombre}</div>
-                <div className="text-blue-300 font-bold text-xs mt-1">{fmt(Math.round(datosMesActual.ppto * s.pct))}</div>
-                <div 
-                  onClick={(e) => { e.stopPropagation(); setUnidadesSegmento(s.id); }}
-                  className="text-amber-400 text-xs mt-1 hover:text-amber-300 hover:underline cursor-pointer font-medium"
+        {/* Segmentos - Enero */}
+        <div>
+          <h2 className="text-slate-400 text-sm font-medium tracking-wide mb-3">Segmentos - {datosMesActual.nombre}</h2>
+          <div className="grid grid-cols-7 gap-3">
+            {SEGMENTOS.map((seg) => {
+              const metaMes = seg.tmes;
+              return (
+                <div
+                  key={seg.id}
+                  className="bg-slate-800/60 rounded-md p-4 hover:bg-slate-700/60 transition-all border border-slate-700/50"
                 >
-                  {s.tractores} Unidades ›
+                  <div className="text-slate-300 text-sm font-medium mb-1">{seg.nombre.toUpperCase()}</div>
+                  <div className="text-orange-400 text-lg font-bold">{fmt(metaMes)}</div>
+                  <button
+                    onClick={() => setUnidadesSegmento(seg.id)}
+                    className="text-xs text-blue-400 hover:text-blue-300 mt-2 hover:underline"
+                  >
+                    {seg.tractores} Unidades ›
+                  </button>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
 
         {/* Empresas */}
-        <div className="bg-slate-800/50 rounded-md p-3 border border-slate-700/50">
-          <span className="text-sm text-slate-400">Empresas - {datosMesActual.nombre}</span>
-          <div className="grid grid-cols-3 gap-3 mt-2">
-            {EMPRESAS.map(e => (
-              <div 
-                key={e.id} 
-                onClick={() => setEmpresaSeleccionada(empresaSeleccionada === e.id ? null : e.id)}
-                className={`rounded-md p-3 cursor-pointer transition-all border ${
-                  empresaSeleccionada === e.id 
-                    ? 'bg-gradient-to-br from-blue-600 to-blue-700 border-blue-400' 
-                    : 'bg-gradient-to-br from-slate-700 to-slate-800 border-slate-600 hover:border-blue-500'
-                }`}
-              >
-                <div className="flex justify-between items-start mb-2">
-                  <div className="text-white text-sm font-bold">{e.nombre}</div>
-                  <div className="text-right">
-                    <div className="text-blue-100 text-xs">Meta Mes</div>
-                    <div className="text-blue-200 font-bold text-sm">{fmt(Math.round(datosMesActual.ppto * e.pct))}</div>
+        <div>
+          <h2 className="text-slate-400 text-sm font-medium tracking-wide mb-3">Empresas - {datosMesActual.nombre}</h2>
+          <div className="grid grid-cols-3 gap-4">
+            {EMPRESAS.map((emp) => {
+              const metaMes = emp.ppto / 12;
+              return (
+                <div
+                  key={emp.id}
+                  className="bg-slate-800/60 rounded-md p-4 hover:bg-slate-700/60 transition-all border border-slate-700/50"
+                >
+                  <div className="flex justify-between items-start mb-2">
+                    <div className="text-white font-bold">{emp.nombre}</div>
+                    <div className="text-slate-400 text-xs">{emp.unidades} u</div>
                   </div>
-                </div>
-                <div className="flex justify-between items-center text-xs mt-2">
-                  <div>
-                    <div className="text-slate-500">% Ppto</div>
-                    <div className="text-slate-300">{Math.round(e.pct * 100)}%</div>
+                  <div className="text-slate-400 text-xs mb-1">Meta Anual</div>
+                  <div className="text-blue-400 font-bold">{fmt(emp.ppto)}</div>
+                  <div className="flex justify-between items-center mt-2">
+                    <div className="text-slate-400 text-xs">{(emp.pct * 100).toFixed(0)}%</div>
+                    <div className="text-slate-300 text-sm">Meta Mes <span className="text-white font-semibold">{fmtDec(metaMes)}</span></div>
                   </div>
-                  <div className="text-center">
-                    <div className="text-slate-500">Meta Anual</div>
-                    <div className="text-blue-300">{fmt(e.ppto)}</div>
-                  </div>
-                  <div 
-                    onClick={(ev) => { ev.stopPropagation(); setUnidadesEmpresa(e.id); }}
-                    className="text-right cursor-pointer"
+                  <button
+                    onClick={() => setUnidadesEmpresa(emp.id)}
+                    className="text-xs text-blue-400 hover:text-blue-300 mt-2 hover:underline"
                   >
-                    <div className="text-slate-500">Unidades</div>
-                    <div className="text-amber-400 hover:text-amber-300 hover:underline font-medium">{e.unidades} ›</div>
-                  </div>
+                    {emp.unidades} ›
+                  </button>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       </div>
 
-      {/* MODAL Segmento */}
-      {segmentoSeleccionado && (() => {
-        const seg = SEGMENTOS.find(s => s.id === segmentoSeleccionado);
-        if (!seg) return null;
-        const datosMesModal = MESES[mesSeleccionadoModal - 1];
-        const metaMesSeg = datosMesModal.ppto * seg.pct;
-        const metaSemanaSeg = metaSemanaTotal * seg.pct;
-        const metaDiaSeg = metaDiaHoyTotal * seg.pct;
-        
-        return (
-          <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50" onClick={() => { setSegmentoSeleccionado(null); setMesSeleccionadoModal(mesActual); }}>
-            <div className="bg-slate-800 rounded-xl p-8 border border-slate-600 shadow-2xl max-w-4xl w-full mx-4" onClick={e => e.stopPropagation()}>
-              <div className="flex justify-between items-center mb-6">
-                <div className="text-white text-2xl font-bold uppercase">{seg.nombre}</div>
-                <button onClick={() => { setSegmentoSeleccionado(null); setMesSeleccionadoModal(mesActual); }} className="text-slate-400 hover:text-white text-2xl">&times;</button>
+      {/* Modal Unidades Segmento */}
+      {unidadesSegmento && (
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50" onClick={() => setUnidadesSegmento(null)}>
+          <div className="bg-slate-800 rounded-xl p-6 max-w-4xl w-full mx-4 max-h-[80vh] overflow-auto" onClick={e => e.stopPropagation()}>
+            <div className="flex justify-between items-center mb-4">
+              <div className="flex items-center gap-3">
+                <span className="bg-orange-500 text-white px-3 py-1 rounded-full text-sm font-bold">
+                  {SEGMENTOS.find(s => s.id === unidadesSegmento)?.tractores}
+                </span>
+                <h3 className="text-white text-xl font-bold">UNIDADES {SEGMENTOS.find(s => s.id === unidadesSegmento)?.nombre.toUpperCase()}</h3>
               </div>
-              
-              <div className="text-xs text-slate-400 uppercase mb-3">Metas del Segmento - {datosMesModal.nombre}</div>
-              <div className="grid grid-cols-4 gap-3 mb-6">
-                <div className="bg-slate-700 rounded-lg p-4 text-center border border-slate-600">
-                  <div className="text-slate-400 text-xs uppercase mb-2">Anual</div>
-                  <div className="text-white font-semibold text-lg">{fmt(seg.ppto)}</div>
-                </div>
-                <div className="bg-slate-700 rounded-lg p-4 text-center border border-slate-600">
-                  <div className="text-slate-400 text-xs uppercase mb-2">Mes</div>
-                  <div className="text-white font-semibold text-lg">{fmt(Math.round(metaMesSeg))}</div>
-                </div>
-                <div className="bg-slate-700 rounded-lg p-4 text-center border border-slate-600">
-                  <div className="text-slate-400 text-xs uppercase mb-2">Semana {semanaActual.semana}</div>
-                  <div className="text-white font-semibold text-lg">{fmt(Math.round(metaSemanaSeg))}</div>
-                </div>
-                <div className="bg-amber-700 rounded-lg p-4 text-center border border-amber-600">
-                  <div className="text-amber-100 text-xs uppercase mb-2">{textoHoy}</div>
-                  <div className="text-white font-semibold text-lg">{fmt(Math.round(metaDiaSeg))}</div>
-                </div>
+              <button onClick={() => setUnidadesSegmento(null)} className="text-slate-400 hover:text-white text-2xl">&times;</button>
+            </div>
+            
+            <div className="flex gap-4 mb-4">
+              <div className="flex items-center gap-2">
+                <span className="w-3 h-3 bg-green-500 rounded-full"></span>
+                <span className="text-slate-300 text-sm">En movimiento</span>
               </div>
-              
-              <div className="text-xs text-slate-400 uppercase mb-3">Promedio por Unidad ({seg.tractores} tractores)</div>
-              <div className="grid grid-cols-3 gap-3 mb-6">
-                <div className="bg-slate-700/70 rounded-lg p-4 text-center border border-slate-600">
-                  <div className="text-slate-400 text-xs uppercase mb-2">$/Tracto Mes</div>
-                  <div className="text-white font-semibold text-lg">{fmt(Math.round(metaMesSeg / seg.tractores))}</div>
-                </div>
-                <div className="bg-slate-700/70 rounded-lg p-4 text-center border border-slate-600">
-                  <div className="text-slate-400 text-xs uppercase mb-2">$/Tracto Semana</div>
-                  <div className="text-white font-semibold text-lg">{fmt(Math.round(metaSemanaSeg / seg.tractores))}</div>
-                </div>
-                <div className="bg-slate-700/70 rounded-lg p-4 text-center border border-slate-600">
-                  <div className="text-slate-400 text-xs uppercase mb-2">$/Tracto Hoy</div>
-                  <div className="text-white font-semibold text-lg">{fmt(Math.round(metaDiaSeg / seg.tractores))}</div>
-                </div>
-              </div>
-              
-              <div className="text-xs text-slate-400 uppercase mb-3">Selecciona un Mes</div>
-              <div className="grid grid-cols-6 gap-2">
-                {MESES.map(m => (
-                  <div 
-                    key={m.mes} 
-                    onClick={() => setMesSeleccionadoModal(m.mes)}
-                    className={`text-center p-3 rounded-lg cursor-pointer ${
-                      m.mes === mesSeleccionadoModal 
-                        ? 'bg-amber-700 text-white border border-amber-500' 
-                        : 'bg-slate-700 text-slate-300 border border-slate-600 hover:bg-slate-600'
-                    }`}
-                  >
-                    <div className="text-xs">{m.nombre.slice(0,3)}</div>
-                    <div className="font-semibold">{fmtDec(Math.round(m.ppto * seg.pct))}</div>
-                  </div>
-                ))}
+              <div className="flex items-center gap-2">
+                <span className="w-3 h-3 bg-amber-500 rounded-full"></span>
+                <span className="text-slate-300 text-sm">Detenido</span>
               </div>
             </div>
-          </div>
-        );
-      })()}
 
-      {/* MODAL Empresa */}
-      {empresaSeleccionada && (() => {
-        const emp = EMPRESAS.find(e => e.id === empresaSeleccionada);
-        if (!emp) return null;
-        const datosMesModal = MESES[mesSeleccionadoModal - 1];
-        const metaMesEmp = datosMesModal.ppto * emp.pct;
-        const metaSemanaEmp = metaSemanaTotal * emp.pct;
-        const metaDiaEmp = metaDiaHoyTotal * emp.pct;
-        
-        return (
-          <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50" onClick={() => { setEmpresaSeleccionada(null); setMesSeleccionadoModal(mesActual); }}>
-            <div className="bg-slate-800 rounded-xl p-8 border border-slate-600 shadow-2xl max-w-3xl w-full mx-4" onClick={e => e.stopPropagation()}>
-              <div className="flex justify-between items-center mb-6">
-                <div className="text-white text-2xl font-bold">{emp.nombre}</div>
-                <button onClick={() => { setEmpresaSeleccionada(null); setMesSeleccionadoModal(mesActual); }} className="text-slate-400 hover:text-white text-2xl">&times;</button>
+            {loadingTractores ? (
+              <div className="text-center py-8 text-slate-400">Cargando unidades...</div>
+            ) : tractoresLista.length === 0 ? (
+              <div className="text-center py-8 text-slate-400">No se encontraron unidades</div>
+            ) : (
+              <div className="grid grid-cols-6 gap-3">
+                {tractoresLista.map((t) => {
+                  const vel = parseFloat(t.velocidad) || 0;
+                  const enMovimiento = vel > 0;
+                  return (
+                    <button
+                      key={t.economico}
+                      onClick={() => setTractoSeleccionado(t)}
+                      className={`p-3 rounded-lg text-center transition-all hover:scale-105 ${
+                        enMovimiento
+                          ? 'bg-green-900/40 border border-green-600/50 hover:bg-green-800/50'
+                          : 'bg-amber-900/40 border border-amber-600/50 hover:bg-amber-800/50'
+                      }`}
+                    >
+                      <div className="text-white font-bold text-lg">{t.economico}</div>
+                      <div className={`text-xs ${enMovimiento ? 'text-green-400' : 'text-amber-400'}`}>
+                        {enMovimiento ? `${vel} km/h` : 'Detenido'}
+                      </div>
+                    </button>
+                  );
+                })}
               </div>
-              
-              <div className="text-xs text-slate-400 uppercase mb-3">Metas de la Empresa - {datosMesModal.nombre}</div>
-              <div className="grid grid-cols-4 gap-3 mb-6">
-                <div className="bg-slate-700 rounded-lg p-4 text-center border border-slate-600">
-                  <div className="text-slate-400 text-xs uppercase mb-2">Anual</div>
-                  <div className="text-white font-semibold text-lg">{fmt(emp.ppto)}</div>
-                </div>
-                <div className="bg-slate-700 rounded-lg p-4 text-center border border-slate-600">
-                  <div className="text-slate-400 text-xs uppercase mb-2">Mes</div>
-                  <div className="text-white font-semibold text-lg">{fmt(Math.round(metaMesEmp))}</div>
-                </div>
-                <div className="bg-slate-700 rounded-lg p-4 text-center border border-slate-600">
-                  <div className="text-slate-400 text-xs uppercase mb-2">Semana {semanaActual.semana}</div>
-                  <div className="text-white font-semibold text-lg">{fmt(Math.round(metaSemanaEmp))}</div>
-                </div>
-                <div className="bg-amber-700 rounded-lg p-4 text-center border border-amber-600">
-                  <div className="text-amber-100 text-xs uppercase mb-2">{textoHoy}</div>
-                  <div className="text-white font-semibold text-lg">{fmt(Math.round(metaDiaEmp))}</div>
-                </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Modal Unidades Empresa */}
+      {unidadesEmpresa && (
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50" onClick={() => setUnidadesEmpresa(null)}>
+          <div className="bg-slate-800 rounded-xl p-6 max-w-4xl w-full mx-4 max-h-[80vh] overflow-auto" onClick={e => e.stopPropagation()}>
+            <div className="flex justify-between items-center mb-4">
+              <div className="flex items-center gap-3">
+                <span className="bg-blue-500 text-white px-3 py-1 rounded-full text-sm font-bold">
+                  {EMPRESAS.find(e => e.id === unidadesEmpresa)?.unidades}
+                </span>
+                <h3 className="text-white text-xl font-bold">UNIDADES {EMPRESAS.find(e => e.id === unidadesEmpresa)?.nombre}</h3>
               </div>
-              
-              <div className="text-xs text-slate-400 uppercase mb-3">Selecciona un Mes</div>
-              <div className="grid grid-cols-6 gap-2">
-                {MESES.map(m => (
-                  <div 
-                    key={m.mes} 
-                    onClick={() => setMesSeleccionadoModal(m.mes)}
-                    className={`text-center p-3 rounded-lg cursor-pointer ${
-                      m.mes === mesSeleccionadoModal 
-                        ? 'bg-amber-700 text-white border border-amber-500' 
-                        : 'bg-slate-700 text-slate-300 border border-slate-600 hover:bg-slate-600'
-                    }`}
-                  >
-                    <div className="text-xs">{m.nombre.slice(0,3)}</div>
-                    <div className="font-semibold">{fmt(Math.round(m.ppto * emp.pct), true)}</div>
-                  </div>
-                ))}
+              <button onClick={() => setUnidadesEmpresa(null)} className="text-slate-400 hover:text-white text-2xl">&times;</button>
+            </div>
+            
+            <div className="flex gap-4 mb-4">
+              <div className="flex items-center gap-2">
+                <span className="w-3 h-3 bg-green-500 rounded-full"></span>
+                <span className="text-slate-300 text-sm">En movimiento</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="w-3 h-3 bg-amber-500 rounded-full"></span>
+                <span className="text-slate-300 text-sm">Detenido</span>
               </div>
             </div>
-          </div>
-        );
-      })()}
 
-      {/* MODAL - Unidades por Segmento */}
-      {unidadesSegmento && (() => {
-        const seg = SEGMENTOS.find(s => s.id === unidadesSegmento);
-        if (!seg) return null;
-        
-        return (
-          <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[60]" onClick={() => { setUnidadesSegmento(null); setTractoresLista([]); }}>
-            <div className="bg-gradient-to-b from-slate-900 to-slate-950 rounded-xl p-6 border-2 border-amber-500/50 shadow-2xl shadow-amber-500/20 max-w-2xl w-full mx-4 max-h-[80vh] overflow-hidden" onClick={e => e.stopPropagation()}>
-              <div className="flex justify-between items-center mb-4">
-                <div className="flex items-center gap-3">
-                  <div className="bg-amber-500 text-slate-900 px-3 py-1 rounded-md font-bold text-sm">{tractoresLista.length || seg.tractores}</div>
-                  <div className="text-white text-xl font-bold uppercase tracking-wide">Unidades {seg.nombre}</div>
-                </div>
-                <button onClick={() => { setUnidadesSegmento(null); setTractoresLista([]); }} className="text-slate-400 hover:text-white text-2xl font-light">&times;</button>
+            {loadingTractores ? (
+              <div className="text-center py-8 text-slate-400">Cargando unidades...</div>
+            ) : tractoresLista.length === 0 ? (
+              <div className="text-center py-8 text-slate-400">No se encontraron unidades</div>
+            ) : (
+              <div className="grid grid-cols-6 gap-3">
+                {tractoresLista.map((t) => {
+                  const vel = parseFloat(t.velocidad) || 0;
+                  const enMovimiento = vel > 0;
+                  return (
+                    <button
+                      key={t.economico}
+                      onClick={() => setTractoSeleccionado(t)}
+                      className={`p-3 rounded-lg text-center transition-all hover:scale-105 ${
+                        enMovimiento
+                          ? 'bg-green-900/40 border border-green-600/50 hover:bg-green-800/50'
+                          : 'bg-amber-900/40 border border-amber-600/50 hover:bg-amber-800/50'
+                      }`}
+                    >
+                      <div className="text-white font-bold text-lg">{t.economico}</div>
+                      <div className={`text-xs ${enMovimiento ? 'text-green-400' : 'text-amber-400'}`}>
+                        {enMovimiento ? `${vel} km/h` : 'Detenido'}
+                      </div>
+                    </button>
+                  );
+                })}
               </div>
-              
-              {loadingTractores ? (
-                <div className="flex items-center justify-center py-12">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-amber-500"></div>
-                  <span className="ml-3 text-slate-400">Cargando unidades...</span>
-                </div>
-              ) : (
-                <div className="overflow-y-auto max-h-[60vh] pr-2">
-                  <div className="grid grid-cols-6 gap-2">
-                    {tractoresLista.map((t, i) => {
-                      const vel = parseFloat(t.velocidad) || 0;
-                      const enMovimiento = vel > 0;
-                      return (
-                        <div 
-                          key={i} 
-                          onClick={() => setTractoSeleccionado(t)}
-                          className={`text-white text-center py-2 px-1 rounded-lg text-xs font-semibold border shadow-md transition-all cursor-pointer ${
-                            enMovimiento 
-                              ? 'bg-gradient-to-br from-green-600 to-green-700 border-green-500 hover:from-green-500 hover:to-green-600' 
-                              : 'bg-gradient-to-br from-amber-600 to-amber-700 border-amber-500 hover:from-amber-500 hover:to-amber-600'
-                          }`}
-                          title={enMovimiento ? `${vel} km/h - ${t.municipio || ''}` : `Detenido - ${t.municipio || ''}`}
-                        >
-                          {t.economico || t.tracto}
-                        </div>
-                      );
-                    })}
-                  </div>
-                  {tractoresLista.length === 0 && !loadingTractores && (
-                    <div className="text-center py-8 text-slate-400">No se encontraron unidades</div>
-                  )}
-                </div>
-              )}
-              
-              <div className="mt-4 flex gap-4 text-xs text-slate-400">
-                <div className="flex items-center gap-2">
-                  <span className="w-3 h-3 rounded bg-green-600"></span> En movimiento
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="w-3 h-3 rounded bg-amber-600"></span> Detenido
-                </div>
-              </div>
-            </div>
+            )}
           </div>
-        );
-      })()}
+        </div>
+      )}
 
-      {/* MODAL - Unidades por Empresa */}
-      {unidadesEmpresa && (() => {
-        const emp = EMPRESAS.find(e => e.id === unidadesEmpresa);
-        if (!emp) return null;
-        
-        return (
-          <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[60]" onClick={() => { setUnidadesEmpresa(null); setTractoresLista([]); }}>
-            <div className="bg-gradient-to-b from-slate-900 to-slate-950 rounded-xl p-6 border-2 border-amber-500/50 shadow-2xl shadow-amber-500/20 max-w-2xl w-full mx-4 max-h-[80vh] overflow-hidden" onClick={e => e.stopPropagation()}>
-              <div className="flex justify-between items-center mb-4">
-                <div className="flex items-center gap-3">
-                  <div className="bg-amber-500 text-slate-900 px-3 py-1 rounded-md font-bold text-sm">{tractoresLista.length || emp.unidades}</div>
-                  <div className="text-white text-xl font-bold tracking-wide">Unidades {emp.nombre}</div>
-                </div>
-                <button onClick={() => { setUnidadesEmpresa(null); setTractoresLista([]); }} className="text-slate-400 hover:text-white text-2xl font-light">&times;</button>
-              </div>
-              
-              {loadingTractores ? (
-                <div className="flex items-center justify-center py-12">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-amber-500"></div>
-                  <span className="ml-3 text-slate-400">Cargando unidades...</span>
-                </div>
-              ) : (
-                <div className="overflow-y-auto max-h-[60vh] pr-2">
-                  <div className="grid grid-cols-6 gap-2">
-                    {tractoresLista.map((t, i) => {
-                      const vel = parseFloat(t.velocidad) || 0;
-                      const enMovimiento = vel > 0;
-                      return (
-                        <div 
-                          key={i} 
-                          onClick={() => setTractoSeleccionado(t)}
-                          className={`text-white text-center py-2 px-1 rounded-lg text-xs font-semibold border shadow-md transition-all cursor-pointer ${
-                            enMovimiento 
-                              ? 'bg-gradient-to-br from-green-600 to-green-700 border-green-500 hover:from-green-500 hover:to-green-600' 
-                              : 'bg-gradient-to-br from-amber-600 to-amber-700 border-amber-500 hover:from-amber-500 hover:to-amber-600'
-                          }`}
-                          title={enMovimiento ? `${vel} km/h - ${t.municipio || ''}` : `Detenido - ${t.municipio || ''}`}
-                        >
-                          {t.economico || t.tracto}
-                        </div>
-                      );
-                    })}
-                  </div>
-                  {tractoresLista.length === 0 && !loadingTractores && (
-                    <div className="text-center py-8 text-slate-400">No se encontraron unidades</div>
-                  )}
-                </div>
-              )}
-              
-              <div className="mt-4 flex gap-4 text-xs text-slate-400">
-                <div className="flex items-center gap-2">
-                  <span className="w-3 h-3 rounded bg-green-600"></span> En movimiento
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="w-3 h-3 rounded bg-amber-600"></span> Detenido
-                </div>
-              </div>
-            </div>
-          </div>
-        );
-      })()}
-
-      {/* MODAL - Detalles GPS del Tracto */}
+      {/* Modal GPS Detalle */}
       {tractoSeleccionado && (() => {
         const t = tractoSeleccionado;
         const vel = parseFloat(t.velocidad) || 0;
         const enMovimiento = vel > 0;
         
-        // Calcular tiempo parado
         let tiempoParado = '';
         if (!enMovimiento && t.ultima_actualizacion) {
           const ahora = new Date();
           const ultima = new Date(t.ultima_actualizacion);
           const diffMins = (ahora.getTime() - ultima.getTime()) / (1000 * 60);
-          tiempoParado = diffMins >= 60 ? `${(diffMins / 60).toFixed(1)} hrs` : `${diffMins.toFixed(1)} min`;
+          tiempoParado = diffMins >= 60 ? `${(diffMins / 60).toFixed(1)} hrs` : `${diffMins.toFixed(0)} min`;
         }
         
-        // GPS desactualizado (más de 2 horas)
         const horasDesde = t.ultima_actualizacion ? (new Date().getTime() - new Date(t.ultima_actualizacion).getTime()) / (1000 * 60 * 60) : 0;
         const gpsDesactualizado = horasDesde > 2;
         
         return (
           <div className="fixed inset-0 bg-black/85 flex items-center justify-center z-[70]" onClick={() => setTractoSeleccionado(null)}>
-            <div className="bg-gradient-to-b from-slate-800 to-slate-900 rounded-xl p-6 border-2 border-blue-500/50 shadow-2xl shadow-blue-500/20 max-w-3xl w-full mx-4" onClick={e => e.stopPropagation()}>
+            <div className="bg-gradient-to-b from-slate-800 to-slate-900 rounded-xl p-6 border-2 border-blue-500/50 shadow-2xl shadow-blue-500/20 max-w-4xl w-full mx-4 max-h-[90vh] overflow-auto" onClick={e => e.stopPropagation()}>
               <div className="flex justify-between items-center mb-4">
                 <div className="flex items-center gap-3">
                   <MapPin className="w-6 h-6 text-blue-400" />
@@ -705,14 +571,14 @@ export default function SalesHorizonModule({ onBack }: Props) {
               </div>
 
               {/* Mapa */}
-              <div className="rounded-lg overflow-hidden border border-slate-600 h-64 mb-4">
+              <div className="rounded-lg overflow-hidden border border-slate-600 h-72 mb-4">
                 {t.latitud && t.longitud ? (
                   <iframe
                     width="100%"
                     height="100%"
                     frameBorder="0"
                     scrolling="no"
-                    src={`https://www.openstreetmap.org/export/embed.html?bbox=${t.longitud - 0.02},${t.latitud - 0.015},${t.longitud + 0.02},${t.latitud + 0.015}&layer=mapnik&marker=${t.latitud},${t.longitud}`}
+                    src={`https://www.openstreetmap.org/export/embed.html?bbox=${t.longitud - 0.03},${t.latitud - 0.02},${t.longitud + 0.03},${t.latitud + 0.02}&layer=mapnik&marker=${t.latitud},${t.longitud}`}
                     style={{ border: 0 }}
                   />
                 ) : (
@@ -724,7 +590,7 @@ export default function SalesHorizonModule({ onBack }: Props) {
 
               {/* Datos */}
               <div className="grid grid-cols-2 gap-3">
-                {/* Ubicación - Ahora con Estado y Municipio de geocoding */}
+                {/* Ubicación - Estado, Municipio, Dirección */}
                 <div className="col-span-2 bg-slate-700/50 rounded-lg p-4 border border-slate-600">
                   <div className="flex items-center gap-2 mb-3">
                     <MapPin className="w-4 h-4 text-blue-400" />
@@ -741,7 +607,7 @@ export default function SalesHorizonModule({ onBack }: Props) {
                     </div>
                     <div>
                       <span className="text-slate-500">Descripción:</span>
-                      <span className="text-slate-300 ml-2">{t.ubicacion || 'N/A'}</span>
+                      <span className="text-slate-300 ml-2">{t.municipio || 'N/A'}</span>
                     </div>
                   </div>
                 </div>
@@ -771,7 +637,7 @@ export default function SalesHorizonModule({ onBack }: Props) {
                   )}
                 </div>
 
-                {/* Velocidad promedio placeholder */}
+                {/* Velocidad promedio */}
                 <div className="bg-slate-700/50 rounded-lg p-4 border border-slate-600">
                   <div className="flex items-center gap-2 mb-2">
                     <Gauge className="w-4 h-4 text-blue-400" />
@@ -786,44 +652,25 @@ export default function SalesHorizonModule({ onBack }: Props) {
                     <Clock className="w-4 h-4 text-blue-400" />
                     <span className="text-slate-400 text-xs uppercase tracking-wide">Última Actualización</span>
                   </div>
-                  {gpsDesactualizado ? (
-                    <>
-                      <div className="text-red-400 font-semibold flex items-center gap-2">
-                        <AlertTriangle className="w-4 h-4" />
-                        GPS Desactualizado
-                      </div>
-                      <div className="text-slate-300 text-sm">
-                        {t.ultima_actualizacion ? new Date(t.ultima_actualizacion).toLocaleString('es-MX') : 'N/A'}
-                      </div>
-                      <div className="text-red-300 text-xs">Hace {horasDesde.toFixed(1)} hrs</div>
-                    </>
-                  ) : (
-                    <>
-                      <div className="text-green-400 font-semibold text-sm">GPS Activo</div>
-                      <div className="text-slate-300 text-sm">
-                        {t.ultima_actualizacion ? new Date(t.ultima_actualizacion).toLocaleString('es-MX') : 'N/A'}
-                      </div>
-                    </>
+                  <div className={`font-semibold ${gpsDesactualizado ? 'text-red-400' : 'text-white'}`}>
+                    {t.ultima_actualizacion ? new Date(t.ultima_actualizacion).toLocaleString('es-MX') : 'N/A'}
+                  </div>
+                  {gpsDesactualizado && (
+                    <div className="flex items-center gap-1 mt-1 text-red-400 text-xs">
+                      <AlertTriangle className="w-3 h-3" />
+                      GPS desactualizado
+                    </div>
                   )}
                 </div>
-              </div>
 
-              {/* Coordenadas */}
-              <div className="bg-slate-800 rounded-lg p-3 border border-slate-700 flex items-center justify-between mt-3">
-                <div className="text-slate-400 text-xs">
-                  <span className="text-slate-500">LAT:</span> {t.latitud?.toFixed(6) || 'N/A'} | 
-                  <span className="text-slate-500 ml-2">LON:</span> {t.longitud?.toFixed(6) || 'N/A'}
+                {/* Vel Promedio placeholder */}
+                <div className="bg-slate-700/50 rounded-lg p-4 border border-slate-600">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Gauge className="w-4 h-4 text-blue-400" />
+                    <span className="text-slate-400 text-xs uppercase tracking-wide">Vel. Promedio</span>
+                  </div>
+                  <div className="text-white font-semibold text-lg">~{Math.max(vel - 5, 0)} km/h</div>
                 </div>
-                {t.latitud && t.longitud && (
-                  <a 
-                    href={`https://www.google.com/maps?q=${t.latitud},${t.longitud}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-blue-400 text-xs hover:text-blue-300 hover:underline"
-                  >
-                    Abrir en Google Maps →
-                  </a>
-                )}
               </div>
             </div>
           </div>
