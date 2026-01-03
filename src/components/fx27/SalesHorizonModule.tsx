@@ -80,14 +80,19 @@ const fetchTractoresPorSegmento = async (segmentoId: string) => {
     'BAFAR': 'BAFAR',
     'CARROLL': 'CARROL',      // BD tiene "CARROL" sin segunda L
     'BARCEL': 'BARCEL',
-    'NATURE_SWEET': 'DEDICADO NS',  // BD tiene "DEDICADO NS"
     'ALPURA': 'ALPURA',
     'IMPEX': 'IMPEX',         // BD tiene "IMPEX/NEXTEER/CLARIOS"
     'PILGRIMS': 'PILGRIMS',   // BD tiene "DEDICADO PILGRIMS"
   };
   
-  const patron = patronBusqueda[segmentoId] || segmentoId;
-  const query = `segmento=ilike.*${patron}*&select=economico,velocidad,estatus,ubicacion,latitud,longitud,ultima_actualizacion,estado_geo,municipio_geo&order=economico`;
+  // Nature Sweet tiene múltiples valores en BD: "NatureSweet", "DEDICADO NS", "DEDICADO NS/MULA"
+  let query: string;
+  if (segmentoId === 'NATURE_SWEET') {
+    query = `or=(segmento.ilike.*NatureSweet*,segmento.ilike.*DEDICADO%20NS*)&select=economico,velocidad,estatus,ubicacion,latitud,longitud,ultima_actualizacion,estado_geo,municipio_geo&order=economico`;
+  } else {
+    const patron = patronBusqueda[segmentoId] || segmentoId;
+    query = `segmento=ilike.*${patron}*&select=economico,velocidad,estatus,ubicacion,latitud,longitud,ultima_actualizacion,estado_geo,municipio_geo&order=economico`;
+  }
   
   try {
     const res = await fetch(`${supabaseUrl}/rest/v1/gps_tracking?${query}`, {
