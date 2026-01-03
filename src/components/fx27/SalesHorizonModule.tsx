@@ -52,16 +52,16 @@ const SEMANAS_2026 = [
 ];
 
 // ===== SUPABASE FETCH HELPER =====
-// Credenciales directas (igual que DedicadosModuleWideTech que SÍ funciona)
-const SUPABASE_URL = 'https://fbxbsslhewchyibdoyzk.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZieGJzc2xoZXdjaHlpYmRveXprIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI1MzczODEsImV4cCI6MjA3ODExMzM4MX0.Z8JPlg7hhKbA624QGHp2bKKTNtCD3WInQMO5twjl6a0';
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
 const fetchSupabase = async (table: string, query: string = '') => {
+  if (!supabaseUrl || !supabaseKey) return null;
   try {
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}?${query}`, {
+    const res = await fetch(`${supabaseUrl}/rest/v1/${table}?${query}`, {
       headers: {
-        'apikey': SUPABASE_ANON_KEY,
-        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+        'apikey': supabaseKey,
+        'Authorization': `Bearer ${supabaseKey}`,
       }
     });
     if (!res.ok) return null;
@@ -71,50 +71,43 @@ const fetchSupabase = async (table: string, query: string = '') => {
   }
 };
 
-// Fetch tractores por segmento con columnas correctas de gps_tracking
+// Fetch tractores por segmento con ilike para matchear valores en BD
 const fetchTractoresPorSegmento = async (segmentoId: string) => {
-  // Mapeo UI → patrón BD (basado en query real de gps_tracking)
+  if (!supabaseUrl || !supabaseKey) return [];
+  
+  // Mapeo de segmento UI → patrón de búsqueda en BD
   const patronBusqueda: Record<string, string> = {
     'BAFAR': 'BAFAR',
-    'CARROLL': 'CARROL',           // BD: CARROL (31)
+    'CARROLL': 'CARROL',      // BD tiene "CARROL" sin segunda L
     'BARCEL': 'BARCEL',
-    'NATURE_SWEET': 'DEDICADO NS', // BD: DEDICADO NS (12) + DEDICADO NS/MULA (1)
+    'NATURE_SWEET': 'DEDICADO NS',  // BD tiene "DEDICADO NS"
     'ALPURA': 'ALPURA',
-    'IMPEX': 'IMPEX',              // BD: IMPEX/NEXTEER/CLARIOS (101) + IMPEX/MTTO (8)
-    'PILGRIMS': 'DEDICADO PILGRIMS',
+    'IMPEX': 'IMPEX',         // BD tiene "IMPEX/NEXTEER/CLARIOS"
+    'PILGRIMS': 'PILGRIMS',   // BD tiene "DEDICADO PILGRIMS"
   };
   
   const patron = patronBusqueda[segmentoId] || segmentoId;
-  const likePattern = encodeURIComponent(`*${patron}*`);
-  const query = `segmento=ilike.${likePattern}&select=economico,latitud,longitud,velocidad,ubicacion,estatus,ultima_actualizacion&order=economico`;
+  const query = `segmento=ilike.*${patron}*&select=economico,velocidad,estatus,ubicacion,latitud,longitud,ultima_actualizacion,estado_geo,municipio_geo&order=economico`;
   
   try {
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/gps_tracking?${query}`, {
+    const res = await fetch(`${supabaseUrl}/rest/v1/gps_tracking?${query}`, {
       headers: {
-        'apikey': SUPABASE_ANON_KEY,
-        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+        'apikey': supabaseKey,
+        'Authorization': `Bearer ${supabaseKey}`,
       }
     });
     if (!res.ok) return [];
-    const data = await res.json();
-    return (data || []).map((t: any) => ({
-      economico: t.economico,
-      tracto: t.economico,
-      velocidad: t.velocidad || 0,
-      estado: t.estatus || '',
-      municipio: t.ubicacion || '',
-      latitud: t.latitud,
-      longitud: t.longitud,
-      ultima_actualizacion: t.ultima_actualizacion,
-    }));
+    return await res.json();
   } catch {
     return [];
   }
 };
 
-// Fetch tractores por empresa con columnas correctas de gps_tracking
+// Fetch tractores por empresa con mapeo correcto
 const fetchTractoresPorEmpresa = async (empresaId: string) => {
-  // Mapeo UI → BD
+  if (!supabaseUrl || !supabaseKey) return [];
+  
+  // Mapeo de empresa UI → valor en BD
   const empresaEnBD: Record<string, string> = {
     'SPEEDYHAUL': 'SHI',
     'TROB': 'TROB',
@@ -122,27 +115,17 @@ const fetchTractoresPorEmpresa = async (empresaId: string) => {
   };
   
   const empresa = empresaEnBD[empresaId] || empresaId;
-  const query = `empresa=eq.${encodeURIComponent(empresa)}&select=economico,latitud,longitud,velocidad,ubicacion,estatus,ultima_actualizacion&order=economico`;
+  const query = `empresa=eq.${empresa}&select=economico,velocidad,estatus,ubicacion,latitud,longitud,ultima_actualizacion,estado_geo,municipio_geo&order=economico`;
   
   try {
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/gps_tracking?${query}`, {
+    const res = await fetch(`${supabaseUrl}/rest/v1/gps_tracking?${query}`, {
       headers: {
-        'apikey': SUPABASE_ANON_KEY,
-        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+        'apikey': supabaseKey,
+        'Authorization': `Bearer ${supabaseKey}`,
       }
     });
     if (!res.ok) return [];
-    const data = await res.json();
-    return (data || []).map((t: any) => ({
-      economico: t.economico,
-      tracto: t.economico,
-      velocidad: t.velocidad || 0,
-      estado: t.estatus || '',
-      municipio: t.ubicacion || '',
-      latitud: t.latitud,
-      longitud: t.longitud,
-      ultima_actualizacion: t.ultima_actualizacion,
-    }));
+    return await res.json();
   } catch {
     return [];
   }
@@ -276,41 +259,6 @@ export default function SalesHorizonModule({ onBack }: Props) {
     };
     cargar();
   }, [unidadesEmpresa]);
-
-  // Estado para geocoding del modal
-  const [geoData, setGeoData] = useState<{estado: string, municipio: string} | null>(null);
-  const [loadingGeo, setLoadingGeo] = useState(false);
-
-  // Reverse geocoding cuando se selecciona un tracto
-  useEffect(() => {
-    if (!tractoSeleccionado || !tractoSeleccionado.latitud || !tractoSeleccionado.longitud) {
-      setGeoData(null);
-      return;
-    }
-    
-    const fetchGeo = async () => {
-      setLoadingGeo(true);
-      try {
-        const res = await fetch(
-          `https://nominatim.openstreetmap.org/reverse?format=json&lat=${tractoSeleccionado.latitud}&lon=${tractoSeleccionado.longitud}&zoom=10&addressdetails=1`,
-          { headers: { 'Accept-Language': 'es' } }
-        );
-        if (res.ok) {
-          const data = await res.json();
-          const addr = data.address || {};
-          setGeoData({
-            estado: addr.state || addr.region || 'N/A',
-            municipio: addr.city || addr.town || addr.municipality || addr.county || 'N/A',
-          });
-        }
-      } catch {
-        setGeoData({ estado: 'N/A', municipio: 'N/A' });
-      }
-      setLoadingGeo(false);
-    };
-    
-    fetchGeo();
-  }, [tractoSeleccionado]);
 
   const datosMesActual = MESES[mesActual - 1];
   const acumuladoYTD = MESES.slice(0, mesActual).reduce((a, m) => a + m.ppto, 0);
@@ -741,8 +689,8 @@ export default function SalesHorizonModule({ onBack }: Props) {
         const gpsDesactualizado = horasDesde > 2;
         
         return (
-          <div className="fixed inset-0 bg-black/85 flex items-center justify-center z-[70] p-4" onClick={() => setTractoSeleccionado(null)}>
-            <div className="bg-gradient-to-b from-slate-800 to-slate-900 rounded-xl p-6 border-2 border-blue-500/50 shadow-2xl shadow-blue-500/20 w-full max-w-4xl max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+          <div className="fixed inset-0 bg-black/85 flex items-center justify-center z-[70]" onClick={() => setTractoSeleccionado(null)}>
+            <div className="bg-gradient-to-b from-slate-800 to-slate-900 rounded-xl p-6 border-2 border-blue-500/50 shadow-2xl shadow-blue-500/20 max-w-3xl w-full mx-4" onClick={e => e.stopPropagation()}>
               <div className="flex justify-between items-center mb-4">
                 <div className="flex items-center gap-3">
                   <MapPin className="w-6 h-6 text-blue-400" />
@@ -751,15 +699,15 @@ export default function SalesHorizonModule({ onBack }: Props) {
                 <button onClick={() => setTractoSeleccionado(null)} className="text-slate-400 hover:text-white text-2xl font-light">&times;</button>
               </div>
 
-              {/* Mapa - más ancho y proporcional */}
-              <div className="rounded-lg overflow-hidden border border-slate-600 h-72 mb-4">
+              {/* Mapa */}
+              <div className="rounded-lg overflow-hidden border border-slate-600 h-64 mb-4">
                 {t.latitud && t.longitud ? (
                   <iframe
                     width="100%"
                     height="100%"
                     frameBorder="0"
                     scrolling="no"
-                    src={`https://www.openstreetmap.org/export/embed.html?bbox=${t.longitud - 0.05},${t.latitud - 0.03},${t.longitud + 0.05},${t.latitud + 0.03}&layer=mapnik&marker=${t.latitud},${t.longitud}`}
+                    src={`https://www.openstreetmap.org/export/embed.html?bbox=${t.longitud - 0.02},${t.latitud - 0.015},${t.longitud + 0.02},${t.latitud + 0.015}&layer=mapnik&marker=${t.latitud},${t.longitud}`}
                     style={{ border: 0 }}
                   />
                 ) : (
@@ -771,26 +719,24 @@ export default function SalesHorizonModule({ onBack }: Props) {
 
               {/* Datos */}
               <div className="grid grid-cols-2 gap-3">
-                {/* Ubicación - Con Geocoding del Frontend */}
+                {/* Ubicación - Ahora con Estado y Municipio de geocoding */}
                 <div className="col-span-2 bg-slate-700/50 rounded-lg p-4 border border-slate-600">
                   <div className="flex items-center gap-2 mb-3">
                     <MapPin className="w-4 h-4 text-blue-400" />
                     <span className="text-slate-400 text-xs uppercase tracking-wide">Ubicación</span>
-                    {loadingGeo && <span className="text-xs text-blue-400 animate-pulse">Cargando...</span>}
                   </div>
                   <div className="space-y-2 text-sm">
                     <div>
                       <span className="text-slate-500">Estado:</span>
-                      <span className="text-white ml-2">{geoData?.estado || (loadingGeo ? '...' : 'N/A')}</span>
+                      <span className="text-white ml-2 font-semibold">{t.estado_geo || 'N/A'}</span>
                     </div>
                     <div>
                       <span className="text-slate-500">Municipio:</span>
-                      <span className="text-white ml-2">{geoData?.municipio || (loadingGeo ? '...' : 'N/A')}</span>
+                      <span className="text-white ml-2 font-semibold">{t.municipio_geo || 'N/A'}</span>
                     </div>
                     <div>
                       <span className="text-slate-500">Descripción:</span>
-                      <span className="text-slate-300 ml-2">{t.municipio || 'N/A'}</span>
-                      {t.cliente_ubicacion && <span className="text-cyan-400 ml-2">• {t.cliente_ubicacion}</span>}
+                      <span className="text-slate-300 ml-2">{t.ubicacion || 'N/A'}</span>
                     </div>
                   </div>
                 </div>
@@ -820,25 +766,7 @@ export default function SalesHorizonModule({ onBack }: Props) {
                   )}
                 </div>
 
-                {/* Tipo de Viaje - Preparado */}
-                <div className="bg-slate-700/50 rounded-lg p-4 border border-slate-600">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Target className="w-4 h-4 text-yellow-400" />
-                    <span className="text-slate-400 text-xs uppercase tracking-wide">Tipo Viaje</span>
-                  </div>
-                  <div className={`font-semibold ${
-                    t.tipo_viaje === 'IMPO' ? 'text-blue-400' :
-                    t.tipo_viaje === 'EXPO' ? 'text-green-400' :
-                    t.tipo_viaje === 'NAC' ? 'text-purple-400' :
-                    t.tipo_viaje === 'VACIO' ? 'text-amber-400' :
-                    'text-amber-400'
-                  }`}>
-                    {t.tipo_viaje || 'Sin asignación'}
-                  </div>
-                  <div className="text-slate-500 text-xs mt-1">{t.numero_viaje || ''}</div>
-                </div>
-
-                {/* Velocidad Actual */}
+                {/* Velocidad promedio placeholder */}
                 <div className="bg-slate-700/50 rounded-lg p-4 border border-slate-600">
                   <div className="flex items-center gap-2 mb-2">
                     <Gauge className="w-4 h-4 text-blue-400" />
@@ -847,35 +775,8 @@ export default function SalesHorizonModule({ onBack }: Props) {
                   <div className="text-white font-semibold text-lg">{vel} km/h</div>
                 </div>
 
-                {/* Velocidad Promedio */}
-                <div className="bg-slate-700/50 rounded-lg p-4 border border-slate-600">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Gauge className="w-4 h-4 text-orange-400" />
-                    <span className="text-slate-400 text-xs uppercase tracking-wide">Vel. Promedio</span>
-                  </div>
-                  <div className="text-white font-semibold text-lg">{vel > 0 ? `~${Math.round(vel * 0.85)} km/h` : '-- km/h'}</div>
-                </div>
-
-                {/* Operador - Preparado */}
-                <div className="bg-slate-700/50 rounded-lg p-4 border border-slate-600">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Target className="w-4 h-4 text-green-400" />
-                    <span className="text-slate-400 text-xs uppercase tracking-wide">Operador</span>
-                  </div>
-                  <div className="text-white font-semibold">{t.operador || 'Por asignar'}</div>
-                </div>
-
-                {/* Coordinador - Preparado */}
-                <div className="bg-slate-700/50 rounded-lg p-4 border border-slate-600">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Target className="w-4 h-4 text-purple-400" />
-                    <span className="text-slate-400 text-xs uppercase tracking-wide">Coordinador</span>
-                  </div>
-                  <div className="text-white font-semibold">{t.coordinador || 'Por asignar'}</div>
-                </div>
-
                 {/* Última actualización */}
-                <div className={`col-span-2 rounded-lg p-4 border ${gpsDesactualizado ? 'bg-red-900/30 border-red-600' : 'bg-slate-700/50 border-slate-600'}`}>
+                <div className={`rounded-lg p-4 border ${gpsDesactualizado ? 'bg-red-900/30 border-red-600' : 'bg-slate-700/50 border-slate-600'}`}>
                   <div className="flex items-center gap-2 mb-2">
                     <Clock className="w-4 h-4 text-blue-400" />
                     <span className="text-slate-400 text-xs uppercase tracking-wide">Última Actualización</span>
