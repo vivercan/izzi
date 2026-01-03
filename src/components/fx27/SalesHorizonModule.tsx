@@ -593,7 +593,7 @@ export default function SalesHorizonModule({ onBack }: SalesHorizonModuleProps) 
                 {/* Ubicación - Estado, Municipio, Dirección */}
                 <div className="col-span-2 bg-slate-700/50 rounded-lg p-4 border border-slate-600">
                   <div className="flex items-center gap-2 mb-3">
-                    <MapPin className="w-4 h-4 text-blue-400" />
+                    <MapPin className="w-4 h-4 text-cyan-400" />
                     <span className="text-slate-400 text-xs uppercase tracking-wide">Ubicación</span>
                   </div>
                   <div className="space-y-2 text-sm">
@@ -613,9 +613,9 @@ export default function SalesHorizonModule({ onBack }: SalesHorizonModuleProps) 
                 </div>
 
                 {/* Estado de movimiento */}
-                <div className={`rounded-lg p-4 border ${enMovimiento ? 'bg-green-900/30 border-green-600' : 'bg-amber-900/30 border-amber-600'}`}>
+                <div className={`rounded-lg p-4 border ${enMovimiento ? 'bg-teal-900/30 border-teal-500' : 'bg-amber-900/30 border-amber-600'}`}>
                   <div className="flex items-center gap-2 mb-2">
-                    <Gauge className="w-4 h-4 text-blue-400" />
+                    <Gauge className="w-4 h-4 text-cyan-400" />
                     <span className="text-slate-400 text-xs uppercase tracking-wide">Estado</span>
                   </div>
                   {enMovimiento ? (
@@ -637,19 +637,37 @@ export default function SalesHorizonModule({ onBack }: SalesHorizonModuleProps) 
                   )}
                 </div>
 
-                {/* Velocidad promedio */}
+                {/* Tipo Viaje */}
                 <div className="bg-slate-700/50 rounded-lg p-4 border border-slate-600">
                   <div className="flex items-center gap-2 mb-2">
-                    <Gauge className="w-4 h-4 text-blue-400" />
+                    <Target className="w-4 h-4 text-cyan-400" />
+                    <span className="text-slate-400 text-xs uppercase tracking-wide">Tipo Viaje</span>
+                  </div>
+                  <div className="text-orange-400 font-semibold">Sin asignación</div>
+                </div>
+
+                {/* Velocidad Actual */}
+                <div className="bg-slate-700/50 rounded-lg p-4 border border-slate-600">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Gauge className="w-4 h-4 text-cyan-400" />
                     <span className="text-slate-400 text-xs uppercase tracking-wide">Vel. Actual</span>
                   </div>
                   <div className="text-white font-semibold text-lg">{vel} km/h</div>
                 </div>
 
+                {/* Velocidad Promedio */}
+                <div className="bg-slate-700/50 rounded-lg p-4 border border-slate-600">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Gauge className="w-4 h-4 text-cyan-400" />
+                    <span className="text-slate-400 text-xs uppercase tracking-wide">Vel. Promedio</span>
+                  </div>
+                  <div className="text-white font-semibold text-lg">~{Math.max(vel - 5, 0)} km/h</div>
+                </div>
+
                 {/* Última actualización */}
                 <div className={`rounded-lg p-4 border ${gpsDesactualizado ? 'bg-red-900/30 border-red-600' : 'bg-slate-700/50 border-slate-600'}`}>
                   <div className="flex items-center gap-2 mb-2">
-                    <Clock className="w-4 h-4 text-blue-400" />
+                    <Clock className="w-4 h-4 text-cyan-400" />
                     <span className="text-slate-400 text-xs uppercase tracking-wide">Última Actualización</span>
                   </div>
                   <div className={`font-semibold ${gpsDesactualizado ? 'text-red-400' : 'text-white'}`}>
@@ -663,13 +681,22 @@ export default function SalesHorizonModule({ onBack }: SalesHorizonModuleProps) 
                   )}
                 </div>
 
-                {/* Vel Promedio placeholder */}
+                {/* Operador */}
                 <div className="bg-slate-700/50 rounded-lg p-4 border border-slate-600">
                   <div className="flex items-center gap-2 mb-2">
-                    <Gauge className="w-4 h-4 text-blue-400" />
-                    <span className="text-slate-400 text-xs uppercase tracking-wide">Vel. Promedio</span>
+                    <Target className="w-4 h-4 text-cyan-400" />
+                    <span className="text-slate-400 text-xs uppercase tracking-wide">Operador</span>
                   </div>
-                  <div className="text-white font-semibold text-lg">~{Math.max(vel - 5, 0)} km/h</div>
+                  <div className="text-white font-semibold">Por asignar</div>
+                </div>
+
+                {/* Coordinador */}
+                <div className="bg-slate-700/50 rounded-lg p-4 border border-slate-600">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Target className="w-4 h-4 text-cyan-400" />
+                    <span className="text-slate-400 text-xs uppercase tracking-wide">Coordinador</span>
+                  </div>
+                  <div className="text-white font-semibold">Por asignar</div>
                 </div>
               </div>
             </div>
