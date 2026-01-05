@@ -195,10 +195,10 @@ export const ServicioClientesModule = ({ onBack }: ServicioClientesModuleProps) 
                 }}
               >
                 <div 
-                  className="p-3 rounded-lg transition-all duration-300 group-hover:scale-110"
+                  className="p-2 rounded-md transition-all duration-300 group-hover:scale-110"
                   style={{ background: `${btn.color}20` }}
                 >
-                  <Icon className="w-8 h-8" style={{ color: btn.color }} />
+                  <Icon className="w-6 h-6" style={{ color: btn.color }} />
                 </div>
                 <span 
                   className="text-center transition-colors duration-300"
@@ -494,3 +494,4 @@ export const ServicioClientesModule = ({ onBack }: ServicioClientesModuleProps) 
     </ModuleTemplate>
   );
 };
+
