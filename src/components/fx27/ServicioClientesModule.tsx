@@ -206,7 +206,7 @@ export const ServicioClientesModule = ({ onBack }: ServicioClientesModuleProps) 
                     fontFamily: "'Exo 2', sans-serif", 
                     fontSize: '13px', 
                     fontWeight: 600, 
-                    color: 'rgba(255,255,255,0.85)'
+                    color: '#ffffff', textShadow: '0 1px 2px rgba(0,0,0,0.3)'
                   }}
                 >
                   {btn.nombre}
@@ -494,6 +494,7 @@ export const ServicioClientesModule = ({ onBack }: ServicioClientesModuleProps) 
     </ModuleTemplate>
   );
 };
+
 
 
 
