@@ -171,19 +171,19 @@ export const ServicioClientesModule = ({ onBack }: ServicioClientesModuleProps) 
           </p>
         </div>
 
-        <div className="grid grid-cols-6 gap-4">
+        <div className="flex flex-wrap gap-3">
           {botones.map((btn) => {
             const Icon = btn.icon;
             return (
               <button
                 key={btn.id}
                 onClick={() => setVista(btn.id as Vista)}
-                className="group relative flex flex-col items-center justify-center gap-3 p-6 rounded-xl transition-all duration-300 hover:-translate-y-1"
+                className="group relative flex flex-col items-center justify-center gap-2 p-4 rounded-xl transition-all duration-300 hover:-translate-y-1"
                 style={{
-                  background: 'linear-gradient(155deg, rgba(18, 32, 58, 0.96) 0%, rgba(12, 22, 42, 0.98) 50%, rgba(8, 16, 32, 1) 100%)',
+                  background: 'rgba(15, 25, 45, 0.95)',
                   border: `2px solid ${btn.color}40`,
                   boxShadow: '0 4px 12px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.05)',
-                  aspectRatio: '1'
+                  width: '130px', height: '110px'
                 }}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.borderColor = btn.color;
@@ -198,7 +198,7 @@ export const ServicioClientesModule = ({ onBack }: ServicioClientesModuleProps) 
                   className="p-2 rounded-md transition-all duration-300 group-hover:scale-110"
                   style={{ background: `${btn.color}20` }}
                 >
-                  <Icon className="w-7 h-7" style={{ color: btn.color }} />
+                  <Icon className="w-9 h-9" style={{ color: btn.color }} />
                 </div>
                 <span 
                   className="text-center transition-colors duration-300"
@@ -494,5 +494,6 @@ export const ServicioClientesModule = ({ onBack }: ServicioClientesModuleProps) 
     </ModuleTemplate>
   );
 };
+
 
 
