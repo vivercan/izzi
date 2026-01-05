@@ -2253,4 +2253,189 @@ app.post('/make-server-d84b50bb/carroll/detectar-geocerca', async (c) => {
   }
 });
 
+// ==================== ALTA DE CLIENTES - RESEND EMAIL ====================
+
+// POST: Enviar solicitud de alta de cliente por correo
+app.post('/make-server-d84b50bb/alta-cliente/enviar', async (c) => {
+  try {
+    const { 
+      emailCliente, 
+      nombreCliente, 
+      apellidoCliente,
+      emailsAdicionales,
+      enviadoPor,
+      tipoEmpresa 
+    } = await c.req.json();
+    
+    if (!emailCliente || !enviadoPor) {
+      return c.json({ success: false, error: 'Email del cliente y enviado por son requeridos' }, 400);
+    }
+    
+    // 1. Crear registro en Supabase
+    const { data: altaData, error: altaError } = await supabase
+      .from('alta_clientes')
+      .insert({
+        email_cliente: emailCliente,
+        nombre_cliente: nombreCliente || null,
+        apellido_cliente: apellidoCliente || null,
+        emails_adicionales: emailsAdicionales || [],
+        enviado_por: enviadoPor,
+        tipo_empresa: tipoEmpresa || 'MEXICANA',
+        estatus: 'ENVIADA'
+      })
+      .select()
+      .single();
+    
+    if (altaError) {
+      console.error('[ALTA CLIENTE] Error creando registro:', altaError);
+      return c.json({ success: false, error: 'Error al crear solicitud' }, 500);
+    }
+    
+    const solicitudId = altaData.id;
+    const linkFormulario = `https://jjcrm27.com/alta/${solicitudId}`;
+    
+    // 2. Enviar correo con Resend
+    const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY');
+    
+    if (!RESEND_API_KEY) {
+      console.error('[ALTA CLIENTE] RESEND_API_KEY no configurada');
+      return c.json({ success: false, error: 'Configuracion de correo no disponible' }, 500);
+    }
+    
+    const destinatarios = [emailCliente, ...(emailsAdicionales || [])].filter(Boolean);
+    
+    const emailHtml = `<!DOCTYPE html><html><head><meta charset="utf-8"></head><body style="margin:0;padding:0;background:#f4f4f4;font-family:Segoe UI,sans-serif;"><table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f4f4;padding:40px 20px;"><tr><td align="center"><table width="600" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:8px;overflow:hidden;box-shadow:0 4px 6px rgba(0,0,0,0.1);"><tr><td style="background:linear-gradient(135deg,#001f4d 0%,#003d7a 50%,#0066cc 100%);padding:30px 40px;text-align:center;"><h1 style="color:#fff;margin:0;font-size:32px;font-weight:700;letter-spacing:2px;">GRUPO LOMA</h1><p style="color:rgba(255,255,255,0.8);margin:5px 0 0;font-size:14px;">TROB TRANSPORTES</p></td></tr><tr><td style="padding:40px;"><h2 style="color:#1a1a1a;margin:0 0 20px;font-size:24px;">Solicitud de Alta de Cliente</h2><p style="color:#444;font-size:16px;line-height:1.6;margin:0 0 20px;">Estimado(a) <strong>${nombreCliente || ''} ${apellidoCliente || ''}</strong>,</p><p style="color:#444;font-size:16px;line-height:1.6;margin:0 0 20px;">Hemos recibido una solicitud para registrarlo como cliente de <strong>Grupo Loma | TROB Transportes</strong>.</p><p style="color:#444;font-size:16px;line-height:1.6;margin:0 0 30px;">Por favor, haga clic en el siguiente boton para completar el formulario de alta:</p><table width="100%" cellpadding="0" cellspacing="0"><tr><td align="center"><a href="${linkFormulario}" style="display:inline-block;background:linear-gradient(135deg,#e67e22 0%,#d35400 100%);color:#fff;text-decoration:none;padding:16px 40px;border-radius:6px;font-size:16px;font-weight:600;">Completar Formulario de Alta</a></td></tr></table><div style="background:#f8f9fa;border-radius:6px;padding:20px;margin:30px 0;"><h3 style="color:#1a1a1a;margin:0 0 15px;font-size:16px;">Documentos Requeridos:</h3><ul style="color:#444;font-size:14px;line-height:1.8;margin:0;padding-left:20px;">${tipoEmpresa === 'USA_CANADA' ? '<li>W-9</li><li>Comprobante de Domicilio</li><li>ID del Representante Legal</li><li>Bank Statement</li><li>MC#</li><li>Void Check</li>' : '<li>Constancia de Situacion Fiscal</li><li>Opinion de Cumplimiento</li><li>Comprobante de Domicilio</li><li>INE del Representante Legal</li><li>Acta Constitutiva</li><li>Poder Notarial</li>'}</ul></div><p style="color:#666;font-size:14px;">Si el boton no funciona: <a href="${linkFormulario}" style="color:#0066cc;">${linkFormulario}</a></p></td></tr><tr><td style="background:#f8f9fa;padding:20px 40px;border-top:1px solid #e0e0e0;"><p style="color:#888;font-size:12px;margin:0;text-align:center;">FX27 Grupo Loma 2025 | www.trob.com.mx</p></td></tr></table></td></tr></table></body></html>`;
+    
+    const resendResponse = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${RESEND_API_KEY}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        from: 'Grupo Loma <noreply@mail.jjcrm27.com>',
+        to: destinatarios,
+        subject: 'Solicitud de Alta de Cliente - Grupo Loma | TROB Transportes',
+        html: emailHtml
+      })
+    });
+    
+    const resendData = await resendResponse.json();
+    if (!resendResponse.ok) {
+      console.error('[ALTA CLIENTE] Error Resend:', resendData);
+      return c.json({ success: false, error: 'Error al enviar correo' }, 500);
+    }
+    
+    console.log(`[ALTA CLIENTE] Correo enviado a: ${destinatarios.join(', ')}`);
+    return c.json({ success: true, solicitudId, linkFormulario, emailsEnviados: destinatarios });
+  } catch (error) {
+    console.error('[ALTA CLIENTE] Error:', error);
+    return c.json({ success: false, error: String(error) }, 500);
+  }
+});
+
+// GET: Obtener solicitud por ID
+app.get('/make-server-d84b50bb/alta-cliente/:id', async (c) => {
+  try {
+    const id = c.req.param('id');
+    const { data, error } = await supabase.from('alta_clientes').select('*').eq('id', id).single();
+    if (error || !data) return c.json({ success: false, error: 'Solicitud no encontrada' }, 404);
+    return c.json({ success: true, solicitud: data });
+  } catch (error) {
+    return c.json({ success: false, error: String(error) }, 500);
+  }
+});
+
+// PUT: Actualizar solicitud
+app.put('/make-server-d84b50bb/alta-cliente/:id', async (c) => {
+  try {
+    const id = c.req.param('id');
+    const datosFormulario = await c.req.json();
+    const clientIP = c.req.header('x-forwarded-for') || 'unknown';
+    const userAgent = c.req.header('user-agent') || 'unknown';
+    
+    const { data, error } = await supabase.from('alta_clientes').update({
+      ...datosFormulario,
+      firma_ip: clientIP,
+      firma_user_agent: userAgent,
+      firma_fecha: datosFormulario.firma_aceptada ? new Date().toISOString() : null,
+      estatus: datosFormulario.firma_aceptada ? 'COMPLETADA' : 'EN_PROCESO',
+      fecha_completado: datosFormulario.firma_aceptada ? new Date().toISOString() : null,
+      updated_at: new Date().toISOString()
+    }).eq('id', id).select().single();
+    
+    if (error) return c.json({ success: false, error: 'Error al actualizar' }, 500);
+    
+    if (datosFormulario.firma_aceptada) {
+      const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY');
+      const correosNotificacion = ['nancy.alonso@trob.com.mx','juan.viveros@trob.com.mx','claudia.priana@trob.com.mx',data.enviado_por].filter(Boolean);
+      
+      await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${RESEND_API_KEY}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          from: 'FX27 <noreply@mail.jjcrm27.com>',
+          to: correosNotificacion,
+          subject: `Alta Completada - ${data.razon_social || data.email_cliente}`,
+          html: `<h2>Nueva Alta de Cliente Completada</h2><p><strong>Razon Social:</strong> ${data.razon_social || 'N/A'}</p><p><strong>RFC:</strong> ${data.rfc_mc || 'N/A'}</p><p><strong>Email:</strong> ${data.email_cliente}</p><p><strong>Enviado por:</strong> ${data.enviado_por}</p>`
+        })
+      });
+    }
+    
+    return c.json({ success: true, solicitud: data });
+  } catch (error) {
+    return c.json({ success: false, error: String(error) }, 500);
+  }
+});
+
+// GET: Listar todas las solicitudes
+app.get('/make-server-d84b50bb/alta-clientes', async (c) => {
+  try {
+    const { data, error } = await supabase.from('alta_clientes').select('*').order('created_at', { ascending: false });
+    if (error) return c.json({ success: false, error: 'Error al obtener solicitudes' }, 500);
+    return c.json({ success: true, solicitudes: data });
+  } catch (error) {
+    return c.json({ success: false, error: String(error) }, 500);
+  }
+});
+
+// POST: Subir documento
+app.post('/make-server-d84b50bb/alta-cliente/:id/documento', async (c) => {
+  try {
+    const altaClienteId = c.req.param('id');
+    const formData = await c.req.formData();
+    const file = formData.get('file') as File;
+    const tipoDocumento = formData.get('tipo') as string;
+    
+    if (!file || !tipoDocumento) return c.json({ success: false, error: 'Archivo y tipo requeridos' }, 400);
+    
+    const fileName = `alta-clientes/${altaClienteId}/${tipoDocumento}_${Date.now()}_${file.name}`;
+    const fileBuffer = await file.arrayBuffer();
+    
+    const { data: uploadData, error: uploadError } = await supabase.storage.from('alta-clientes-docs').upload(fileName, fileBuffer, { contentType: file.type });
+    if (uploadError) return c.json({ success: false, error: 'Error al subir' }, 500);
+    
+    const { data: docData } = await supabase.from('alta_clientes_documentos').insert({
+      alta_cliente_id: altaClienteId,
+      tipo_documento: tipoDocumento,
+      nombre_archivo: file.name,
+      ruta_storage: uploadData.path,
+      tamano_bytes: file.size
+    }).select().single();
+    
+    return c.json({ success: true, documento: docData });
+  } catch (error) {
+    return c.json({ success: false, error: String(error) }, 500);
+  }
+});
+
+// GET: Obtener documentos
+app.get('/make-server-d84b50bb/alta-cliente/:id/documentos', async (c) => {
+  try {
+    const { data } = await supabase.from('alta_clientes_documentos').select('*').eq('alta_cliente_id', c.req.param('id'));
+    return c.json({ success: true, documentos: data });
+  } catch (error) {
+    return c.json({ success: false, error: String(error) }, 500);
+  }
+});
+
+
 Deno.serve(app.fetch);
+

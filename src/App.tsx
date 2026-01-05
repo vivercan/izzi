@@ -19,6 +19,7 @@ import { DedicadosHub } from './components/fx27/DedicadosHub';
 import { AdminCarrollModule } from './components/fx27/AdminCarrollModule';
 import { VistaClientesCarroll } from './components/fx27/VistaClientesCarroll';
 import { MapaClimaticoCarroll } from './components/fx27/MapaClimaticoCarroll';
+import { AltaClientePublico } from './components/fx27/AltaClientePublico';
 import SalesHorizonModule from './components/fx27/SalesHorizonModule';
 import { MODULE_IMAGES } from './assets/module-images';
 import { projectId, publicAnonKey } from './utils/supabase/info';
@@ -189,7 +190,16 @@ export default function App() {
   const [loginError, setLoginError] = useState<string>('');
   const [currentUserEmail, setCurrentUserEmail] = useState<string>('');
   const [currentUserName, setCurrentUserName] = useState<string>('');
+  const [rutaPublica, setRutaPublica] = useState<{tipo: string, id: string} | null>(null);
 
+    // Detectar rutas públicas (sin login requerido)
+  useEffect(() => {
+    const path = window.location.pathname;
+    const altaMatch = path.match(/^\/alta\/([a-f0-9-]{36})$/i);
+    if (altaMatch) {
+      setRutaPublica({ tipo: 'alta-cliente', id: altaMatch[1] });
+    }
+  }, []);
   // 🔧 INICIALIZAR AL CARGAR
   useEffect(() => {
     // Siempre actualizar usuarios
@@ -300,6 +310,13 @@ export default function App() {
     return false;
   };
 
+  // Si es ruta pública, renderizar sin login
+  if (rutaPublica) {
+    if (rutaPublica.tipo === 'alta-cliente') {
+      return <AltaClientePublico solicitudId={rutaPublica.id} />;
+    }
+  }
+
   return (
     <div className="w-full min-h-screen">
       {!isLoggedIn ? (
@@ -343,4 +360,9 @@ export default function App() {
     </div>
   );
 }
+
+
+
+
+
 
