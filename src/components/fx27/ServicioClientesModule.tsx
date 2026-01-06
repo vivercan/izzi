@@ -64,22 +64,6 @@ export const ServicioClientesModule = ({ onBack }: ServicioClientesModuleProps) 
     ).join(' ');
   };
 
-  const [emailClienteConfirm, setEmailClienteConfirm] = useState('');
-  // Auto-capitalizar nombre (Primera letra mayúscula)
-  const capitalizar = (texto: string) => {
-    return texto.toLowerCase().split(' ').map(palabra => 
-      palabra.charAt(0).toUpperCase() + palabra.slice(1)
-    ).join(' ');
-  };
-
-  // Auto-capitalizar nombre (Primera letra mayúscula)
-  const capitalizar = (texto: string) => {
-    return texto.toLowerCase().split(' ').map(palabra => 
-      palabra.charAt(0).toUpperCase() + palabra.slice(1)
-    ).join(' ');
-  };
-
-  const [nombreCliente, setNombreCliente] = useState('');
   const [apellidoCliente, setApellidoCliente] = useState('');
   const [tipoEmpresa, setTipoEmpresa] = useState<'MEXICANA' | 'USA_CANADA'>('MEXICANA');
   const [emailsAdicionales, setEmailsAdicionales] = useState<string[]>([]);
