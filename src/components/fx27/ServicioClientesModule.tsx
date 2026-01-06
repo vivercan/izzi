@@ -260,21 +260,30 @@ export const ServicioClientesModule = ({ onBack }: ServicioClientesModuleProps) 
         <div className="mb-6">
           <label style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '13px', color: 'rgba(255,255,255,0.7)', display: 'block', marginBottom: '8px' }}>Tipo de Empresa</label>
           <div className="flex gap-3">
-            {(['MEXICANA', 'USA_CANADA'] as const).map((tipo) => (
-              <button
-                key={tipo}
-                onClick={() => setTipoEmpresa(tipo)}
-                className={`flex-1 py-3 px-4 rounded-lg transition-all ${tipoEmpresa === tipo ? 'ring-2 ring-orange-500' : ''}`}
-                style={{
-                  background: tipoEmpresa === tipo ? 'rgba(254, 80, 0, 0.2)' : 'rgba(255,255,255,0.05)',
-                  border: `1px solid ${tipoEmpresa === tipo ? 'rgba(254, 80, 0, 0.5)' : 'rgba(255,255,255,0.1)'}`,
-                  fontFamily: "'Exo 2', sans-serif", fontSize: '14px', fontWeight: 500,
-                  color: tipoEmpresa === tipo ? '#fe5000' : 'rgba(255,255,255,0.7)'
-                }}
-              >
-                {tipo === 'MEXICANA' ? '🇲🇽 Mexicana' : '🇺🇸 USA/Canada'}
-              </button>
-            ))}
+            <button
+              onClick={() => setTipoEmpresa("MEXICANA")}
+              className={"flex-1 py-3 px-4 rounded-lg transition-all " + (tipoEmpresa === "MEXICANA" ? "ring-2 ring-orange-500" : "")}
+              style={{
+                background: tipoEmpresa === "MEXICANA" ? "rgba(254, 80, 0, 0.2)" : "rgba(255,255,255,0.05)",
+                border: "1px solid " + (tipoEmpresa === "MEXICANA" ? "rgba(254, 80, 0, 0.5)" : "rgba(255,255,255,0.1)"),
+                fontFamily: "Exo 2, sans-serif", fontSize: "14px", fontWeight: 500,
+                color: tipoEmpresa === "MEXICANA" ? "#fe5000" : "rgba(255,255,255,0.7)"
+              }}
+            >
+              🇲🇽 Mexicana
+            </button>
+            <button
+              onClick={() => setTipoEmpresa("USA_CANADA")}
+              className={"flex-1 py-3 px-4 rounded-lg transition-all " + (tipoEmpresa === "USA_CANADA" ? "ring-2 ring-blue-500" : "")}
+              style={{
+                background: tipoEmpresa === "USA_CANADA" ? "rgba(59, 130, 246, 0.2)" : "rgba(255,255,255,0.05)",
+                border: "1px solid " + (tipoEmpresa === "USA_CANADA" ? "rgba(59, 130, 246, 0.5)" : "rgba(255,255,255,0.1)"),
+                fontFamily: "Exo 2, sans-serif", fontSize: "14px", fontWeight: 500,
+                color: tipoEmpresa === "USA_CANADA" ? "#3b82f6" : "rgba(255,255,255,0.7)"
+              }}
+            >
+              🇺🇸 USA/Canada
+            </button>
           </div>
         </div>
 
