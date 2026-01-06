@@ -1,4 +1,3 @@
-// Clientes Module v3
 import { useState, useEffect } from 'react';
 import { ModuleTemplate } from './ModuleTemplate';
 import { MODULE_IMAGES } from '../../assets/module-images';
@@ -65,8 +64,6 @@ export const ServicioClientesModule = ({ onBack }: ServicioClientesModuleProps) 
     ).join(' ');
   };
 
-  const [nombreComercial, setNombreComercial] = useState('');
-  const [nombreCliente, setNombreCliente] = useState('');
   const [apellidoCliente, setApellidoCliente] = useState('');
   const [tipoEmpresa, setTipoEmpresa] = useState<'MEXICANA' | 'USA_CANADA'>('MEXICANA');
   const [emailsAdicionales, setEmailsAdicionales] = useState<string[]>([]);
@@ -176,7 +173,7 @@ export const ServicioClientesModule = ({ onBack }: ServicioClientesModuleProps) 
           <h2 style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '22px', fontWeight: 600, color: '#fff' }}>
             Clientes
           </h2>
-          <p style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '17px', color: 'rgba(255,255,255,0.5)', marginTop: '4px' }}>
+          <p style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '14px', color: 'rgba(255,255,255,0.5)', marginTop: '4px' }}>
             Gestion de altas y clientes registrados
           </p>
         </div>
@@ -236,7 +233,7 @@ export const ServicioClientesModule = ({ onBack }: ServicioClientesModuleProps) 
     <div className="p-8 max-w-2xl mx-auto">
       <button onClick={() => setVista('hub')} className="flex items-center gap-2 mb-6 text-white/60 hover:text-white transition-colors">
         <ArrowLeft className="w-5 h-5" />
-        <span style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '17px' }}>Volver</span>
+        <span style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '14px' }}>Volver</span>
       </button>
 
       <div className="rounded-xl p-8" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.1)' }}>
@@ -253,7 +250,7 @@ export const ServicioClientesModule = ({ onBack }: ServicioClientesModuleProps) 
         {mensaje && (
           <div className={`mb-6 p-4 rounded-lg flex items-center gap-3 ${mensaje.tipo === 'success' ? 'bg-green-500/20 border border-green-500/30' : 'bg-red-500/20 border border-red-500/30'}`}>
             {mensaje.tipo === 'success' ? <CheckCircle2 className="w-5 h-5 text-green-400" /> : <AlertCircle className="w-5 h-5 text-red-400" />}
-            <span style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '17px', color: mensaje.tipo === 'success' ? '#86efac' : '#fca5a5' }}>{mensaje.texto}</span>
+            <span style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '14px', color: mensaje.tipo === 'success' ? '#86efac' : '#fca5a5' }}>{mensaje.texto}</span>
           </div>
         )}
 
@@ -265,12 +262,12 @@ export const ServicioClientesModule = ({ onBack }: ServicioClientesModuleProps) 
               <button
                 key={tipo}
                 onClick={() => setTipoEmpresa(tipo)}
-                className={`flex-1 py-3 px-4 rounded-lg transition-all ${tipoEmpresa === tipo ? (tipo === "USA_CANADA" ? "ring-2 ring-blue-500" : "ring-2 ring-orange-500") : ""}`}
+                className={`flex-1 py-3 px-4 rounded-lg transition-all ${tipoEmpresa === tipo ? 'ring-2 ring-orange-500' : ''}`}
                 style={{
-                  background: tipoEmpresa === tipo ? (tipo === "USA_CANADA" ? "rgba(59, 130, 246, 0.2)" : "rgba(254, 80, 0, 0.2)") : "rgba(255,255,255,0.05)",
-                  border: `1px solid ${tipoEmpresa === tipo ? (tipo === "USA_CANADA" ? "rgba(59, 130, 246, 0.5)" : "rgba(254, 80, 0, 0.5)") : "rgba(255,255,255,0.1)"},
-                  fontFamily: "'Exo 2', sans-serif", fontSize: '17px', fontWeight: 500,
-                  color: tipoEmpresa === tipo ? (tipo === "USA_CANADA" ? "#3b82f6" : "#fe5000") : "rgba(255,255,255,0.7)"
+                  background: tipoEmpresa === tipo ? 'rgba(254, 80, 0, 0.2)' : 'rgba(255,255,255,0.05)',
+                  border: `1px solid ${tipoEmpresa === tipo ? 'rgba(254, 80, 0, 0.5)' : 'rgba(255,255,255,0.1)'}`,
+                  fontFamily: "'Exo 2', sans-serif", fontSize: '14px', fontWeight: 500,
+                  color: tipoEmpresa === tipo ? '#fe5000' : 'rgba(255,255,255,0.7)'
                 }}
               >
                 {tipo === 'MEXICANA' ? '🇲🇽 Mexicana' : '🇺🇸 USA/Canada'}
@@ -284,12 +281,12 @@ export const ServicioClientesModule = ({ onBack }: ServicioClientesModuleProps) 
           <div>
             <label style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '13px', color: 'rgba(255,255,255,0.7)', display: 'block', marginBottom: '8px' }}>Nombre</label>
             <input type="text" value={nombreCliente} onChange={(e) => setNombreCliente(capitalizar(e.target.value))} placeholder="Nombre"
-              className="w-full px-4 py-3 rounded-lg" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', fontFamily: "'Exo 2', sans-serif", fontSize: '17px', color: '#fff', outline: 'none' }} />
+              className="w-full px-4 py-3 rounded-lg" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', fontFamily: "'Exo 2', sans-serif", fontSize: '14px', color: '#fff', outline: 'none' }} />
           </div>
           <div>
             <label style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '13px', color: 'rgba(255,255,255,0.7)', display: 'block', marginBottom: '8px' }}>Apellido</label>
             <input type="text" value={apellidoCliente} onChange={(e) => setApellidoCliente(capitalizar(e.target.value))} placeholder="Apellido"
-              className="w-full px-4 py-3 rounded-lg" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', fontFamily: "'Exo 2', sans-serif", fontSize: '17px', color: '#fff', outline: 'none' }} />
+              className="w-full px-4 py-3 rounded-lg" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', fontFamily: "'Exo 2', sans-serif", fontSize: '14px', color: '#fff', outline: 'none' }} />
           </div>
         </div>
 
@@ -299,7 +296,7 @@ export const ServicioClientesModule = ({ onBack }: ServicioClientesModuleProps) 
           <div className="relative">
             <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40" />
             <input type="email" value={emailCliente} onChange={(e) => setEmailCliente(e.target.value)} placeholder="cliente@empresa.com"
-              className="w-full pl-10 pr-4 py-3 rounded-lg" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', fontFamily: "'Exo 2', sans-serif", fontSize: '17px', color: '#fff', outline: 'none' }} />
+              className="w-full pl-10 pr-4 py-3 rounded-lg" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', fontFamily: "'Exo 2', sans-serif", fontSize: '14px', color: '#fff', outline: 'none' }} />
           </div>
         </div>
 
@@ -308,7 +305,7 @@ export const ServicioClientesModule = ({ onBack }: ServicioClientesModuleProps) 
           <label style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '13px', color: 'rgba(255,255,255,0.7)', display: 'block', marginBottom: '8px' }}>Correos Adicionales</label>
           <div className="flex gap-2 mb-2">
             <input type="email" value={nuevoEmailAdicional} onChange={(e) => setNuevoEmailAdicional(e.target.value)} onKeyPress={(e) => e.key === 'Enter' && agregarEmailAdicional()} placeholder="otro@empresa.com"
-              className="flex-1 px-4 py-2 rounded-lg" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', fontFamily: "'Exo 2', sans-serif", fontSize: '17px', color: '#fff', outline: 'none' }} />
+              className="flex-1 px-4 py-2 rounded-lg" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', fontFamily: "'Exo 2', sans-serif", fontSize: '14px', color: '#fff', outline: 'none' }} />
             <button onClick={agregarEmailAdicional} className="px-3 py-2 rounded-lg hover:bg-white/10 transition-colors" style={{ border: '1px solid rgba(255,255,255,0.2)' }}>
               <Plus className="w-5 h-5 text-white/70" />
             </button>
@@ -326,7 +323,7 @@ export const ServicioClientesModule = ({ onBack }: ServicioClientesModuleProps) 
         </div>
 
         {/* Boton enviar */}
-        <button onClick={enviarSolicitud} disabled={enviando || !emailCliente}
+        <button onClick={enviarSolicitud} disabled={enviando || !emailCliente || !emailClienteConfirm || emailCliente !== emailClienteConfirm}
           className="w-full flex items-center justify-center gap-2 py-4 rounded-lg transition-all disabled:opacity-50"
           style={{ background: 'linear-gradient(135deg, #fe5000 0%, #cc4000 100%)', fontFamily: "'Exo 2', sans-serif", fontSize: '15px', fontWeight: 600, color: '#fff' }}>
           {enviando ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
@@ -343,7 +340,7 @@ export const ServicioClientesModule = ({ onBack }: ServicioClientesModuleProps) 
     <div className="p-8">
       <button onClick={() => setVista('hub')} className="flex items-center gap-2 mb-6 text-white/60 hover:text-white transition-colors">
         <ArrowLeft className="w-5 h-5" />
-        <span style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '17px' }}>Volver</span>
+        <span style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '14px' }}>Volver</span>
       </button>
 
       <div className="flex items-center justify-between mb-6">
@@ -370,18 +367,18 @@ export const ServicioClientesModule = ({ onBack }: ServicioClientesModuleProps) 
         ) : solicitudes.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-12">
             <FileText className="w-12 h-12 text-white/20 mb-3" />
-            <p style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '17px', color: 'rgba(255,255,255,0.4)' }}>No hay solicitudes</p>
+            <p style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '14px', color: 'rgba(255,255,255,0.4)' }}>No hay solicitudes</p>
           </div>
         ) : (
           solicitudes.map((sol) => (
             <div key={sol.id} className="grid grid-cols-6 gap-4 px-6 py-4 hover:bg-white/5 transition-colors cursor-pointer" style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }} onClick={() => verDetalleCliente(sol)}>
               <div>
-                <p style={{ fontFamily: "Exo 2, sans-serif", fontSize: "17px", color: "#fff", fontWeight: 500 }}>{sol.razon_social || (sol.nombre_cliente + " " + sol.apellido_cliente).trim() || "Sin nombre"}</p>
+                <p style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '14px', color: '#fff', fontWeight: 500 }}>{sol.razon_social || `${sol.nombre_cliente || ''} ${sol.apellido_cliente || ''}`.trim() || 'Sin nombre'}</p>
                 {sol.rfc_mc && <p style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '12px', color: 'rgba(255,255,255,0.5)' }}>{sol.rfc_mc}</p>}
               </div>
-              <div style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '17px', color: 'rgba(255,255,255,0.7)' }}>{sol.email_cliente}</div>
+              <div style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '14px', color: 'rgba(255,255,255,0.7)' }}>{sol.email_cliente}</div>
               <div><span className="px-2 py-1 rounded text-xs" style={{ background: sol.tipo_empresa === 'USA_CANADA' ? 'rgba(59,130,246,0.2)' : 'rgba(34,197,94,0.2)', color: sol.tipo_empresa === 'USA_CANADA' ? '#93c5fd' : '#86efac' }}>{sol.tipo_empresa === 'USA_CANADA' ? '🇺🇸 USA' : '🇲🇽 MX'}</span></div>
-                <div><span className={"px-2 py-1 rounded text-xs border " + getStatusBadge(sol.estatus)}>{sol.estatus}</span></div>
+              <div><span className={`px-2 py-1 rounded text-xs border ${getStatusBadge(sol.estatus)}`}>{sol.estatus}</span></div>
               <div style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '13px', color: 'rgba(255,255,255,0.5)' }}>{new Date(sol.created_at).toLocaleDateString('es-MX')}</div>
               <div><Eye className="w-4 h-4 text-white/40" /></div>
             </div>
@@ -402,7 +399,7 @@ export const ServicioClientesModule = ({ onBack }: ServicioClientesModuleProps) 
       <div className="p-8">
         <button onClick={() => setVista('clientes')} className="flex items-center gap-2 mb-6 text-white/60 hover:text-white transition-colors">
           <ArrowLeft className="w-5 h-5" />
-          <span style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '17px' }}>Volver a Clientes</span>
+          <span style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '14px' }}>Volver a Clientes</span>
         </button>
 
         {/* Header */}
@@ -413,7 +410,7 @@ export const ServicioClientesModule = ({ onBack }: ServicioClientesModuleProps) 
             </div>
             <div>
               <h2 style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '24px', fontWeight: 600, color: '#fff' }}>{s.razon_social || `${s.nombre_cliente || ''} ${s.apellido_cliente || ''}`.trim() || 'Sin nombre'}</h2>
-              <p style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '17px', color: 'rgba(255,255,255,0.5)' }}>{s.rfc_mc || 'Sin RFC'}</p>
+              <p style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '14px', color: 'rgba(255,255,255,0.5)' }}>{s.rfc_mc || 'Sin RFC'}</p>
             </div>
           </div>
           <span className={`px-4 py-2 rounded-lg text-sm border ${getStatusBadge(s.estatus)}`}>{s.estatus}</span>
@@ -504,13 +501,6 @@ export const ServicioClientesModule = ({ onBack }: ServicioClientesModuleProps) 
     </ModuleTemplate>
   );
 };
-
-
-
-
-
-
-
 
 
 
