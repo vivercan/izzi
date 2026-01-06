@@ -170,7 +170,7 @@ export const ClientesModule = ({ onBack }: ClientesModuleProps) => {
     ];
 
     return (
-      <div className="p-8 min-h-full" style={{ background: "linear-gradient(180deg, #4A90C2 0%, #5BA3D4 30%, #6BB5E6 60%, #5A9FD0 100%)", borderRadius: "16px", margin: "0", boxShadow: "0 12px 40px rgba(0,0,0,0.4), inset 0 2px 0 rgba(255,255,255,0.25), inset 0 -4px 12px rgba(0,0,0,0.15), inset 0 0 60px rgba(0,0,0,0.05)", border: "1px solid rgba(255,255,255,0.2)" }}>
+      <div className="p-8 min-h-full" style={{ background: "linear-gradient(180deg, #1a4a7c 0%, #2d6a9f 25%, #4a90c2 50%, #5ba3d4 75%, #6bb5e6 100%)", borderRadius: "16px", margin: "0", boxShadow: "0 12px 40px rgba(0,0,0,0.4), inset 0 2px 0 rgba(255,255,255,0.15), inset 0 -8px 20px rgba(0,0,0,0.2)", borderTop: "3px solid #fe5000", borderLeft: "1px solid rgba(255,255,255,0.15)", borderRight: "1px solid rgba(255,255,255,0.1)", borderBottom: "1px solid rgba(0,0,0,0.2)" }}>
         
 
         <div className="flex flex-wrap gap-3">
@@ -400,7 +400,7 @@ export const ClientesModule = ({ onBack }: ClientesModuleProps) => {
     const s = solicitudSeleccionada;
 
     return (
-      <div className="p-8 min-h-full" style={{ background: "linear-gradient(180deg, #4A90C2 0%, #5BA3D4 30%, #6BB5E6 60%, #5A9FD0 100%)", borderRadius: "16px", margin: "0", boxShadow: "0 12px 40px rgba(0,0,0,0.4), inset 0 2px 0 rgba(255,255,255,0.25), inset 0 -4px 12px rgba(0,0,0,0.15), inset 0 0 60px rgba(0,0,0,0.05)", border: "1px solid rgba(255,255,255,0.2)" }}>
+      <div className="p-8 min-h-full" style={{ background: "linear-gradient(180deg, #1a4a7c 0%, #2d6a9f 25%, #4a90c2 50%, #5ba3d4 75%, #6bb5e6 100%)", borderRadius: "16px", margin: "0", boxShadow: "0 12px 40px rgba(0,0,0,0.4), inset 0 2px 0 rgba(255,255,255,0.15), inset 0 -8px 20px rgba(0,0,0,0.2)", borderTop: "3px solid #fe5000", borderLeft: "1px solid rgba(255,255,255,0.15)", borderRight: "1px solid rgba(255,255,255,0.1)", borderBottom: "1px solid rgba(0,0,0,0.2)" }}>
         <button onClick={() => setVista('clientes')} className="flex items-center gap-2 mb-6 text-white/60 hover:text-white transition-colors">
           <ArrowLeft className="w-5 h-5" />
           <span style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '14px' }}>Volver a Clientes</span>
@@ -505,6 +505,7 @@ export const ClientesModule = ({ onBack }: ClientesModuleProps) => {
     </ModuleTemplate>
   );
 };
+
 
 
 
