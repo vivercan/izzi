@@ -381,7 +381,7 @@ export const ServicioClientesModule = ({ onBack }: ServicioClientesModuleProps) 
               </div>
               <div style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '17px', color: 'rgba(255,255,255,0.7)' }}>{sol.email_cliente}</div>
               <div><span className="px-2 py-1 rounded text-xs" style={{ background: sol.tipo_empresa === 'USA_CANADA' ? 'rgba(59,130,246,0.2)' : 'rgba(34,197,94,0.2)', color: sol.tipo_empresa === 'USA_CANADA' ? '#93c5fd' : '#86efac' }}>{sol.tipo_empresa === 'USA_CANADA' ? '🇺🇸 USA' : '🇲🇽 MX'}</span></div>
-              <div><span className={`px-2 py-1 rounded text-xs border ${getStatusBadge(sol.estatus)}`}>{sol.estatus}</span></div>
+                <div><span className={"px-2 py-1 rounded text-xs border " + getStatusBadge(sol.estatus)}>{sol.estatus}</span></div>
               <div style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '13px', color: 'rgba(255,255,255,0.5)' }}>{new Date(sol.created_at).toLocaleDateString('es-MX')}</div>
               <div><Eye className="w-4 h-4 text-white/40" /></div>
             </div>
