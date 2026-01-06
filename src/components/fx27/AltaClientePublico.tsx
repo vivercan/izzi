@@ -53,7 +53,7 @@ export const AltaClientePublico = ({ solicitudId }: AltaClientePublicoProps) => 
     contacto_operativo_nombre: '', contacto_operativo_puesto: '', contacto_operativo_email: '', contacto_operativo_tel: '', contacto_operativo2_nombre: '', contacto_operativo2_puesto: '', contacto_operativo2_email: '', contacto_operativo2_tel: '',
     ref1_empresa: '', ref1_contacto: '', ref1_telefono: '',
     ref2_empresa: '', ref2_contacto: '', ref2_telefono: '', ref2_email: '', ref2_anos: '', ref3_empresa: '', ref3_contacto: '', ref3_telefono: '', ref3_email: '', ref3_anos: '', ref1_email: '', ref1_anos: '',
-    dias_credito: '30', divisa: 'MXN', pagina_web: '', tamano_empresa: '',
+    dias_credito: '30', divisa: 'MXN', pagina_web: '', tamano_empresa: '', proceso_facturacion: '',
     nombre_rep_legal: '', firma_aceptada: false,
   });
 
@@ -234,30 +234,33 @@ Al proporcionar sus datos y firmar digitalmente, usted consiente el tratamiento 
     <div className="h-screen flex flex-col overflow-hidden" style={{ background: 'linear-gradient(180deg, #001f4d 0%, #003366 100%)' }}>
       {/* Header Compacto */}
       <div className="flex-shrink-0 px-4 py-3 border-b border-white/10">
-        <div className="max-w-7xl mx-auto flex items-center justify-between relative">
+        <div className="max-w-[1400px] mx-auto flex items-center justify-between relative">
           <div className="flex items-center gap-3">
             <img src="/logo-gl-blanco.png" alt="Grupo Loma" className="h-10" />
           </div>
           <h1 className="text-lg font-bold text-white absolute left-1/2 transform -translate-x-1/2">Formulario de Alta de Cliente</h1>
-          <div className="px-3 py-1 rounded-full text-xs" style={{ background: 'rgba(255,255,255,0.15)' }}>
-            <span className="text-white">{solicitud?.tipo_empresa === 'USA_CANADA' ? '🇺🇸 USA/Canadá' : '🇲🇽 México'}</span>
+          <div className="flex items-center gap-3">
+            <a href="/aviso-privacidad.pdf" download className="px-3 py-1.5 rounded-lg text-xs bg-white/10 hover:bg-white/20 text-white flex items-center gap-1 transition-all">
+              <Download className="w-3 h-3" /> Aviso de Privacidad
+            </a>
+            <div className="px-3 py-1.5 rounded-lg text-xs font-medium" style={{ background: 'rgba(255,255,255,0.15)' }}>
+              <span className="text-white">{solicitud?.tipo_empresa === 'USA_CANADA' ? '🇺🇸 USA/Canadá' : '🇲🇽 México'}</span>
+            </div>
           </div>
         </div>
       </div>
 
       {/* Progress Bar */}
       <div className="flex-shrink-0 px-4 py-2 bg-white/5">
-        <div className="max-w-7xl mx-auto flex items-center justify-center gap-2">
+        <div className="max-w-[1400px] mx-auto flex items-center justify-center gap-2">
           {[
-            { n: 1, label: 'Empresa' },
-            { n: 2, label: 'Contactos' },
-            { n: 3, label: 'Documentos' },
-            { n: 4, label: 'Firma' }
+            { n: 1, label: 'Datos Generales' },
+            { n: 2, label: 'Documentos y Firma' }
           ].map(({ n, label }) => (
             <div key={n} className="flex items-center">
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold transition-all ${paso >= n ? 'bg-orange-500 text-white' : 'bg-white/20 text-white/50'}`}>{n}</div>
-              <span className={`ml-2 text-xs hidden sm:inline ${paso >= n ? 'text-white' : 'text-white/40'}`}>{label}</span>
-              {n < 4 && <div className={`w-8 sm:w-12 h-0.5 mx-2 ${paso > n ? 'bg-orange-500' : 'bg-white/20'}`} />}
+              <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold transition-all ${paso >= n ? 'bg-orange-500 text-white' : 'bg-white/20 text-white/50'}`}>{n}</div>
+              <span className={`ml-2 text-sm hidden sm:inline ${paso >= n ? 'text-white font-semibold' : 'text-white/40'}`}>{label}</span>
+              {n < 2 && <div className={`w-20 h-1 mx-4 rounded ${paso > n ? 'bg-orange-500' : 'bg-white/20'}`} />}
             </div>
           ))}
         </div>
@@ -265,8 +268,8 @@ Al proporcionar sus datos y firmar digitalmente, usted consiente el tratamiento 
 
       {/* Form Container con Scroll Interno */}
       <div className="flex-1 overflow-y-auto px-4 py-4">
-        <div className="max-w-7xl mx-auto">
-          <div className="bg-white rounded-xl shadow-2xl p-4">
+        <div className="max-w-[1400px] mx-auto">
+          <div className="bg-gradient-to-b from-white to-gray-50 rounded-2xl shadow-2xl p-6 border border-gray-100">
 
             {error && (
               <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg flex items-center gap-3">
@@ -412,9 +415,16 @@ Al proporcionar sus datos y firmar digitalmente, usted consiente el tratamiento 
                   </div>
                 ))}
 
+                {/* Proceso de Facturación */}
+                <h3 className="text-sm font-semibold text-gray-600 mt-4 mb-2">📝 Proceso de Facturación</h3>
+                <div className="mb-4">
+                  <label className={labelStyle}>Describa su proceso de facturación (portal, requisitos especiales, etc.)</label>
+                  <textarea name="proceso_facturacion" value={form.proceso_facturacion} onChange={handleChange} className={inputStyle + " h-16 resize-none"} placeholder="Ej: Facturación por portal SAT, requiere orden de compra, etc." />
+                </div>
+
                 <div className="flex justify-end mt-4">
-                  <button onClick={() => setPaso(2)} className="px-6 py-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg font-semibold hover:from-blue-700 hover:to-blue-800 transition-all shadow-lg">
-                    Siguiente →
+                  <button onClick={() => setPaso(2)} className="px-8 py-2.5 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-xl font-bold hover:from-orange-600 hover:to-orange-700 transition-all shadow-lg text-sm">
+                    Continuar a Documentos →
                   </button>
                 </div>
               </div>
@@ -554,6 +564,7 @@ Al proporcionar sus datos y firmar digitalmente, usted consiente el tratamiento 
     </div>
   );
 };
+
 
 
 
