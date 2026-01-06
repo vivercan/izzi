@@ -64,6 +64,7 @@ export const ServicioClientesModule = ({ onBack }: ServicioClientesModuleProps) 
     ).join(' ');
   };
 
+  const [nombreCliente, setNombreCliente] = useState('');
   const [apellidoCliente, setApellidoCliente] = useState('');
   const [tipoEmpresa, setTipoEmpresa] = useState<'MEXICANA' | 'USA_CANADA'>('MEXICANA');
   const [emailsAdicionales, setEmailsAdicionales] = useState<string[]>([]);
@@ -501,6 +502,7 @@ export const ServicioClientesModule = ({ onBack }: ServicioClientesModuleProps) 
     </ModuleTemplate>
   );
 };
+
 
 
 
