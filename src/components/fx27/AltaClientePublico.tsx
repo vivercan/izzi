@@ -314,7 +314,7 @@ Al proporcionar sus datos y firmar digitalmente, usted consiente el tratamiento 
                 </div>
 
                 {/* Dirección - 2 líneas */}
-                <h3 className="text-sm font-semibold text-gray-600 mt-2 mb-0.5 flex items-center gap-1">
+                <h3 className="text-[13px] font-bold text-gray-700 mt-2 mb-0.5 flex items-center gap-1">
                   <MapPin className="w-3 h-3" /> Dirección Fiscal
                 </h3>
                 <div className="grid grid-cols-6 gap-1.5 mb-1">
@@ -359,7 +359,7 @@ Al proporcionar sus datos y firmar digitalmente, usted consiente el tratamiento 
                 </div>
 
                 {/* Contactos - compactos en línea */}
-                <h3 className="text-sm font-semibold text-gray-600 mt-2 mb-0.5 flex items-center gap-1">
+                <h3 className="text-[13px] font-bold text-gray-700 mt-2 mb-0.5 flex items-center gap-1">
                   <User className="w-3 h-3" /> Contactos
                 </h3>
                 {[
@@ -389,7 +389,7 @@ Al proporcionar sus datos y firmar digitalmente, usted consiente el tratamiento 
                 ))}
 
                 {/* Referencias - compactas en línea */}
-                <h3 className="text-sm font-semibold text-gray-600 mt-2 mb-0.5">📋 Referencias Comerciales</h3>
+                <h3 className="text-[13px] font-bold text-gray-700 mt-2 mb-0.5">📋 Referencias Comerciales</h3>
                 {[1, 2, 3].map((n) => (
                   <div key={n} className="grid grid-cols-5 gap-1.5 mb-0.5 items-end">
                     <div>
@@ -410,13 +410,13 @@ Al proporcionar sus datos y firmar digitalmente, usted consiente el tratamiento 
                     </div>
                     <div>
                       <label className={labelStyle}>Años</label>
-                      <input type="text" name={`ref${n}_anos`} value={(form as any)[`ref${n}_anos`]} onChange={handleChange} className={inputStyle} placeholder="2" />
+                      <input type="text" name={`ref${n}_anos`} value={(form as any)[`ref${n}_anos`]} onChange={handleChange} className={inputStyle} placeholder="" />
                     </div>
                   </div>
                 ))}
 
                 {/* Proceso de Facturación */}
-                <h3 className="text-sm font-semibold text-gray-600 mt-2 mb-1">📝 Proceso de Facturación</h3>
+                <h3 className="text-[13px] font-bold text-gray-700 mt-2 mb-1">📝 Proceso de Facturación</h3>
                 <div className="mb-4">
                   <label className={labelStyle}>Describa su proceso de facturación (portal, requisitos especiales, etc.)</label>
                   <textarea name="proceso_facturacion" value={form.proceso_facturacion} onChange={handleChange} className={inputStyle + " h-10 resize-none"} placeholder="Ej: Facturación por portal SAT, requiere orden de compra, etc." />
@@ -558,6 +558,7 @@ Al proporcionar sus datos y firmar digitalmente, usted consiente el tratamiento 
     </div>
   );
 };
+
 
 
 
