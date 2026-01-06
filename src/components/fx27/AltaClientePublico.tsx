@@ -42,7 +42,7 @@ export const AltaClientePublico = ({ solicitudId }: AltaClientePublicoProps) => 
   const [enviando, setEnviando] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [exito, setExito] = useState(false);
-  // UI unificada sin pasos
+  const [paso, setPaso] = useState(1);
 
   const [form, setForm] = useState({
     razon_social: '', rfc_mc: '', giro: '',
@@ -250,7 +250,21 @@ Al proporcionar sus datos y firmar digitalmente, usted consiente el tratamiento 
         </div>
       </div>
 
-
+      {/* Progress Bar */}
+      <div className="flex-shrink-0 px-4 py-1.5 bg-white/5">
+        <div className="max-w-[1400px] mx-auto flex items-center justify-center gap-2">
+          {[
+            { n: 1, label: 'Datos Generales' },
+            { n: 2, label: 'Documentos y Firma' }
+          ].map(({ n, label }) => (
+            <div key={n} className="flex items-center">
+              <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold transition-all ${paso >= n ? 'bg-orange-500 text-white' : 'bg-white/20 text-white/50'}`}>{n}</div>
+              <span className={`ml-2 text-sm hidden sm:inline ${paso >= n ? 'text-white font-semibold' : 'text-white/40'}`}>{label}</span>
+              {n < 2 && <div className={`w-20 h-1 mx-4 rounded ${paso > n ? 'bg-orange-500' : 'bg-white/20'}`} />}
+            </div>
+          ))}
+        </div>
+      </div>
 
       {/* Form Container con Scroll Interno */}
       <div className="flex-1 px-4 py-2">
@@ -266,7 +280,7 @@ Al proporcionar sus datos y firmar digitalmente, usted consiente el tratamiento 
             )}
 
             {/* PASO 1: Datos de la Empresa */}
-            {/* Datos y Documentos */
+            {paso === 1 && (
               <div>
                 {/* Datos Empresa - 1 línea */}
                 <div className="grid grid-cols-6 gap-1.5 mb-1">
@@ -416,4 +430,140 @@ Al proporcionar sus datos y firmar digitalmente, usted consiente el tratamiento 
             )}
 
             {/* PASO 3: Documentos */}
-            
+            {paso === 3 && (
+              <div>
+                <h2 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+                  <FileText className="w-5 h-5 text-blue-600" />
+                  Documentos Requeridos
+                </h2>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {documentosRequeridos.map((doc) => (
+                    <div key={doc.id} className={`p-4 border rounded-lg transition-all ${documentosSubidos.includes(doc.id) ? 'border-green-300 bg-green-50' : 'border-gray-200 bg-white'}`}>
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1">
+                          <p className="font-medium text-gray-800 text-sm">
+                            {doc.nombre} {doc.requerido && <span className="text-red-500">*</span>}
+                          </p>
+                          {documentosSubidos.includes(doc.id) && (
+                            <p className="text-green-600 text-xs mt-1 flex items-center gap-1">
+                              <CheckCircle2 className="w-3 h-3" /> Documento cargado
+                            </p>
+                          )}
+                        </div>
+                        <label className={`px-3 py-2 rounded-lg cursor-pointer transition-all flex items-center gap-2 text-sm ${documentosSubidos.includes(doc.id) ? 'bg-green-100 text-green-700' : 'bg-blue-600 text-white hover:bg-blue-700'}`}>
+                          {subiendo === doc.id ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <Upload className="w-4 h-4" />
+                          )}
+                          <span>{documentosSubidos.includes(doc.id) ? 'Cambiar' : 'Subir'}</span>
+                          <input type="file" className="hidden" accept=".pdf,.jpg,.jpeg,.png" onChange={(e) => handleFileChange(doc.id, e.target.files?.[0] || null)} disabled={subiendo !== null} />
+                        </label>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="flex justify-between mt-6">
+                  <button onClick={() => setPaso(2)} className="px-6 py-2.5 bg-gray-200 text-gray-700 rounded-lg font-semibold hover:bg-gray-300 transition-colors">
+                    ← Anterior
+                  </button>
+                  <button onClick={() => setPaso(4)} className="px-6 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg font-semibold hover:from-blue-700 hover:to-blue-800 transition-all shadow-lg">
+                    Siguiente →
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* PASO 4: Firma */}
+            {paso === 4 && (
+              <div>
+                <h2 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+                  <CheckCircle2 className="w-5 h-5 text-blue-600" />
+                  Condiciones y Firma Digital
+                </h2>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                  <div className="p-4 bg-gray-50 rounded-lg">
+                    <h3 className="font-semibold text-gray-700 mb-3 text-sm">💳 Condiciones de Pago</h3>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className={labelStyle}>Días de Crédito</label>
+                        <select name="dias_credito" value={form.dias_credito} onChange={handleChange} className={inputStyle}>
+                          <option value="0">Contado / Prepago</option>
+                          <option value="15">15 días</option>
+                          <option value="30">30 días</option>
+                          <option value="45">45 días</option>
+                          <option value="60">60 días</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className={labelStyle}>Divisa</label>
+                        <select name="divisa" value={form.divisa} onChange={handleChange} className={inputStyle}>
+                          <option value="MXN">MXN - Pesos Mexicanos</option>
+                          <option value="USD">USD - Dólares</option>
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+                    <h3 className="font-semibold text-gray-700 mb-3 text-sm flex items-center gap-2">
+                      <Shield className="w-4 h-4 text-blue-600" />
+                      Aviso de Privacidad
+                    </h3>
+                    <p className="text-xs text-gray-600 mb-3">
+                      Sus datos serán tratados conforme a nuestra política de privacidad y la Ley Federal de Protección de Datos Personales.
+                    </p>
+                    <button onClick={descargarPolitica} className="flex items-center gap-2 text-blue-600 hover:text-blue-800 text-sm font-medium">
+                      <Download className="w-4 h-4" />
+                      Descargar Aviso de Privacidad
+                    </button>
+                  </div>
+                </div>
+
+                <div className="p-5 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl">
+                  <h3 className="font-bold text-gray-800 mb-4 text-sm">✍️ Declaración y Firma Digital</h3>
+                  <div className="mb-4">
+                    <label className={labelStyle}>Nombre Completo del Representante Legal *</label>
+                    <input type="text" name="nombre_rep_legal" value={form.nombre_rep_legal} onChange={handleChange} className={inputStyle} placeholder="Como aparece en su identificación oficial" />
+                  </div>
+                  <label className="flex items-start gap-3 cursor-pointer">
+                    <input type="checkbox" name="firma_aceptada" checked={form.firma_aceptada} onChange={handleChange} className="w-5 h-5 mt-0.5 rounded border-gray-300 text-blue-600 focus:ring-blue-500" />
+                    <span className="text-xs text-gray-700 leading-relaxed">
+                      Declaro bajo protesta de decir verdad que toda la información proporcionada es verídica y correcta. Acepto los Términos y Condiciones de servicio de <strong>Grupo Loma | TROB Transportes</strong> y autorizo el uso de mis datos para los fines descritos en el Aviso de Privacidad.
+                    </span>
+                  </label>
+                </div>
+
+                <div className="flex justify-between mt-6">
+                  <button onClick={() => setPaso(3)} className="px-6 py-2.5 bg-gray-200 text-gray-700 rounded-lg font-semibold hover:bg-gray-300 transition-colors">
+                    ← Anterior
+                  </button>
+                  <button onClick={enviarFormulario} disabled={enviando || !form.firma_aceptada || !form.nombre_rep_legal}
+                    className="px-8 py-3 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg font-bold hover:from-green-700 hover:to-green-800 transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2">
+                    {enviando ? <Loader2 className="w-5 h-5 animate-spin" /> : <CheckCircle2 className="w-5 h-5" />}
+                    {enviando ? 'Enviando...' : '✓ Firmar y Enviar'}
+                  </button>
+                </div>
+              </div>
+            )}
+
+          </div>
+        </div>
+      </div>
+
+
+    </div>
+  );
+};
+
+
+
+
+
+
+
+
+
