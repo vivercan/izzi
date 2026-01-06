@@ -187,27 +187,27 @@ export const ClientesModule = ({ onBack }: ClientesModuleProps) => {
               <button
                 key={btn.id}
                 onClick={() => setVista(btn.id as Vista)}
-                className="group relative flex flex-col items-center justify-center gap-2 p-4 rounded-xl transition-all duration-300 hover:-translate-y-1"
+                className="group relative flex flex-col items-center justify-center gap-2 p-4 rounded-sm transition-all duration-200 hover:-translate-y-0.5"
                 style={{
-                  background: 'rgba(15, 25, 45, 0.95)',
-                  border: `2px solid ${btn.color}40`,
-                  boxShadow: '0 4px 12px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.05)',
+                  background: btn.color,
+                  border: 'none',
+                  boxShadow: '0 4px 0 rgba(0,0,0,0.3), 0 6px 12px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.2)',
                   width: '130px', height: '110px'
                 }}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.borderColor = btn.color;
-                  e.currentTarget.style.boxShadow = `0 8px 24px rgba(0,0,0,0.4), 0 0 20px ${btn.color}30`;
+                  
+                  e.currentTarget.style.boxShadow = '0 2px 0 rgba(0,0,0,0.3), 0 4px 8px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.2)';
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.borderColor = `${btn.color}40`;
-                  e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.05)';
+                  
+                  e.currentTarget.style.boxShadow = '0 4px 0 rgba(0,0,0,0.3), 0 6px 12px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.2)';
                 }}
               >
                 <div 
                   className="p-2 rounded-md transition-all duration-300 group-hover:scale-110"
-                  style={{ background: `${btn.color}20` }}
+                  style={{ background: 'transparent' }}
                 >
-                  <Icon className="w-9 h-9" style={{ color: btn.color }} />
+                  <Icon className="w-9 h-9" style={{ color: '#ffffff' }} />
                 </div>
                 <span 
                   className="text-center transition-colors duration-300"
