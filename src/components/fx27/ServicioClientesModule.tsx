@@ -1,3 +1,4 @@
+// Clientes Module v3
 import { useState, useEffect } from 'react';
 import { ModuleTemplate } from './ModuleTemplate';
 import { MODULE_IMAGES } from '../../assets/module-images';
@@ -503,6 +504,7 @@ export const ServicioClientesModule = ({ onBack }: ServicioClientesModuleProps) 
     </ModuleTemplate>
   );
 };
+
 
 
 
