@@ -264,12 +264,12 @@ export const ServicioClientesModule = ({ onBack }: ServicioClientesModuleProps) 
               <button
                 key={tipo}
                 onClick={() => setTipoEmpresa(tipo)}
-                className={`flex-1 py-3 px-4 rounded-lg transition-all ${tipoEmpresa === tipo ? 'ring-2 ring-orange-500' : ''}`}
+                className={`flex-1 py-3 px-4 rounded-lg transition-all ${tipoEmpresa === tipo ? (tipo === "USA_CANADA" ? "ring-2 ring-blue-500" : "ring-2 ring-orange-500") : ""}`}
                 style={{
-                  background: tipoEmpresa === tipo ? 'rgba(254, 80, 0, 0.2)' : 'rgba(255,255,255,0.05)',
-                  border: `1px solid ${tipoEmpresa === tipo ? 'rgba(254, 80, 0, 0.5)' : 'rgba(255,255,255,0.1)'}`,
+                  background: tipoEmpresa === tipo ? (tipo === "USA_CANADA" ? "rgba(59, 130, 246, 0.2)" : "rgba(254, 80, 0, 0.2)") : "rgba(255,255,255,0.05)",
+                  border: `1px solid ${tipoEmpresa === tipo ? (tipo === "USA_CANADA" ? "rgba(59, 130, 246, 0.5)" : "rgba(254, 80, 0, 0.5)") : "rgba(255,255,255,0.1)"},
                   fontFamily: "'Exo 2', sans-serif", fontSize: '17px', fontWeight: 500,
-                  color: tipoEmpresa === tipo ? '#fe5000' : 'rgba(255,255,255,0.7)'
+                  color: tipoEmpresa === tipo ? (tipo === "USA_CANADA" ? "#3b82f6" : "#fe5000") : "rgba(255,255,255,0.7)"
                 }}
               >
                 {tipo === 'MEXICANA' ? '🇲🇽 Mexicana' : '🇺🇸 USA/Canada'}
