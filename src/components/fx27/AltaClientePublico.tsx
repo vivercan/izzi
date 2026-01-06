@@ -50,9 +50,9 @@ export const AltaClientePublico = ({ solicitudId }: AltaClientePublicoProps) => 
     tel_oficina: '', whatsapp: '',
     contacto_admin_nombre: '', contacto_admin_puesto: '', contacto_admin_email: '', contacto_admin_tel: '',
     contacto_facturas_nombre: '', contacto_facturas_puesto: '', contacto_facturas_email: '', contacto_facturas_tel: '',
-    contacto_operativo_nombre: '', contacto_operativo_puesto: '', contacto_operativo_email: '', contacto_operativo_tel: '',
+    contacto_operativo_nombre: '', contacto_operativo_puesto: '', contacto_operativo_email: '', contacto_operativo_tel: '', contacto_operativo2_nombre: '', contacto_operativo2_puesto: '', contacto_operativo2_email: '', contacto_operativo2_tel: '',
     ref1_empresa: '', ref1_contacto: '', ref1_telefono: '',
-    ref2_empresa: '', ref2_contacto: '', ref2_telefono: '',
+    ref2_empresa: '', ref2_contacto: '', ref2_telefono: '', ref2_email: '', ref2_anos: '', ref3_empresa: '', ref3_contacto: '', ref3_telefono: '', ref3_email: '', ref3_anos: '', ref1_email: '', ref1_anos: '',
     dias_credito: '30', divisa: 'MXN', pagina_web: '', tamano_empresa: '',
     nombre_rep_legal: '', firma_aceptada: false,
   });
@@ -355,80 +355,65 @@ Al proporcionar sus datos y firmar digitalmente, usted consiente el tratamiento 
                   </div>
                 </div>
 
-                <div className="flex justify-end mt-6">
-                  <button onClick={() => setPaso(2)} className="px-6 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg font-semibold hover:from-blue-700 hover:to-blue-800 transition-all shadow-lg">
-                    Siguiente →
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {/* PASO 2: Contactos */}
-            {paso === 2 && (
-              <div>
-                <h2 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
-                  <User className="w-5 h-5 text-blue-600" />
-                  Contactos de la Empresa
-                </h2>
-
+                {/* Contactos - compactos en línea */}
+                <h3 className="text-sm font-semibold text-gray-600 mt-3 mb-1 flex items-center gap-1">
+                  <User className="w-3 h-3" /> Contactos
+                </h3>
                 {[
-                  { prefix: 'contacto_admin', title: 'Contacto Administrativo', icon: '👤' },
-                  { prefix: 'contacto_facturas', title: 'Contacto para Facturas', icon: '📄' },
-                  { prefix: 'contacto_operativo', title: 'Contacto Operativo', icon: '🚚' },
-                ].map(({ prefix, title, icon }) => (
-                  <div key={prefix} className="mb-4 p-4 bg-gray-50 rounded-lg border border-gray-100">
-                    <h3 className="font-semibold text-gray-700 mb-3 text-sm">{icon} {title}</h3>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                      <div>
-                        <label className={labelStyle}>Nombre *</label>
-                        <input type="text" name={`${prefix}_nombre`} value={(form as any)[`${prefix}_nombre`]} onChange={handleChange} className={inputStyle} />
-                      </div>
-                      <div>
-                        <label className={labelStyle}>Puesto</label>
-                        <input type="text" name={`${prefix}_puesto`} value={(form as any)[`${prefix}_puesto`]} onChange={handleChange} className={inputStyle} />
-                      </div>
-                      <div>
-                        <label className={labelStyle}>Email *</label>
-                        <input type="email" name={`${prefix}_email`} value={(form as any)[`${prefix}_email`]} onChange={handleChange} className={inputStyle} />
-                      </div>
-                      <div>
-                        <label className={labelStyle}>Teléfono *</label>
-                        <input type="tel" name={`${prefix}_tel`} value={(form as any)[`${prefix}_tel`]} onChange={handleChange} className={inputStyle} />
-                      </div>
+                  { prefix: 'contacto_admin', title: 'Administrativo' },
+                  { prefix: 'contacto_facturas', title: 'Facturas' },
+                  { prefix: 'contacto_operativo', title: 'Operativo 1' },
+                  { prefix: 'contacto_operativo2', title: 'Operativo 2' },
+                ].map(({ prefix, title }) => (
+                  <div key={prefix} className="grid grid-cols-5 gap-2 mb-1 items-end">
+                    <div>
+                      <label className={labelStyle}>{title} - Nombre</label>
+                      <input type="text" name={`${prefix}_nombre`} value={(form as any)[`${prefix}_nombre`]} onChange={handleChange} className={inputStyle} />
+                    </div>
+                    <div>
+                      <label className={labelStyle}>Puesto</label>
+                      <input type="text" name={`${prefix}_puesto`} value={(form as any)[`${prefix}_puesto`]} onChange={handleChange} className={inputStyle} />
+                    </div>
+                    <div>
+                      <label className={labelStyle}>Email</label>
+                      <input type="email" name={`${prefix}_email`} value={(form as any)[`${prefix}_email`]} onChange={handleChange} className={inputStyle} />
+                    </div>
+                    <div>
+                      <label className={labelStyle}>Teléfono</label>
+                      <input type="tel" name={`${prefix}_tel`} value={(form as any)[`${prefix}_tel`]} onChange={handleChange} className={inputStyle} />
                     </div>
                   </div>
                 ))}
 
-                <h3 className="text-md font-semibold text-gray-700 mt-5 mb-3">📋 Referencias Comerciales</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {[1, 2].map((n) => (
-                    <div key={n} className="p-4 bg-gray-50 rounded-lg border border-gray-100">
-                      <h4 className="font-medium text-gray-600 mb-3 text-sm">Referencia {n}</h4>
-                      <div className="grid grid-cols-1 gap-2">
-                        <div>
-                          <label className={labelStyle}>Empresa</label>
-                          <input type="text" name={`ref${n}_empresa`} value={(form as any)[`ref${n}_empresa`]} onChange={handleChange} className={inputStyle} />
-                        </div>
-                        <div className="grid grid-cols-2 gap-2">
-                          <div>
-                            <label className={labelStyle}>Contacto</label>
-                            <input type="text" name={`ref${n}_contacto`} value={(form as any)[`ref${n}_contacto`]} onChange={handleChange} className={inputStyle} />
-                          </div>
-                          <div>
-                            <label className={labelStyle}>Teléfono</label>
-                            <input type="tel" name={`ref${n}_telefono`} value={(form as any)[`ref${n}_telefono`]} onChange={handleChange} className={inputStyle} />
-                          </div>
-                        </div>
-                      </div>
+                {/* Referencias - compactas en línea */}
+                <h3 className="text-sm font-semibold text-gray-600 mt-3 mb-1">📋 Referencias Comerciales</h3>
+                {[1, 2, 3].map((n) => (
+                  <div key={n} className="grid grid-cols-5 gap-2 mb-1 items-end">
+                    <div>
+                      <label className={labelStyle}>Ref {n} - Empresa</label>
+                      <input type="text" name={`ref${n}_empresa`} value={(form as any)[`ref${n}_empresa`]} onChange={handleChange} className={inputStyle} />
                     </div>
-                  ))}
-                </div>
+                    <div>
+                      <label className={labelStyle}>Contacto</label>
+                      <input type="text" name={`ref${n}_contacto`} value={(form as any)[`ref${n}_contacto`]} onChange={handleChange} className={inputStyle} />
+                    </div>
+                    <div>
+                      <label className={labelStyle}>WhatsApp</label>
+                      <input type="tel" name={`ref${n}_telefono`} value={(form as any)[`ref${n}_telefono`]} onChange={handleChange} className={inputStyle} />
+                    </div>
+                    <div>
+                      <label className={labelStyle}>Email</label>
+                      <input type="email" name={`ref${n}_email`} value={(form as any)[`ref${n}_email`]} onChange={handleChange} className={inputStyle} />
+                    </div>
+                    <div>
+                      <label className={labelStyle}>Años</label>
+                      <input type="text" name={`ref${n}_anos`} value={(form as any)[`ref${n}_anos`]} onChange={handleChange} className={inputStyle} placeholder="2" />
+                    </div>
+                  </div>
+                ))}
 
-                <div className="flex justify-between mt-6">
-                  <button onClick={() => setPaso(1)} className="px-6 py-2.5 bg-gray-200 text-gray-700 rounded-lg font-semibold hover:bg-gray-300 transition-colors">
-                    ← Anterior
-                  </button>
-                  <button onClick={() => setPaso(3)} className="px-6 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg font-semibold hover:from-blue-700 hover:to-blue-800 transition-all shadow-lg">
+                <div className="flex justify-end mt-4">
+                  <button onClick={() => setPaso(2)} className="px-6 py-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg font-semibold hover:from-blue-700 hover:to-blue-800 transition-all shadow-lg">
                     Siguiente →
                   </button>
                 </div>
@@ -569,6 +554,7 @@ Al proporcionar sus datos y firmar digitalmente, usted consiente el tratamiento 
     </div>
   );
 };
+
 
 
 
