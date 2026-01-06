@@ -12,7 +12,7 @@ export const ModuleTemplate = ({ title, onBack, children, headerImage }: ModuleT
   return (
     <div className="relative w-full h-screen overflow-hidden">
       {/* Background with gradient */}
-      <div className="absolute inset-0 bg-gradient-to-br from-[#0B1220] via-[#0F172A] to-[#1E66F5]/20"></div>
+      <div className="absolute inset-0 bg-[#004E9A]"></div>
 
       {/* Vignette ultra sutil */}
       <div
@@ -259,3 +259,4 @@ export const ModuleTemplate = ({ title, onBack, children, headerImage }: ModuleT
     </div>
   );
 };
+
