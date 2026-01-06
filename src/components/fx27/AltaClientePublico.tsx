@@ -250,20 +250,20 @@ export const AltaClientePublico = ({ solicitudId }: AltaClientePublicoProps) => 
   const labelStyle = "block text-sm font-medium text-gray-700 mb-1";
 
   return (
-    <div className="min-h-screen" style={{ background: '#f5f7fa' }}>
+    <div className="h-screen flex flex-col overflow-hidden" style={{ background: '#f5f7fa' }}>
       {/* Header */}
-      <div style={{ background: 'linear-gradient(135deg, #001f4d 0%, #003d7a 50%, #0066cc 100%)' }} className="py-8 px-4">
+      <div style={{ background: 'linear-gradient(135deg, #001f4d 0%, #003d7a 50%, #0066cc 100%)' }} className="py-4 px-4 flex-shrink-0">
         <div className="max-w-4xl mx-auto text-center">
-          <h1 className="text-3xl font-bold text-white mb-2">GRUPO LOMA | TROB TRANSPORTES</h1>
+          <h1 className="text-2xl font-bold text-white mb-2">GRUPO LOMA | TROB TRANSPORTES</h1>
           <p className="text-white/80">Formulario de Alta de Cliente</p>
-          <div className="mt-4 inline-block px-4 py-2 rounded-full text-sm" style={{ background: 'rgba(255,255,255,0.2)' }}>
+          <div className="mt-2 inline-block px-4 py-2 rounded-full text-sm" style={{ background: 'rgba(255,255,255,0.2)' }}>
             <span className="text-white">{solicitud?.tipo_empresa === 'USA_CANADA' ? '🇺🇸 Empresa USA/Canada' : '🇲🇽 Empresa Mexicana'}</span>
           </div>
         </div>
       </div>
 
       {/* Progress */}
-      <div className="max-w-4xl mx-auto px-4 py-6">
+      <div className="max-w-4xl mx-auto px-4 py-3 flex-shrink-0">
         <div className="flex items-center justify-center gap-4 mb-8">
           {[1, 2, 3, 4].map((p) => (
             <div key={p} className="flex items-center">
@@ -275,8 +275,8 @@ export const AltaClientePublico = ({ solicitudId }: AltaClientePublicoProps) => 
       </div>
 
       {/* Form Container */}
-      <div className="max-w-4xl mx-auto px-4 pb-12">
-        <div className="bg-white rounded-xl shadow-lg p-8">
+      <div className="max-w-4xl mx-auto px-4 pb-4 flex-1 overflow-y-auto">
+        <div className="bg-white rounded-xl shadow-lg p-6">
 
           {error && (
             <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-center gap-3">
@@ -546,3 +546,4 @@ export const AltaClientePublico = ({ solicitudId }: AltaClientePublicoProps) => 
     </div>
   );
 };
+
