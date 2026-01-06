@@ -267,9 +267,9 @@ Al proporcionar sus datos y firmar digitalmente, usted consiente el tratamiento 
       </div>
 
       {/* Form Container con Scroll Interno */}
-      <div className="flex-1 overflow-hidden px-4 py-2">
+      <div className="flex-1 px-4 py-2">
         <div className="max-w-[1400px] mx-auto">
-          <div className="bg-gradient-to-b from-white to-gray-50 rounded-2xl shadow-xl p-4 border border-gray-100">
+          <div className="bg-gradient-to-b from-white to-gray-50 rounded-2xl shadow-xl p-3 border border-gray-100">
 
             {error && (
               <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg flex items-center gap-3">
@@ -422,8 +422,7 @@ Al proporcionar sus datos y firmar digitalmente, usted consiente el tratamiento 
                   <textarea name="proceso_facturacion" value={form.proceso_facturacion} onChange={handleChange} className={inputStyle + " h-10 resize-none"} placeholder="Ej: Facturación por portal SAT, requiere orden de compra, etc." />
                 </div>
 
-                <div className="flex justify-end mt-4">
-                  <button onClick={() => setPaso(2)} className="px-8 py-2.5 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-xl font-bold hover:from-orange-600 hover:to-orange-700 transition-all shadow-lg text-sm">
+                <div className="flex justify-end mt-2"><button onClick={() => setPaso(2)} className="px-6 py-2 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-xl font-bold hover:from-orange-600 hover:to-orange-700 transition-all shadow-lg text-sm">
                     Continuar a Documentos →
                   </button>
                 </div>
@@ -555,12 +554,7 @@ Al proporcionar sus datos y firmar digitalmente, usted consiente el tratamiento 
         </div>
       </div>
 
-      {/* Footer simple */}
-      <div className="flex-shrink-0 bg-[#001f4d] py-3 px-4">
-        <p className="text-white/70 text-xs text-center">
-          © 2025 Grupo Loma | TROB · WExpress · Speedy Haul · TROB USA — Protegemos sus datos conforme a la LFPDPPP
-        </p>
-      </div>
+
     </div>
   );
 };
