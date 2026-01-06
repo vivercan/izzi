@@ -170,7 +170,7 @@ export const ClientesModule = ({ onBack }: ClientesModuleProps) => {
     ];
 
     return (
-      <div className="p-8">
+      <div className="p-8 min-h-full" style={{ background: "linear-gradient(145deg, #1a3a5c 0%, #1e4a6e 50%, #15324a 100%)", borderRadius: "12px", margin: "0" }}>
         <div className="mb-8">
           <h2 style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '22px', fontWeight: 600, color: '#fff' }}>
             Clientes
@@ -407,7 +407,7 @@ export const ClientesModule = ({ onBack }: ClientesModuleProps) => {
     const s = solicitudSeleccionada;
 
     return (
-      <div className="p-8">
+      <div className="p-8 min-h-full" style={{ background: "linear-gradient(145deg, #1a3a5c 0%, #1e4a6e 50%, #15324a 100%)", borderRadius: "12px", margin: "0" }}>
         <button onClick={() => setVista('clientes')} className="flex items-center gap-2 mb-6 text-white/60 hover:text-white transition-colors">
           <ArrowLeft className="w-5 h-5" />
           <span style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '14px' }}>Volver a Clientes</span>
@@ -512,6 +512,7 @@ export const ClientesModule = ({ onBack }: ClientesModuleProps) => {
     </ModuleTemplate>
   );
 };
+
 
 
 
