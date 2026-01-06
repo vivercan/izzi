@@ -166,19 +166,12 @@ export const ClientesModule = ({ onBack }: ClientesModuleProps) => {
   const renderHub = () => {
     const botones = [
       { id: 'nueva-alta', nombre: 'Nueva Alta', icon: UserPlus, color: '#fe5000' },
-      { id: 'clientes', nombre: 'Clientes', icon: Users, color: '#3b82f6' },
+      { id: 'clientes', nombre: 'Clientes', icon: Users, color: '#1E40AF' },
     ];
 
     return (
-      <div className="p-8 min-h-full" style={{ background: "url(/bg-clientes.jpg) center/cover no-repeat", borderRadius: "12px", margin: "0" }}>
-        <div className="mb-8">
-          <h2 style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '22px', fontWeight: 600, color: '#fff' }}>
-            Clientes
-          </h2>
-          <p style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '14px', color: 'rgba(255,255,255,0.5)', marginTop: '4px' }}>
-            Gestion de altas y clientes registrados
-          </p>
-        </div>
+      <div className="p-8 min-h-full" style={{ background: "url(/bg-clientes.jpg) center/cover no-repeat", borderRadius: "12px", margin: "0", boxShadow: "0 8px 32px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.1)" }}>
+        
 
         <div className="flex flex-wrap gap-3">
           {botones.map((btn) => {
@@ -191,8 +184,8 @@ export const ClientesModule = ({ onBack }: ClientesModuleProps) => {
                 style={{
                   background: btn.color,
                   border: 'none',
-                  boxShadow: '0 4px 0 rgba(0,0,0,0.3), 0 6px 12px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.2)',
-                  width: '140px', height: '120px'
+                  boxShadow: '0 6px 0 rgba(0,0,0,0.25), 0 8px 16px rgba(0,0,0,0.3), inset 0 2px 0 rgba(255,255,255,0.2)',
+                  width: '165px', height: '135px'
                 }}
                 onMouseEnter={(e) => {
                   
@@ -357,7 +350,7 @@ export const ClientesModule = ({ onBack }: ClientesModuleProps) => {
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-4">
           <div className="p-3 rounded-xl" style={{ background: 'rgba(59, 130, 246, 0.2)' }}>
-            <Users className="w-8 h-8" style={{ color: '#3b82f6' }} />
+            <Users className="w-8 h-8" style={{ color: '#1E40AF' }} />
           </div>
           <div>
             <h3 style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '20px', fontWeight: 600, color: '#fff' }}>Clientes Registrados</h3>
@@ -407,7 +400,7 @@ export const ClientesModule = ({ onBack }: ClientesModuleProps) => {
     const s = solicitudSeleccionada;
 
     return (
-      <div className="p-8 min-h-full" style={{ background: "url(/bg-clientes.jpg) center/cover no-repeat", borderRadius: "12px", margin: "0" }}>
+      <div className="p-8 min-h-full" style={{ background: "url(/bg-clientes.jpg) center/cover no-repeat", borderRadius: "12px", margin: "0", boxShadow: "0 8px 32px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.1)" }}>
         <button onClick={() => setVista('clientes')} className="flex items-center gap-2 mb-6 text-white/60 hover:text-white transition-colors">
           <ArrowLeft className="w-5 h-5" />
           <span style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '14px' }}>Volver a Clientes</span>
@@ -417,7 +410,7 @@ export const ClientesModule = ({ onBack }: ClientesModuleProps) => {
         <div className="flex items-start justify-between mb-8">
           <div className="flex items-center gap-4">
             <div className="p-4 rounded-xl" style={{ background: 'rgba(59, 130, 246, 0.2)' }}>
-              <Building2 className="w-10 h-10" style={{ color: '#3b82f6' }} />
+              <Building2 className="w-10 h-10" style={{ color: '#1E40AF' }} />
             </div>
             <div>
               <h2 style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '24px', fontWeight: 600, color: '#fff' }}>{s.razon_social || `${s.nombre_cliente || ''} ${s.apellido_cliente || ''}`.trim() || 'Sin nombre'}</h2>
@@ -512,6 +505,8 @@ export const ClientesModule = ({ onBack }: ClientesModuleProps) => {
     </ModuleTemplate>
   );
 };
+
+
 
 
 
