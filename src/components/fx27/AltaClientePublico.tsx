@@ -53,7 +53,7 @@ export const AltaClientePublico = ({ solicitudId }: AltaClientePublicoProps) => 
     contacto_operativo_nombre: '', contacto_operativo_puesto: '', contacto_operativo_email: '', contacto_operativo_tel: '',
     ref1_empresa: '', ref1_contacto: '', ref1_telefono: '',
     ref2_empresa: '', ref2_contacto: '', ref2_telefono: '',
-    dias_credito: '30', divisa: 'MXN',
+    dias_credito: '30', divisa: 'MXN', pagina_web: '', tamano_empresa: '',
     nombre_rep_legal: '', firma_aceptada: false,
   });
 
@@ -236,11 +236,8 @@ Al proporcionar sus datos y firmar digitalmente, usted consiente el tratamiento 
       <div className="flex-shrink-0 px-4 py-3 border-b border-white/10">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <img src="/logo-gl-blanco.png" alt="Grupo Loma" className="h-10" />
-            <div>
-              <h1 className="text-lg font-bold text-white">GRUPO LOMA | TROB TRANSPORTES</h1>
-              <p className="text-white/60 text-xs">Formulario de Alta de Cliente</p>
-            </div>
+            <img src="/logo-gl-blanco.png" alt="Grupo Loma" className="h-12" />
+            <h1 className="text-xl font-bold text-white">Formulario de Alta de Cliente</h1>
           </div>
           <div className="px-3 py-1 rounded-full text-xs" style={{ background: 'rgba(255,255,255,0.15)' }}>
             <span className="text-white">{solicitud?.tipo_empresa === 'USA_CANADA' ? '🇺🇸 USA/Canadá' : '🇲🇽 México'}</span>
@@ -282,12 +279,7 @@ Al proporcionar sus datos y firmar digitalmente, usted consiente el tratamiento 
             {/* PASO 1: Datos de la Empresa */}
             {paso === 1 && (
               <div>
-                <h2 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
-                  <Building2 className="w-5 h-5 text-blue-600" />
-                  Datos de la Empresa
-                </h2>
-
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-4">
                   <div className="md:col-span-2">
                     <label className={labelStyle}>Razón Social *</label>
                     <input type="text" name="razon_social" value={form.razon_social} onChange={handleChange} className={inputStyle} placeholder="Nombre legal de la empresa" />
@@ -296,12 +288,31 @@ Al proporcionar sus datos y firmar digitalmente, usted consiente el tratamiento 
                     <label className={labelStyle}>{solicitud?.tipo_empresa === 'USA_CANADA' ? 'MC# / DOT#' : 'RFC'} *</label>
                     <input type="text" name="rfc_mc" value={form.rfc_mc} onChange={handleChange} className={inputStyle} placeholder={solicitud?.tipo_empresa === 'USA_CANADA' ? 'MC123456' : 'XAXX010101000'} style={{ textTransform: 'uppercase' }} />
                   </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
                   <div>
                     <label className={labelStyle}>Giro / Actividad</label>
-                    <input type="text" name="giro" value={form.giro} onChange={handleChange} className={inputStyle} placeholder="Ej: Comercializadora, Manufactura" />
+                    <input type="text" name="giro" value={form.giro} onChange={handleChange} className={inputStyle} placeholder="Ej: Transporte" />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
+                  <div>
+                    <label className={labelStyle}>Página Web</label>
+                    <input type="text" name="pagina_web" value={form.pagina_web} onChange={handleChange} className={inputStyle} placeholder="www.empresa.com" />
+                  </div>
+                  <div>
+                    <label className={labelStyle}>Tamaño de Empresa</label>
+                    <select name="tamano_empresa" value={form.tamano_empresa} onChange={handleChange} className={inputStyle}>
+                      <option value="">Seleccionar...</option>
+                      <option value="1-10">1-10 colaboradores</option>
+                      <option value="11-50">11-50 colaboradores</option>
+                      <option value="51-200">51-200 colaboradores</option>
+                      <option value="201-500">201-500 colaboradores</option>
+                      <option value="500+">Más de 500 colaboradores</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className={labelStyle}>WhatsApp *</label>
+                    <input type="tel" name="whatsapp" value={form.whatsapp} onChange={handleChange} className={inputStyle} placeholder="+52 123 456 7890" />
                   </div>
                 </div>
 
@@ -311,7 +322,7 @@ Al proporcionar sus datos y firmar digitalmente, usted consiente el tratamiento 
                 </h3>
 
                 <div className="grid grid-cols-2 md:grid-cols-6 gap-3 mb-3">
-                  <div className="col-span-2 md:col-span-3">
+                  <div className="col-span-2 md:col-span-2">
                     <label className={labelStyle}>Calle *</label>
                     <input type="text" name="calle" value={form.calle} onChange={handleChange} className={inputStyle} />
                   </div>
@@ -327,13 +338,13 @@ Al proporcionar sus datos y firmar digitalmente, usted consiente el tratamiento 
                     <label className={labelStyle}>C.P. *</label>
                     <input type="text" name="cp" value={form.cp} onChange={handleChange} className={inputStyle} maxLength={5} />
                   </div>
-                </div>
-
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
                   <div>
                     <label className={labelStyle}>Colonia *</label>
                     <input type="text" name="colonia" value={form.colonia} onChange={handleChange} className={inputStyle} />
                   </div>
+                </div>
+
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
                   <div>
                     <label className={labelStyle}>Ciudad *</label>
                     <input type="text" name="ciudad" value={form.ciudad} onChange={handleChange} className={inputStyle} />
@@ -345,17 +356,6 @@ Al proporcionar sus datos y firmar digitalmente, usted consiente el tratamiento 
                   <div>
                     <label className={labelStyle}>País *</label>
                     <input type="text" name="pais" value={form.pais} onChange={handleChange} className={inputStyle} placeholder={solicitud?.tipo_empresa === 'USA_CANADA' ? 'USA' : 'México'} />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                  <div>
-                    <label className={labelStyle}>Teléfono Oficina</label>
-                    <input type="tel" name="tel_oficina" value={form.tel_oficina} onChange={handleChange} className={inputStyle} placeholder="(123) 456-7890" />
-                  </div>
-                  <div>
-                    <label className={labelStyle}>WhatsApp</label>
-                    <input type="tel" name="whatsapp" value={form.whatsapp} onChange={handleChange} className={inputStyle} placeholder="+52 123 456 7890" />
                   </div>
                 </div>
 
@@ -564,23 +564,15 @@ Al proporcionar sus datos y firmar digitalmente, usted consiente el tratamiento 
         </div>
       </div>
 
-      {/* Footer con Logos */}
-      <div className="flex-shrink-0 bg-white border-t border-gray-200 py-4 px-4">
-        <div className="max-w-7xl mx-auto flex flex-col items-center gap-3">
-          <div className="flex items-center justify-center gap-8 flex-wrap">
-            <img src="/logo-trob.png" alt="TROB" className="h-8 object-contain" />
-            <img src="/logo-wexpress.png" alt="WExpress" className="h-7 object-contain" />
-            <img src="/logo-shi.png" alt="Speedy Haul" className="h-8 object-contain" />
-            <img src="/logo-trob-usa.png" alt="TROB USA" className="h-8 object-contain" />
-            <img src="/logo-drivetowin.png" alt="Drive To Win" className="h-6 object-contain" />
-          </div>
-          <p className="text-gray-500 text-xs text-center">
-            © 2025 Grupo Loma | TROB · WExpress · Speedy Haul · TROB USA — Protegemos sus datos conforme a la LFPDPPP
-          </p>
-        </div>
+      {/* Footer simple */}
+      <div className="flex-shrink-0 bg-[#001f4d] py-3 px-4">
+        <p className="text-white/70 text-xs text-center">
+          © 2025 Grupo Loma | TROB · WExpress · Speedy Haul · TROB USA — Protegemos sus datos conforme a la LFPDPPP
+        </p>
       </div>
     </div>
   );
 };
+
 
 
