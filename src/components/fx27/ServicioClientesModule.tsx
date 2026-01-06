@@ -376,7 +376,7 @@ export const ServicioClientesModule = ({ onBack }: ServicioClientesModuleProps) 
           solicitudes.map((sol) => (
             <div key={sol.id} className="grid grid-cols-6 gap-4 px-6 py-4 hover:bg-white/5 transition-colors cursor-pointer" style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }} onClick={() => verDetalleCliente(sol)}>
               <div>
-                <p style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '17px', color: '#fff', fontWeight: 500 }}>{sol.razon_social || `${sol.nombre_cliente || ''} ${sol.apellido_cliente || ''}`.trim() || 'Sin nombre'}</p>
+                <p style={{ fontFamily: "Exo 2, sans-serif", fontSize: "17px", color: "#fff", fontWeight: 500 }}>{sol.razon_social || (sol.nombre_cliente + " " + sol.apellido_cliente).trim() || "Sin nombre"}</p>
                 {sol.rfc_mc && <p style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '12px', color: 'rgba(255,255,255,0.5)' }}>{sol.rfc_mc}</p>}
               </div>
               <div style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '17px', color: 'rgba(255,255,255,0.7)' }}>{sol.email_cliente}</div>
