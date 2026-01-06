@@ -73,7 +73,7 @@ export const AIAssistant = () => {
     }
 
     if (messageLower.includes('como') && messageLower.includes('modulo')) {
-      return 'Desde el **Dashboard principal** puedes acceder a todos los módulos:\n\n🔹 **Módulos principales:**\n• Agregar Lead\n• Panel de Oportunidades\n• Operaciones\n• Despacho Inteligente\n• Control de Equipo\n• KPIs\n• Configuración\n• Cotizaciones\n• Ventas\n• Utilerías\n• Servicio a Clientes\n• Dedicados\n\nSimplemente haz clic en cualquier tarjeta para acceder. ¿Qué módulo te interesa?';
+      return 'Desde el **Dashboard principal** puedes acceder a todos los módulos:\n\n🔹 **Módulos principales:**\n• Agregar Lead\n• Panel de Oportunidades\n• Operaciones\n• Despacho Inteligente\n• Control de Equipo\n• KPIs\n• Configuración\n• Cotizaciones\n• Ventas\n• Utilerías\n• Clientes\n• Dedicados\n\nSimplemente haz clic en cualquier tarjeta para acceder. ¿Qué módulo te interesa?';
     }
 
     // Respuesta genérica del sistema

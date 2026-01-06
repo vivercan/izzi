@@ -29,7 +29,7 @@ const MODULOS_DISPONIBLES = [
   { id: 'cotizaciones', nombre: 'Cotizaciones' },
   { id: 'ventas', nombre: 'Ventas' },
   { id: 'utilerias', nombre: 'Utilerías' },
-  { id: 'servicio-clientes', nombre: 'Servicio A Clientes' }
+  { id: 'servicio-clientes', nombre: 'Clientes' }
 ];
 
 // Usuarios predefinidos del sistema
