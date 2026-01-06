@@ -325,7 +325,7 @@ export const ServicioClientesModule = ({ onBack }: ServicioClientesModuleProps) 
         </div>
 
         {/* Boton enviar */}
-        <button onClick={enviarSolicitud} disabled={enviando || !emailCliente || !emailClienteConfirm || emailCliente !== emailClienteConfirm}
+        <button onClick={enviarSolicitud} disabled={enviando || !emailCliente}
           className="w-full flex items-center justify-center gap-2 py-4 rounded-lg transition-all disabled:opacity-50"
           style={{ background: 'linear-gradient(135deg, #fe5000 0%, #cc4000 100%)', fontFamily: "'Exo 2', sans-serif", fontSize: '15px', fontWeight: 600, color: '#fff' }}>
           {enviando ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
@@ -503,6 +503,8 @@ export const ServicioClientesModule = ({ onBack }: ServicioClientesModuleProps) 
     </ModuleTemplate>
   );
 };
+
+
 
 
 
