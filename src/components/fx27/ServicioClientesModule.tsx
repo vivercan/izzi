@@ -134,7 +134,7 @@ export const ServicioClientesModule = ({ onBack }: ServicioClientesModuleProps) 
       const response = await fetch(`https://${projectId}.supabase.co/functions/v1/make-server-d84b50bb/alta-cliente/enviar`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${publicAnonKey}` },
-        body: JSON.stringify({ emailCliente, nombreCliente, apellidoCliente, emailsAdicionales, tipoEmpresa, enviadoPor: getUserEmail() })
+        body: JSON.stringify({ emailCliente, nombreCliente, apellidoCliente, emailsAdicionales: nuevoEmailAdicional && nuevoEmailAdicional.includes('@') ? [...emailsAdicionales, nuevoEmailAdicional] : emailsAdicionales, tipoEmpresa, enviadoPor: getUserEmail() })
       });
       const data = await response.json();
       if (data.success) {
@@ -512,6 +512,7 @@ export const ServicioClientesModule = ({ onBack }: ServicioClientesModuleProps) 
     </ModuleTemplate>
   );
 };
+
 
 
 
