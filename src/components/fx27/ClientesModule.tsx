@@ -164,60 +164,65 @@ export const ClientesModule = ({ onBack }: ClientesModuleProps) => {
   // HUB - BOTONES COMPACTOS
   // ═══════════════════════════════════════════════════════════
   const renderHub = () => {
+    const botones = [
+      { id: 'nueva-alta', nombre: 'Nueva Alta', icon: UserPlus, color: '#fe5000' },
+      { id: 'clientes', nombre: 'Clientes', icon: Users, color: '#3b82f6' },
+    ];
+
     return (
-      <div className="relative min-h-full" style={{ background: '#0a5298' }}>
-        <div 
-          className="mx-6 my-4 rounded-2xl overflow-hidden"
-          style={{
-            background: 'linear-gradient(145deg, #0c1929 0%, #0f2847 40%, #0a1e38 100%)',
-            boxShadow: '0 8px 32px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.05)',
-            minHeight: 'calc(100vh - 160px)'
-          }}
-        >
-          <div className="p-10">
-            <div className="mb-10">
-              <h2 style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '26px', fontWeight: 700, color: '#fff', letterSpacing: '0.5px' }}>
-                Clientes
-              </h2>
-              <p style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '15px', color: 'rgba(255,255,255,0.6)', marginTop: '6px' }}>
-                Gestión de altas y clientes registrados
-              </p>
-            </div>
-            <div className="flex flex-wrap gap-6">
+      <div className="p-8">
+        <div className="mb-8">
+          <h2 style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '22px', fontWeight: 600, color: '#fff' }}>
+            Clientes
+          </h2>
+          <p style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '14px', color: 'rgba(255,255,255,0.5)', marginTop: '4px' }}>
+            Gestion de altas y clientes registrados
+          </p>
+        </div>
+
+        <div className="flex flex-wrap gap-3">
+          {botones.map((btn) => {
+            const Icon = btn.icon;
+            return (
               <button
-                onClick={() => setVista('nueva-alta')}
-                className="group flex flex-col items-center justify-center gap-3 rounded-xl transition-all duration-200 hover:-translate-y-1 active:translate-y-0"
+                key={btn.id}
+                onClick={() => setVista(btn.id as Vista)}
+                className="group relative flex flex-col items-center justify-center gap-2 p-4 rounded-xl transition-all duration-300 hover:-translate-y-1"
                 style={{
-                  background: '#fe5000',
-                  width: '160px',
-                  height: '120px',
-                  boxShadow: '0 6px 20px rgba(254,80,0,0.4), inset 0 1px 0 rgba(255,255,255,0.2), inset 0 -2px 0 rgba(0,0,0,0.1)',
-                  border: 'none'
+                  background: 'rgba(15, 25, 45, 0.95)',
+                  border: `2px solid ${btn.color}40`,
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.05)',
+                  width: '130px', height: '110px'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.borderColor = btn.color;
+                  e.currentTarget.style.boxShadow = `0 8px 24px rgba(0,0,0,0.4), 0 0 20px ${btn.color}30`;
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.borderColor = `${btn.color}40`;
+                  e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.05)';
                 }}
               >
-                <UserPlus className="w-10 h-10 text-white transition-transform duration-200 group-hover:scale-110" />
-                <span style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '15px', fontWeight: 600, color: '#fff' }}>
-                  Nueva Alta
+                <div 
+                  className="p-2 rounded-md transition-all duration-300 group-hover:scale-110"
+                  style={{ background: `${btn.color}20` }}
+                >
+                  <Icon className="w-9 h-9" style={{ color: btn.color }} />
+                </div>
+                <span 
+                  className="text-center transition-colors duration-300"
+                  style={{ 
+                    fontFamily: "'Exo 2', sans-serif", 
+                    fontSize: '13px', 
+                    fontWeight: 600, 
+                    color: '#ffffff', textShadow: '0 1px 2px rgba(0,0,0,0.3)'
+                  }}
+                >
+                  {btn.nombre}
                 </span>
               </button>
-              <button
-                onClick={() => setVista('clientes')}
-                className="group flex flex-col items-center justify-center gap-3 rounded-xl transition-all duration-200 hover:-translate-y-1 active:translate-y-0"
-                style={{
-                  background: '#2563eb',
-                  width: '150px',
-                  height: '110px',
-                  boxShadow: '0 6px 16px rgba(37,99,235,0.35), inset 0 1px 0 rgba(255,255,255,0.15), inset 0 -2px 0 rgba(0,0,0,0.1)',
-                  border: 'none'
-                }}
-              >
-                <Users className="w-9 h-9 text-white transition-transform duration-200 group-hover:scale-110" />
-                <span style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '14px', fontWeight: 600, color: '#fff' }}>
-                  Clientes
-                </span>
-              </button>
-            </div>
-          </div>
+            );
+          })}
         </div>
       </div>
     );
