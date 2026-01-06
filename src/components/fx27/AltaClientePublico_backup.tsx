@@ -234,11 +234,11 @@ Al proporcionar sus datos y firmar digitalmente, usted consiente el tratamiento 
     <div className="h-screen flex flex-col overflow-hidden" style={{ background: 'linear-gradient(180deg, #001f4d 0%, #003366 100%)' }}>
       {/* Header Compacto */}
       <div className="flex-shrink-0 px-4 py-3 border-b border-white/10">
-        <div className="max-w-7xl mx-auto flex items-center justify-between relative">
-          <div className="flex items-center gap-3">
-            <img src="/logo-gl-blanco.png" alt="Grupo Loma" className="h-10" />
+        <div className="max-w-7xl mx-auto flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <img src="/logo-gl-blanco.png" alt="Grupo Loma" className="h-12" />
+            <h1 className="text-xl font-bold text-white">Formulario de Alta de Cliente</h1>
           </div>
-          <h1 className="text-lg font-bold text-white absolute left-1/2 transform -translate-x-1/2">Formulario de Alta de Cliente</h1>
           <div className="px-3 py-1 rounded-full text-xs" style={{ background: 'rgba(255,255,255,0.15)' }}>
             <span className="text-white">{solicitud?.tipo_empresa === 'USA_CANADA' ? '🇺🇸 USA/Canadá' : '🇲🇽 México'}</span>
           </div>
@@ -266,7 +266,7 @@ Al proporcionar sus datos y firmar digitalmente, usted consiente el tratamiento 
       {/* Form Container con Scroll Interno */}
       <div className="flex-1 overflow-y-auto px-4 py-4">
         <div className="max-w-7xl mx-auto">
-          <div className="bg-white rounded-xl shadow-2xl p-4">
+          <div className="bg-white rounded-xl shadow-2xl p-6">
 
             {error && (
               <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg flex items-center gap-3">
@@ -279,43 +279,50 @@ Al proporcionar sus datos y firmar digitalmente, usted consiente el tratamiento 
             {/* PASO 1: Datos de la Empresa */}
             {paso === 1 && (
               <div>
-                {/* Datos Empresa - 1 línea */}
-                <div className="grid grid-cols-6 gap-2 mb-2">
-                  <div className="col-span-2">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-4">
+                  <div className="md:col-span-2">
                     <label className={labelStyle}>Razón Social *</label>
-                    <input type="text" name="razon_social" value={form.razon_social} onChange={handleChange} className={inputStyle} />
+                    <input type="text" name="razon_social" value={form.razon_social} onChange={handleChange} className={inputStyle} placeholder="Nombre legal de la empresa" />
                   </div>
                   <div>
-                    <label className={labelStyle}>{solicitud?.tipo_empresa === 'USA_CANADA' ? 'MC#/DOT#' : 'RFC'} *</label>
-                    <input type="text" name="rfc_mc" value={form.rfc_mc} onChange={handleChange} className={inputStyle} style={{ textTransform: 'uppercase' }} />
+                    <label className={labelStyle}>{solicitud?.tipo_empresa === 'USA_CANADA' ? 'MC# / DOT#' : 'RFC'} *</label>
+                    <input type="text" name="rfc_mc" value={form.rfc_mc} onChange={handleChange} className={inputStyle} placeholder={solicitud?.tipo_empresa === 'USA_CANADA' ? 'MC123456' : 'XAXX010101000'} style={{ textTransform: 'uppercase' }} />
                   </div>
                   <div>
-                    <label className={labelStyle}>Giro</label>
-                    <input type="text" name="giro" value={form.giro} onChange={handleChange} className={inputStyle} />
-                  </div>
-                  <div>
-                    <label className={labelStyle}>Página Web</label>
-                    <input type="text" name="pagina_web" value={form.pagina_web} onChange={handleChange} className={inputStyle} />
-                  </div>
-                  <div>
-                    <label className={labelStyle}>Tamaño</label>
-                    <select name="tamano_empresa" value={form.tamano_empresa} onChange={handleChange} className={inputStyle}>
-                      <option value="">-</option>
-                      <option value="1-10">1-10</option>
-                      <option value="11-50">11-50</option>
-                      <option value="51-200">51-200</option>
-                      <option value="201-500">201-500</option>
-                      <option value="500+">500+</option>
-                    </select>
+                    <label className={labelStyle}>Giro / Actividad</label>
+                    <input type="text" name="giro" value={form.giro} onChange={handleChange} className={inputStyle} placeholder="Ej: Transporte" />
                   </div>
                 </div>
 
-                {/* Dirección - 2 líneas */}
-                <h3 className="text-sm font-semibold text-gray-600 mt-3 mb-1 flex items-center gap-1">
-                  <MapPin className="w-3 h-3" /> Dirección Fiscal
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
+                  <div>
+                    <label className={labelStyle}>Página Web</label>
+                    <input type="text" name="pagina_web" value={form.pagina_web} onChange={handleChange} className={inputStyle} placeholder="www.empresa.com" />
+                  </div>
+                  <div>
+                    <label className={labelStyle}>Tamaño de Empresa</label>
+                    <select name="tamano_empresa" value={form.tamano_empresa} onChange={handleChange} className={inputStyle}>
+                      <option value="">Seleccionar...</option>
+                      <option value="1-10">1-10 colaboradores</option>
+                      <option value="11-50">11-50 colaboradores</option>
+                      <option value="51-200">51-200 colaboradores</option>
+                      <option value="201-500">201-500 colaboradores</option>
+                      <option value="500+">Más de 500 colaboradores</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className={labelStyle}>WhatsApp *</label>
+                    <input type="tel" name="whatsapp" value={form.whatsapp} onChange={handleChange} className={inputStyle} placeholder="+52 123 456 7890" />
+                  </div>
+                </div>
+
+                <h3 className="text-md font-semibold text-gray-700 mt-5 mb-3 flex items-center gap-2">
+                  <MapPin className="w-4 h-4 text-blue-600" />
+                  Dirección Fiscal
                 </h3>
-                <div className="grid grid-cols-6 gap-2 mb-2">
-                  <div className="col-span-2">
+
+                <div className="grid grid-cols-2 md:grid-cols-6 gap-3 mb-3">
+                  <div className="col-span-2 md:col-span-2">
                     <label className={labelStyle}>Calle *</label>
                     <input type="text" name="calle" value={form.calle} onChange={handleChange} className={inputStyle} />
                   </div>
@@ -332,15 +339,12 @@ Al proporcionar sus datos y firmar digitalmente, usted consiente el tratamiento 
                     <input type="text" name="cp" value={form.cp} onChange={handleChange} className={inputStyle} maxLength={5} />
                   </div>
                   <div>
-                    <label className={labelStyle}>WhatsApp *</label>
-                    <input type="tel" name="whatsapp" value={form.whatsapp} onChange={handleChange} className={inputStyle} />
-                  </div>
-                </div>
-                <div className="grid grid-cols-4 gap-2 mb-2">
-                  <div>
                     <label className={labelStyle}>Colonia *</label>
                     <input type="text" name="colonia" value={form.colonia} onChange={handleChange} className={inputStyle} />
                   </div>
+                </div>
+
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
                   <div>
                     <label className={labelStyle}>Ciudad *</label>
                     <input type="text" name="ciudad" value={form.ciudad} onChange={handleChange} className={inputStyle} />
@@ -569,7 +573,6 @@ Al proporcionar sus datos y firmar digitalmente, usted consiente el tratamiento 
     </div>
   );
 };
-
 
 
 
