@@ -1,8 +1,6 @@
 {
-  "crons": [
-    {
-      "path": "/api/cron/gps-worker",
-      "schedule": "*/5 * * * *"
-    }
+  "rewrites": [
+    { "source": "/alta/:path*", "destination": "/index.html" },
+    { "source": "/(.*)", "destination": "/index.html" }
   ]
 }
