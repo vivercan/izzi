@@ -1,3 +1,4 @@
+// Formulario Alta Cliente v2.0
 import { useState, useEffect } from 'react';
 import { Building2, User, Mail, Phone, MapPin, FileText, Upload, CheckCircle2, AlertCircle, Loader2, X, Download, Shield } from 'lucide-react';
 import { projectId, publicAnonKey } from '../../utils/supabase/info';
@@ -575,3 +576,4 @@ Al proporcionar sus datos y firmar digitalmente, usted consiente el tratamiento 
     </div>
   );
 };
+
