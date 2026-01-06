@@ -192,7 +192,7 @@ export const ClientesModule = ({ onBack }: ClientesModuleProps) => {
                   background: btn.color,
                   border: 'none',
                   boxShadow: '0 4px 0 rgba(0,0,0,0.3), 0 6px 12px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.2)',
-                  width: '130px', height: '110px'
+                  width: '140px', height: '120px'
                 }}
                 onMouseEnter={(e) => {
                   
@@ -207,7 +207,7 @@ export const ClientesModule = ({ onBack }: ClientesModuleProps) => {
                   className="p-2 rounded-md transition-all duration-300 group-hover:scale-110"
                   style={{ background: 'transparent' }}
                 >
-                  <Icon className="w-9 h-9" style={{ color: '#ffffff' }} />
+                  <Icon className="w-11 h-11" style={{ color: '#ffffff' }} />
                 </div>
                 <span 
                   className="text-center transition-colors duration-300"
@@ -512,6 +512,7 @@ export const ClientesModule = ({ onBack }: ClientesModuleProps) => {
     </ModuleTemplate>
   );
 };
+
 
 
 
