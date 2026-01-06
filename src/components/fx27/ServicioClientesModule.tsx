@@ -56,6 +56,29 @@ export const ServicioClientesModule = ({ onBack }: ServicioClientesModuleProps) 
   
   // Form state para Nueva Alta
   const [emailCliente, setEmailCliente] = useState('');
+  const [emailClienteConfirm, setEmailClienteConfirm] = useState('');
+  // Auto-capitalizar nombre (Primera letra mayúscula)
+  const capitalizar = (texto: string) => {
+    return texto.toLowerCase().split(' ').map(palabra => 
+      palabra.charAt(0).toUpperCase() + palabra.slice(1)
+    ).join(' ');
+  };
+
+  const [emailClienteConfirm, setEmailClienteConfirm] = useState('');
+  // Auto-capitalizar nombre (Primera letra mayúscula)
+  const capitalizar = (texto: string) => {
+    return texto.toLowerCase().split(' ').map(palabra => 
+      palabra.charAt(0).toUpperCase() + palabra.slice(1)
+    ).join(' ');
+  };
+
+  // Auto-capitalizar nombre (Primera letra mayúscula)
+  const capitalizar = (texto: string) => {
+    return texto.toLowerCase().split(' ').map(palabra => 
+      palabra.charAt(0).toUpperCase() + palabra.slice(1)
+    ).join(' ');
+  };
+
   const [nombreCliente, setNombreCliente] = useState('');
   const [apellidoCliente, setApellidoCliente] = useState('');
   const [tipoEmpresa, setTipoEmpresa] = useState<'MEXICANA' | 'USA_CANADA'>('MEXICANA');
@@ -273,12 +296,12 @@ export const ServicioClientesModule = ({ onBack }: ServicioClientesModuleProps) 
         <div className="grid grid-cols-2 gap-4 mb-4">
           <div>
             <label style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '13px', color: 'rgba(255,255,255,0.7)', display: 'block', marginBottom: '8px' }}>Nombre</label>
-            <input type="text" value={nombreCliente} onChange={(e) => setNombreCliente(e.target.value)} placeholder="Nombre"
+            <input type="text" value={nombreCliente} onChange={(e) => setNombreCliente(capitalizar(e.target.value))} placeholder="Nombre"
               className="w-full px-4 py-3 rounded-lg" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', fontFamily: "'Exo 2', sans-serif", fontSize: '14px', color: '#fff', outline: 'none' }} />
           </div>
           <div>
             <label style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '13px', color: 'rgba(255,255,255,0.7)', display: 'block', marginBottom: '8px' }}>Apellido</label>
-            <input type="text" value={apellidoCliente} onChange={(e) => setApellidoCliente(e.target.value)} placeholder="Apellido"
+            <input type="text" value={apellidoCliente} onChange={(e) => setApellidoCliente(capitalizar(e.target.value))} placeholder="Apellido"
               className="w-full px-4 py-3 rounded-lg" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', fontFamily: "'Exo 2', sans-serif", fontSize: '14px', color: '#fff', outline: 'none' }} />
           </div>
         </div>
@@ -316,7 +339,7 @@ export const ServicioClientesModule = ({ onBack }: ServicioClientesModuleProps) 
         </div>
 
         {/* Boton enviar */}
-        <button onClick={enviarSolicitud} disabled={enviando || !emailCliente}
+        <button onClick={enviarSolicitud} disabled={enviando || !emailCliente || !emailClienteConfirm || emailCliente !== emailClienteConfirm}
           className="w-full flex items-center justify-center gap-2 py-4 rounded-lg transition-all disabled:opacity-50"
           style={{ background: 'linear-gradient(135deg, #fe5000 0%, #cc4000 100%)', fontFamily: "'Exo 2', sans-serif", fontSize: '15px', fontWeight: 600, color: '#fff' }}>
           {enviando ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
@@ -494,6 +517,12 @@ export const ServicioClientesModule = ({ onBack }: ServicioClientesModuleProps) 
     </ModuleTemplate>
   );
 };
+
+
+
+
+
+
 
 
 

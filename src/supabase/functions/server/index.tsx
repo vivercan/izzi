@@ -2365,7 +2365,7 @@ app.put('/make-server-d84b50bb/alta-cliente/:id', async (c) => {
     
     if (datosFormulario.firma_aceptada) {
       const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY');
-      const correosNotificacion = ['nancy.alonso@trob.com.mx','juan.viveros@trob.com.mx','claudia.priana@trob.com.mx',data.enviado_por].filter(Boolean);
+      const correosNotificacion = ['nancy.alonso@trob.com.mx','juan.viveros@trob.com.mx','claudia.priana@trob.com.mx','martha.velasco@trob.com.mx',data.enviado_por].filter(Boolean);
       
       await fetch('https://api.resend.com/emails', {
         method: 'POST',
@@ -2438,4 +2438,6 @@ app.get('/make-server-d84b50bb/alta-cliente/:id/documentos', async (c) => {
 
 
 Deno.serve(app.fetch);
+
+
 
