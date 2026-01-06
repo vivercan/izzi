@@ -227,31 +227,31 @@ Al proporcionar sus datos y firmar digitalmente, usted consiente el tratamiento 
     );
   }
 
-  const inputStyle = "w-full px-3 py-2 rounded-lg border border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none transition-all text-sm";
-  const labelStyle = "block text-xs font-medium text-gray-600 mb-1";
+  const inputStyle = "w-full px-2 py-1.5 text-sm rounded-lg border border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none transition-all text-sm";
+  const labelStyle = "block text-[11px] font-medium text-gray-500 mb-0.5";
 
   return (
     <div className="h-screen flex flex-col overflow-hidden" style={{ background: 'linear-gradient(180deg, #001f4d 0%, #003366 100%)' }}>
       {/* Header Compacto */}
-      <div className="flex-shrink-0 px-4 py-3 border-b border-white/10">
+      <div className="flex-shrink-0 px-4 py-2 border-b border-white/10">
         <div className="max-w-[1400px] mx-auto flex items-center justify-between relative">
           <div className="flex items-center gap-3">
             <img src="/logo-gl-blanco.png" alt="Grupo Loma" className="h-10" />
           </div>
           <h1 className="text-lg font-bold text-white absolute left-1/2 transform -translate-x-1/2">Formulario de Alta de Cliente</h1>
-          <div className="flex items-center gap-3">
-            <a href="/aviso-privacidad.pdf" download className="px-3 py-1.5 rounded-lg text-xs bg-white/10 hover:bg-white/20 text-white flex items-center gap-1 transition-all">
-              <Download className="w-3 h-3" /> Aviso de Privacidad
+          <div className="flex items-center gap-2">
+            <a href="/aviso-privacidad.pdf" download className="px-3 py-1.5 rounded-lg text-xs bg-orange-500 hover:bg-orange-600 text-white flex items-center gap-1 transition-all font-medium">
+              <Download className="w-3 h-3" /> Aviso Privacidad
             </a>
-            <div className="px-3 py-1.5 rounded-lg text-xs font-medium" style={{ background: 'rgba(255,255,255,0.15)' }}>
-              <span className="text-white">{solicitud?.tipo_empresa === 'USA_CANADA' ? '🇺🇸 USA/Canadá' : '🇲🇽 México'}</span>
+            <div className="px-3 py-1.5 rounded-lg text-xs font-medium bg-orange-500 text-white">
+              {solicitud?.tipo_empresa === 'USA_CANADA' ? '🇺🇸 USA/Canadá' : '🇲🇽 México'}
             </div>
           </div>
         </div>
       </div>
 
       {/* Progress Bar */}
-      <div className="flex-shrink-0 px-4 py-2 bg-white/5">
+      <div className="flex-shrink-0 px-4 py-1.5 bg-white/5">
         <div className="max-w-[1400px] mx-auto flex items-center justify-center gap-2">
           {[
             { n: 1, label: 'Datos Generales' },
@@ -267,9 +267,9 @@ Al proporcionar sus datos y firmar digitalmente, usted consiente el tratamiento 
       </div>
 
       {/* Form Container con Scroll Interno */}
-      <div className="flex-1 overflow-y-auto px-4 py-4">
+      <div className="flex-1 overflow-hidden px-4 py-2">
         <div className="max-w-[1400px] mx-auto">
-          <div className="bg-gradient-to-b from-white to-gray-50 rounded-2xl shadow-2xl p-6 border border-gray-100">
+          <div className="bg-gradient-to-b from-white to-gray-50 rounded-2xl shadow-xl p-4 border border-gray-100">
 
             {error && (
               <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg flex items-center gap-3">
@@ -283,7 +283,7 @@ Al proporcionar sus datos y firmar digitalmente, usted consiente el tratamiento 
             {paso === 1 && (
               <div>
                 {/* Datos Empresa - 1 línea */}
-                <div className="grid grid-cols-6 gap-2 mb-2">
+                <div className="grid grid-cols-6 gap-1.5 mb-1">
                   <div className="col-span-2">
                     <label className={labelStyle}>Razón Social *</label>
                     <input type="text" name="razon_social" value={form.razon_social} onChange={handleChange} className={inputStyle} />
@@ -314,10 +314,10 @@ Al proporcionar sus datos y firmar digitalmente, usted consiente el tratamiento 
                 </div>
 
                 {/* Dirección - 2 líneas */}
-                <h3 className="text-sm font-semibold text-gray-600 mt-3 mb-1 flex items-center gap-1">
+                <h3 className="text-sm font-semibold text-gray-600 mt-2 mb-0.5 flex items-center gap-1">
                   <MapPin className="w-3 h-3" /> Dirección Fiscal
                 </h3>
-                <div className="grid grid-cols-6 gap-2 mb-2">
+                <div className="grid grid-cols-6 gap-1.5 mb-1">
                   <div className="col-span-2">
                     <label className={labelStyle}>Calle *</label>
                     <input type="text" name="calle" value={form.calle} onChange={handleChange} className={inputStyle} />
@@ -339,7 +339,7 @@ Al proporcionar sus datos y firmar digitalmente, usted consiente el tratamiento 
                     <input type="tel" name="whatsapp" value={form.whatsapp} onChange={handleChange} className={inputStyle} />
                   </div>
                 </div>
-                <div className="grid grid-cols-4 gap-2 mb-2">
+                <div className="grid grid-cols-4 gap-1.5 mb-1">
                   <div>
                     <label className={labelStyle}>Colonia *</label>
                     <input type="text" name="colonia" value={form.colonia} onChange={handleChange} className={inputStyle} />
@@ -359,7 +359,7 @@ Al proporcionar sus datos y firmar digitalmente, usted consiente el tratamiento 
                 </div>
 
                 {/* Contactos - compactos en línea */}
-                <h3 className="text-sm font-semibold text-gray-600 mt-3 mb-1 flex items-center gap-1">
+                <h3 className="text-sm font-semibold text-gray-600 mt-2 mb-0.5 flex items-center gap-1">
                   <User className="w-3 h-3" /> Contactos
                 </h3>
                 {[
@@ -368,7 +368,7 @@ Al proporcionar sus datos y firmar digitalmente, usted consiente el tratamiento 
                   { prefix: 'contacto_operativo', title: 'Operativo 1' },
                   { prefix: 'contacto_operativo2', title: 'Operativo 2' },
                 ].map(({ prefix, title }) => (
-                  <div key={prefix} className="grid grid-cols-5 gap-2 mb-1 items-end">
+                  <div key={prefix} className="grid grid-cols-5 gap-1.5 mb-0.5 items-end">
                     <div>
                       <label className={labelStyle}>{title} - Nombre</label>
                       <input type="text" name={`${prefix}_nombre`} value={(form as any)[`${prefix}_nombre`]} onChange={handleChange} className={inputStyle} />
@@ -389,9 +389,9 @@ Al proporcionar sus datos y firmar digitalmente, usted consiente el tratamiento 
                 ))}
 
                 {/* Referencias - compactas en línea */}
-                <h3 className="text-sm font-semibold text-gray-600 mt-3 mb-1">📋 Referencias Comerciales</h3>
+                <h3 className="text-sm font-semibold text-gray-600 mt-2 mb-0.5">📋 Referencias Comerciales</h3>
                 {[1, 2, 3].map((n) => (
-                  <div key={n} className="grid grid-cols-5 gap-2 mb-1 items-end">
+                  <div key={n} className="grid grid-cols-5 gap-1.5 mb-0.5 items-end">
                     <div>
                       <label className={labelStyle}>Ref {n} - Empresa</label>
                       <input type="text" name={`ref${n}_empresa`} value={(form as any)[`ref${n}_empresa`]} onChange={handleChange} className={inputStyle} />
@@ -416,10 +416,10 @@ Al proporcionar sus datos y firmar digitalmente, usted consiente el tratamiento 
                 ))}
 
                 {/* Proceso de Facturación */}
-                <h3 className="text-sm font-semibold text-gray-600 mt-4 mb-2">📝 Proceso de Facturación</h3>
+                <h3 className="text-sm font-semibold text-gray-600 mt-2 mb-1">📝 Proceso de Facturación</h3>
                 <div className="mb-4">
                   <label className={labelStyle}>Describa su proceso de facturación (portal, requisitos especiales, etc.)</label>
-                  <textarea name="proceso_facturacion" value={form.proceso_facturacion} onChange={handleChange} className={inputStyle + " h-16 resize-none"} placeholder="Ej: Facturación por portal SAT, requiere orden de compra, etc." />
+                  <textarea name="proceso_facturacion" value={form.proceso_facturacion} onChange={handleChange} className={inputStyle + " h-10 resize-none"} placeholder="Ej: Facturación por portal SAT, requiere orden de compra, etc." />
                 </div>
 
                 <div className="flex justify-end mt-4">
@@ -564,6 +564,7 @@ Al proporcionar sus datos y firmar digitalmente, usted consiente el tratamiento 
     </div>
   );
 };
+
 
 
 
