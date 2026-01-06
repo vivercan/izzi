@@ -234,9 +234,9 @@ Al proporcionar sus datos y firmar digitalmente, usted consiente el tratamiento 
     <div className="h-screen flex flex-col overflow-hidden" style={{ background: 'linear-gradient(180deg, #001f4d 0%, #003366 100%)' }}>
       {/* Header Compacto */}
       <div className="flex-shrink-0 px-4 py-3 border-b border-white/10">
-        <div className="max-w-6xl mx-auto flex items-center justify-between">
+        <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <img src="/logo-grupo-loma.png" alt="Grupo Loma" className="h-10" />
+            <img src="/logo-gl-blanco.png" alt="Grupo Loma" className="h-10" />
             <div>
               <h1 className="text-lg font-bold text-white">GRUPO LOMA | TROB TRANSPORTES</h1>
               <p className="text-white/60 text-xs">Formulario de Alta de Cliente</p>
@@ -250,7 +250,7 @@ Al proporcionar sus datos y firmar digitalmente, usted consiente el tratamiento 
 
       {/* Progress Bar */}
       <div className="flex-shrink-0 px-4 py-2 bg-white/5">
-        <div className="max-w-6xl mx-auto flex items-center justify-center gap-2">
+        <div className="max-w-7xl mx-auto flex items-center justify-center gap-2">
           {[
             { n: 1, label: 'Empresa' },
             { n: 2, label: 'Contactos' },
@@ -268,7 +268,7 @@ Al proporcionar sus datos y firmar digitalmente, usted consiente el tratamiento 
 
       {/* Form Container con Scroll Interno */}
       <div className="flex-1 overflow-y-auto px-4 py-4">
-        <div className="max-w-6xl mx-auto">
+        <div className="max-w-7xl mx-auto">
           <div className="bg-white rounded-xl shadow-2xl p-6">
 
             {error && (
@@ -564,11 +564,17 @@ Al proporcionar sus datos y firmar digitalmente, usted consiente el tratamiento 
         </div>
       </div>
 
-      {/* Footer con Banner */}
-      <div className="flex-shrink-0 bg-white/5 border-t border-white/10 py-3 px-4">
-        <div className="max-w-6xl mx-auto flex flex-col items-center gap-2">
-          <img src="/banner-empresas.png" alt="Nuestras Empresas" className="h-8 opacity-80" />
-          <p className="text-white/50 text-xs text-center">
+      {/* Footer con Logos */}
+      <div className="flex-shrink-0 bg-white border-t border-gray-200 py-4 px-4">
+        <div className="max-w-7xl mx-auto flex flex-col items-center gap-3">
+          <div className="flex items-center justify-center gap-8 flex-wrap">
+            <img src="/logo-trob.png" alt="TROB" className="h-8 object-contain" />
+            <img src="/logo-wexpress.png" alt="WExpress" className="h-7 object-contain" />
+            <img src="/logo-shi.png" alt="Speedy Haul" className="h-8 object-contain" />
+            <img src="/logo-trob-usa.png" alt="TROB USA" className="h-8 object-contain" />
+            <img src="/logo-drivetowin.png" alt="Drive To Win" className="h-6 object-contain" />
+          </div>
+          <p className="text-gray-500 text-xs text-center">
             © 2025 Grupo Loma | TROB · WExpress · Speedy Haul · TROB USA — Protegemos sus datos conforme a la LFPDPPP
           </p>
         </div>
@@ -576,4 +582,5 @@ Al proporcionar sus datos y firmar digitalmente, usted consiente el tratamiento 
     </div>
   );
 };
+
 
