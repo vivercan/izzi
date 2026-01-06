@@ -11,7 +11,7 @@ import { ConfiguracionModule } from './components/fx27/ConfiguracionModule';
 import { CotizacionesModule } from './components/fx27/CotizacionesModule';
 import { VentasModule } from './components/fx27/VentasModule';
 import { UtileriasModule } from './components/fx27/UtileriasModule';
-import { ServicioClientesModule } from './components/fx27/ServicioClientesModule';
+import { ClientesModule } from './components/fx27/ClientesModule';
 import { DedicadosModuleWideTech } from './components/fx27/DedicadosModuleWideTech';
 import { DedicadosModuleV2 } from './components/fx27/CarrollModuleFinalV2';
 import { CarrollModuleFinalV2Compact } from './components/fx27/CarrollModuleFinalV2Compact';
@@ -338,7 +338,7 @@ export default function App() {
           {currentModule === 'cotizaciones' && <CotizacionesModule onBack={handleBack} />}
           {currentModule === 'ventas' && <VentasModule onBack={handleBack} userEmail={currentUserEmail} />}
           {currentModule === 'utilerias' && <UtileriasModule onBack={handleBack} />}
-          {currentModule === 'servicio-clientes' && <ServicioClientesModule onBack={handleBack} />}
+          {currentModule === 'servicio-clientes' && <ClientesModule onBack={handleBack} />}
           {currentModule === 'dedicados' && (
             <DedicadosHub onBack={handleBack} onNavigate={(submodule) => setCurrentModule(submodule)} />
           )}
@@ -360,6 +360,7 @@ export default function App() {
     </div>
   );
 }
+
 
 
 

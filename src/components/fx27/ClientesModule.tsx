@@ -4,7 +4,7 @@ import { MODULE_IMAGES } from '../../assets/module-images';
 import { UserPlus, Users, Send, Mail, User, Plus, X, Clock, CheckCircle2, AlertCircle, FileText, Eye, Loader2, ArrowLeft, Building2, Phone, MapPin, CreditCard, Upload, Download, Trash2 } from 'lucide-react';
 import { projectId, publicAnonKey } from '../../utils/supabase/info';
 
-interface ServicioClientesModuleProps {
+interface ClientesModuleProps {
   onBack: () => void;
 }
 
@@ -45,7 +45,7 @@ interface Documento {
 
 type Vista = 'hub' | 'nueva-alta' | 'clientes' | 'detalle-cliente';
 
-export const ServicioClientesModule = ({ onBack }: ServicioClientesModuleProps) => {
+export const ClientesModule = ({ onBack }: ClientesModuleProps) => {
   const [vista, setVista] = useState<Vista>('hub');
   const [solicitudes, setSolicitudes] = useState<Solicitud[]>([]);
   const [solicitudSeleccionada, setSolicitudSeleccionada] = useState<Solicitud | null>(null);
@@ -512,6 +512,7 @@ export const ServicioClientesModule = ({ onBack }: ServicioClientesModuleProps) 
     </ModuleTemplate>
   );
 };
+
 
 
 
