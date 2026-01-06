@@ -227,7 +227,7 @@ Al proporcionar sus datos y firmar digitalmente, usted consiente el tratamiento 
     );
   }
 
-  const inputStyle = "w-full px-2 py-1.5 text-sm rounded-lg border border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none transition-all text-sm";
+  const inputStyle = "w-full px-2 py-1.5 text-sm text-gray-900 rounded-lg border border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none transition-all text-sm";
   const labelStyle = "block text-[11px] font-medium text-gray-500 mb-0.5";
 
   return (
@@ -558,6 +558,7 @@ Al proporcionar sus datos y firmar digitalmente, usted consiente el tratamiento 
     </div>
   );
 };
+
 
 
 
