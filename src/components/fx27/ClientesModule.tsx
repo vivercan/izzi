@@ -170,10 +170,16 @@ export const ClientesModule = ({ onBack }: ClientesModuleProps) => {
     ];
 
     return (
-      <div className="p-10 min-h-full" style={{ background: "linear-gradient(180deg, #1a4a7c 0%, #2d6a9f 25%, #4a90c2 50%, #5ba3d4 75%, #6bb5e6 100%)", borderRadius: "16px", margin: "0", boxShadow: "0 12px 40px rgba(0,0,0,0.4), inset 0 2px 0 rgba(255,255,255,0.15), inset 0 -8px 20px rgba(0,0,0,0.2)", borderTop: "3px solid #fe5000", borderLeft: "1px solid rgba(255,255,255,0.15)", borderRight: "1px solid rgba(255,255,255,0.1)", borderBottom: "1px solid rgba(0,0,0,0.2)" }}>
+      <div className="p-10 min-h-full relative overflow-hidden" style={{ background: "linear-gradient(180deg, #1a4a7c 0%, #2d6a9f 25%, #4a90c2 50%, #5ba3d4 75%, #6bb5e6 100%)", borderRadius: "16px", margin: "0", boxShadow: "0 12px 40px rgba(0,0,0,0.4), inset 0 2px 0 rgba(255,255,255,0.15), inset 0 -8px 20px rgba(0,0,0,0.2)", borderTop: "3px solid #fe5000", borderLeft: "1px solid rgba(255,255,255,0.15)", borderRight: "1px solid rgba(255,255,255,0.1)", borderBottom: "1px solid rgba(0,0,0,0.2)" }}>
+        {/* Decoración geométrica sutil */}
+        <div className="absolute top-20 right-20 w-64 h-64 rounded-full opacity-[0.03]" style={{ background: "radial-gradient(circle, #ffffff 0%, transparent 70%)" }} />
+        <div className="absolute bottom-32 right-40 w-48 h-48 rounded-full opacity-[0.02]" style={{ background: "radial-gradient(circle, #ffffff 0%, transparent 70%)" }} />
+        <div className="absolute top-40 right-1/3 w-32 h-32 opacity-[0.015]" style={{ background: "#ffffff", transform: "rotate(45deg)" }} />
+        {/* Footer naranja degradado */}
+        <div className="absolute bottom-0 left-0 right-0 h-24" style={{ background: "linear-gradient(180deg, transparent 0%, rgba(254,80,0,0.08) 50%, rgba(254,80,0,0.15) 100%)", borderRadius: "0 0 16px 16px" }} />
         
 
-        <div className="flex flex-wrap gap-6">
+        <div className="flex flex-wrap gap-10">
           {botones.map((btn) => {
             const Icon = btn.icon;
             return (
@@ -206,8 +212,7 @@ export const ClientesModule = ({ onBack }: ClientesModuleProps) => {
                   className="text-center transition-colors duration-300"
                   style={{ 
                     fontFamily: "'Exo 2', sans-serif", 
-                    fontSize: '13px', 
-                    fontWeight: 600, 
+                    fontSize: '16px', fontWeight: 700, 
                     color: '#ffffff', textShadow: '0 1px 2px rgba(0,0,0,0.3)'
                   }}
                 >
@@ -243,7 +248,7 @@ export const ClientesModule = ({ onBack }: ClientesModuleProps) => {
         </div>
 
         {mensaje && (
-          <div className={`mb-6 p-4 rounded-lg flex items-center gap-6 ${mensaje.tipo === 'success' ? 'bg-green-500/20 border border-green-500/30' : 'bg-red-500/20 border border-red-500/30'}`}>
+          <div className={`mb-6 p-4 rounded-lg flex items-center gap-10 ${mensaje.tipo === 'success' ? 'bg-green-500/20 border border-green-500/30' : 'bg-red-500/20 border border-red-500/30'}`}>
             {mensaje.tipo === 'success' ? <CheckCircle2 className="w-5 h-5 text-green-400" /> : <AlertCircle className="w-5 h-5 text-red-400" />}
             <span style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '14px', color: mensaje.tipo === 'success' ? '#86efac' : '#fca5a5' }}>{mensaje.texto}</span>
           </div>
@@ -252,7 +257,7 @@ export const ClientesModule = ({ onBack }: ClientesModuleProps) => {
         {/* Tipo de empresa */}
         <div className="mb-6">
           <label style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '13px', color: 'rgba(255,255,255,0.7)', display: 'block', marginBottom: '8px' }}>Tipo de Empresa</label>
-          <div className="flex gap-6">
+          <div className="flex gap-10">
             <button
               onClick={() => setTipoEmpresa("MEXICANA")}
               className={"flex-1 py-3 px-4 rounded-lg transition-all " + (tipoEmpresa === "MEXICANA" ? "ring-2 ring-orange-500" : "")}
@@ -400,7 +405,13 @@ export const ClientesModule = ({ onBack }: ClientesModuleProps) => {
     const s = solicitudSeleccionada;
 
     return (
-      <div className="p-10 min-h-full" style={{ background: "linear-gradient(180deg, #1a4a7c 0%, #2d6a9f 25%, #4a90c2 50%, #5ba3d4 75%, #6bb5e6 100%)", borderRadius: "16px", margin: "0", boxShadow: "0 12px 40px rgba(0,0,0,0.4), inset 0 2px 0 rgba(255,255,255,0.15), inset 0 -8px 20px rgba(0,0,0,0.2)", borderTop: "3px solid #fe5000", borderLeft: "1px solid rgba(255,255,255,0.15)", borderRight: "1px solid rgba(255,255,255,0.1)", borderBottom: "1px solid rgba(0,0,0,0.2)" }}>
+      <div className="p-10 min-h-full relative overflow-hidden" style={{ background: "linear-gradient(180deg, #1a4a7c 0%, #2d6a9f 25%, #4a90c2 50%, #5ba3d4 75%, #6bb5e6 100%)", borderRadius: "16px", margin: "0", boxShadow: "0 12px 40px rgba(0,0,0,0.4), inset 0 2px 0 rgba(255,255,255,0.15), inset 0 -8px 20px rgba(0,0,0,0.2)", borderTop: "3px solid #fe5000", borderLeft: "1px solid rgba(255,255,255,0.15)", borderRight: "1px solid rgba(255,255,255,0.1)", borderBottom: "1px solid rgba(0,0,0,0.2)" }}>
+        {/* Decoración geométrica sutil */}
+        <div className="absolute top-20 right-20 w-64 h-64 rounded-full opacity-[0.03]" style={{ background: "radial-gradient(circle, #ffffff 0%, transparent 70%)" }} />
+        <div className="absolute bottom-32 right-40 w-48 h-48 rounded-full opacity-[0.02]" style={{ background: "radial-gradient(circle, #ffffff 0%, transparent 70%)" }} />
+        <div className="absolute top-40 right-1/3 w-32 h-32 opacity-[0.015]" style={{ background: "#ffffff", transform: "rotate(45deg)" }} />
+        {/* Footer naranja degradado */}
+        <div className="absolute bottom-0 left-0 right-0 h-24" style={{ background: "linear-gradient(180deg, transparent 0%, rgba(254,80,0,0.08) 50%, rgba(254,80,0,0.15) 100%)", borderRadius: "0 0 16px 16px" }} />
         <button onClick={() => setVista('clientes')} className="flex items-center gap-2 mb-6 text-white/60 hover:text-white transition-colors">
           <ArrowLeft className="w-5 h-5" />
           <span style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '14px' }}>Volver a Clientes</span>
@@ -420,7 +431,7 @@ export const ClientesModule = ({ onBack }: ClientesModuleProps) => {
           <span className={`px-4 py-2 rounded-lg text-sm border ${getStatusBadge(s.estatus)}`}>{s.estatus}</span>
         </div>
 
-        <div className="grid grid-cols-2 gap-6">
+        <div className="grid grid-cols-2 gap-10">
           {/* Datos de la Empresa */}
           <div className="rounded-xl p-6" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
             <h3 style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '16px', fontWeight: 600, color: '#fff', marginBottom: '16px' }}>Datos de la Empresa</h3>
@@ -473,7 +484,7 @@ export const ClientesModule = ({ onBack }: ClientesModuleProps) => {
               <div className="space-y-2">
                 {documentos.map((doc) => (
                   <div key={doc.id} className="flex items-center justify-between p-3 rounded-lg bg-white/5">
-                    <div className="flex items-center gap-6">
+                    <div className="flex items-center gap-10">
                       <FileText className="w-5 h-5 text-blue-400" />
                       <div>
                         <p className="text-white text-sm">{doc.nombre_archivo}</p>
@@ -505,6 +516,7 @@ export const ClientesModule = ({ onBack }: ClientesModuleProps) => {
     </ModuleTemplate>
   );
 };
+
 
 
 
