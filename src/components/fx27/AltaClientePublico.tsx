@@ -1,434 +1,470 @@
-// Formulario Alta Cliente v3.0 - Layout 2 columnas con validación IA
 import { useState, useEffect } from 'react';
-import { Building2, User, Mail, Phone, MapPin, FileText, Upload, CheckCircle2, AlertCircle, Loader2, X, Download, Shield } from 'lucide-react';
-import { projectId, publicAnonKey } from '../../utils/supabase/info';
-
-interface AltaClientePublicoProps {
-  solicitudId: string;
-}
+import { useParams } from 'react-router-dom';
+import { supabase } from '../../lib/supabase';
+import { 
+  Building2, MapPin, Phone, Mail, Users, FileText, Upload, CheckCircle2, 
+  AlertCircle, X, Download, Globe, Briefcase, User, Hash, FileCheck
+} from 'lucide-react';
 
 interface Solicitud {
   id: string;
-  email_cliente: string;
+  tipo_empresa: 'MEXICANA' | 'USA_CANADA';
   nombre_cliente: string;
   apellido_cliente: string;
-  tipo_empresa: 'MEXICANA' | 'USA_CANADA';
+  email_cliente: string;
   estatus: string;
-  razon_social?: string;
-  rfc_mc?: string;
 }
 
-const DOCUMENTOS_MX = [
-  { id: 'csf', nombre: 'Constancia Situación Fiscal', requerido: true },
-  { id: 'opinion', nombre: 'Opinión de Cumplimiento', requerido: true },
-  { id: 'domicilio', nombre: 'Comprobante Domicilio', requerido: true },
-  { id: 'ine', nombre: 'INE Representante Legal', requerido: true },
-  { id: 'acta', nombre: 'Acta Constitutiva', requerido: true },
-  { id: 'poder', nombre: 'Poder Notarial', requerido: false },
+interface FormData {
+  razon_social: string;
+  rfc: string;
+  giro: string;
+  pagina_web: string;
+  tamano_empresa: string;
+  calle: string;
+  no_ext: string;
+  no_int: string;
+  cp: string;
+  whatsapp: string;
+  colonia: string;
+  ciudad: string;
+  estado: string;
+  pais: string;
+  contacto_admin_nombre: string;
+  contacto_admin_puesto: string;
+  contacto_admin_email: string;
+  contacto_admin_tel: string;
+  contacto_facturas_nombre: string;
+  contacto_facturas_puesto: string;
+  contacto_facturas_email: string;
+  contacto_facturas_tel: string;
+  contacto_op1_nombre: string;
+  contacto_op1_puesto: string;
+  contacto_op1_email: string;
+  contacto_op1_tel: string;
+  contacto_op2_nombre: string;
+  contacto_op2_puesto: string;
+  contacto_op2_email: string;
+  contacto_op2_tel: string;
+  ref1_empresa: string;
+  ref1_contacto: string;
+  ref1_whatsapp: string;
+  ref1_email: string;
+  ref1_anos: string;
+  ref2_empresa: string;
+  ref2_contacto: string;
+  ref2_whatsapp: string;
+  ref2_email: string;
+  ref2_anos: string;
+  ref3_empresa: string;
+  ref3_contacto: string;
+  ref3_whatsapp: string;
+  ref3_email: string;
+  ref3_anos: string;
+  proceso_facturacion: string;
+  firma_nombre: string;
+  firma_aceptada: boolean;
+}
+
+const TAMANOS_EMPRESA = [
+  '-',
+  '1-10 colaboradores',
+  '11-50 colaboradores',
+  '51-200 colaboradores',
+  '201-500 colaboradores',
+  '500+ colaboradores'
 ];
 
-const DOCUMENTOS_USA = [
-  { id: 'w9', nombre: 'W-9 Form', requerido: true },
-  { id: 'bank', nombre: 'Bank Statement (3 meses)', requerido: true },
-  { id: 'mc', nombre: 'MC# / DOT# Certificate', requerido: true },
-  { id: 'void', nombre: 'Void Check', requerido: true },
-  { id: 'domicilio', nombre: 'Proof of Address', requerido: true },
-  { id: 'id', nombre: 'ID Representante Legal', requerido: true },
+const DOCS_MEXICANA = [
+  { key: 'constancia_fiscal', label: 'Constancia Situación Fiscal', required: true },
+  { key: 'opinion_cumplimiento', label: 'Opinión de Cumplimiento', required: true },
+  { key: 'comprobante_domicilio', label: 'Comprobante Domicilio', required: true },
+  { key: 'ine_representante', label: 'INE Representante Legal', required: true },
+  { key: 'acta_constitutiva', label: 'Acta Constitutiva', required: true },
+  { key: 'poder_notarial', label: 'Poder Notarial', required: false }
 ];
 
-export const AltaClientePublico = ({ solicitudId }: AltaClientePublicoProps) => {
+const DOCS_USA = [
+  { key: 'w9', label: 'W-9 Form', required: true },
+  { key: 'bank_statement', label: 'Bank Statement', required: true },
+  { key: 'mc_number', label: 'MC# Certificate', required: true },
+  { key: 'void_check', label: 'Void Check', required: true },
+  { key: 'id_document', label: 'ID Document', required: true }
+];
+
+export default function AltaClientePublico() {
+  const { id } = useParams<{ id: string }>();
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
   const [solicitud, setSolicitud] = useState<Solicitud | null>(null);
-  const [cargando, setCargando] = useState(true);
-  const [enviando, setEnviando] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [exito, setExito] = useState(false);
-  const [validando, setValidando] = useState(false);
-  const [mensajeValidacion, setMensajeValidacion] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
+  const [uploadingDoc, setUploadingDoc] = useState<string | null>(null);
+  const [uploadedDocs, setUploadedDocs] = useState<Record<string, string>>({});
 
-  const [form, setForm] = useState({
-    razon_social: '', rfc_mc: '', giro: '', pagina_web: '', tamano_empresa: '',
-    calle: '', numero_ext: '', numero_int: '', colonia: '', ciudad: '', estado: '', cp: '', pais: '', whatsapp: '',
+  const [form, setForm] = useState<FormData>({
+    razon_social: '', rfc: '', giro: '', pagina_web: '', tamano_empresa: '-',
+    calle: '', no_ext: '', no_int: '', cp: '', whatsapp: '',
+    colonia: '', ciudad: '', estado: '', pais: '',
     contacto_admin_nombre: '', contacto_admin_puesto: '', contacto_admin_email: '', contacto_admin_tel: '',
     contacto_facturas_nombre: '', contacto_facturas_puesto: '', contacto_facturas_email: '', contacto_facturas_tel: '',
-    contacto_operativo_nombre: '', contacto_operativo_puesto: '', contacto_operativo_email: '', contacto_operativo_tel: '',
-    contacto_operativo2_nombre: '', contacto_operativo2_puesto: '', contacto_operativo2_email: '', contacto_operativo2_tel: '',
-    ref1_empresa: '', ref1_contacto: '', ref1_telefono: '', ref1_email: '', ref1_anos: '',
-    ref2_empresa: '', ref2_contacto: '', ref2_telefono: '', ref2_email: '', ref2_anos: '',
-    ref3_empresa: '', ref3_contacto: '', ref3_telefono: '', ref3_email: '', ref3_anos: '',
-    dias_credito: '30', divisa: 'MXN', proceso_facturacion: '',
-    nombre_rep_legal: '', firma_aceptada: false,
+    contacto_op1_nombre: '', contacto_op1_puesto: '', contacto_op1_email: '', contacto_op1_tel: '',
+    contacto_op2_nombre: '', contacto_op2_puesto: '', contacto_op2_email: '', contacto_op2_tel: '',
+    ref1_empresa: '', ref1_contacto: '', ref1_whatsapp: '', ref1_email: '', ref1_anos: '',
+    ref2_empresa: '', ref2_contacto: '', ref2_whatsapp: '', ref2_email: '', ref2_anos: '',
+    ref3_empresa: '', ref3_contacto: '', ref3_whatsapp: '', ref3_email: '', ref3_anos: '',
+    proceso_facturacion: '', firma_nombre: '', firma_aceptada: false
   });
 
-  const [archivos, setArchivos] = useState<Record<string, File | null>>({});
-  const [subiendo, setSubiendo] = useState<string | null>(null);
-  const [documentosSubidos, setDocumentosSubidos] = useState<string[]>([]);
+  useEffect(() => { if (id) fetchSolicitud(); }, [id]);
 
-  useEffect(() => { cargarSolicitud(); }, [solicitudId]);
-
-  const documentosRequeridos = solicitud?.tipo_empresa === 'USA_CANADA' ? DOCUMENTOS_USA : DOCUMENTOS_MX;
-
-  const cargarSolicitud = async () => {
+  const fetchSolicitud = async () => {
     try {
-      const response = await fetch(`https://${projectId}.supabase.co/functions/v1/make-server-d84b50bb/alta-cliente/${solicitudId}`, {
-        headers: { 'Authorization': `Bearer ${publicAnonKey}` }
-      });
-      const data = await response.json();
-      if (data.success && data.solicitud) {
-        setSolicitud(data.solicitud);
-        if (data.solicitud.estatus === 'COMPLETADA') setExito(true);
-      } else {
-        setError('Solicitud no encontrada o ya fue completada.');
+      const { data, error } = await supabase.from('alta_clientes').select('*').eq('id', id).single();
+      if (error) throw error;
+      if (!data) throw new Error('Solicitud no encontrada');
+      if (data.estatus === 'COMPLETADA') setSuccess(true);
+      setSolicitud(data);
+      if (data.razon_social) {
+        setForm(prev => ({ ...prev, razon_social: data.razon_social || '', rfc: data.rfc || '', giro: data.giro || '', pagina_web: data.pagina_web || '', tamano_empresa: data.tamano_empresa || '-', calle: data.calle || '', no_ext: data.no_ext || '', no_int: data.no_int || '', cp: data.cp || '', whatsapp: data.whatsapp || '', colonia: data.colonia || '', ciudad: data.ciudad || '', estado: data.estado || '', pais: data.pais || '' }));
       }
-    } catch (err) {
-      setError('Error al cargar la solicitud.');
-    } finally {
-      setCargando(false);
-    }
+      if (data.documentos) setUploadedDocs(data.documentos);
+    } catch (err) { console.error('Error:', err); setError('Error al cargar'); } 
+    finally { setLoading(false); }
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value, type } = e.target;
-    setForm(prev => ({
-      ...prev,
-      [name]: type === 'checkbox' ? (e.target as HTMLInputElement).checked : value
-    }));
+    if (type === 'checkbox') setForm(prev => ({ ...prev, [name]: (e.target as HTMLInputElement).checked }));
+    else setForm(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleFileChange = async (docId: string, file: File | null) => {
-    if (!file) return;
-    setSubiendo(docId);
-    setArchivos(prev => ({ ...prev, [docId]: file }));
-    
-    // Simular subida - en producción subir a Supabase Storage
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    setDocumentosSubidos(prev => [...prev.filter(id => id !== docId), docId]);
-    setSubiendo(null);
-  };
-
-  const handleSubmit = async () => {
-    // Validar campos requeridos
-    if (!form.razon_social || !form.rfc_mc || !form.calle || !form.cp || !form.whatsapp) {
-      setError('Por favor complete todos los campos obligatorios.');
-      return;
-    }
-    if (!form.firma_aceptada || !form.nombre_rep_legal) {
-      setError('Debe aceptar los términos y firmar digitalmente.');
-      return;
-    }
-
-    // Validar documentos requeridos
-    const docsRequeridos = documentosRequeridos.filter(d => d.requerido).map(d => d.id);
-    const docsFaltantes = docsRequeridos.filter(id => !documentosSubidos.includes(id));
-    if (docsFaltantes.length > 0) {
-      setError(`Faltan documentos requeridos: ${docsFaltantes.join(', ')}`);
-      return;
-    }
-
-    setEnviando(true);
-    setValidando(true);
-    setMensajeValidacion('Validando documentos con IA...');
-
+  const handleFileUpload = async (docKey: string, file: File) => {
+    if (!id || !file) return;
+    setUploadingDoc(docKey);
     try {
-      // Obtener IP del cliente
-      const ipResponse = await fetch('https://api.ipify.org?format=json');
-      const ipData = await ipResponse.json();
-      const clientIP = ipData.ip;
-
-      // Llamar al backend para validar y guardar
-      const response = await fetch(`https://${projectId}.supabase.co/functions/v1/make-server-d84b50bb/alta-cliente/completar`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${publicAnonKey}`
-        },
-        body: JSON.stringify({
-          solicitudId,
-          form,
-          documentos: documentosSubidos,
-          clientIP,
-          fechaFirma: new Date().toISOString(),
-          userAgent: navigator.userAgent
-        })
-      });
-
-      const data = await response.json();
-      
-      if (data.success) {
-        setExito(true);
-      } else {
-        setError(data.error || 'Error al procesar la solicitud.');
-      }
-    } catch (err) {
-      setError('Error de conexión. Intente nuevamente.');
-    } finally {
-      setEnviando(false);
-      setValidando(false);
-      setMensajeValidacion(null);
-    }
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${id}/${docKey}_${Date.now()}.${fileExt}`;
+      const { error: uploadError } = await supabase.storage.from('alta-documentos').upload(fileName, file);
+      if (uploadError) throw uploadError;
+      const { data: { publicUrl } } = supabase.storage.from('alta-documentos').getPublicUrl(fileName);
+      setUploadedDocs(prev => ({ ...prev, [docKey]: publicUrl }));
+      await supabase.from('alta_clientes').update({ documentos: { ...uploadedDocs, [docKey]: publicUrl } }).eq('id', id);
+    } catch (err) { console.error('Error:', err); setError('Error al subir'); } 
+    finally { setUploadingDoc(null); }
   };
 
-  if (cargando) {
-    return (
-      <div className="min-h-screen flex items-center justify-center" style={{ background: 'linear-gradient(180deg, #001f4d 0%, #003366 100%)' }}>
-        <div className="text-center">
-          <Loader2 className="w-12 h-12 text-orange-500 animate-spin mx-auto mb-4" />
-          <p className="text-white">Cargando solicitud...</p>
-        </div>
-      </div>
-    );
-  }
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!id || !form.firma_aceptada) { setError('Debe aceptar los términos'); return; }
+    const docs = solicitud?.tipo_empresa === 'USA_CANADA' ? DOCS_USA : DOCS_MEXICANA;
+    const missingDocs = docs.filter(d => d.required && !uploadedDocs[d.key]);
+    if (missingDocs.length > 0) { setError(`Faltan: ${missingDocs.map(d => d.label).join(', ')}`); return; }
+    setSubmitting(true);
+    try {
+      const { error } = await supabase.from('alta_clientes').update({ ...form, documentos: uploadedDocs, estatus: 'COMPLETADA', firma_fecha: new Date().toISOString(), updated_at: new Date().toISOString() }).eq('id', id);
+      if (error) throw error;
+      setSuccess(true);
+    } catch (err) { console.error('Error:', err); setError('Error al enviar'); } 
+    finally { setSubmitting(false); }
+  };
 
-  if (exito) {
-    return (
-      <div className="min-h-screen flex items-center justify-center" style={{ background: 'linear-gradient(180deg, #001f4d 0%, #003366 100%)' }}>
-        <div className="bg-white rounded-2xl p-8 max-w-md text-center shadow-2xl">
-          <CheckCircle2 className="w-16 h-16 text-green-500 mx-auto mb-4" />
-          <h2 className="text-2xl font-bold text-gray-800 mb-2">¡Solicitud Enviada!</h2>
-          <p className="text-gray-600 mb-4">Gracias por completar su registro. Nuestro equipo revisará su información.</p>
-          <div className="p-4 bg-green-50 rounded-lg">
-            <p className="text-green-800 text-sm">Su solicitud ha sido firmada digitalmente y registrada.</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  if (loading) return (
+    <div className="min-h-screen flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #0a1628 0%, #1a365d 100%)' }}>
+      <div className="text-white text-xl">Cargando...</div>
+    </div>
+  );
 
-  const inputStyle = "w-full px-2 py-1 text-xs text-gray-900 rounded border border-gray-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-200 outline-none transition-all";
-  const labelStyle = "block text-[10px] font-medium text-gray-500 mb-0.5";
-
-  return (
-    <div className="h-screen flex flex-col overflow-hidden" style={{ background: 'linear-gradient(180deg, #001f4d 0%, #003366 100%)' }}>
-      {/* Header */}
-      <div className="flex-shrink-0 px-4 py-2 border-b border-white/10">
-        <div className="max-w-[1600px] mx-auto flex items-center justify-between">
-          <img src="/logo-gl-blanco.png" alt="Grupo Loma" className="h-8" />
-          <h1 className="text-base font-bold text-white">Formulario de Alta de Cliente</h1>
-          <div className="flex items-center gap-2">
-            <a href="/aviso-privacidad.pdf" download className="px-2 py-1 rounded text-[10px] bg-orange-500 hover:bg-orange-600 text-white flex items-center gap-1 transition-all font-medium">
-              <Download className="w-3 h-3" /> Aviso Privacidad
-            </a>
-            <div className="px-2 py-1 rounded text-[10px] font-medium bg-orange-500 text-white">
-              {solicitud?.tipo_empresa === 'USA_CANADA' ? '🇺🇸 USA/Canadá' : '🇲🇽 México'}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Main Content - 2 Columnas */}
-      <div className="flex-1 px-4 py-2 overflow-hidden">
-        <div className="max-w-[1600px] mx-auto h-full flex gap-3">
-          
-          {/* COLUMNA IZQUIERDA - Datos (65%) */}
-          <div className="flex-1 bg-white rounded-xl shadow-lg p-3 overflow-y-auto">
-            
-            {error && (
-              <div className="mb-2 p-2 bg-red-50 border border-red-200 rounded flex items-center gap-2">
-                <AlertCircle className="w-4 h-4 text-red-500" />
-                <span className="text-red-700 text-xs flex-1">{error}</span>
-                <button onClick={() => setError(null)}><X className="w-3 h-3 text-red-500" /></button>
-              </div>
-            )}
-
-            {/* Datos Empresa */}
-            <div className="grid grid-cols-6 gap-1 mb-1">
-              <div className="col-span-2">
-                <label className={labelStyle}>Razón Social *</label>
-                <input type="text" name="razon_social" value={form.razon_social} onChange={handleChange} className={inputStyle} />
-              </div>
-              <div>
-                <label className={labelStyle}>{solicitud?.tipo_empresa === 'USA_CANADA' ? 'MC#/DOT#' : 'RFC'} *</label>
-                <input type="text" name="rfc_mc" value={form.rfc_mc} onChange={handleChange} className={inputStyle} style={{ textTransform: 'uppercase' }} />
-              </div>
-              <div>
-                <label className={labelStyle}>Giro</label>
-                <input type="text" name="giro" value={form.giro} onChange={handleChange} className={inputStyle} />
-              </div>
-              <div>
-                <label className={labelStyle}>Página Web</label>
-                <input type="text" name="pagina_web" value={form.pagina_web} onChange={handleChange} className={inputStyle} />
-              </div>
-              <div>
-                <label className={labelStyle}>Tamaño</label>
-                <select name="tamano_empresa" value={form.tamano_empresa} onChange={handleChange} className={inputStyle}>
-                  <option value="">-</option>
-                  <option value="1-10">1-10</option>
-                  <option value="11-50">11-50</option>
-                  <option value="51-200">51-200</option>
-                  <option value="201-500">201-500</option>
-                  <option value="500+">500+</option>
-                </select>
-              </div>
-            </div>
-
-            {/* Dirección */}
-            <h3 className="text-[11px] font-bold text-gray-600 mt-2 mb-0.5 flex items-center gap-1">
-              <MapPin className="w-3 h-3" /> Dirección Fiscal
-            </h3>
-            <div className="grid grid-cols-6 gap-1 mb-1">
-              <div className="col-span-2">
-                <label className={labelStyle}>Calle *</label>
-                <input type="text" name="calle" value={form.calle} onChange={handleChange} className={inputStyle} />
-              </div>
-              <div>
-                <label className={labelStyle}>No. Ext *</label>
-                <input type="text" name="numero_ext" value={form.numero_ext} onChange={handleChange} className={inputStyle} />
-              </div>
-              <div>
-                <label className={labelStyle}>No. Int</label>
-                <input type="text" name="numero_int" value={form.numero_int} onChange={handleChange} className={inputStyle} />
-              </div>
-              <div>
-                <label className={labelStyle}>C.P. *</label>
-                <input type="text" name="cp" value={form.cp} onChange={handleChange} className={inputStyle} maxLength={5} />
-              </div>
-              <div>
-                <label className={labelStyle}>WhatsApp *</label>
-                <input type="tel" name="whatsapp" value={form.whatsapp} onChange={handleChange} className={inputStyle} />
-              </div>
-            </div>
-            <div className="grid grid-cols-4 gap-1 mb-1">
-              <div>
-                <label className={labelStyle}>Colonia *</label>
-                <input type="text" name="colonia" value={form.colonia} onChange={handleChange} className={inputStyle} />
-              </div>
-              <div>
-                <label className={labelStyle}>Ciudad *</label>
-                <input type="text" name="ciudad" value={form.ciudad} onChange={handleChange} className={inputStyle} />
-              </div>
-              <div>
-                <label className={labelStyle}>Estado *</label>
-                <input type="text" name="estado" value={form.estado} onChange={handleChange} className={inputStyle} />
-              </div>
-              <div>
-                <label className={labelStyle}>País *</label>
-                <input type="text" name="pais" value={form.pais} onChange={handleChange} className={inputStyle} />
-              </div>
-            </div>
-
-            {/* Contactos */}
-            <h3 className="text-[11px] font-bold text-gray-600 mt-2 mb-0.5 flex items-center gap-1">
-              <User className="w-3 h-3" /> Contactos
-            </h3>
-            {[
-              { prefix: 'contacto_admin', title: 'Administrativo' },
-              { prefix: 'contacto_facturas', title: 'Facturas' },
-              { prefix: 'contacto_operativo', title: 'Operativo 1' },
-              { prefix: 'contacto_operativo2', title: 'Operativo 2' },
-            ].map(({ prefix, title }) => (
-              <div key={prefix} className="grid grid-cols-4 gap-1 mb-0.5">
-                <div>
-                  <label className={labelStyle}>{title} - Nombre</label>
-                  <input type="text" name={`${prefix}_nombre`} value={(form as any)[`${prefix}_nombre`]} onChange={handleChange} className={inputStyle} />
-                </div>
-                <div>
-                  <label className={labelStyle}>Puesto</label>
-                  <input type="text" name={`${prefix}_puesto`} value={(form as any)[`${prefix}_puesto`]} onChange={handleChange} className={inputStyle} />
-                </div>
-                <div>
-                  <label className={labelStyle}>Email</label>
-                  <input type="email" name={`${prefix}_email`} value={(form as any)[`${prefix}_email`]} onChange={handleChange} className={inputStyle} />
-                </div>
-                <div>
-                  <label className={labelStyle}>Teléfono</label>
-                  <input type="tel" name={`${prefix}_tel`} value={(form as any)[`${prefix}_tel`]} onChange={handleChange} className={inputStyle} />
-                </div>
-              </div>
-            ))}
-
-            {/* Referencias */}
-            <h3 className="text-[11px] font-bold text-gray-600 mt-2 mb-0.5">📋 Referencias Comerciales</h3>
-            {[1, 2, 3].map((n) => (
-              <div key={n} className="grid grid-cols-5 gap-1 mb-0.5">
-                <div>
-                  <label className={labelStyle}>Ref {n} - Empresa</label>
-                  <input type="text" name={`ref${n}_empresa`} value={(form as any)[`ref${n}_empresa`]} onChange={handleChange} className={inputStyle} />
-                </div>
-                <div>
-                  <label className={labelStyle}>Contacto</label>
-                  <input type="text" name={`ref${n}_contacto`} value={(form as any)[`ref${n}_contacto`]} onChange={handleChange} className={inputStyle} />
-                </div>
-                <div>
-                  <label className={labelStyle}>WhatsApp</label>
-                  <input type="tel" name={`ref${n}_telefono`} value={(form as any)[`ref${n}_telefono`]} onChange={handleChange} className={inputStyle} />
-                </div>
-                <div>
-                  <label className={labelStyle}>Email</label>
-                  <input type="email" name={`ref${n}_email`} value={(form as any)[`ref${n}_email`]} onChange={handleChange} className={inputStyle} />
-                </div>
-                <div>
-                  <label className={labelStyle}>Años</label>
-                  <input type="text" name={`ref${n}_anos`} value={(form as any)[`ref${n}_anos`]} onChange={handleChange} className={inputStyle} />
-                </div>
-              </div>
-            ))}
-
-            {/* Proceso Facturación */}
-            <h3 className="text-[11px] font-bold text-gray-600 mt-2 mb-0.5">📝 Proceso de Facturación</h3>
-            <textarea name="proceso_facturacion" value={form.proceso_facturacion} onChange={handleChange} className={inputStyle + " h-8 resize-none"} placeholder="Portal, requisitos especiales, orden de compra, etc." />
-          </div>
-
-          {/* COLUMNA DERECHA - Documentos (35%) */}
-          <div className="w-72 bg-white rounded-xl shadow-lg p-3 flex flex-col">
-            <h3 className="text-xs font-bold text-gray-700 mb-2 flex items-center gap-1">
-              <FileText className="w-4 h-4 text-blue-600" /> Documentos Requeridos
-            </h3>
-            
-            <div className="flex-1 space-y-1 overflow-y-auto">
-              {documentosRequeridos.map((doc) => (
-                <div key={doc.id} className={`p-1.5 border rounded transition-all ${documentosSubidos.includes(doc.id) ? 'border-green-300 bg-green-50' : 'border-gray-200 hover:border-blue-300'}`}>
-                  <div className="flex items-center gap-2">
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium text-gray-700 text-[10px] truncate">
-                        {doc.nombre} {doc.requerido && <span className="text-red-500">*</span>}
-                      </p>
-                      {documentosSubidos.includes(doc.id) && (
-                        <p className="text-green-600 text-[9px] flex items-center gap-0.5">
-                          <CheckCircle2 className="w-2.5 h-2.5" /> Cargado
-                        </p>
-                      )}
-                    </div>
-                    <label className={`px-2 py-0.5 rounded cursor-pointer transition-all flex items-center gap-1 text-[10px] ${documentosSubidos.includes(doc.id) ? 'bg-green-100 text-green-700' : 'bg-blue-600 text-white hover:bg-blue-700'}`}>
-                      {subiendo === doc.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Upload className="w-3 h-3" />}
-                      <span>{documentosSubidos.includes(doc.id) ? '✓' : 'Subir'}</span>
-                      <input type="file" className="hidden" accept=".pdf,.jpg,.jpeg,.png" onChange={(e) => handleFileChange(doc.id, e.target.files?.[0] || null)} disabled={subiendo !== null} />
-                    </label>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {/* Términos y Firma */}
-            <div className="mt-2 pt-2 border-t border-gray-200">
-              <label className="flex items-start gap-1.5 cursor-pointer mb-2">
-                <input type="checkbox" name="firma_aceptada" checked={form.firma_aceptada} onChange={handleChange} className="w-3.5 h-3.5 mt-0.5 rounded border-gray-300 text-orange-500 focus:ring-orange-500" />
-                <span className="text-[9px] text-gray-600 leading-tight">
-                  Acepto los <a href="/aviso-privacidad.pdf" className="text-blue-600 underline">Términos y Condiciones</a> y el tratamiento de mis datos conforme al Aviso de Privacidad.
-                </span>
-              </label>
-              <div className="mb-2">
-                <label className="text-[9px] text-gray-500">Nombre completo (firma digital) *</label>
-                <input type="text" name="nombre_rep_legal" value={form.nombre_rep_legal} onChange={handleChange} className={inputStyle} placeholder="Como aparece en su identificación" />
-              </div>
-              
-              {validando && mensajeValidacion && (
-                <div className="mb-2 p-1.5 bg-blue-50 rounded text-[9px] text-blue-700 flex items-center gap-1">
-                  <Loader2 className="w-3 h-3 animate-spin" /> {mensajeValidacion}
-                </div>
-              )}
-
-              <button 
-                onClick={handleSubmit} 
-                disabled={enviando || !form.firma_aceptada || !form.nombre_rep_legal}
-                className="w-full py-2 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-lg font-bold hover:from-orange-600 hover:to-orange-700 transition-all shadow-lg text-xs disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5"
-              >
-                {enviando ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
-                {enviando ? 'Validando...' : 'Enviar Solicitud'}
-              </button>
-            </div>
-          </div>
-
-        </div>
+  if (success) return (
+    <div className="min-h-screen flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #0a1628 0%, #1a365d 100%)' }}>
+      <div className="bg-white rounded-2xl p-10 max-w-lg text-center shadow-2xl">
+        <CheckCircle2 className="w-20 h-20 text-green-500 mx-auto mb-5" />
+        <h2 className="text-3xl font-bold text-gray-800 mb-3">¡Solicitud Enviada!</h2>
+        <p className="text-lg text-gray-600">Nuestro equipo revisará su información y documentos.</p>
       </div>
     </div>
   );
-};
+
+  if (!solicitud) return (
+    <div className="min-h-screen flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #0a1628 0%, #1a365d 100%)' }}>
+      <div className="bg-white rounded-2xl p-10 max-w-lg text-center shadow-2xl">
+        <AlertCircle className="w-20 h-20 text-red-500 mx-auto mb-5" />
+        <h2 className="text-3xl font-bold text-gray-800 mb-3">Solicitud no encontrada</h2>
+        <p className="text-lg text-gray-600">El enlace puede haber expirado.</p>
+      </div>
+    </div>
+  );
+
+  const tipoMX = solicitud.tipo_empresa !== 'USA_CANADA';
+  const docs = tipoMX ? DOCS_MEXICANA : DOCS_USA;
+
+  return (
+    <div className="min-h-screen" style={{ background: 'linear-gradient(135deg, #0a1628 0%, #1a365d 100%)' }}>
+      {/* HEADER */}
+      <header className="sticky top-0 z-50 px-6 py-4" style={{ background: 'rgba(10, 22, 40, 0.97)', backdropFilter: 'blur(12px)', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
+        <div className="max-w-[1500px] mx-auto flex items-center justify-between">
+          <div className="flex items-center gap-5">
+            <img src="/logo-gl-blanco.png" alt="Grupo Loma" className="h-12" />
+            <h1 className="text-2xl font-bold text-white tracking-wide">Formulario de Alta de Cliente</h1>
+          </div>
+          <div className="flex items-center gap-4">
+            <a href="/aviso-privacidad.pdf" download className="flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-semibold text-white bg-orange-500 hover:bg-orange-600 transition-all shadow-lg">
+              <Download className="w-4 h-4" /> Aviso Privacidad
+            </a>
+            <div className="px-5 py-2.5 rounded-lg text-sm font-bold bg-orange-500/20 text-orange-300 border border-orange-500/40">
+              {tipoMX ? '🇲🇽 México' : '🇺🇸 USA/Canadá'}
+            </div>
+          </div>
+        </div>
+      </header>
+
+      {/* MAIN */}
+      <main className="px-6 py-8">
+        <form onSubmit={handleSubmit} className="max-w-[1500px] mx-auto">
+          <div className="flex gap-8">
+            
+            {/* === LEFT: FORM DATA (75%) === */}
+            <div className="flex-1 bg-white rounded-2xl shadow-2xl p-8">
+              
+              {error && (
+                <div className="flex items-center gap-3 p-4 mb-6 bg-red-50 border border-red-200 rounded-xl">
+                  <AlertCircle className="w-6 h-6 text-red-500" />
+                  <span className="text-red-700 text-base flex-1">{error}</span>
+                  <button type="button" onClick={() => setError(null)}><X className="w-5 h-5 text-red-400" /></button>
+                </div>
+              )}
+
+              {/* === DATOS EMPRESA === */}
+              <section className="mb-8">
+                <div className="flex items-center gap-3 mb-5 pb-3 border-b-2 border-slate-200">
+                  <div className="p-2 rounded-lg bg-orange-100"><Building2 className="w-6 h-6 text-orange-600" /></div>
+                  <h2 className="text-xl font-bold text-slate-800">Datos de la Empresa</h2>
+                </div>
+                
+                {/* Row 1: Razón Social (full width) */}
+                <div className="mb-5">
+                  <label className="block text-sm font-bold text-slate-700 mb-2">Razón Social *</label>
+                  <input type="text" name="razon_social" value={form.razon_social} onChange={handleChange} required 
+                    className="w-full px-4 py-3 text-base text-slate-800 bg-slate-50 rounded-xl border-2 border-slate-200 focus:border-orange-400 focus:ring-4 focus:ring-orange-100 outline-none transition-all" 
+                    placeholder="Empresa S.A. de C.V." />
+                </div>
+                
+                {/* Row 2: RFC, Giro, Web, Tamaño */}
+                <div className="grid grid-cols-4 gap-5">
+                  <div>
+                    <label className="block text-sm font-bold text-slate-700 mb-2">{tipoMX ? 'RFC *' : 'Tax ID *'}</label>
+                    <input type="text" name="rfc" value={form.rfc} onChange={handleChange} required 
+                      className="w-full px-4 py-3 text-base text-slate-800 bg-slate-50 rounded-xl border-2 border-slate-200 focus:border-orange-400 focus:ring-4 focus:ring-orange-100 outline-none transition-all" 
+                      placeholder={tipoMX ? 'XAXX010101000' : 'XX-XXXXXXX'} />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-bold text-slate-700 mb-2">Giro</label>
+                    <input type="text" name="giro" value={form.giro} onChange={handleChange} 
+                      className="w-full px-4 py-3 text-base text-slate-800 bg-slate-50 rounded-xl border-2 border-slate-200 focus:border-orange-400 focus:ring-4 focus:ring-orange-100 outline-none transition-all" 
+                      placeholder="Actividad principal" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-bold text-slate-700 mb-2">Página Web</label>
+                    <input type="text" name="pagina_web" value={form.pagina_web} onChange={handleChange} 
+                      className="w-full px-4 py-3 text-base text-slate-800 bg-slate-50 rounded-xl border-2 border-slate-200 focus:border-orange-400 focus:ring-4 focus:ring-orange-100 outline-none transition-all" 
+                      placeholder="www.ejemplo.com" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-bold text-slate-700 mb-2">Tamaño</label>
+                    <select name="tamano_empresa" value={form.tamano_empresa} onChange={handleChange} 
+                      className="w-full px-4 py-3 text-base text-slate-800 bg-slate-50 rounded-xl border-2 border-slate-200 focus:border-orange-400 focus:ring-4 focus:ring-orange-100 outline-none transition-all cursor-pointer">
+                      {TAMANOS_EMPRESA.map(t => <option key={t} value={t}>{t}</option>)}
+                    </select>
+                  </div>
+                </div>
+              </section>
+
+              {/* === DIRECCIÓN FISCAL === */}
+              <section className="mb-8">
+                <div className="flex items-center gap-3 mb-5 pb-3 border-b-2 border-slate-200">
+                  <div className="p-2 rounded-lg bg-orange-100"><MapPin className="w-6 h-6 text-orange-600" /></div>
+                  <h2 className="text-xl font-bold text-slate-800">Dirección Fiscal</h2>
+                </div>
+                
+                {/* Row 1 */}
+                <div className="grid grid-cols-6 gap-4 mb-4">
+                  <div className="col-span-2">
+                    <label className="block text-sm font-bold text-slate-700 mb-2">Calle *</label>
+                    <input type="text" name="calle" value={form.calle} onChange={handleChange} required className="w-full px-4 py-3 text-base text-slate-800 bg-slate-50 rounded-xl border-2 border-slate-200 focus:border-orange-400 focus:ring-4 focus:ring-orange-100 outline-none transition-all" placeholder="Nombre de la calle" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-bold text-slate-700 mb-2">No. Ext *</label>
+                    <input type="text" name="no_ext" value={form.no_ext} onChange={handleChange} required className="w-full px-4 py-3 text-base text-slate-800 bg-slate-50 rounded-xl border-2 border-slate-200 focus:border-orange-400 focus:ring-4 focus:ring-orange-100 outline-none transition-all" placeholder="123" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-bold text-slate-700 mb-2">No. Int</label>
+                    <input type="text" name="no_int" value={form.no_int} onChange={handleChange} className="w-full px-4 py-3 text-base text-slate-800 bg-slate-50 rounded-xl border-2 border-slate-200 focus:border-orange-400 focus:ring-4 focus:ring-orange-100 outline-none transition-all" placeholder="A" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-bold text-slate-700 mb-2">C.P. *</label>
+                    <input type="text" name="cp" value={form.cp} onChange={handleChange} required className="w-full px-4 py-3 text-base text-slate-800 bg-slate-50 rounded-xl border-2 border-slate-200 focus:border-orange-400 focus:ring-4 focus:ring-orange-100 outline-none transition-all" placeholder="00000" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-bold text-slate-700 mb-2">WhatsApp *</label>
+                    <input type="text" name="whatsapp" value={form.whatsapp} onChange={handleChange} required className="w-full px-4 py-3 text-base text-slate-800 bg-slate-50 rounded-xl border-2 border-slate-200 focus:border-orange-400 focus:ring-4 focus:ring-orange-100 outline-none transition-all" placeholder="+52 55 1234 5678" />
+                  </div>
+                </div>
+                
+                {/* Row 2 */}
+                <div className="grid grid-cols-4 gap-4">
+                  <div>
+                    <label className="block text-sm font-bold text-slate-700 mb-2">Colonia *</label>
+                    <input type="text" name="colonia" value={form.colonia} onChange={handleChange} required className="w-full px-4 py-3 text-base text-slate-800 bg-slate-50 rounded-xl border-2 border-slate-200 focus:border-orange-400 focus:ring-4 focus:ring-orange-100 outline-none transition-all" placeholder="Colonia" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-bold text-slate-700 mb-2">Ciudad *</label>
+                    <input type="text" name="ciudad" value={form.ciudad} onChange={handleChange} required className="w-full px-4 py-3 text-base text-slate-800 bg-slate-50 rounded-xl border-2 border-slate-200 focus:border-orange-400 focus:ring-4 focus:ring-orange-100 outline-none transition-all" placeholder="Ciudad" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-bold text-slate-700 mb-2">Estado *</label>
+                    <input type="text" name="estado" value={form.estado} onChange={handleChange} required className="w-full px-4 py-3 text-base text-slate-800 bg-slate-50 rounded-xl border-2 border-slate-200 focus:border-orange-400 focus:ring-4 focus:ring-orange-100 outline-none transition-all" placeholder="Estado" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-bold text-slate-700 mb-2">País *</label>
+                    <input type="text" name="pais" value={form.pais} onChange={handleChange} required className="w-full px-4 py-3 text-base text-slate-800 bg-slate-50 rounded-xl border-2 border-slate-200 focus:border-orange-400 focus:ring-4 focus:ring-orange-100 outline-none transition-all" placeholder="México" />
+                  </div>
+                </div>
+              </section>
+
+              {/* === CONTACTOS === */}
+              <section className="mb-8">
+                <div className="flex items-center gap-3 mb-5 pb-3 border-b-2 border-slate-200">
+                  <div className="p-2 rounded-lg bg-orange-100"><Users className="w-6 h-6 text-orange-600" /></div>
+                  <h2 className="text-xl font-bold text-slate-800">Contactos</h2>
+                </div>
+                
+                {[
+                  { prefix: 'contacto_admin', label: 'Administrativo - Nombre' },
+                  { prefix: 'contacto_facturas', label: 'Facturas - Nombre' },
+                  { prefix: 'contacto_op1', label: 'Operativo 1 - Nombre' },
+                  { prefix: 'contacto_op2', label: 'Operativo 2 - Nombre' }
+                ].map(({ prefix, label }) => (
+                  <div key={prefix} className="grid grid-cols-4 gap-4 mb-4">
+                    <div>
+                      <label className="block text-sm font-bold text-slate-700 mb-2">{label}</label>
+                      <input type="text" name={`${prefix}_nombre`} value={(form as any)[`${prefix}_nombre`]} onChange={handleChange} className="w-full px-4 py-3 text-base text-slate-800 bg-slate-50 rounded-xl border-2 border-slate-200 focus:border-orange-400 focus:ring-4 focus:ring-orange-100 outline-none transition-all" placeholder="Nombre completo" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-bold text-slate-700 mb-2">Puesto</label>
+                      <input type="text" name={`${prefix}_puesto`} value={(form as any)[`${prefix}_puesto`]} onChange={handleChange} className="w-full px-4 py-3 text-base text-slate-800 bg-slate-50 rounded-xl border-2 border-slate-200 focus:border-orange-400 focus:ring-4 focus:ring-orange-100 outline-none transition-all" placeholder="Cargo" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-bold text-slate-700 mb-2">Email</label>
+                      <input type="email" name={`${prefix}_email`} value={(form as any)[`${prefix}_email`]} onChange={handleChange} className="w-full px-4 py-3 text-base text-slate-800 bg-slate-50 rounded-xl border-2 border-slate-200 focus:border-orange-400 focus:ring-4 focus:ring-orange-100 outline-none transition-all" placeholder="correo@empresa.com" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-bold text-slate-700 mb-2">Teléfono</label>
+                      <input type="text" name={`${prefix}_tel`} value={(form as any)[`${prefix}_tel`]} onChange={handleChange} className="w-full px-4 py-3 text-base text-slate-800 bg-slate-50 rounded-xl border-2 border-slate-200 focus:border-orange-400 focus:ring-4 focus:ring-orange-100 outline-none transition-all" placeholder="+52 55 1234 5678" />
+                    </div>
+                  </div>
+                ))}
+              </section>
+
+              {/* === REFERENCIAS COMERCIALES === */}
+              <section className="mb-8">
+                <div className="flex items-center gap-3 mb-5 pb-3 border-b-2 border-slate-200">
+                  <div className="p-2 rounded-lg bg-orange-100"><Briefcase className="w-6 h-6 text-orange-600" /></div>
+                  <h2 className="text-xl font-bold text-slate-800">Referencias Comerciales</h2>
+                </div>
+                
+                {[1, 2, 3].map(num => (
+                  <div key={num} className="grid grid-cols-5 gap-4 mb-4">
+                    <div>
+                      <label className="block text-sm font-bold text-slate-700 mb-2">Ref {num} - Empresa</label>
+                      <input type="text" name={`ref${num}_empresa`} value={(form as any)[`ref${num}_empresa`]} onChange={handleChange} className="w-full px-4 py-3 text-base text-slate-800 bg-slate-50 rounded-xl border-2 border-slate-200 focus:border-orange-400 focus:ring-4 focus:ring-orange-100 outline-none transition-all" placeholder="Nombre empresa" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-bold text-slate-700 mb-2">Contacto</label>
+                      <input type="text" name={`ref${num}_contacto`} value={(form as any)[`ref${num}_contacto`]} onChange={handleChange} className="w-full px-4 py-3 text-base text-slate-800 bg-slate-50 rounded-xl border-2 border-slate-200 focus:border-orange-400 focus:ring-4 focus:ring-orange-100 outline-none transition-all" placeholder="Persona" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-bold text-slate-700 mb-2">WhatsApp</label>
+                      <input type="text" name={`ref${num}_whatsapp`} value={(form as any)[`ref${num}_whatsapp`]} onChange={handleChange} className="w-full px-4 py-3 text-base text-slate-800 bg-slate-50 rounded-xl border-2 border-slate-200 focus:border-orange-400 focus:ring-4 focus:ring-orange-100 outline-none transition-all" placeholder="+52 55 1234 5678" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-bold text-slate-700 mb-2">Email</label>
+                      <input type="email" name={`ref${num}_email`} value={(form as any)[`ref${num}_email`]} onChange={handleChange} className="w-full px-4 py-3 text-base text-slate-800 bg-slate-50 rounded-xl border-2 border-slate-200 focus:border-orange-400 focus:ring-4 focus:ring-orange-100 outline-none transition-all" placeholder="correo@empresa.com" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-bold text-slate-700 mb-2">Años</label>
+                      <input type="text" name={`ref${num}_anos`} value={(form as any)[`ref${num}_anos`]} onChange={handleChange} className="w-full px-4 py-3 text-base text-slate-800 bg-slate-50 rounded-xl border-2 border-slate-200 focus:border-orange-400 focus:ring-4 focus:ring-orange-100 outline-none transition-all" placeholder="# años" />
+                    </div>
+                  </div>
+                ))}
+              </section>
+
+              {/* === PROCESO FACTURACIÓN === */}
+              <section>
+                <div className="flex items-center gap-3 mb-5 pb-3 border-b-2 border-slate-200">
+                  <div className="p-2 rounded-lg bg-orange-100"><FileText className="w-6 h-6 text-orange-600" /></div>
+                  <h2 className="text-xl font-bold text-slate-800">Proceso de Facturación</h2>
+                </div>
+                <textarea name="proceso_facturacion" value={form.proceso_facturacion} onChange={handleChange} rows={3}
+                  className="w-full px-4 py-3 text-base text-slate-800 bg-slate-50 rounded-xl border-2 border-slate-200 focus:border-orange-400 focus:ring-4 focus:ring-orange-100 outline-none transition-all resize-none" 
+                  placeholder="Portal, requisitos especiales, orden de compra, etc." />
+              </section>
+            </div>
+
+            {/* === RIGHT: DOCUMENTS (25%) === */}
+            <div className="w-[380px] flex-shrink-0 space-y-6">
+              
+              {/* Documents Panel */}
+              <div className="bg-white rounded-2xl shadow-2xl p-6">
+                <div className="flex items-center gap-3 mb-5 pb-3 border-b-2 border-slate-200">
+                  <div className="p-2 rounded-lg bg-orange-100"><FileCheck className="w-6 h-6 text-orange-600" /></div>
+                  <h2 className="text-lg font-bold text-slate-800">Documentos Requeridos</h2>
+                </div>
+                
+                <div className="space-y-3">
+                  {docs.map(doc => {
+                    const isUploaded = !!uploadedDocs[doc.key];
+                    const isUploading = uploadingDoc === doc.key;
+                    return (
+                      <div key={doc.key} className={`flex items-center justify-between p-4 rounded-xl border-2 transition-all ${isUploaded ? 'bg-green-50 border-green-300' : 'bg-slate-50 border-slate-200 hover:border-orange-300'}`}>
+                        <div className="flex items-center gap-3 flex-1 min-w-0">
+                          {isUploaded ? <CheckCircle2 className="w-6 h-6 text-green-500 flex-shrink-0" /> : <FileText className="w-6 h-6 text-slate-400 flex-shrink-0" />}
+                          <span className={`text-sm font-semibold truncate ${isUploaded ? 'text-green-700' : 'text-slate-700'}`}>
+                            {doc.label} {doc.required && <span className="text-orange-500">*</span>}
+                          </span>
+                        </div>
+                        <label className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold cursor-pointer transition-all ${isUploaded ? 'bg-green-500 text-white hover:bg-green-600' : 'bg-orange-500 text-white hover:bg-orange-600'}`}>
+                          {isUploading ? <span className="animate-pulse">...</span> : <><Upload className="w-4 h-4" /><span>{isUploaded ? 'Cambiar' : 'Subir'}</span></>}
+                          <input type="file" accept=".pdf,.jpg,.jpeg,.png" className="hidden" onChange={(e) => { const file = e.target.files?.[0]; if (file) handleFileUpload(doc.key, file); }} disabled={isUploading} />
+                        </label>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Terms & Submit */}
+              <div className="bg-white rounded-2xl shadow-2xl p-6">
+                <div className="flex items-start gap-3 mb-5">
+                  <input type="checkbox" id="firma_aceptada" name="firma_aceptada" checked={form.firma_aceptada} onChange={handleChange} className="w-6 h-6 mt-0.5 rounded border-slate-300 text-orange-500 focus:ring-orange-500 cursor-pointer" />
+                  <label htmlFor="firma_aceptada" className="text-sm text-slate-600 cursor-pointer leading-relaxed">
+                    Acepto los <a href="/terminos" target="_blank" className="text-orange-500 hover:underline font-semibold">Términos y Condiciones</a> y el tratamiento de mis datos conforme al Aviso de Privacidad.
+                  </label>
+                </div>
+                
+                <div className="mb-5">
+                  <label className="block text-sm font-bold text-slate-700 mb-2">Nombre completo (firma digital) *</label>
+                  <input type="text" name="firma_nombre" value={form.firma_nombre} onChange={handleChange} required className="w-full px-4 py-3 text-base text-slate-800 bg-slate-50 rounded-xl border-2 border-slate-200 focus:border-orange-400 focus:ring-4 focus:ring-orange-100 outline-none transition-all" placeholder="Como aparece en su identificación" />
+                </div>
+                
+                <button type="submit" disabled={submitting || !form.firma_aceptada}
+                  className={`w-full py-4 rounded-xl text-lg font-bold text-white transition-all flex items-center justify-center gap-3 ${submitting || !form.firma_aceptada ? 'bg-slate-300 cursor-not-allowed' : 'bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 shadow-xl hover:shadow-2xl transform hover:-translate-y-0.5'}`}>
+                  {submitting ? <span className="animate-pulse">Enviando...</span> : <><CheckCircle2 className="w-6 h-6" /><span>Enviar Solicitud</span></>}
+                </button>
+              </div>
+            </div>
+          </div>
+        </form>
+      </main>
+    </div>
+  );
+}
