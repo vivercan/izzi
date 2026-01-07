@@ -229,12 +229,12 @@ export function AltaClientePublico({ solicitudId }: AltaClientePublicoProps) {
       </header>
 
       {/* MAIN - Resto de la altura disponible */}
-      <main className="flex-1 overflow-hidden px-4 py-4">
+      <main className="flex-1 overflow-hidden px-6 py-4">
         <form onSubmit={handleSubmit} className="max-w-[1600px] mx-auto h-full">
-          <div className="flex gap-4 h-full">
+          <div className="flex gap-5 h-full">
             
             {/* === LEFT: FORM DATA - Con scroll interno === */}
-            <div className="flex-1 bg-white rounded-xl shadow-xl overflow-y-auto" style={{ scrollBehavior: 'smooth' }}>
+            <div className="flex-1 bg-white rounded-xl shadow-xl overflow-y-auto ml-2" style={{ scrollBehavior: 'smooth' }}>
               <div className="p-6">
               
               {error && (
@@ -256,7 +256,7 @@ export function AltaClientePublico({ solicitudId }: AltaClientePublicoProps) {
                 <div className="mb-3">
                   <label className="block text-xs font-bold text-slate-600 mb-1">Razón Social *</label>
                   <input type="text" name="razon_social" value={form.razon_social} onChange={handleChange} required 
-                    className="w-full px-3 py-2 text-sm text-slate-800 bg-slate-50 rounded-lg border border-slate-200 focus:border-orange-400 focus:ring-2 focus:ring-orange-100 outline-none transition-all" 
+                    className="w-full px-3 py-2 text-sm text-slate-800 bg-white rounded-lg border border-slate-300 focus:border-orange-400 focus:ring-2 focus:ring-orange-100 outline-none transition-all" 
                     placeholder="Empresa S.A. de C.V." />
                 </div>
                 
@@ -265,25 +265,25 @@ export function AltaClientePublico({ solicitudId }: AltaClientePublicoProps) {
                   <div>
                     <label className="block text-xs font-bold text-slate-600 mb-1">{tipoMX ? 'RFC *' : 'Tax ID *'}</label>
                     <input type="text" name="rfc" value={form.rfc} onChange={handleChange} required 
-                      className="w-full px-3 py-2 text-sm text-slate-800 bg-slate-50 rounded-lg border border-slate-200 focus:border-orange-400 focus:ring-2 focus:ring-orange-100 outline-none transition-all" 
+                      className="w-full px-3 py-2 text-sm text-slate-800 bg-white rounded-lg border border-slate-300 focus:border-orange-400 focus:ring-2 focus:ring-orange-100 outline-none transition-all" 
                       placeholder={tipoMX ? 'XAXX010101000' : 'XX-XXXXXXX'} />
                   </div>
                   <div>
                     <label className="block text-xs font-bold text-slate-600 mb-1">Giro</label>
                     <input type="text" name="giro" value={form.giro} onChange={handleChange} 
-                      className="w-full px-3 py-2 text-sm text-slate-800 bg-slate-50 rounded-lg border border-slate-200 focus:border-orange-400 focus:ring-2 focus:ring-orange-100 outline-none transition-all" 
+                      className="w-full px-3 py-2 text-sm text-slate-800 bg-white rounded-lg border border-slate-300 focus:border-orange-400 focus:ring-2 focus:ring-orange-100 outline-none transition-all" 
                       placeholder="Actividad principal" />
                   </div>
                   <div>
                     <label className="block text-xs font-bold text-slate-600 mb-1">Página Web</label>
                     <input type="text" name="pagina_web" value={form.pagina_web} onChange={handleChange} 
-                      className="w-full px-3 py-2 text-sm text-slate-800 bg-slate-50 rounded-lg border border-slate-200 focus:border-orange-400 focus:ring-2 focus:ring-orange-100 outline-none transition-all" 
+                      className="w-full px-3 py-2 text-sm text-slate-800 bg-white rounded-lg border border-slate-300 focus:border-orange-400 focus:ring-2 focus:ring-orange-100 outline-none transition-all" 
                       placeholder="www.ejemplo.com" />
                   </div>
                   <div>
                     <label className="block text-xs font-bold text-slate-600 mb-1">Tamaño</label>
                     <select name="tamano_empresa" value={form.tamano_empresa} onChange={handleChange} 
-                      className="w-full px-3 py-2 text-sm text-slate-800 bg-slate-50 rounded-lg border border-slate-200 focus:border-orange-400 focus:ring-2 focus:ring-orange-100 outline-none transition-all cursor-pointer">
+                      className="w-full px-3 py-2 text-sm text-slate-800 bg-white rounded-lg border border-slate-300 focus:border-orange-400 focus:ring-2 focus:ring-orange-100 outline-none transition-all cursor-pointer">
                       {TAMANOS_EMPRESA.map(t => <option key={t} value={t}>{t}</option>)}
                     </select>
                   </div>
@@ -301,23 +301,23 @@ export function AltaClientePublico({ solicitudId }: AltaClientePublicoProps) {
                 <div className="grid grid-cols-6 gap-3 mb-3">
                   <div className="col-span-2">
                     <label className="block text-xs font-bold text-slate-600 mb-1">Calle *</label>
-                    <input type="text" name="calle" value={form.calle} onChange={handleChange} required className="w-full px-3 py-2 text-sm text-slate-800 bg-slate-50 rounded-lg border border-slate-200 focus:border-orange-400 focus:ring-2 focus:ring-orange-100 outline-none transition-all" placeholder="Nombre de la calle" />
+                    <input type="text" name="calle" value={form.calle} onChange={handleChange} required className="w-full px-3 py-2 text-sm text-slate-800 bg-white rounded-lg border border-slate-300 focus:border-orange-400 focus:ring-2 focus:ring-orange-100 outline-none transition-all" placeholder="Nombre de la calle" />
                   </div>
                   <div>
                     <label className="block text-xs font-bold text-slate-600 mb-1">No. Ext *</label>
-                    <input type="text" name="no_ext" value={form.no_ext} onChange={handleChange} required className="w-full px-3 py-2 text-sm text-slate-800 bg-slate-50 rounded-lg border border-slate-200 focus:border-orange-400 focus:ring-2 focus:ring-orange-100 outline-none transition-all" placeholder="123" />
+                    <input type="text" name="no_ext" value={form.no_ext} onChange={handleChange} required className="w-full px-3 py-2 text-sm text-slate-800 bg-white rounded-lg border border-slate-300 focus:border-orange-400 focus:ring-2 focus:ring-orange-100 outline-none transition-all" placeholder="123" />
                   </div>
                   <div>
                     <label className="block text-xs font-bold text-slate-600 mb-1">No. Int</label>
-                    <input type="text" name="no_int" value={form.no_int} onChange={handleChange} className="w-full px-3 py-2 text-sm text-slate-800 bg-slate-50 rounded-lg border border-slate-200 focus:border-orange-400 focus:ring-2 focus:ring-orange-100 outline-none transition-all" placeholder="A" />
+                    <input type="text" name="no_int" value={form.no_int} onChange={handleChange} className="w-full px-3 py-2 text-sm text-slate-800 bg-white rounded-lg border border-slate-300 focus:border-orange-400 focus:ring-2 focus:ring-orange-100 outline-none transition-all" placeholder="A" />
                   </div>
                   <div>
                     <label className="block text-xs font-bold text-slate-600 mb-1">C.P. *</label>
-                    <input type="text" name="cp" value={form.cp} onChange={handleChange} required className="w-full px-3 py-2 text-sm text-slate-800 bg-slate-50 rounded-lg border border-slate-200 focus:border-orange-400 focus:ring-2 focus:ring-orange-100 outline-none transition-all" placeholder="00000" />
+                    <input type="text" name="cp" value={form.cp} onChange={handleChange} required className="w-full px-3 py-2 text-sm text-slate-800 bg-white rounded-lg border border-slate-300 focus:border-orange-400 focus:ring-2 focus:ring-orange-100 outline-none transition-all" placeholder="00000" />
                   </div>
                   <div>
                     <label className="block text-xs font-bold text-slate-600 mb-1">WhatsApp *</label>
-                    <input type="text" name="whatsapp" value={form.whatsapp} onChange={handleChange} required className="w-full px-3 py-2 text-sm text-slate-800 bg-slate-50 rounded-lg border border-slate-200 focus:border-orange-400 focus:ring-2 focus:ring-orange-100 outline-none transition-all" placeholder="+52 55 1234 5678" />
+                    <input type="text" name="whatsapp" value={form.whatsapp} onChange={handleChange} required className="w-full px-3 py-2 text-sm text-slate-800 bg-white rounded-lg border border-slate-300 focus:border-orange-400 focus:ring-2 focus:ring-orange-100 outline-none transition-all" placeholder="+52 55 1234 5678" />
                   </div>
                 </div>
                 
@@ -325,19 +325,19 @@ export function AltaClientePublico({ solicitudId }: AltaClientePublicoProps) {
                 <div className="grid grid-cols-4 gap-3">
                   <div>
                     <label className="block text-xs font-bold text-slate-600 mb-1">Colonia *</label>
-                    <input type="text" name="colonia" value={form.colonia} onChange={handleChange} required className="w-full px-3 py-2 text-sm text-slate-800 bg-slate-50 rounded-lg border border-slate-200 focus:border-orange-400 focus:ring-2 focus:ring-orange-100 outline-none transition-all" placeholder="Colonia" />
+                    <input type="text" name="colonia" value={form.colonia} onChange={handleChange} required className="w-full px-3 py-2 text-sm text-slate-800 bg-white rounded-lg border border-slate-300 focus:border-orange-400 focus:ring-2 focus:ring-orange-100 outline-none transition-all" placeholder="Colonia" />
                   </div>
                   <div>
                     <label className="block text-xs font-bold text-slate-600 mb-1">Ciudad *</label>
-                    <input type="text" name="ciudad" value={form.ciudad} onChange={handleChange} required className="w-full px-3 py-2 text-sm text-slate-800 bg-slate-50 rounded-lg border border-slate-200 focus:border-orange-400 focus:ring-2 focus:ring-orange-100 outline-none transition-all" placeholder="Ciudad" />
+                    <input type="text" name="ciudad" value={form.ciudad} onChange={handleChange} required className="w-full px-3 py-2 text-sm text-slate-800 bg-white rounded-lg border border-slate-300 focus:border-orange-400 focus:ring-2 focus:ring-orange-100 outline-none transition-all" placeholder="Ciudad" />
                   </div>
                   <div>
                     <label className="block text-xs font-bold text-slate-600 mb-1">Estado *</label>
-                    <input type="text" name="estado" value={form.estado} onChange={handleChange} required className="w-full px-3 py-2 text-sm text-slate-800 bg-slate-50 rounded-lg border border-slate-200 focus:border-orange-400 focus:ring-2 focus:ring-orange-100 outline-none transition-all" placeholder="Estado" />
+                    <input type="text" name="estado" value={form.estado} onChange={handleChange} required className="w-full px-3 py-2 text-sm text-slate-800 bg-white rounded-lg border border-slate-300 focus:border-orange-400 focus:ring-2 focus:ring-orange-100 outline-none transition-all" placeholder="Estado" />
                   </div>
                   <div>
                     <label className="block text-xs font-bold text-slate-600 mb-1">País *</label>
-                    <input type="text" name="pais" value={form.pais} onChange={handleChange} required className="w-full px-3 py-2 text-sm text-slate-800 bg-slate-50 rounded-lg border border-slate-200 focus:border-orange-400 focus:ring-2 focus:ring-orange-100 outline-none transition-all" placeholder="México" />
+                    <input type="text" name="pais" value={form.pais} onChange={handleChange} required className="w-full px-3 py-2 text-sm text-slate-800 bg-white rounded-lg border border-slate-300 focus:border-orange-400 focus:ring-2 focus:ring-orange-100 outline-none transition-all" placeholder="México" />
                   </div>
                 </div>
               </section>
@@ -358,19 +358,19 @@ export function AltaClientePublico({ solicitudId }: AltaClientePublicoProps) {
                   <div key={prefix} className="grid grid-cols-4 gap-3 mb-2">
                     <div>
                       <label className="block text-xs font-bold text-slate-600 mb-1">{label} - Nombre</label>
-                      <input type="text" name={`${prefix}_nombre`} value={(form as any)[`${prefix}_nombre`]} onChange={handleChange} className="w-full px-3 py-2 text-sm text-slate-800 bg-slate-50 rounded-lg border border-slate-200 focus:border-orange-400 focus:ring-2 focus:ring-orange-100 outline-none transition-all" placeholder="Nombre completo" />
+                      <input type="text" name={`${prefix}_nombre`} value={(form as any)[`${prefix}_nombre`]} onChange={handleChange} className="w-full px-3 py-2 text-sm text-slate-800 bg-white rounded-lg border border-slate-300 focus:border-orange-400 focus:ring-2 focus:ring-orange-100 outline-none transition-all" placeholder="Nombre completo" />
                     </div>
                     <div>
                       <label className="block text-xs font-bold text-slate-600 mb-1">Puesto</label>
-                      <input type="text" name={`${prefix}_puesto`} value={(form as any)[`${prefix}_puesto`]} onChange={handleChange} className="w-full px-3 py-2 text-sm text-slate-800 bg-slate-50 rounded-lg border border-slate-200 focus:border-orange-400 focus:ring-2 focus:ring-orange-100 outline-none transition-all" placeholder="Cargo" />
+                      <input type="text" name={`${prefix}_puesto`} value={(form as any)[`${prefix}_puesto`]} onChange={handleChange} className="w-full px-3 py-2 text-sm text-slate-800 bg-white rounded-lg border border-slate-300 focus:border-orange-400 focus:ring-2 focus:ring-orange-100 outline-none transition-all" placeholder="Cargo" />
                     </div>
                     <div>
                       <label className="block text-xs font-bold text-slate-600 mb-1">Email</label>
-                      <input type="email" name={`${prefix}_email`} value={(form as any)[`${prefix}_email`]} onChange={handleChange} className="w-full px-3 py-2 text-sm text-slate-800 bg-slate-50 rounded-lg border border-slate-200 focus:border-orange-400 focus:ring-2 focus:ring-orange-100 outline-none transition-all" placeholder="correo@empresa.com" />
+                      <input type="email" name={`${prefix}_email`} value={(form as any)[`${prefix}_email`]} onChange={handleChange} className="w-full px-3 py-2 text-sm text-slate-800 bg-white rounded-lg border border-slate-300 focus:border-orange-400 focus:ring-2 focus:ring-orange-100 outline-none transition-all" placeholder="correo@empresa.com" />
                     </div>
                     <div>
                       <label className="block text-xs font-bold text-slate-600 mb-1">Teléfono</label>
-                      <input type="text" name={`${prefix}_tel`} value={(form as any)[`${prefix}_tel`]} onChange={handleChange} className="w-full px-3 py-2 text-sm text-slate-800 bg-slate-50 rounded-lg border border-slate-200 focus:border-orange-400 focus:ring-2 focus:ring-orange-100 outline-none transition-all" placeholder="+52 55 1234 5678" />
+                      <input type="text" name={`${prefix}_tel`} value={(form as any)[`${prefix}_tel`]} onChange={handleChange} className="w-full px-3 py-2 text-sm text-slate-800 bg-white rounded-lg border border-slate-300 focus:border-orange-400 focus:ring-2 focus:ring-orange-100 outline-none transition-all" placeholder="+52 55 1234 5678" />
                     </div>
                   </div>
                 ))}
@@ -387,23 +387,23 @@ export function AltaClientePublico({ solicitudId }: AltaClientePublicoProps) {
                   <div key={num} className="grid grid-cols-5 gap-3 mb-2">
                     <div>
                       <label className="block text-xs font-bold text-slate-600 mb-1">Ref {num} - Empresa</label>
-                      <input type="text" name={`ref${num}_empresa`} value={(form as any)[`ref${num}_empresa`]} onChange={handleChange} className="w-full px-3 py-2 text-sm text-slate-800 bg-slate-50 rounded-lg border border-slate-200 focus:border-orange-400 focus:ring-2 focus:ring-orange-100 outline-none transition-all" placeholder="Nombre empresa" />
+                      <input type="text" name={`ref${num}_empresa`} value={(form as any)[`ref${num}_empresa`]} onChange={handleChange} className="w-full px-3 py-2 text-sm text-slate-800 bg-white rounded-lg border border-slate-300 focus:border-orange-400 focus:ring-2 focus:ring-orange-100 outline-none transition-all" placeholder="Nombre empresa" />
                     </div>
                     <div>
                       <label className="block text-xs font-bold text-slate-600 mb-1">Contacto</label>
-                      <input type="text" name={`ref${num}_contacto`} value={(form as any)[`ref${num}_contacto`]} onChange={handleChange} className="w-full px-3 py-2 text-sm text-slate-800 bg-slate-50 rounded-lg border border-slate-200 focus:border-orange-400 focus:ring-2 focus:ring-orange-100 outline-none transition-all" placeholder="Persona" />
+                      <input type="text" name={`ref${num}_contacto`} value={(form as any)[`ref${num}_contacto`]} onChange={handleChange} className="w-full px-3 py-2 text-sm text-slate-800 bg-white rounded-lg border border-slate-300 focus:border-orange-400 focus:ring-2 focus:ring-orange-100 outline-none transition-all" placeholder="Persona" />
                     </div>
                     <div>
                       <label className="block text-xs font-bold text-slate-600 mb-1">WhatsApp</label>
-                      <input type="text" name={`ref${num}_whatsapp`} value={(form as any)[`ref${num}_whatsapp`]} onChange={handleChange} className="w-full px-3 py-2 text-sm text-slate-800 bg-slate-50 rounded-lg border border-slate-200 focus:border-orange-400 focus:ring-2 focus:ring-orange-100 outline-none transition-all" placeholder="+52 55 1234 5678" />
+                      <input type="text" name={`ref${num}_whatsapp`} value={(form as any)[`ref${num}_whatsapp`]} onChange={handleChange} className="w-full px-3 py-2 text-sm text-slate-800 bg-white rounded-lg border border-slate-300 focus:border-orange-400 focus:ring-2 focus:ring-orange-100 outline-none transition-all" placeholder="+52 55 1234 5678" />
                     </div>
                     <div>
                       <label className="block text-xs font-bold text-slate-600 mb-1">Email</label>
-                      <input type="email" name={`ref${num}_email`} value={(form as any)[`ref${num}_email`]} onChange={handleChange} className="w-full px-3 py-2 text-sm text-slate-800 bg-slate-50 rounded-lg border border-slate-200 focus:border-orange-400 focus:ring-2 focus:ring-orange-100 outline-none transition-all" placeholder="correo@empresa.com" />
+                      <input type="email" name={`ref${num}_email`} value={(form as any)[`ref${num}_email`]} onChange={handleChange} className="w-full px-3 py-2 text-sm text-slate-800 bg-white rounded-lg border border-slate-300 focus:border-orange-400 focus:ring-2 focus:ring-orange-100 outline-none transition-all" placeholder="correo@empresa.com" />
                     </div>
                     <div>
                       <label className="block text-xs font-bold text-slate-600 mb-1">Años</label>
-                      <input type="text" name={`ref${num}_anos`} value={(form as any)[`ref${num}_anos`]} onChange={handleChange} className="w-full px-3 py-2 text-sm text-slate-800 bg-slate-50 rounded-lg border border-slate-200 focus:border-orange-400 focus:ring-2 focus:ring-orange-100 outline-none transition-all" placeholder="#" />
+                      <input type="text" name={`ref${num}_anos`} value={(form as any)[`ref${num}_anos`]} onChange={handleChange} className="w-full px-3 py-2 text-sm text-slate-800 bg-white rounded-lg border border-slate-300 focus:border-orange-400 focus:ring-2 focus:ring-orange-100 outline-none transition-all" placeholder="#" />
                     </div>
                   </div>
                 ))}
@@ -416,14 +416,14 @@ export function AltaClientePublico({ solicitudId }: AltaClientePublicoProps) {
                   <h2 className="text-lg font-bold text-slate-800">Proceso de Facturación</h2>
                 </div>
                 <textarea name="proceso_facturacion" value={form.proceso_facturacion} onChange={handleChange} rows={2}
-                  className="w-full px-3 py-2 text-sm text-slate-800 bg-slate-50 rounded-lg border border-slate-200 focus:border-orange-400 focus:ring-2 focus:ring-orange-100 outline-none transition-all resize-none" 
+                  className="w-full px-3 py-2 text-sm text-slate-800 bg-white rounded-lg border border-slate-300 focus:border-orange-400 focus:ring-2 focus:ring-orange-100 outline-none transition-all resize-none" 
                   placeholder="Portal, requisitos especiales, orden de compra, etc." />
               </section>
               </div>
             </div>
 
             {/* === RIGHT: DOCUMENTS (400px) - Sin scroll, todo visible === */}
-            <div className="w-[400px] flex-shrink-0 flex flex-col gap-3">
+            <div className="w-[400px] flex-shrink-0 flex flex-col gap-3 mr-2">
               
               {/* Documents Panel - Compacto */}
               <div className="bg-white rounded-xl shadow-xl p-4">
@@ -465,7 +465,7 @@ export function AltaClientePublico({ solicitudId }: AltaClientePublicoProps) {
                 
                 <div className="mb-3">
                   <label className="block text-xs font-bold text-slate-600 mb-1">Nombre completo (firma digital) *</label>
-                  <input type="text" name="firma_nombre" value={form.firma_nombre} onChange={handleChange} required className="w-full px-3 py-2 text-sm text-slate-800 bg-slate-50 rounded-lg border border-slate-200 focus:border-orange-400 focus:ring-2 focus:ring-orange-100 outline-none transition-all" placeholder="Como aparece en su identificación" />
+                  <input type="text" name="firma_nombre" value={form.firma_nombre} onChange={handleChange} required className="w-full px-3 py-2 text-sm text-slate-800 bg-white rounded-lg border border-slate-300 focus:border-orange-400 focus:ring-2 focus:ring-orange-100 outline-none transition-all" placeholder="Como aparece en su identificación" />
                 </div>
                 
                 <button type="submit" disabled={submitting || !form.firma_aceptada}
