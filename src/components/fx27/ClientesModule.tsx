@@ -53,13 +53,13 @@ export const ClientesModule = ({ onBack }: ClientesModuleProps) => {
   const [cargando, setCargando] = useState(false);
   const [enviando, setEnviando] = useState(false);
   const [mensaje, setMensaje] = useState<{tipo: 'success' | 'error', texto: string} | null>(null);
-  
+
   // Form state para Nueva Alta
   const [emailCliente, setEmailCliente] = useState('');
   const [emailClienteConfirm, setEmailClienteConfirm] = useState('');
   // Auto-capitalizar nombre (Primera letra mayúscula)
   const capitalizar = (texto: string) => {
-    return texto.toLowerCase().split(' ').map(palabra => 
+    return texto.toLowerCase().split(' ').map(palabra =>
       palabra.charAt(0).toUpperCase() + palabra.slice(1)
     ).join(' ');
   };
@@ -161,74 +161,96 @@ export const ClientesModule = ({ onBack }: ClientesModuleProps) => {
   };
 
   // ═══════════════════════════════════════════════════════════
-  // HUB - BOTONES COMPACTOS
+  // HUB - ESTILO DASHBOARD
   // ═══════════════════════════════════════════════════════════
   const renderHub = () => {
     const botones = [
-      { id: 'nueva-alta', nombre: 'Nueva Alta', icon: UserPlus, color: '#fe5000' },
-      { id: 'clientes', nombre: 'Clientes', icon: Users, color: '#1E40AF' },
+      { id: 'nueva-alta', nombre: 'Nueva Alta', icon: UserPlus },
+      { id: 'clientes', nombre: 'Clientes', icon: Users },
     ];
 
     return (
-      <div className="p-10 min-h-full relative overflow-hidden" style={{ background: "linear-gradient(180deg, #1a4a7c 0%, #2d6a9f 25%, #4a90c2 50%, #5ba3d4 75%, #6bb5e6 100%)", borderRadius: "16px", margin: "0", boxShadow: "0 12px 40px rgba(0,0,0,0.4), inset 0 2px 0 rgba(255,255,255,0.15), inset 0 -8px 20px rgba(0,0,0,0.2)", borderTop: "3px solid #fe5000", borderLeft: "1px solid rgba(255,255,255,0.15)", borderRight: "1px solid rgba(255,255,255,0.1)", borderBottom: "1px solid rgba(0,0,0,0.2)" }}>
-        {/* Tech Grid - líneas diagonales futuristas */}
-        <svg className="absolute inset-0 w-full h-full opacity-[0.04] pointer-events-none" style={{ borderRadius: "16px" }}>
-          <defs>
-            <pattern id="techGrid" width="60" height="60" patternUnits="userSpaceOnUse">
-              <path d="M 60 0 L 0 60" stroke="#ffffff" strokeWidth="0.5" fill="none" />
-              <path d="M 30 0 L 0 30 M 60 30 L 30 60" stroke="#ffffff" strokeWidth="0.3" fill="none" />
-            </pattern>
-          </defs>
-          <rect width="100%" height="100%" fill="url(#techGrid)" />
-        </svg>
-        {/* Glow ambiental */}
-        <div className="absolute top-1/4 right-1/4 w-96 h-96 rounded-full opacity-[0.03]" style={{ background: "radial-gradient(circle, #ffffff 0%, transparent 60%)", filter: "blur(40px)" }} />
-        {/* Footer naranja degradado */}
-        <div className="absolute bottom-0 left-0 right-0 h-24" style={{ background: "linear-gradient(180deg, transparent 0%, rgba(254,80,0,0.08) 50%, rgba(254,80,0,0.15) 100%)", borderRadius: "0 0 16px 16px" }} />
-        
+      <div className="relative w-full h-full overflow-hidden" style={{ borderRadius: '16px' }}>
+        {/* Background - Gradiente AZUL ELÉCTRICO igual que Dashboard */}
+        <div
+          className="absolute inset-0"
+          style={{
+            background: 'linear-gradient(135deg, #001f4d 0%, #003d7a 25%, #0066cc 50%, #1a8fff 75%, #4da6ff 100%)',
+            borderRadius: '16px',
+          }}
+        />
+        {/* Overlay oscuro sutil */}
+        <div
+          className="absolute inset-0"
+          style={{
+            background: 'linear-gradient(180deg, rgba(0, 0, 0, 0.25) 0%, rgba(0, 0, 0, 0.15) 50%, rgba(0, 0, 0, 0.25) 100%)',
+            borderRadius: '16px',
+          }}
+        />
+        {/* Halo volumétrico */}
+        <div
+          className="absolute"
+          style={{
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            width: '80%',
+            height: '60%',
+            background: 'radial-gradient(ellipse at center, rgba(30, 80, 160, 0.08) 0%, rgba(40, 90, 170, 0.04) 35%, transparent 70%)',
+            filter: 'blur(60px)',
+            pointerEvents: 'none',
+          }}
+        />
 
-        <div className="flex flex-wrap gap-10">
-          {botones.map((btn) => {
-            const Icon = btn.icon;
-            return (
-              <button
-                key={btn.id}
-                onClick={() => setVista(btn.id as Vista)}
-                className="group relative flex flex-col items-center justify-center gap-2 p-4 rounded-sm transition-all duration-200 hover:-translate-y-2 hover:scale-105"
-                style={{
-                  background: btn.color,
-                  border: 'none',
-                  boxShadow: '0 6px 0 rgba(0,0,0,0.25), 0 8px 16px rgba(0,0,0,0.3), inset 0 2px 0 rgba(255,255,255,0.2)',
-                  width: '175px', height: '145px'
-                }}
-                onMouseEnter={(e) => {
-                  
-                  e.currentTarget.style.boxShadow = '0 14px 28px rgba(0,0,0,0.35), 0 0 40px ' + btn.color + '80, inset 0 2px 0 rgba(255,255,255,0.3)';
-                }}
-                onMouseLeave={(e) => {
-                  
-                  e.currentTarget.style.boxShadow = '0 4px 0 rgba(0,0,0,0.3), 0 6px 12px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.2)';
-                }}
-              >
-                <div 
-                  className="p-2 rounded-md transition-all duration-300 group-hover:scale-110"
-                  style={{ background: 'transparent' }}
-                >
-                  <Icon className="w-13 h-13" style={{ color: '#ffffff' }} />
-                </div>
-                <span 
-                  className="text-center transition-colors duration-300"
-                  style={{ 
-                    fontFamily: "'Exo 2', sans-serif", 
-                    fontSize: '16px', fontWeight: 700, 
-                    color: '#ffffff', textShadow: '0 1px 2px rgba(0,0,0,0.3)'
+        {/* Contenido */}
+        <div className="relative z-10 p-10">
+          <div className="flex gap-5">
+            {botones.map((btn) => {
+              const Icon = btn.icon;
+              return (
+                <button
+                  key={btn.id}
+                  onClick={() => setVista(btn.id as Vista)}
+                  className="group relative flex flex-col items-center justify-center gap-3 transition-all duration-300"
+                  style={{
+                    background: 'linear-gradient(155deg, rgba(18, 32, 58, 0.96) 0%, rgba(12, 22, 42, 0.98) 35%, rgba(8, 16, 32, 1) 70%, rgba(6, 12, 24, 1) 100%)',
+                    border: '2px solid transparent',
+                    backgroundImage: 'linear-gradient(155deg, rgba(18, 32, 58, 0.96) 0%, rgba(12, 22, 42, 0.98) 35%, rgba(8, 16, 32, 1) 70%, rgba(6, 12, 24, 1) 100%), linear-gradient(135deg, rgba(180, 100, 50, 0.28) 0%, rgba(60, 90, 140, 0.25) 50%, rgba(180, 100, 50, 0.28) 100%)',
+                    backgroundOrigin: 'border-box',
+                    backgroundClip: 'padding-box, border-box',
+                    boxShadow: '0 2px 4px rgba(0, 0, 0, 0.25), 0 4px 12px rgba(0, 0, 0, 0.45), 0 8px 24px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.05), inset 0 -1px 0 rgba(0, 0, 0, 0.35), inset 2px 2px 4px rgba(30, 50, 80, 0.12), inset -2px -2px 4px rgba(0, 0, 0, 0.2)',
+                    borderRadius: '10px',
+                    width: '160px',
+                    height: '160px',
+                    cursor: 'pointer',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.transform = 'translateY(-6px)';
+                    e.currentTarget.style.backgroundImage = 'linear-gradient(155deg, rgba(28, 48, 82, 1) 0%, rgba(20, 35, 62, 1) 35%, rgba(14, 24, 45, 1) 70%, rgba(10, 18, 35, 1) 100%), linear-gradient(135deg, rgba(240, 160, 80, 0.65) 0%, rgba(220, 140, 70, 0.6) 25%, rgba(70, 110, 170, 0.4) 50%, rgba(220, 140, 70, 0.6) 75%, rgba(240, 160, 80, 0.65) 100%)';
+                    e.currentTarget.style.boxShadow = '0 8px 16px rgba(0, 0, 0, 0.4), 0 16px 32px rgba(0, 0, 0, 0.5), 0 0 30px rgba(240, 160, 80, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.1), inset 0 -1px 0 rgba(0, 0, 0, 0.4)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = 'translateY(0)';
+                    e.currentTarget.style.backgroundImage = 'linear-gradient(155deg, rgba(18, 32, 58, 0.96) 0%, rgba(12, 22, 42, 0.98) 35%, rgba(8, 16, 32, 1) 70%, rgba(6, 12, 24, 1) 100%), linear-gradient(135deg, rgba(180, 100, 50, 0.28) 0%, rgba(60, 90, 140, 0.25) 50%, rgba(180, 100, 50, 0.28) 100%)';
+                    e.currentTarget.style.boxShadow = '0 2px 4px rgba(0, 0, 0, 0.25), 0 4px 12px rgba(0, 0, 0, 0.45), 0 8px 24px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.05), inset 0 -1px 0 rgba(0, 0, 0, 0.35), inset 2px 2px 4px rgba(30, 50, 80, 0.12), inset -2px -2px 4px rgba(0, 0, 0, 0.2)';
                   }}
                 >
-                  {btn.nombre}
-                </span>
-              </button>
-            );
-          })}
+                  <Icon className="w-12 h-12" style={{ color: 'rgba(255, 255, 255, 0.7)' }} />
+                  <span
+                    style={{
+                      fontFamily: "'Exo 2', sans-serif",
+                      fontSize: '14px',
+                      fontWeight: 500,
+                      color: 'rgba(255, 255, 255, 0.85)',
+                      textAlign: 'center',
+                    }}
+                  >
+                    {btn.nombre}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
         </div>
       </div>
     );
@@ -413,105 +435,124 @@ export const ClientesModule = ({ onBack }: ClientesModuleProps) => {
     const s = solicitudSeleccionada;
 
     return (
-      <div className="p-10 min-h-full relative overflow-hidden" style={{ background: "linear-gradient(180deg, #1a4a7c 0%, #2d6a9f 25%, #4a90c2 50%, #5ba3d4 75%, #6bb5e6 100%)", borderRadius: "16px", margin: "0", boxShadow: "0 12px 40px rgba(0,0,0,0.4), inset 0 2px 0 rgba(255,255,255,0.15), inset 0 -8px 20px rgba(0,0,0,0.2)", borderTop: "3px solid #fe5000", borderLeft: "1px solid rgba(255,255,255,0.15)", borderRight: "1px solid rgba(255,255,255,0.1)", borderBottom: "1px solid rgba(0,0,0,0.2)" }}>
-        {/* Tech Grid - líneas diagonales futuristas */}
-        <svg className="absolute inset-0 w-full h-full opacity-[0.04] pointer-events-none" style={{ borderRadius: "16px" }}>
-          <defs>
-            <pattern id="techGrid" width="60" height="60" patternUnits="userSpaceOnUse">
-              <path d="M 60 0 L 0 60" stroke="#ffffff" strokeWidth="0.5" fill="none" />
-              <path d="M 30 0 L 0 30 M 60 30 L 30 60" stroke="#ffffff" strokeWidth="0.3" fill="none" />
-            </pattern>
-          </defs>
-          <rect width="100%" height="100%" fill="url(#techGrid)" />
-        </svg>
-        {/* Glow ambiental */}
-        <div className="absolute top-1/4 right-1/4 w-96 h-96 rounded-full opacity-[0.03]" style={{ background: "radial-gradient(circle, #ffffff 0%, transparent 60%)", filter: "blur(40px)" }} />
-        {/* Footer naranja degradado */}
-        <div className="absolute bottom-0 left-0 right-0 h-24" style={{ background: "linear-gradient(180deg, transparent 0%, rgba(254,80,0,0.08) 50%, rgba(254,80,0,0.15) 100%)", borderRadius: "0 0 16px 16px" }} />
-        <button onClick={() => setVista('clientes')} className="flex items-center gap-2 mb-6 text-white/60 hover:text-white transition-colors">
-          <ArrowLeft className="w-5 h-5" />
-          <span style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '14px' }}>Volver a Clientes</span>
-        </button>
+      <div className="relative w-full h-full overflow-auto" style={{ borderRadius: '16px' }}>
+        {/* Background - Gradiente AZUL ELÉCTRICO igual que Dashboard */}
+        <div
+          className="absolute inset-0"
+          style={{
+            background: 'linear-gradient(135deg, #001f4d 0%, #003d7a 25%, #0066cc 50%, #1a8fff 75%, #4da6ff 100%)',
+            borderRadius: '16px',
+          }}
+        />
+        {/* Overlay oscuro sutil */}
+        <div
+          className="absolute inset-0"
+          style={{
+            background: 'linear-gradient(180deg, rgba(0, 0, 0, 0.25) 0%, rgba(0, 0, 0, 0.15) 50%, rgba(0, 0, 0, 0.25) 100%)',
+            borderRadius: '16px',
+          }}
+        />
+        {/* Halo volumétrico */}
+        <div
+          className="absolute"
+          style={{
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            width: '80%',
+            height: '60%',
+            background: 'radial-gradient(ellipse at center, rgba(30, 80, 160, 0.08) 0%, rgba(40, 90, 170, 0.04) 35%, transparent 70%)',
+            filter: 'blur(60px)',
+            pointerEvents: 'none',
+          }}
+        />
+        
+        <div className="relative z-10 p-10">
+          <button onClick={() => setVista('clientes')} className="flex items-center gap-2 mb-6 text-white/60 hover:text-white transition-colors">
+            <ArrowLeft className="w-5 h-5" />
+            <span style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '14px' }}>Volver a Clientes</span>
+          </button>
 
-        {/* Header */}
-        <div className="flex items-start justify-between mb-8">
-          <div className="flex items-center gap-4">
-            <div className="p-4 rounded-xl" style={{ background: 'rgba(59, 130, 246, 0.2)' }}>
-              <Building2 className="w-10 h-10" style={{ color: '#1E40AF' }} />
-            </div>
-            <div>
-              <h2 style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '24px', fontWeight: 600, color: '#fff' }}>{s.razon_social || `${s.nombre_cliente || ''} ${s.apellido_cliente || ''}`.trim() || 'Sin nombre'}</h2>
-              <p style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '14px', color: 'rgba(255,255,255,0.5)' }}>{s.rfc_mc || 'Sin RFC'}</p>
-            </div>
-          </div>
-          <span className={`px-4 py-2 rounded-lg text-sm border ${getStatusBadge(s.estatus)}`}>{s.estatus}</span>
-        </div>
-
-        <div className="grid grid-cols-2 gap-10">
-          {/* Datos de la Empresa */}
-          <div className="rounded-xl p-6" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
-            <h3 style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '16px', fontWeight: 600, color: '#fff', marginBottom: '16px' }}>Datos de la Empresa</h3>
-            <div className="space-y-3">
-              <div><span className="text-white/50 text-sm">Giro:</span><p className="text-white">{s.giro || '-'}</p></div>
-              <div><span className="text-white/50 text-sm">Direccion:</span><p className="text-white">{s.direccion_completa || '-'}</p></div>
-              <div><span className="text-white/50 text-sm">Telefono:</span><p className="text-white">{s.tel_oficina || '-'}</p></div>
-              <div><span className="text-white/50 text-sm">WhatsApp:</span><p className="text-white">{s.whatsapp || '-'}</p></div>
-            </div>
-          </div>
-
-          {/* Contactos */}
-          <div className="rounded-xl p-6" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
-            <h3 style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '16px', fontWeight: 600, color: '#fff', marginBottom: '16px' }}>Contactos</h3>
-            <div className="space-y-4">
-              <div>
-                <span className="text-white/50 text-sm">Administrativo:</span>
-                <p className="text-white">{s.contacto_admin_nombre || '-'}</p>
-                <p className="text-blue-400 text-sm">{s.contacto_admin_email || '-'}</p>
+          {/* Header */}
+          <div className="flex items-start justify-between mb-8">
+            <div className="flex items-center gap-4">
+              <div className="p-4 rounded-xl" style={{ background: 'rgba(59, 130, 246, 0.2)' }}>
+                <Building2 className="w-10 h-10" style={{ color: '#1E40AF' }} />
               </div>
               <div>
-                <span className="text-white/50 text-sm">Facturas:</span>
-                <p className="text-white">{s.contacto_facturas_nombre || '-'}</p>
-                <p className="text-blue-400 text-sm">{s.contacto_facturas_email || '-'}</p>
+                <h2 style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '24px', fontWeight: 600, color: '#fff' }}>{s.razon_social || `${s.nombre_cliente || ''} ${s.apellido_cliente || ''}`.trim() || 'Sin nombre'}</h2>
+                <p style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '14px', color: 'rgba(255,255,255,0.5)' }}>{s.rfc_mc || 'Sin RFC'}</p>
               </div>
             </div>
+            <span className={`px-4 py-2 rounded-lg text-sm border ${getStatusBadge(s.estatus)}`}>{s.estatus}</span>
           </div>
 
-          {/* Firma */}
-          <div className="rounded-xl p-6" style={{ background: s.firma_aceptada ? 'rgba(34,197,94,0.1)' : 'rgba(255,255,255,0.03)', border: `1px solid ${s.firma_aceptada ? 'rgba(34,197,94,0.3)' : 'rgba(255,255,255,0.08)'}` }}>
-            <h3 style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '16px', fontWeight: 600, color: '#fff', marginBottom: '16px' }}>Firma Digital</h3>
-            {s.firma_aceptada ? (
-              <div className="space-y-2">
-                <div className="flex items-center gap-2 text-green-400"><CheckCircle2 className="w-5 h-5" /><span>Documento firmado</span></div>
-                <p className="text-white"><strong>Representante:</strong> {s.nombre_rep_legal}</p>
-                <p className="text-white/60 text-sm">Fecha: {s.firma_fecha ? new Date(s.firma_fecha).toLocaleString('es-MX') : '-'}</p>
-                <p className="text-white/40 text-xs">IP: {s.firma_ip}</p>
+          <div className="grid grid-cols-2 gap-10">
+            {/* Datos de la Empresa */}
+            <div className="rounded-xl p-6" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
+              <h3 style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '16px', fontWeight: 600, color: '#fff', marginBottom: '16px' }}>Datos de la Empresa</h3>
+              <div className="space-y-3">
+                <div><span className="text-white/50 text-sm">Giro:</span><p className="text-white">{s.giro || '-'}</p></div>
+                <div><span className="text-white/50 text-sm">Direccion:</span><p className="text-white">{s.direccion_completa || '-'}</p></div>
+                <div><span className="text-white/50 text-sm">Telefono:</span><p className="text-white">{s.tel_oficina || '-'}</p></div>
+                <div><span className="text-white/50 text-sm">WhatsApp:</span><p className="text-white">{s.whatsapp || '-'}</p></div>
               </div>
-            ) : (
-              <div className="flex items-center gap-2 text-yellow-400"><Clock className="w-5 h-5" /><span>Pendiente de firma</span></div>
-            )}
-          </div>
+            </div>
 
-          {/* Documentos */}
-          <div className="rounded-xl p-6" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
-            <h3 style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '16px', fontWeight: 600, color: '#fff', marginBottom: '16px' }}>Documentos ({documentos.length})</h3>
-            {documentos.length === 0 ? (
-              <p className="text-white/40 text-sm">Sin documentos adjuntos</p>
-            ) : (
-              <div className="space-y-2">
-                {documentos.map((doc) => (
-                  <div key={doc.id} className="flex items-center justify-between p-3 rounded-lg bg-white/5">
-                    <div className="flex items-center gap-10">
-                      <FileText className="w-5 h-5 text-blue-400" />
-                      <div>
-                        <p className="text-white text-sm">{doc.nombre_archivo}</p>
-                        <p className="text-white/40 text-xs">{doc.tipo_documento}</p>
+            {/* Contactos */}
+            <div className="rounded-xl p-6" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
+              <h3 style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '16px', fontWeight: 600, color: '#fff', marginBottom: '16px' }}>Contactos</h3>
+              <div className="space-y-4">
+                <div>
+                  <span className="text-white/50 text-sm">Administrativo:</span>
+                  <p className="text-white">{s.contacto_admin_nombre || '-'}</p>
+                  <p className="text-blue-400 text-sm">{s.contacto_admin_email || '-'}</p>
+                </div>
+                <div>
+                  <span className="text-white/50 text-sm">Facturas:</span>
+                  <p className="text-white">{s.contacto_facturas_nombre || '-'}</p>
+                  <p className="text-blue-400 text-sm">{s.contacto_facturas_email || '-'}</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Firma */}
+            <div className="rounded-xl p-6" style={{ background: s.firma_aceptada ? 'rgba(34,197,94,0.1)' : 'rgba(255,255,255,0.03)', border: `1px solid ${s.firma_aceptada ? 'rgba(34,197,94,0.3)' : 'rgba(255,255,255,0.08)'}` }}>
+              <h3 style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '16px', fontWeight: 600, color: '#fff', marginBottom: '16px' }}>Firma Digital</h3>
+              {s.firma_aceptada ? (
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-green-400"><CheckCircle2 className="w-5 h-5" /><span>Documento firmado</span></div>
+                  <p className="text-white"><strong>Representante:</strong> {s.nombre_rep_legal}</p>
+                  <p className="text-white/60 text-sm">Fecha: {s.firma_fecha ? new Date(s.firma_fecha).toLocaleString('es-MX') : '-'}</p>
+                  <p className="text-white/40 text-xs">IP: {s.firma_ip}</p>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2 text-yellow-400"><Clock className="w-5 h-5" /><span>Pendiente de firma</span></div>
+              )}
+            </div>
+
+            {/* Documentos */}
+            <div className="rounded-xl p-6" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
+              <h3 style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '16px', fontWeight: 600, color: '#fff', marginBottom: '16px' }}>Documentos ({documentos.length})</h3>
+              {documentos.length === 0 ? (
+                <p className="text-white/40 text-sm">Sin documentos adjuntos</p>
+              ) : (
+                <div className="space-y-2">
+                  {documentos.map((doc) => (
+                    <div key={doc.id} className="flex items-center justify-between p-3 rounded-lg bg-white/5">
+                      <div className="flex items-center gap-10">
+                        <FileText className="w-5 h-5 text-blue-400" />
+                        <div>
+                          <p className="text-white text-sm">{doc.nombre_archivo}</p>
+                          <p className="text-white/40 text-xs">{doc.tipo_documento}</p>
+                        </div>
                       </div>
+                      <button className="p-2 hover:bg-white/10 rounded-lg transition-colors"><Download className="w-4 h-4 text-white/60" /></button>
                     </div>
-                    <button className="p-2 hover:bg-white/10 rounded-lg transition-colors"><Download className="w-4 h-4 text-white/60" /></button>
-                  </div>
-                ))}
-              </div>
-            )}
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>
@@ -532,29 +573,3 @@ export const ClientesModule = ({ onBack }: ClientesModuleProps) => {
     </ModuleTemplate>
   );
 };
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
