@@ -209,80 +209,81 @@ export function AltaClientePublico({ solicitudId }: AltaClientePublicoProps) {
   const docs = tipoMX ? DOCS_MEXICANA : DOCS_USA;
 
   return (
-    <div className="min-h-screen" style={{ background: 'linear-gradient(135deg, #0a1628 0%, #1a365d 100%)' }}>
-      {/* HEADER */}
-      <header className="sticky top-0 z-50 px-6 py-4" style={{ background: 'rgba(10, 22, 40, 0.97)', backdropFilter: 'blur(12px)', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
-        <div className="max-w-[1500px] mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-5">
-            <img src="/logo-gl-blanco.png" alt="Grupo Loma" className="h-12" />
-            <h1 className="text-2xl font-bold text-white tracking-wide">Formulario de Alta de Cliente</h1>
-          </div>
+    <div className="h-screen flex flex-col overflow-hidden" style={{ background: 'linear-gradient(135deg, #0a1628 0%, #1a365d 100%)' }}>
+      {/* HEADER - Altura fija 64px */}
+      <header className="flex-shrink-0 h-16 px-6 flex items-center" style={{ background: 'rgba(10, 22, 40, 0.97)', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
+        <div className="max-w-[1600px] w-full mx-auto flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <a href="/aviso-privacidad.pdf" download className="flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-semibold text-white bg-orange-500 hover:bg-orange-600 transition-all shadow-lg">
+            <img src="/logo-gl-blanco.png" alt="Grupo Loma" className="h-10" />
+            <h1 className="text-xl font-bold text-white">Formulario de Alta de Cliente</h1>
+          </div>
+          <div className="flex items-center gap-3">
+            <a href="/aviso-privacidad.pdf" download className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold text-white bg-orange-500 hover:bg-orange-600 transition-all">
               <Download className="w-4 h-4" /> Aviso Privacidad
             </a>
-            <div className="px-5 py-2.5 rounded-lg text-sm font-bold bg-orange-500/20 text-orange-300 border border-orange-500/40">
+            <div className="px-4 py-2 rounded-lg text-sm font-bold bg-orange-500/20 text-orange-300 border border-orange-500/40">
               {tipoMX ? '🇲🇽 México' : '🇺🇸 USA/Canadá'}
             </div>
           </div>
         </div>
       </header>
 
-      {/* MAIN */}
-      <main className="px-6 py-8">
-        <form onSubmit={handleSubmit} className="max-w-[1500px] mx-auto">
-          <div className="flex gap-8">
+      {/* MAIN - Resto de la altura disponible */}
+      <main className="flex-1 overflow-hidden px-4 py-4">
+        <form onSubmit={handleSubmit} className="max-w-[1600px] mx-auto h-full">
+          <div className="flex gap-4 h-full">
             
-            {/* === LEFT: FORM DATA (75%) === */}
-            <div className="flex-1 bg-white rounded-2xl shadow-2xl p-8">
+            {/* === LEFT: FORM DATA - Con scroll interno === */}
+            <div className="flex-1 bg-white rounded-xl shadow-xl overflow-y-auto" style={{ scrollBehavior: 'smooth' }}>
+              <div className="p-6">
               
               {error && (
-                <div className="flex items-center gap-3 p-4 mb-6 bg-red-50 border border-red-200 rounded-xl">
-                  <AlertCircle className="w-6 h-6 text-red-500" />
-                  <span className="text-red-700 text-base flex-1">{error}</span>
-                  <button type="button" onClick={() => setError(null)}><X className="w-5 h-5 text-red-400" /></button>
+                <div className="flex items-center gap-3 p-3 mb-4 bg-red-50 border border-red-200 rounded-lg">
+                  <AlertCircle className="w-5 h-5 text-red-500" />
+                  <span className="text-red-700 text-sm flex-1">{error}</span>
+                  <button type="button" onClick={() => setError(null)}><X className="w-4 h-4 text-red-400" /></button>
                 </div>
               )}
 
               {/* === DATOS EMPRESA === */}
-              <section className="mb-8">
-                <div className="flex items-center gap-3 mb-5 pb-3 border-b-2 border-slate-200">
-                  <div className="p-2 rounded-lg bg-orange-100"><Building2 className="w-6 h-6 text-orange-600" /></div>
-                  <h2 className="text-xl font-bold text-slate-800">Datos de la Empresa</h2>
+              <section className="mb-5">
+                <div className="flex items-center gap-2 mb-3 pb-2 border-b border-slate-200">
+                  <div className="p-1.5 rounded-md bg-orange-100"><Building2 className="w-5 h-5 text-orange-600" /></div>
+                  <h2 className="text-lg font-bold text-slate-800">Datos de la Empresa</h2>
                 </div>
                 
                 {/* Row 1: Razón Social (full width) */}
-                <div className="mb-5">
-                  <label className="block text-sm font-bold text-slate-700 mb-2">Razón Social *</label>
+                <div className="mb-3">
+                  <label className="block text-xs font-bold text-slate-600 mb-1">Razón Social *</label>
                   <input type="text" name="razon_social" value={form.razon_social} onChange={handleChange} required 
-                    className="w-full px-4 py-3 text-base text-slate-800 bg-slate-50 rounded-xl border-2 border-slate-200 focus:border-orange-400 focus:ring-4 focus:ring-orange-100 outline-none transition-all" 
+                    className="w-full px-3 py-2 text-sm text-slate-800 bg-slate-50 rounded-lg border border-slate-200 focus:border-orange-400 focus:ring-2 focus:ring-orange-100 outline-none transition-all" 
                     placeholder="Empresa S.A. de C.V." />
                 </div>
                 
                 {/* Row 2: RFC, Giro, Web, Tamaño */}
-                <div className="grid grid-cols-4 gap-5">
+                <div className="grid grid-cols-4 gap-3">
                   <div>
-                    <label className="block text-sm font-bold text-slate-700 mb-2">{tipoMX ? 'RFC *' : 'Tax ID *'}</label>
+                    <label className="block text-xs font-bold text-slate-600 mb-1">{tipoMX ? 'RFC *' : 'Tax ID *'}</label>
                     <input type="text" name="rfc" value={form.rfc} onChange={handleChange} required 
-                      className="w-full px-4 py-3 text-base text-slate-800 bg-slate-50 rounded-xl border-2 border-slate-200 focus:border-orange-400 focus:ring-4 focus:ring-orange-100 outline-none transition-all" 
+                      className="w-full px-3 py-2 text-sm text-slate-800 bg-slate-50 rounded-lg border border-slate-200 focus:border-orange-400 focus:ring-2 focus:ring-orange-100 outline-none transition-all" 
                       placeholder={tipoMX ? 'XAXX010101000' : 'XX-XXXXXXX'} />
                   </div>
                   <div>
-                    <label className="block text-sm font-bold text-slate-700 mb-2">Giro</label>
+                    <label className="block text-xs font-bold text-slate-600 mb-1">Giro</label>
                     <input type="text" name="giro" value={form.giro} onChange={handleChange} 
-                      className="w-full px-4 py-3 text-base text-slate-800 bg-slate-50 rounded-xl border-2 border-slate-200 focus:border-orange-400 focus:ring-4 focus:ring-orange-100 outline-none transition-all" 
+                      className="w-full px-3 py-2 text-sm text-slate-800 bg-slate-50 rounded-lg border border-slate-200 focus:border-orange-400 focus:ring-2 focus:ring-orange-100 outline-none transition-all" 
                       placeholder="Actividad principal" />
                   </div>
                   <div>
-                    <label className="block text-sm font-bold text-slate-700 mb-2">Página Web</label>
+                    <label className="block text-xs font-bold text-slate-600 mb-1">Página Web</label>
                     <input type="text" name="pagina_web" value={form.pagina_web} onChange={handleChange} 
-                      className="w-full px-4 py-3 text-base text-slate-800 bg-slate-50 rounded-xl border-2 border-slate-200 focus:border-orange-400 focus:ring-4 focus:ring-orange-100 outline-none transition-all" 
+                      className="w-full px-3 py-2 text-sm text-slate-800 bg-slate-50 rounded-lg border border-slate-200 focus:border-orange-400 focus:ring-2 focus:ring-orange-100 outline-none transition-all" 
                       placeholder="www.ejemplo.com" />
                   </div>
                   <div>
-                    <label className="block text-sm font-bold text-slate-700 mb-2">Tamaño</label>
+                    <label className="block text-xs font-bold text-slate-600 mb-1">Tamaño</label>
                     <select name="tamano_empresa" value={form.tamano_empresa} onChange={handleChange} 
-                      className="w-full px-4 py-3 text-base text-slate-800 bg-slate-50 rounded-xl border-2 border-slate-200 focus:border-orange-400 focus:ring-4 focus:ring-orange-100 outline-none transition-all cursor-pointer">
+                      className="w-full px-3 py-2 text-sm text-slate-800 bg-slate-50 rounded-lg border border-slate-200 focus:border-orange-400 focus:ring-2 focus:ring-orange-100 outline-none transition-all cursor-pointer">
                       {TAMANOS_EMPRESA.map(t => <option key={t} value={t}>{t}</option>)}
                     </select>
                   </div>
@@ -290,119 +291,119 @@ export function AltaClientePublico({ solicitudId }: AltaClientePublicoProps) {
               </section>
 
               {/* === DIRECCIÓN FISCAL === */}
-              <section className="mb-8">
-                <div className="flex items-center gap-3 mb-5 pb-3 border-b-2 border-slate-200">
-                  <div className="p-2 rounded-lg bg-orange-100"><MapPin className="w-6 h-6 text-orange-600" /></div>
-                  <h2 className="text-xl font-bold text-slate-800">Dirección Fiscal</h2>
+              <section className="mb-5">
+                <div className="flex items-center gap-2 mb-3 pb-2 border-b border-slate-200">
+                  <div className="p-1.5 rounded-md bg-orange-100"><MapPin className="w-5 h-5 text-orange-600" /></div>
+                  <h2 className="text-lg font-bold text-slate-800">Dirección Fiscal</h2>
                 </div>
                 
                 {/* Row 1 */}
-                <div className="grid grid-cols-6 gap-4 mb-4">
+                <div className="grid grid-cols-6 gap-3 mb-3">
                   <div className="col-span-2">
-                    <label className="block text-sm font-bold text-slate-700 mb-2">Calle *</label>
-                    <input type="text" name="calle" value={form.calle} onChange={handleChange} required className="w-full px-4 py-3 text-base text-slate-800 bg-slate-50 rounded-xl border-2 border-slate-200 focus:border-orange-400 focus:ring-4 focus:ring-orange-100 outline-none transition-all" placeholder="Nombre de la calle" />
+                    <label className="block text-xs font-bold text-slate-600 mb-1">Calle *</label>
+                    <input type="text" name="calle" value={form.calle} onChange={handleChange} required className="w-full px-3 py-2 text-sm text-slate-800 bg-slate-50 rounded-lg border border-slate-200 focus:border-orange-400 focus:ring-2 focus:ring-orange-100 outline-none transition-all" placeholder="Nombre de la calle" />
                   </div>
                   <div>
-                    <label className="block text-sm font-bold text-slate-700 mb-2">No. Ext *</label>
-                    <input type="text" name="no_ext" value={form.no_ext} onChange={handleChange} required className="w-full px-4 py-3 text-base text-slate-800 bg-slate-50 rounded-xl border-2 border-slate-200 focus:border-orange-400 focus:ring-4 focus:ring-orange-100 outline-none transition-all" placeholder="123" />
+                    <label className="block text-xs font-bold text-slate-600 mb-1">No. Ext *</label>
+                    <input type="text" name="no_ext" value={form.no_ext} onChange={handleChange} required className="w-full px-3 py-2 text-sm text-slate-800 bg-slate-50 rounded-lg border border-slate-200 focus:border-orange-400 focus:ring-2 focus:ring-orange-100 outline-none transition-all" placeholder="123" />
                   </div>
                   <div>
-                    <label className="block text-sm font-bold text-slate-700 mb-2">No. Int</label>
-                    <input type="text" name="no_int" value={form.no_int} onChange={handleChange} className="w-full px-4 py-3 text-base text-slate-800 bg-slate-50 rounded-xl border-2 border-slate-200 focus:border-orange-400 focus:ring-4 focus:ring-orange-100 outline-none transition-all" placeholder="A" />
+                    <label className="block text-xs font-bold text-slate-600 mb-1">No. Int</label>
+                    <input type="text" name="no_int" value={form.no_int} onChange={handleChange} className="w-full px-3 py-2 text-sm text-slate-800 bg-slate-50 rounded-lg border border-slate-200 focus:border-orange-400 focus:ring-2 focus:ring-orange-100 outline-none transition-all" placeholder="A" />
                   </div>
                   <div>
-                    <label className="block text-sm font-bold text-slate-700 mb-2">C.P. *</label>
-                    <input type="text" name="cp" value={form.cp} onChange={handleChange} required className="w-full px-4 py-3 text-base text-slate-800 bg-slate-50 rounded-xl border-2 border-slate-200 focus:border-orange-400 focus:ring-4 focus:ring-orange-100 outline-none transition-all" placeholder="00000" />
+                    <label className="block text-xs font-bold text-slate-600 mb-1">C.P. *</label>
+                    <input type="text" name="cp" value={form.cp} onChange={handleChange} required className="w-full px-3 py-2 text-sm text-slate-800 bg-slate-50 rounded-lg border border-slate-200 focus:border-orange-400 focus:ring-2 focus:ring-orange-100 outline-none transition-all" placeholder="00000" />
                   </div>
                   <div>
-                    <label className="block text-sm font-bold text-slate-700 mb-2">WhatsApp *</label>
-                    <input type="text" name="whatsapp" value={form.whatsapp} onChange={handleChange} required className="w-full px-4 py-3 text-base text-slate-800 bg-slate-50 rounded-xl border-2 border-slate-200 focus:border-orange-400 focus:ring-4 focus:ring-orange-100 outline-none transition-all" placeholder="+52 55 1234 5678" />
+                    <label className="block text-xs font-bold text-slate-600 mb-1">WhatsApp *</label>
+                    <input type="text" name="whatsapp" value={form.whatsapp} onChange={handleChange} required className="w-full px-3 py-2 text-sm text-slate-800 bg-slate-50 rounded-lg border border-slate-200 focus:border-orange-400 focus:ring-2 focus:ring-orange-100 outline-none transition-all" placeholder="+52 55 1234 5678" />
                   </div>
                 </div>
                 
                 {/* Row 2 */}
-                <div className="grid grid-cols-4 gap-4">
+                <div className="grid grid-cols-4 gap-3">
                   <div>
-                    <label className="block text-sm font-bold text-slate-700 mb-2">Colonia *</label>
-                    <input type="text" name="colonia" value={form.colonia} onChange={handleChange} required className="w-full px-4 py-3 text-base text-slate-800 bg-slate-50 rounded-xl border-2 border-slate-200 focus:border-orange-400 focus:ring-4 focus:ring-orange-100 outline-none transition-all" placeholder="Colonia" />
+                    <label className="block text-xs font-bold text-slate-600 mb-1">Colonia *</label>
+                    <input type="text" name="colonia" value={form.colonia} onChange={handleChange} required className="w-full px-3 py-2 text-sm text-slate-800 bg-slate-50 rounded-lg border border-slate-200 focus:border-orange-400 focus:ring-2 focus:ring-orange-100 outline-none transition-all" placeholder="Colonia" />
                   </div>
                   <div>
-                    <label className="block text-sm font-bold text-slate-700 mb-2">Ciudad *</label>
-                    <input type="text" name="ciudad" value={form.ciudad} onChange={handleChange} required className="w-full px-4 py-3 text-base text-slate-800 bg-slate-50 rounded-xl border-2 border-slate-200 focus:border-orange-400 focus:ring-4 focus:ring-orange-100 outline-none transition-all" placeholder="Ciudad" />
+                    <label className="block text-xs font-bold text-slate-600 mb-1">Ciudad *</label>
+                    <input type="text" name="ciudad" value={form.ciudad} onChange={handleChange} required className="w-full px-3 py-2 text-sm text-slate-800 bg-slate-50 rounded-lg border border-slate-200 focus:border-orange-400 focus:ring-2 focus:ring-orange-100 outline-none transition-all" placeholder="Ciudad" />
                   </div>
                   <div>
-                    <label className="block text-sm font-bold text-slate-700 mb-2">Estado *</label>
-                    <input type="text" name="estado" value={form.estado} onChange={handleChange} required className="w-full px-4 py-3 text-base text-slate-800 bg-slate-50 rounded-xl border-2 border-slate-200 focus:border-orange-400 focus:ring-4 focus:ring-orange-100 outline-none transition-all" placeholder="Estado" />
+                    <label className="block text-xs font-bold text-slate-600 mb-1">Estado *</label>
+                    <input type="text" name="estado" value={form.estado} onChange={handleChange} required className="w-full px-3 py-2 text-sm text-slate-800 bg-slate-50 rounded-lg border border-slate-200 focus:border-orange-400 focus:ring-2 focus:ring-orange-100 outline-none transition-all" placeholder="Estado" />
                   </div>
                   <div>
-                    <label className="block text-sm font-bold text-slate-700 mb-2">País *</label>
-                    <input type="text" name="pais" value={form.pais} onChange={handleChange} required className="w-full px-4 py-3 text-base text-slate-800 bg-slate-50 rounded-xl border-2 border-slate-200 focus:border-orange-400 focus:ring-4 focus:ring-orange-100 outline-none transition-all" placeholder="México" />
+                    <label className="block text-xs font-bold text-slate-600 mb-1">País *</label>
+                    <input type="text" name="pais" value={form.pais} onChange={handleChange} required className="w-full px-3 py-2 text-sm text-slate-800 bg-slate-50 rounded-lg border border-slate-200 focus:border-orange-400 focus:ring-2 focus:ring-orange-100 outline-none transition-all" placeholder="México" />
                   </div>
                 </div>
               </section>
 
               {/* === CONTACTOS === */}
-              <section className="mb-8">
-                <div className="flex items-center gap-3 mb-5 pb-3 border-b-2 border-slate-200">
-                  <div className="p-2 rounded-lg bg-orange-100"><Users className="w-6 h-6 text-orange-600" /></div>
-                  <h2 className="text-xl font-bold text-slate-800">Contactos</h2>
+              <section className="mb-5">
+                <div className="flex items-center gap-2 mb-3 pb-2 border-b border-slate-200">
+                  <div className="p-1.5 rounded-md bg-orange-100"><Users className="w-5 h-5 text-orange-600" /></div>
+                  <h2 className="text-lg font-bold text-slate-800">Contactos</h2>
                 </div>
                 
                 {[
-                  { prefix: 'contacto_admin', label: 'Administrativo - Nombre' },
-                  { prefix: 'contacto_facturas', label: 'Facturas - Nombre' },
-                  { prefix: 'contacto_op1', label: 'Operativo 1 - Nombre' },
-                  { prefix: 'contacto_op2', label: 'Operativo 2 - Nombre' }
+                  { prefix: 'contacto_admin', label: 'Administrativo' },
+                  { prefix: 'contacto_facturas', label: 'Facturas' },
+                  { prefix: 'contacto_op1', label: 'Operativo 1' },
+                  { prefix: 'contacto_op2', label: 'Operativo 2' }
                 ].map(({ prefix, label }) => (
-                  <div key={prefix} className="grid grid-cols-4 gap-4 mb-4">
+                  <div key={prefix} className="grid grid-cols-4 gap-3 mb-2">
                     <div>
-                      <label className="block text-sm font-bold text-slate-700 mb-2">{label}</label>
-                      <input type="text" name={`${prefix}_nombre`} value={(form as any)[`${prefix}_nombre`]} onChange={handleChange} className="w-full px-4 py-3 text-base text-slate-800 bg-slate-50 rounded-xl border-2 border-slate-200 focus:border-orange-400 focus:ring-4 focus:ring-orange-100 outline-none transition-all" placeholder="Nombre completo" />
+                      <label className="block text-xs font-bold text-slate-600 mb-1">{label} - Nombre</label>
+                      <input type="text" name={`${prefix}_nombre`} value={(form as any)[`${prefix}_nombre`]} onChange={handleChange} className="w-full px-3 py-2 text-sm text-slate-800 bg-slate-50 rounded-lg border border-slate-200 focus:border-orange-400 focus:ring-2 focus:ring-orange-100 outline-none transition-all" placeholder="Nombre completo" />
                     </div>
                     <div>
-                      <label className="block text-sm font-bold text-slate-700 mb-2">Puesto</label>
-                      <input type="text" name={`${prefix}_puesto`} value={(form as any)[`${prefix}_puesto`]} onChange={handleChange} className="w-full px-4 py-3 text-base text-slate-800 bg-slate-50 rounded-xl border-2 border-slate-200 focus:border-orange-400 focus:ring-4 focus:ring-orange-100 outline-none transition-all" placeholder="Cargo" />
+                      <label className="block text-xs font-bold text-slate-600 mb-1">Puesto</label>
+                      <input type="text" name={`${prefix}_puesto`} value={(form as any)[`${prefix}_puesto`]} onChange={handleChange} className="w-full px-3 py-2 text-sm text-slate-800 bg-slate-50 rounded-lg border border-slate-200 focus:border-orange-400 focus:ring-2 focus:ring-orange-100 outline-none transition-all" placeholder="Cargo" />
                     </div>
                     <div>
-                      <label className="block text-sm font-bold text-slate-700 mb-2">Email</label>
-                      <input type="email" name={`${prefix}_email`} value={(form as any)[`${prefix}_email`]} onChange={handleChange} className="w-full px-4 py-3 text-base text-slate-800 bg-slate-50 rounded-xl border-2 border-slate-200 focus:border-orange-400 focus:ring-4 focus:ring-orange-100 outline-none transition-all" placeholder="correo@empresa.com" />
+                      <label className="block text-xs font-bold text-slate-600 mb-1">Email</label>
+                      <input type="email" name={`${prefix}_email`} value={(form as any)[`${prefix}_email`]} onChange={handleChange} className="w-full px-3 py-2 text-sm text-slate-800 bg-slate-50 rounded-lg border border-slate-200 focus:border-orange-400 focus:ring-2 focus:ring-orange-100 outline-none transition-all" placeholder="correo@empresa.com" />
                     </div>
                     <div>
-                      <label className="block text-sm font-bold text-slate-700 mb-2">Teléfono</label>
-                      <input type="text" name={`${prefix}_tel`} value={(form as any)[`${prefix}_tel`]} onChange={handleChange} className="w-full px-4 py-3 text-base text-slate-800 bg-slate-50 rounded-xl border-2 border-slate-200 focus:border-orange-400 focus:ring-4 focus:ring-orange-100 outline-none transition-all" placeholder="+52 55 1234 5678" />
+                      <label className="block text-xs font-bold text-slate-600 mb-1">Teléfono</label>
+                      <input type="text" name={`${prefix}_tel`} value={(form as any)[`${prefix}_tel`]} onChange={handleChange} className="w-full px-3 py-2 text-sm text-slate-800 bg-slate-50 rounded-lg border border-slate-200 focus:border-orange-400 focus:ring-2 focus:ring-orange-100 outline-none transition-all" placeholder="+52 55 1234 5678" />
                     </div>
                   </div>
                 ))}
               </section>
 
               {/* === REFERENCIAS COMERCIALES === */}
-              <section className="mb-8">
-                <div className="flex items-center gap-3 mb-5 pb-3 border-b-2 border-slate-200">
-                  <div className="p-2 rounded-lg bg-orange-100"><Briefcase className="w-6 h-6 text-orange-600" /></div>
-                  <h2 className="text-xl font-bold text-slate-800">Referencias Comerciales</h2>
+              <section className="mb-5">
+                <div className="flex items-center gap-2 mb-3 pb-2 border-b border-slate-200">
+                  <div className="p-1.5 rounded-md bg-orange-100"><Briefcase className="w-5 h-5 text-orange-600" /></div>
+                  <h2 className="text-lg font-bold text-slate-800">Referencias Comerciales</h2>
                 </div>
                 
                 {[1, 2, 3].map(num => (
-                  <div key={num} className="grid grid-cols-5 gap-4 mb-4">
+                  <div key={num} className="grid grid-cols-5 gap-3 mb-2">
                     <div>
-                      <label className="block text-sm font-bold text-slate-700 mb-2">Ref {num} - Empresa</label>
-                      <input type="text" name={`ref${num}_empresa`} value={(form as any)[`ref${num}_empresa`]} onChange={handleChange} className="w-full px-4 py-3 text-base text-slate-800 bg-slate-50 rounded-xl border-2 border-slate-200 focus:border-orange-400 focus:ring-4 focus:ring-orange-100 outline-none transition-all" placeholder="Nombre empresa" />
+                      <label className="block text-xs font-bold text-slate-600 mb-1">Ref {num} - Empresa</label>
+                      <input type="text" name={`ref${num}_empresa`} value={(form as any)[`ref${num}_empresa`]} onChange={handleChange} className="w-full px-3 py-2 text-sm text-slate-800 bg-slate-50 rounded-lg border border-slate-200 focus:border-orange-400 focus:ring-2 focus:ring-orange-100 outline-none transition-all" placeholder="Nombre empresa" />
                     </div>
                     <div>
-                      <label className="block text-sm font-bold text-slate-700 mb-2">Contacto</label>
-                      <input type="text" name={`ref${num}_contacto`} value={(form as any)[`ref${num}_contacto`]} onChange={handleChange} className="w-full px-4 py-3 text-base text-slate-800 bg-slate-50 rounded-xl border-2 border-slate-200 focus:border-orange-400 focus:ring-4 focus:ring-orange-100 outline-none transition-all" placeholder="Persona" />
+                      <label className="block text-xs font-bold text-slate-600 mb-1">Contacto</label>
+                      <input type="text" name={`ref${num}_contacto`} value={(form as any)[`ref${num}_contacto`]} onChange={handleChange} className="w-full px-3 py-2 text-sm text-slate-800 bg-slate-50 rounded-lg border border-slate-200 focus:border-orange-400 focus:ring-2 focus:ring-orange-100 outline-none transition-all" placeholder="Persona" />
                     </div>
                     <div>
-                      <label className="block text-sm font-bold text-slate-700 mb-2">WhatsApp</label>
-                      <input type="text" name={`ref${num}_whatsapp`} value={(form as any)[`ref${num}_whatsapp`]} onChange={handleChange} className="w-full px-4 py-3 text-base text-slate-800 bg-slate-50 rounded-xl border-2 border-slate-200 focus:border-orange-400 focus:ring-4 focus:ring-orange-100 outline-none transition-all" placeholder="+52 55 1234 5678" />
+                      <label className="block text-xs font-bold text-slate-600 mb-1">WhatsApp</label>
+                      <input type="text" name={`ref${num}_whatsapp`} value={(form as any)[`ref${num}_whatsapp`]} onChange={handleChange} className="w-full px-3 py-2 text-sm text-slate-800 bg-slate-50 rounded-lg border border-slate-200 focus:border-orange-400 focus:ring-2 focus:ring-orange-100 outline-none transition-all" placeholder="+52 55 1234 5678" />
                     </div>
                     <div>
-                      <label className="block text-sm font-bold text-slate-700 mb-2">Email</label>
-                      <input type="email" name={`ref${num}_email`} value={(form as any)[`ref${num}_email`]} onChange={handleChange} className="w-full px-4 py-3 text-base text-slate-800 bg-slate-50 rounded-xl border-2 border-slate-200 focus:border-orange-400 focus:ring-4 focus:ring-orange-100 outline-none transition-all" placeholder="correo@empresa.com" />
+                      <label className="block text-xs font-bold text-slate-600 mb-1">Email</label>
+                      <input type="email" name={`ref${num}_email`} value={(form as any)[`ref${num}_email`]} onChange={handleChange} className="w-full px-3 py-2 text-sm text-slate-800 bg-slate-50 rounded-lg border border-slate-200 focus:border-orange-400 focus:ring-2 focus:ring-orange-100 outline-none transition-all" placeholder="correo@empresa.com" />
                     </div>
                     <div>
-                      <label className="block text-sm font-bold text-slate-700 mb-2">Años</label>
-                      <input type="text" name={`ref${num}_anos`} value={(form as any)[`ref${num}_anos`]} onChange={handleChange} className="w-full px-4 py-3 text-base text-slate-800 bg-slate-50 rounded-xl border-2 border-slate-200 focus:border-orange-400 focus:ring-4 focus:ring-orange-100 outline-none transition-all" placeholder="# años" />
+                      <label className="block text-xs font-bold text-slate-600 mb-1">Años</label>
+                      <input type="text" name={`ref${num}_anos`} value={(form as any)[`ref${num}_anos`]} onChange={handleChange} className="w-full px-3 py-2 text-sm text-slate-800 bg-slate-50 rounded-lg border border-slate-200 focus:border-orange-400 focus:ring-2 focus:ring-orange-100 outline-none transition-all" placeholder="#" />
                     </div>
                   </div>
                 ))}
@@ -410,40 +411,41 @@ export function AltaClientePublico({ solicitudId }: AltaClientePublicoProps) {
 
               {/* === PROCESO FACTURACIÓN === */}
               <section>
-                <div className="flex items-center gap-3 mb-5 pb-3 border-b-2 border-slate-200">
-                  <div className="p-2 rounded-lg bg-orange-100"><FileText className="w-6 h-6 text-orange-600" /></div>
-                  <h2 className="text-xl font-bold text-slate-800">Proceso de Facturación</h2>
+                <div className="flex items-center gap-2 mb-3 pb-2 border-b border-slate-200">
+                  <div className="p-1.5 rounded-md bg-orange-100"><FileText className="w-5 h-5 text-orange-600" /></div>
+                  <h2 className="text-lg font-bold text-slate-800">Proceso de Facturación</h2>
                 </div>
-                <textarea name="proceso_facturacion" value={form.proceso_facturacion} onChange={handleChange} rows={3}
-                  className="w-full px-4 py-3 text-base text-slate-800 bg-slate-50 rounded-xl border-2 border-slate-200 focus:border-orange-400 focus:ring-4 focus:ring-orange-100 outline-none transition-all resize-none" 
+                <textarea name="proceso_facturacion" value={form.proceso_facturacion} onChange={handleChange} rows={2}
+                  className="w-full px-3 py-2 text-sm text-slate-800 bg-slate-50 rounded-lg border border-slate-200 focus:border-orange-400 focus:ring-2 focus:ring-orange-100 outline-none transition-all resize-none" 
                   placeholder="Portal, requisitos especiales, orden de compra, etc." />
               </section>
+              </div>
             </div>
 
-            {/* === RIGHT: DOCUMENTS (25%) === */}
-            <div className="w-[380px] flex-shrink-0 space-y-6">
+            {/* === RIGHT: DOCUMENTS (400px) - Sin scroll, todo visible === */}
+            <div className="w-[400px] flex-shrink-0 flex flex-col gap-3">
               
-              {/* Documents Panel */}
-              <div className="bg-white rounded-2xl shadow-2xl p-6">
-                <div className="flex items-center gap-3 mb-5 pb-3 border-b-2 border-slate-200">
-                  <div className="p-2 rounded-lg bg-orange-100"><FileCheck className="w-6 h-6 text-orange-600" /></div>
-                  <h2 className="text-lg font-bold text-slate-800">Documentos Requeridos</h2>
+              {/* Documents Panel - Compacto */}
+              <div className="bg-white rounded-xl shadow-xl p-4">
+                <div className="flex items-center gap-2 mb-3 pb-2 border-b border-slate-200">
+                  <div className="p-1.5 rounded-md bg-orange-100"><FileCheck className="w-5 h-5 text-orange-600" /></div>
+                  <h2 className="text-base font-bold text-slate-800">Documentos Requeridos</h2>
                 </div>
                 
-                <div className="space-y-3">
+                <div className="space-y-2">
                   {docs.map(doc => {
                     const isUploaded = !!uploadedDocs[doc.key];
                     const isUploading = uploadingDoc === doc.key;
                     return (
-                      <div key={doc.key} className={`flex items-center justify-between p-4 rounded-xl border-2 transition-all ${isUploaded ? 'bg-green-50 border-green-300' : 'bg-slate-50 border-slate-200 hover:border-orange-300'}`}>
-                        <div className="flex items-center gap-3 flex-1 min-w-0">
-                          {isUploaded ? <CheckCircle2 className="w-6 h-6 text-green-500 flex-shrink-0" /> : <FileText className="w-6 h-6 text-slate-400 flex-shrink-0" />}
-                          <span className={`text-sm font-semibold truncate ${isUploaded ? 'text-green-700' : 'text-slate-700'}`}>
+                      <div key={doc.key} className={`flex items-center justify-between p-2.5 rounded-lg border transition-all ${isUploaded ? 'bg-green-50 border-green-300' : 'bg-slate-50 border-slate-200 hover:border-orange-300'}`}>
+                        <div className="flex items-center gap-2 flex-1 min-w-0">
+                          {isUploaded ? <CheckCircle2 className="w-5 h-5 text-green-500 flex-shrink-0" /> : <FileText className="w-5 h-5 text-slate-400 flex-shrink-0" />}
+                          <span className={`text-xs font-semibold truncate ${isUploaded ? 'text-green-700' : 'text-slate-700'}`}>
                             {doc.label} {doc.required && <span className="text-orange-500">*</span>}
                           </span>
                         </div>
-                        <label className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold cursor-pointer transition-all ${isUploaded ? 'bg-green-500 text-white hover:bg-green-600' : 'bg-orange-500 text-white hover:bg-orange-600'}`}>
-                          {isUploading ? <span className="animate-pulse">...</span> : <><Upload className="w-4 h-4" /><span>{isUploaded ? 'Cambiar' : 'Subir'}</span></>}
+                        <label className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold cursor-pointer transition-all ${isUploaded ? 'bg-green-500 text-white hover:bg-green-600' : 'bg-orange-500 text-white hover:bg-orange-600'}`}>
+                          {isUploading ? <span className="animate-pulse">...</span> : <><Upload className="w-3.5 h-3.5" /><span>{isUploaded ? 'Cambiar' : 'Subir'}</span></>}
                           <input type="file" accept=".pdf,.jpg,.jpeg,.png" className="hidden" onChange={(e) => { const file = e.target.files?.[0]; if (file) handleFileUpload(doc.key, file); }} disabled={isUploading} />
                         </label>
                       </div>
@@ -452,23 +454,23 @@ export function AltaClientePublico({ solicitudId }: AltaClientePublicoProps) {
                 </div>
               </div>
 
-              {/* Terms & Submit */}
-              <div className="bg-white rounded-2xl shadow-2xl p-6">
-                <div className="flex items-start gap-3 mb-5">
-                  <input type="checkbox" id="firma_aceptada" name="firma_aceptada" checked={form.firma_aceptada} onChange={handleChange} className="w-6 h-6 mt-0.5 rounded border-slate-300 text-orange-500 focus:ring-orange-500 cursor-pointer" />
-                  <label htmlFor="firma_aceptada" className="text-sm text-slate-600 cursor-pointer leading-relaxed">
+              {/* Terms & Submit - Compacto */}
+              <div className="bg-white rounded-xl shadow-xl p-4">
+                <div className="flex items-start gap-2 mb-3">
+                  <input type="checkbox" id="firma_aceptada" name="firma_aceptada" checked={form.firma_aceptada} onChange={handleChange} className="w-5 h-5 mt-0.5 rounded border-slate-300 text-orange-500 focus:ring-orange-500 cursor-pointer" />
+                  <label htmlFor="firma_aceptada" className="text-xs text-slate-600 cursor-pointer leading-relaxed">
                     Acepto los <a href="/terminos" target="_blank" className="text-orange-500 hover:underline font-semibold">Términos y Condiciones</a> y el tratamiento de mis datos conforme al Aviso de Privacidad.
                   </label>
                 </div>
                 
-                <div className="mb-5">
-                  <label className="block text-sm font-bold text-slate-700 mb-2">Nombre completo (firma digital) *</label>
-                  <input type="text" name="firma_nombre" value={form.firma_nombre} onChange={handleChange} required className="w-full px-4 py-3 text-base text-slate-800 bg-slate-50 rounded-xl border-2 border-slate-200 focus:border-orange-400 focus:ring-4 focus:ring-orange-100 outline-none transition-all" placeholder="Como aparece en su identificación" />
+                <div className="mb-3">
+                  <label className="block text-xs font-bold text-slate-600 mb-1">Nombre completo (firma digital) *</label>
+                  <input type="text" name="firma_nombre" value={form.firma_nombre} onChange={handleChange} required className="w-full px-3 py-2 text-sm text-slate-800 bg-slate-50 rounded-lg border border-slate-200 focus:border-orange-400 focus:ring-2 focus:ring-orange-100 outline-none transition-all" placeholder="Como aparece en su identificación" />
                 </div>
                 
                 <button type="submit" disabled={submitting || !form.firma_aceptada}
-                  className={`w-full py-4 rounded-xl text-lg font-bold text-white transition-all flex items-center justify-center gap-3 ${submitting || !form.firma_aceptada ? 'bg-slate-300 cursor-not-allowed' : 'bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 shadow-xl hover:shadow-2xl transform hover:-translate-y-0.5'}`}>
-                  {submitting ? <span className="animate-pulse">Enviando...</span> : <><CheckCircle2 className="w-6 h-6" /><span>Enviar Solicitud</span></>}
+                  className={`w-full py-3 rounded-lg text-base font-bold text-white transition-all flex items-center justify-center gap-2 ${submitting || !form.firma_aceptada ? 'bg-slate-300 cursor-not-allowed' : 'bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 shadow-lg hover:shadow-xl'}`}>
+                  {submitting ? <span className="animate-pulse">Enviando...</span> : <><CheckCircle2 className="w-5 h-5" /><span>Enviar Solicitud</span></>}
                 </button>
               </div>
             </div>
