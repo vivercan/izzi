@@ -157,7 +157,10 @@ export function AltaClientePublico({ solicitudId }: AltaClientePublicoProps) {
       const { data: { publicUrl } } = supabase.storage.from('alta-documentos').getPublicUrl(fileName);
       setUploadedDocs(prev => ({ ...prev, [docKey]: publicUrl }));
       await supabase.from('alta_clientes').update({ documentos: { ...uploadedDocs, [docKey]: publicUrl } }).eq('id', solicitudId);
-    } catch (err) { console.error('Error:', err); setError('Error al subir'); } 
+    } catch (err: any) { 
+      console.error('Error upload:', err); 
+      setError(`Error al subir ${docKey}: ${err?.message || err?.error_description || JSON.stringify(err)}`); 
+    } 
     finally { setUploadingDoc(null); }
   };
 
