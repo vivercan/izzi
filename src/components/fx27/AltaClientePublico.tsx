@@ -1,9 +1,14 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '../../lib/supabase';
+import { createClient } from '@supabase/supabase-js';
 import { 
   Building2, MapPin, Phone, Mail, Users, FileText, Upload, CheckCircle2, 
   AlertCircle, X, Download, Globe, Briefcase, User, Hash, FileCheck
 } from 'lucide-react';
+
+// Supabase Client
+const SUPABASE_URL = 'https://fbxbsslhewchyibdoyzk.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZieGJzc2xoZXdjaHlpYmRveXprIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI1MzczODEsImV4cCI6MjA3ODExMzM4MX0.Z8JPlg7hhKbA624QGHp2bKKTNtCD3WInQMO5twjl6a0';
+const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 interface Solicitud {
   id: string;
