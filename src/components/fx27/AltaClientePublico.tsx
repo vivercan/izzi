@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { 
   Building2, MapPin, Phone, Mail, Users, FileText, Upload, CheckCircle2, 
@@ -13,6 +12,10 @@ interface Solicitud {
   apellido_cliente: string;
   email_cliente: string;
   estatus: string;
+}
+
+interface AltaClientePublicoProps {
+  id: string;
 }
 
 interface FormData {
@@ -92,8 +95,7 @@ const DOCS_USA = [
   { key: 'id_document', label: 'ID Document', required: true }
 ];
 
-export default function AltaClientePublico() {
-  const { id } = useParams<{ id: string }>();
+export default function AltaClientePublico({ id }: AltaClientePublicoProps) {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [solicitud, setSolicitud] = useState<Solicitud | null>(null);
