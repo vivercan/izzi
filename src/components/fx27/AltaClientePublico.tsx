@@ -20,7 +20,7 @@ interface Solicitud {
 }
 
 interface AltaClientePublicoProps {
-  id: string;
+  solicitudId: string;
 }
 
 interface FormData {
@@ -100,7 +100,7 @@ const DOCS_USA = [
   { key: 'id_document', label: 'ID Document', required: true }
 ];
 
-export default function AltaClientePublico({ id }: AltaClientePublicoProps) {
+export function AltaClientePublico({ solicitudId }: AltaClientePublicoProps) {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [solicitud, setSolicitud] = useState<Solicitud | null>(null);
@@ -123,11 +123,11 @@ export default function AltaClientePublico({ id }: AltaClientePublicoProps) {
     proceso_facturacion: '', firma_nombre: '', firma_aceptada: false
   });
 
-  useEffect(() => { if (id) fetchSolicitud(); }, [id]);
+  useEffect(() => { if (solicitudId) fetchSolicitud(); }, [solicitudId]);
 
   const fetchSolicitud = async () => {
     try {
-      const { data, error } = await supabase.from('alta_clientes').select('*').eq('id', id).single();
+      const { data, error } = await supabase.from('alta_clientes').select('*').eq('id', solicitudId).single();
       if (error) throw error;
       if (!data) throw new Error('Solicitud no encontrada');
       if (data.estatus === 'COMPLETADA') setSuccess(true);
@@ -147,29 +147,29 @@ export default function AltaClientePublico({ id }: AltaClientePublicoProps) {
   };
 
   const handleFileUpload = async (docKey: string, file: File) => {
-    if (!id || !file) return;
+    if (!solicitudId || !file) return;
     setUploadingDoc(docKey);
     try {
       const fileExt = file.name.split('.').pop();
-      const fileName = `${id}/${docKey}_${Date.now()}.${fileExt}`;
+      const fileName = `${solicitudId}/${docKey}_${Date.now()}.${fileExt}`;
       const { error: uploadError } = await supabase.storage.from('alta-documentos').upload(fileName, file);
       if (uploadError) throw uploadError;
       const { data: { publicUrl } } = supabase.storage.from('alta-documentos').getPublicUrl(fileName);
       setUploadedDocs(prev => ({ ...prev, [docKey]: publicUrl }));
-      await supabase.from('alta_clientes').update({ documentos: { ...uploadedDocs, [docKey]: publicUrl } }).eq('id', id);
+      await supabase.from('alta_clientes').update({ documentos: { ...uploadedDocs, [docKey]: publicUrl } }).eq('id', solicitudId);
     } catch (err) { console.error('Error:', err); setError('Error al subir'); } 
     finally { setUploadingDoc(null); }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!id || !form.firma_aceptada) { setError('Debe aceptar los términos'); return; }
+    if (!solicitudId || !form.firma_aceptada) { setError('Debe aceptar los términos'); return; }
     const docs = solicitud?.tipo_empresa === 'USA_CANADA' ? DOCS_USA : DOCS_MEXICANA;
     const missingDocs = docs.filter(d => d.required && !uploadedDocs[d.key]);
     if (missingDocs.length > 0) { setError(`Faltan: ${missingDocs.map(d => d.label).join(', ')}`); return; }
     setSubmitting(true);
     try {
-      const { error } = await supabase.from('alta_clientes').update({ ...form, documentos: uploadedDocs, estatus: 'COMPLETADA', firma_fecha: new Date().toISOString(), updated_at: new Date().toISOString() }).eq('id', id);
+      const { error } = await supabase.from('alta_clientes').update({ ...form, documentos: uploadedDocs, estatus: 'COMPLETADA', firma_fecha: new Date().toISOString(), updated_at: new Date().toISOString() }).eq('id', solicitudId);
       if (error) throw error;
       setSuccess(true);
     } catch (err) { console.error('Error:', err); setError('Error al enviar'); } 
