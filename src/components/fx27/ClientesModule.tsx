@@ -219,9 +219,9 @@ export const ClientesModule = ({ onBack }: ClientesModuleProps) => {
                     backgroundOrigin: 'border-box',
                     backgroundClip: 'padding-box, border-box',
                     boxShadow: '0 2px 4px rgba(0, 0, 0, 0.25), 0 4px 12px rgba(0, 0, 0, 0.45), 0 8px 24px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.05), inset 0 -1px 0 rgba(0, 0, 0, 0.35), inset 2px 2px 4px rgba(30, 50, 80, 0.12), inset -2px -2px 4px rgba(0, 0, 0, 0.2)',
-                    borderRadius: '10px',
-                    width: '200px',
-                    height: '170px',
+                    borderRadius: '12px',
+                    width: '250px',
+                    height: '212px',
                     cursor: 'pointer',
                   }}
                   onMouseEnter={(e) => {
@@ -235,11 +235,11 @@ export const ClientesModule = ({ onBack }: ClientesModuleProps) => {
                     e.currentTarget.style.boxShadow = '0 2px 4px rgba(0, 0, 0, 0.25), 0 4px 12px rgba(0, 0, 0, 0.45), 0 8px 24px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.05), inset 0 -1px 0 rgba(0, 0, 0, 0.35), inset 2px 2px 4px rgba(30, 50, 80, 0.12), inset -2px -2px 4px rgba(0, 0, 0, 0.2)';
                   }}
                 >
-                  <Icon className="w-14 h-14" style={{ color: 'rgba(255, 255, 255, 0.7)' }} />
+                  <Icon style={{ width: '70px', height: '70px', color: 'rgba(255, 255, 255, 0.7)' }} />
                   <span
                     style={{
                       fontFamily: "'Exo 2', sans-serif",
-                      fontSize: '15px',
+                      fontSize: '19px',
                       fontWeight: 500,
                       color: 'rgba(255, 255, 255, 0.85)',
                       textAlign: 'center',
