@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { createClient } from '@supabase/supabase-js';
-import { Upload, CheckCircle2, AlertCircle, Loader2, Send, Shield, HelpCircle, FolderUp, RefreshCw } from 'lucide-react';
+import { Upload, CheckCircle2, AlertCircle, Loader2, Send, Shield, HelpCircle, FolderUp, RefreshCw, Building2, CreditCard } from 'lucide-react';
 
 const supabaseUrl = 'https://fbxbsslhewchyibdoyzk.supabase.co';
 const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZieGJzc2xoZXdjaHlpYmRveXprIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI1MzczODEsImV4cCI6MjA3ODExMzM4MX0.Z8JPlg7hhKbA624QGHp2bKKTNtCD3WInQMO5twjl6a0';
@@ -22,6 +22,10 @@ interface DatosExtraidos {
   estado?: string;
   pais?: string;
   representante_legal?: string;
+  // ═══ NUEVOS CAMPOS BANCARIOS ═══
+  banco?: string;
+  clabe?: string;
+  titular_cuenta?: string;
 }
 
 interface ErrorValidacion {
@@ -35,22 +39,31 @@ interface FormData {
   pagina_web: string;
   tamano_empresa: string;
   whatsapp: string;
+  // ═══ CONTACTO ADMIN CON DEPTO ═══
   contacto_admin_nombre: string;
   contacto_admin_puesto: string;
+  contacto_admin_depto: string;
   contacto_admin_email: string;
   contacto_admin_tel: string;
+  // ═══ CONTACTO FACTURAS CON DEPTO ═══
   contacto_facturas_nombre: string;
   contacto_facturas_puesto: string;
+  contacto_facturas_depto: string;
   contacto_facturas_email: string;
   contacto_facturas_tel: string;
+  // ═══ CONTACTO OP1 CON DEPTO ═══
   contacto_op1_nombre: string;
   contacto_op1_puesto: string;
+  contacto_op1_depto: string;
   contacto_op1_email: string;
   contacto_op1_tel: string;
+  // ═══ CONTACTO OP2 CON DEPTO ═══
   contacto_op2_nombre: string;
   contacto_op2_puesto: string;
+  contacto_op2_depto: string;
   contacto_op2_email: string;
   contacto_op2_tel: string;
+  // Referencias
   ref1_empresa: string;
   ref1_contacto: string;
   ref1_whatsapp: string;
@@ -69,6 +82,11 @@ interface FormData {
   proceso_facturacion: string;
   firma_nombre: string;
   firma_aceptada: boolean;
+  // ═══ FORMA DE PAGO (checkboxes) ═══
+  forma_pago_transferencia: boolean;
+  forma_pago_cheque: boolean;
+  forma_pago_deposito: boolean;
+  forma_pago_portal: boolean;
 }
 
 const TAMANOS_EMPRESA = [
@@ -80,21 +98,31 @@ const TAMANOS_EMPRESA = [
   '500+ colaboradores'
 ];
 
+// ═══ DOCUMENTOS MEXICANA - CON CARÁTULA BANCARIA ═══
 const DOCS_MEXICANA = [
   { key: 'constancia_fiscal', label: 'Constancia Situación Fiscal', required: true, tooltip: 'Mes actual' },
   { key: 'opinion_cumplimiento', label: 'Opinión de Cumplimiento', required: true, tooltip: 'Mes actual' },
   { key: 'comprobante_domicilio', label: 'Comprobante Domicilio', required: true, tooltip: 'Últimos 3 meses' },
   { key: 'ine_representante', label: 'INE Representante Legal', required: true, tooltip: 'Vigente' },
   { key: 'acta_constitutiva', label: 'Acta Constitutiva', required: true, tooltip: 'Copia' },
+  { key: 'caratula_bancaria', label: 'Carátula de Cuenta Bancaria', required: true, tooltip: 'Sin movimientos, solo datos' },
   { key: 'poder_notarial', label: 'Poder Notarial', required: false, tooltip: 'Opcional' }
 ];
 
+// ═══ DOCUMENTOS USA - CON VOID CHECK (ya incluye datos bancarios) ═══
 const DOCS_USA = [
   { key: 'w9', label: 'W-9 Form', required: true, tooltip: 'Año actual' },
   { key: 'bank_statement', label: 'Bank Statement', required: true, tooltip: 'Últimos 3 meses' },
   { key: 'mc_number', label: 'MC# Certificate', required: true, tooltip: 'Vigente' },
-  { key: 'void_check', label: 'Void Check', required: true, tooltip: 'Verificación' },
+  { key: 'void_check', label: 'Void Check', required: true, tooltip: 'Datos bancarios' },
   { key: 'id_document', label: 'ID Document', required: true, tooltip: 'Vigente' }
+];
+
+// ═══ LISTA DE BANCOS MEXICANOS ═══
+const BANCOS_MX = [
+  'BBVA', 'Santander', 'Banorte', 'HSBC', 'Scotiabank', 'Citibanamex', 
+  'Banregio', 'Inbursa', 'Banco Azteca', 'BanCoppel', 'Afirme', 'Multiva',
+  'Banbajío', 'Bansi', 'Mifel', 'Monex', 'Ve por Más', 'Intercam', 'Otro'
 ];
 
 export function AltaClientePublico({ solicitudId }: AltaClientePublicoProps) {
@@ -116,14 +144,15 @@ export function AltaClientePublico({ solicitudId }: AltaClientePublicoProps) {
   
   const [form, setForm] = useState<FormData>({
     giro: '', pagina_web: '', tamano_empresa: 'Seleccione...', whatsapp: '',
-    contacto_admin_nombre: '', contacto_admin_puesto: '', contacto_admin_email: '', contacto_admin_tel: '',
-    contacto_facturas_nombre: '', contacto_facturas_puesto: '', contacto_facturas_email: '', contacto_facturas_tel: '',
-    contacto_op1_nombre: '', contacto_op1_puesto: '', contacto_op1_email: '', contacto_op1_tel: '',
-    contacto_op2_nombre: '', contacto_op2_puesto: '', contacto_op2_email: '', contacto_op2_tel: '',
+    contacto_admin_nombre: '', contacto_admin_puesto: '', contacto_admin_depto: '', contacto_admin_email: '', contacto_admin_tel: '',
+    contacto_facturas_nombre: '', contacto_facturas_puesto: '', contacto_facturas_depto: '', contacto_facturas_email: '', contacto_facturas_tel: '',
+    contacto_op1_nombre: '', contacto_op1_puesto: '', contacto_op1_depto: '', contacto_op1_email: '', contacto_op1_tel: '',
+    contacto_op2_nombre: '', contacto_op2_puesto: '', contacto_op2_depto: '', contacto_op2_email: '', contacto_op2_tel: '',
     ref1_empresa: '', ref1_contacto: '', ref1_whatsapp: '', ref1_email: '', ref1_anos: '',
     ref2_empresa: '', ref2_contacto: '', ref2_whatsapp: '', ref2_email: '', ref2_anos: '',
     ref3_empresa: '', ref3_contacto: '', ref3_whatsapp: '', ref3_email: '', ref3_anos: '',
-    proceso_facturacion: '', firma_nombre: '', firma_aceptada: false
+    proceso_facturacion: '', firma_nombre: '', firma_aceptada: false,
+    forma_pago_transferencia: true, forma_pago_cheque: false, forma_pago_deposito: false, forma_pago_portal: false
   });
   
   const [submitting, setSubmitting] = useState(false);
@@ -191,13 +220,21 @@ export function AltaClientePublico({ solicitudId }: AltaClientePublicoProps) {
     setUploadingAll(true);
     const newDocs = { ...uploadedDocs };
     
+    // ═══ MAPEO ACTUALIZADO CON CARÁTULA BANCARIA ═══
     const fileMapping: Record<string, string[]> = {
       'constancia_fiscal': ['constancia', 'situacion', 'fiscal', 'csf'],
       'opinion_cumplimiento': ['opinion', 'cumplimiento', '32d'],
       'comprobante_domicilio': ['comprobante', 'domicilio', 'luz', 'agua', 'cfe', 'telmex'],
       'ine_representante': ['ine', 'identificacion', 'credencial'],
       'acta_constitutiva': ['acta', 'constitutiva'],
-      'poder_notarial': ['poder', 'notarial']
+      'caratula_bancaria': ['caratula', 'bancaria', 'banco', 'cuenta', 'estado_cuenta'],
+      'poder_notarial': ['poder', 'notarial'],
+      // USA docs
+      'w9': ['w9', 'w-9'],
+      'bank_statement': ['bank', 'statement'],
+      'mc_number': ['mc', 'certificate'],
+      'void_check': ['void', 'check', 'cheque'],
+      'id_document': ['id', 'license', 'passport']
     };
 
     for (let i = 0; i < files.length; i++) {
@@ -302,13 +339,17 @@ export function AltaClientePublico({ solicitudId }: AltaClientePublicoProps) {
     
     let valorFormateado = value;
     
-    // Si es campo de correo → MAYÚSCULAS
+    // Si es campo de correo → minúsculas
     if (name.includes('email')) {
       valorFormateado = formatearCorreo(value);
     }
     // Si es campo de nombre o contacto → Primera letra mayúscula
     else if (name.includes('nombre') || name.includes('contacto') || name === 'firma_nombre') {
       valorFormateado = capitalizar(value);
+    }
+    // Si es campo de departamento → mayúsculas
+    else if (name.includes('depto')) {
+      valorFormateado = value.toUpperCase();
     }
     
     setForm(prev => ({ ...prev, [name]: valorFormateado }));
@@ -336,6 +377,16 @@ export function AltaClientePublico({ solicitudId }: AltaClientePublicoProps) {
     return coincidencias.length >= Math.floor(palabrasRep.length * 0.7);
   };
 
+  // ═══ OBTENER FORMA DE PAGO COMO STRING ═══
+  const getFormaPago = () => {
+    const formas = [];
+    if (form.forma_pago_transferencia) formas.push('Transferencia');
+    if (form.forma_pago_cheque) formas.push('Cheque');
+    if (form.forma_pago_deposito) formas.push('Depósito');
+    if (form.forma_pago_portal) formas.push('Portal');
+    return formas.join(', ') || 'Transferencia';
+  };
+
   const enviarFormulario = async () => {
     if (!form.firma_aceptada || !form.firma_nombre) {
       alert('Debe aceptar los términos y firmar digitalmente');
@@ -348,8 +399,14 @@ export function AltaClientePublico({ solicitudId }: AltaClientePublicoProps) {
     }
     setSubmitting(true);
     try {
+      // ═══ ACTUALIZACIÓN CON TODOS LOS CAMPOS NUEVOS ═══
       const { error } = await supabase.from('alta_clientes').update({ 
-        ...form, 
+        ...form,
+        // Datos bancarios extraídos
+        contacto_admin_banco: datosExtraidos.banco || '',
+        contacto_admin_clabe: datosExtraidos.clabe || '',
+        // Forma de pago como string
+        forma_pago: getFormaPago(),
         estatus: 'PENDIENTE_CSR', 
         firma_fecha: new Date().toISOString() 
       }).eq('id', solicitudId);
@@ -542,13 +599,14 @@ export function AltaClientePublico({ solicitudId }: AltaClientePublicoProps) {
                 {documentos.map((doc) => {
                   const subido = !!uploadedDocs[doc.key];
                   const tieneError = erroresValidacion.some(e => e.documento.toLowerCase().includes(doc.label.toLowerCase().split(' ')[0]));
+                  const esBancario = doc.key === 'caratula_bancaria' || doc.key === 'void_check';
                   return (
                     <div
                       key={doc.key}
                       className="flex items-center justify-between p-3 rounded-xl transition-all"
                       style={{
-                        background: tieneError ? 'rgba(239,68,68,0.12)' : subido ? 'rgba(34,197,94,0.12)' : 'rgba(255,255,255,0.04)',
-                        border: `1.5px solid ${tieneError ? 'rgba(239,68,68,0.35)' : subido ? 'rgba(34,197,94,0.35)' : 'rgba(255,255,255,0.1)'}`,
+                        background: tieneError ? 'rgba(239,68,68,0.12)' : subido ? 'rgba(34,197,94,0.12)' : esBancario ? 'rgba(59,130,246,0.08)' : 'rgba(255,255,255,0.04)',
+                        border: `1.5px solid ${tieneError ? 'rgba(239,68,68,0.35)' : subido ? 'rgba(34,197,94,0.35)' : esBancario ? 'rgba(59,130,246,0.35)' : 'rgba(255,255,255,0.1)'}`,
                       }}
                     >
                       <div className="flex items-center gap-3">
@@ -556,6 +614,8 @@ export function AltaClientePublico({ solicitudId }: AltaClientePublicoProps) {
                           <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0" />
                         ) : subido ? (
                           <CheckCircle2 className="w-5 h-5 text-green-400 flex-shrink-0" />
+                        ) : esBancario ? (
+                          <CreditCard className="w-5 h-5 text-blue-400 flex-shrink-0" />
                         ) : (
                           <div className="w-5 h-5 rounded-full border-2 border-white/25 flex-shrink-0" />
                         )}
@@ -580,6 +640,7 @@ export function AltaClientePublico({ solicitudId }: AltaClientePublicoProps) {
                           </div>
                           {subido && !tieneError && <span className="text-xs text-green-400/80">✓ Subido</span>}
                           {tieneError && <span className="text-xs text-red-400/80">⚠ Requiere corrección</span>}
+                          {esBancario && !subido && <span className="text-xs text-blue-400/80">💳 Datos bancarios</span>}
                         </div>
                       </div>
                       <label
@@ -636,6 +697,7 @@ export function AltaClientePublico({ solicitudId }: AltaClientePublicoProps) {
 
   // Mostrar resumen de datos extraídos
   const tieneExtraccion = datosExtraidos.rfc || datosExtraidos.razon_social;
+  const tieneBanco = datosExtraidos.banco || datosExtraidos.clabe;
 
   return (
     <div className="min-h-screen" style={{ background: 'linear-gradient(135deg, #001f4d 0%, #003d7a 25%, #0066cc 50%, #1a8fff 75%, #4da6ff 100%)' }}>
@@ -692,6 +754,61 @@ export function AltaClientePublico({ solicitudId }: AltaClientePublicoProps) {
           </div>
         )}
 
+        {/* ═══ NUEVA SECCIÓN: DATOS BANCARIOS EXTRAÍDOS ═══ */}
+        {tieneBanco && (
+          <div className="bg-blue-500/10 rounded-xl border border-blue-500/30 p-5">
+            <div className="flex items-center gap-2 mb-3">
+              <CreditCard className="w-5 h-5 text-blue-400" />
+              <h3 className="text-lg font-semibold text-white" style={{ fontFamily: "'Exo 2'" }}>Datos Bancarios (extraídos)</h3>
+            </div>
+            <div className="grid grid-cols-3 gap-4 text-sm">
+              {datosExtraidos.banco && (
+                <div>
+                  <span className="text-white/50">Banco:</span>
+                  <span className="text-white ml-2 font-medium">{datosExtraidos.banco}</span>
+                </div>
+              )}
+              {datosExtraidos.clabe && (
+                <div>
+                  <span className="text-white/50">CLABE:</span>
+                  <span className="text-white ml-2 font-medium font-mono">{datosExtraidos.clabe}</span>
+                </div>
+              )}
+              {datosExtraidos.titular_cuenta && (
+                <div>
+                  <span className="text-white/50">Titular:</span>
+                  <span className="text-white ml-2 font-medium">{datosExtraidos.titular_cuenta}</span>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* ═══ NUEVA SECCIÓN: FORMA DE PAGO (checkboxes) ═══ */}
+        <div className="bg-[#0a1628]/95 rounded-xl border border-white/10 p-6">
+          <h3 className="text-lg font-semibold text-white mb-5" style={{ fontFamily: "'Exo 2'" }}>💳 Forma de Pago</h3>
+          <div className="flex flex-wrap gap-6">
+            {[
+              { key: 'forma_pago_transferencia', label: 'Transferencia' },
+              { key: 'forma_pago_cheque', label: 'Cheque' },
+              { key: 'forma_pago_deposito', label: 'Depósito' },
+              { key: 'forma_pago_portal', label: 'Portal de Proveedores' }
+            ].map((fp) => (
+              <label key={fp.key} className="flex items-center gap-2 cursor-pointer">
+                <input 
+                  type="checkbox" 
+                  name={fp.key} 
+                  checked={(form as any)[fp.key]} 
+                  onChange={handleChange}
+                  className="w-5 h-5 rounded" 
+                  style={{ accentColor: '#fe5000' }} 
+                />
+                <span className="text-white/80" style={{ fontFamily: "'Exo 2'" }}>{fp.label}</span>
+              </label>
+            ))}
+          </div>
+        </div>
+
         {/* Info General */}
         <div className="bg-[#0a1628]/95 rounded-xl border border-white/10 p-6">
           <h3 className="text-lg font-semibold text-white mb-5" style={{ fontFamily: "'Exo 2'" }}>📋 Información Adicional</h3>
@@ -717,20 +834,21 @@ export function AltaClientePublico({ solicitudId }: AltaClientePublicoProps) {
           </div>
         </div>
 
-        {/* Contactos */}
+        {/* ═══ CONTACTOS ACTUALIZADOS CON DEPARTAMENTO ═══ */}
         <div className="bg-[#0a1628]/95 rounded-xl border border-white/10 p-6">
           <h3 className="text-lg font-semibold text-white mb-5" style={{ fontFamily: "'Exo 2'" }}>👥 Contactos</h3>
           {[
-            { prefix: 'contacto_admin', label: 'Administrativo', color: '#fe5000' },
+            { prefix: 'contacto_admin', label: 'Administrativo (Pagos)', color: '#fe5000' },
             { prefix: 'contacto_facturas', label: 'Facturas', color: '#3b82f6' },
-            { prefix: 'contacto_op1', label: 'Operativo 1', color: '#22c55e' },
+            { prefix: 'contacto_op1', label: 'Operativo 1 (Embarques)', color: '#22c55e' },
             { prefix: 'contacto_op2', label: 'Operativo 2', color: '#a855f7' }
           ].map((c) => (
             <div key={c.prefix} className="mb-4 p-4 rounded-lg" style={{ background: 'rgba(255,255,255,0.02)', border: `1px solid ${c.color}25` }}>
               <label className="block text-sm font-semibold mb-3" style={{ fontFamily: "'Exo 2'", color: c.color }}>{c.label}</label>
-              <div className="grid grid-cols-4 gap-3">
+              <div className="grid grid-cols-5 gap-3">
                 <input type="text" name={`${c.prefix}_nombre`} value={(form as any)[`${c.prefix}_nombre`]} onChange={handleChange} placeholder="Nombre" style={{ fontFamily: "'Exo 2'" }} className={inputStyle} />
                 <input type="text" name={`${c.prefix}_puesto`} value={(form as any)[`${c.prefix}_puesto`]} onChange={handleChange} placeholder="Puesto" style={{ fontFamily: "'Exo 2'" }} className={inputStyle} />
+                <input type="text" name={`${c.prefix}_depto`} value={(form as any)[`${c.prefix}_depto`]} onChange={handleChange} placeholder="Depto" style={{ fontFamily: "'Exo 2'" }} className={inputStyle} />
                 <input type="email" name={`${c.prefix}_email`} value={(form as any)[`${c.prefix}_email`]} onChange={handleChange} placeholder="correo@emp.com" style={{ fontFamily: "'Exo 2'" }} className={inputStyle} />
                 <input type="tel" name={`${c.prefix}_tel`} value={(form as any)[`${c.prefix}_tel`]} onChange={handleChange} placeholder="Teléfono" style={{ fontFamily: "'Exo 2'" }} className={inputStyle} />
               </div>
