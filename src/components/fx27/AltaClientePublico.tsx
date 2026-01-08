@@ -287,9 +287,9 @@ export function AltaClientePublico({ solicitudId }: AltaClientePublicoProps) {
       .join(' ');
   };
 
-  // Formatear correo a mayúsculas
+  // Formatear correo a minúsculas
   const formatearCorreo = (email: string) => {
-    return email.toUpperCase();
+    return email.toLowerCase();
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
