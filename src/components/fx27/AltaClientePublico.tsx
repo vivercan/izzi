@@ -245,10 +245,11 @@ export function AltaClientePublico({ solicitudId }: AltaClientePublicoProps) {
     }, 500);
 
     try {
-      const response = await fetch('/api/validar-documentos-alta', {
+      const response = await fetch(`${supabaseUrl}/functions/v1/validar-documentos-alta`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${supabaseAnonKey}`
         },
         body: JSON.stringify({
           solicitudId,
