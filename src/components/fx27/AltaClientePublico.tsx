@@ -283,9 +283,36 @@ export function AltaClientePublico({ solicitudId }: AltaClientePublicoProps) {
     else setForm(prev => ({ ...prev, [name]: value }));
   };
 
+  // Normalizar texto para comparación (quita acentos, mayúsculas, espacios extra)
+  const normalizar = (texto: string) => {
+    return texto
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+  };
+
+  // Verificar si la firma coincide con el representante legal
+  const firmaCoincide = () => {
+    if (!datosExtraidos.representante_legal) return true; // Si no se extrajo, no validar
+    const firmaUsuario = normalizar(form.firma_nombre);
+    const repLegal = normalizar(datosExtraidos.representante_legal);
+    // Verificar que contenga al menos 80% de las palabras
+    const palabrasFirma = firmaUsuario.split(' ').filter(p => p.length > 2);
+    const palabrasRep = repLegal.split(' ').filter(p => p.length > 2);
+    const coincidencias = palabrasFirma.filter(p => palabrasRep.includes(p));
+    return coincidencias.length >= Math.floor(palabrasRep.length * 0.7);
+  };
+
   const enviarFormulario = async () => {
     if (!form.firma_aceptada || !form.firma_nombre) {
       alert('Debe aceptar los términos y firmar digitalmente');
+      return;
+    }
+    
+    if (!firmaCoincide()) {
+      alert(`El nombre de la firma debe coincidir con el Representante Legal: ${datosExtraidos.representante_legal}`);
       return;
     }
     setSubmitting(true);
@@ -713,8 +740,28 @@ export function AltaClientePublico({ solicitudId }: AltaClientePublicoProps) {
             </span>
           </label>
           <div>
-            <label style={{ fontFamily: "'Exo 2'" }} className={labelStyle}>Nombre completo (Firma Digital) *</label>
-            <input type="text" name="firma_nombre" value={form.firma_nombre} onChange={handleChange} placeholder="Escriba su nombre completo" style={{ fontFamily: "'Exo 2'" }} className={inputStyle} />
+            <label style={{ fontFamily: "'Exo 2'" }} className={labelStyle}>
+              Nombre completo (Firma Digital) *
+              {datosExtraidos.representante_legal && (
+                <span className="text-orange-400 ml-2">
+                  — Debe coincidir con: {datosExtraidos.representante_legal}
+                </span>
+              )}
+            </label>
+            <input 
+              type="text" 
+              name="firma_nombre" 
+              value={form.firma_nombre} 
+              onChange={handleChange} 
+              placeholder={datosExtraidos.representante_legal || "Escriba su nombre completo"} 
+              style={{ fontFamily: "'Exo 2'" }} 
+              className={inputStyle} 
+            />
+            {form.firma_nombre && !firmaCoincide() && (
+              <p className="text-red-400 text-sm mt-2" style={{ fontFamily: "'Exo 2'" }}>
+                ⚠️ El nombre no coincide con el Representante Legal
+              </p>
+            )}
           </div>
         </div>
 
