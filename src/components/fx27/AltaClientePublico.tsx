@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { createClient } from '@supabase/supabase-js';
-import { Upload, CheckCircle2, AlertCircle, Loader2, FileText, Lock, Info, Send, Shield, X, HelpCircle } from 'lucide-react';
+import { Upload, CheckCircle2, AlertCircle, Loader2, Send, Shield, HelpCircle, FolderUp } from 'lucide-react';
 
 const supabaseUrl = 'https://fbxbsslhewchyibdoyzk.supabase.co';
 const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZieGJzc2xoZXdjaHlpYmRveXprIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI1MzczODEsImV4cCI6MjA3ODExMzM4MX0.Z8JPlg7hhKbA624QGHp2bKKTNtCD3WInQMO5twjl6a0';
@@ -8,26 +8,6 @@ const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 interface AltaClientePublicoProps {
   solicitudId: string;
-}
-
-interface DatosExtraidos {
-  razon_social?: string;
-  rfc?: string;
-  calle?: string;
-  no_ext?: string;
-  no_int?: string;
-  cp?: string;
-  colonia?: string;
-  ciudad?: string;
-  estado?: string;
-  pais?: string;
-  representante_legal?: string;
-}
-
-interface ErrorValidacion {
-  documento: string;
-  error: string;
-  solucion: string;
 }
 
 interface FormData {
@@ -72,7 +52,7 @@ interface FormData {
 }
 
 const TAMANOS_EMPRESA = [
-  '-',
+  'Seleccione...',
   '1-10 colaboradores',
   '11-50 colaboradores',
   '51-200 colaboradores',
@@ -81,42 +61,35 @@ const TAMANOS_EMPRESA = [
 ];
 
 const DOCS_MEXICANA = [
-  { key: 'constancia_fiscal', label: 'Constancia Situación Fiscal', required: true, tooltip: 'Debe ser del mes fiscal actual', icon: '📄' },
-  { key: 'opinion_cumplimiento', label: 'Opinión de Cumplimiento', required: true, tooltip: 'Debe ser del mes actual', icon: '✅' },
-  { key: 'comprobante_domicilio', label: 'Comprobante Domicilio', required: true, tooltip: 'Recibo de luz, agua o teléfono de los últimos 3 meses', icon: '🏠' },
-  { key: 'ine_representante', label: 'INE Representante Legal', required: true, tooltip: 'INE vigente del representante legal', icon: '🪪' },
-  { key: 'acta_constitutiva', label: 'Acta Constitutiva', required: true, tooltip: 'Copia del acta constitutiva de la empresa', icon: '📋' },
-  { key: 'poder_notarial', label: 'Poder Notarial', required: false, tooltip: 'Solo si aplica representación legal diferente', icon: '⚖️' }
+  { key: 'constancia_fiscal', label: 'Constancia Situación Fiscal', required: true, tooltip: 'Mes actual' },
+  { key: 'opinion_cumplimiento', label: 'Opinión de Cumplimiento', required: true, tooltip: 'Mes actual' },
+  { key: 'comprobante_domicilio', label: 'Comprobante Domicilio', required: true, tooltip: 'Últimos 3 meses' },
+  { key: 'ine_representante', label: 'INE Representante Legal', required: true, tooltip: 'Vigente' },
+  { key: 'acta_constitutiva', label: 'Acta Constitutiva', required: true, tooltip: 'Copia' },
+  { key: 'poder_notarial', label: 'Poder Notarial', required: false, tooltip: 'Opcional' }
 ];
 
 const DOCS_USA = [
-  { key: 'w9', label: 'W-9 Form', required: true, tooltip: 'Formulario W-9 firmado del año actual', icon: '📄' },
-  { key: 'bank_statement', label: 'Bank Statement', required: true, tooltip: 'Estado de cuenta de los últimos 3 meses', icon: '🏦' },
-  { key: 'mc_number', label: 'MC# Certificate', required: true, tooltip: 'Certificado MC activo y vigente', icon: '🚛' },
-  { key: 'void_check', label: 'Void Check', required: true, tooltip: 'Cheque cancelado para verificar cuenta bancaria', icon: '📝' },
-  { key: 'id_document', label: 'ID Document', required: true, tooltip: 'Licencia o pasaporte vigente', icon: '🪪' }
+  { key: 'w9', label: 'W-9 Form', required: true, tooltip: 'Año actual' },
+  { key: 'bank_statement', label: 'Bank Statement', required: true, tooltip: 'Últimos 3 meses' },
+  { key: 'mc_number', label: 'MC# Certificate', required: true, tooltip: 'Vigente' },
+  { key: 'void_check', label: 'Void Check', required: true, tooltip: 'Verificación' },
+  { key: 'id_document', label: 'ID Document', required: true, tooltip: 'Vigente' }
 ];
 
 export function AltaClientePublico({ solicitudId }: AltaClientePublicoProps) {
   const [loading, setLoading] = useState(true);
   const [solicitud, setSolicitud] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
-  
-  // Paso actual: 'documentos' | 'validando' | 'formulario' | 'enviado' | 'completado'
-  const [paso, setPaso] = useState<'documentos' | 'validando' | 'formulario' | 'enviado' | 'completado'>('documentos');
-  
-  // Documentos
+  const [paso, setPaso] = useState<'documentos' | 'formulario' | 'enviado' | 'completado'>('documentos');
   const [uploadingDoc, setUploadingDoc] = useState<string | null>(null);
+  const [uploadingAll, setUploadingAll] = useState(false);
   const [uploadedDocs, setUploadedDocs] = useState<Record<string, string>>({});
+  const [tooltipVisible, setTooltipVisible] = useState<string | null>(null);
+  const multipleInputRef = useRef<HTMLInputElement>(null);
   
-  // Validación
-  const [validando, setValidando] = useState(false);
-  const [erroresValidacion, setErroresValidacion] = useState<ErrorValidacion[]>([]);
-  const [datosExtraidos, setDatosExtraidos] = useState<DatosExtraidos>({});
-  
-  // Formulario
   const [form, setForm] = useState<FormData>({
-    giro: '', pagina_web: '', tamano_empresa: '-', whatsapp: '',
+    giro: '', pagina_web: '', tamano_empresa: 'Seleccione...', whatsapp: '',
     contacto_admin_nombre: '', contacto_admin_puesto: '', contacto_admin_email: '', contacto_admin_tel: '',
     contacto_facturas_nombre: '', contacto_facturas_puesto: '', contacto_facturas_email: '', contacto_facturas_tel: '',
     contacto_op1_nombre: '', contacto_op1_puesto: '', contacto_op1_email: '', contacto_op1_tel: '',
@@ -128,12 +101,12 @@ export function AltaClientePublico({ solicitudId }: AltaClientePublicoProps) {
   });
   
   const [submitting, setSubmitting] = useState(false);
-  const [tooltipVisible, setTooltipVisible] = useState<string | null>(null);
 
   const tipoEmpresa = solicitud?.tipo_empresa || 'MEXICANA';
   const documentos = tipoEmpresa === 'USA_CANADA' ? DOCS_USA : DOCS_MEXICANA;
   const docsRequeridos = documentos.filter(d => d.required);
   const todosRequeridosSubidos = docsRequeridos.every(d => uploadedDocs[d.key]);
+  const cantidadSubidos = documentos.filter(d => uploadedDocs[d.key]).length;
 
   useEffect(() => {
     if (solicitudId) fetchSolicitud();
@@ -141,30 +114,14 @@ export function AltaClientePublico({ solicitudId }: AltaClientePublicoProps) {
 
   const fetchSolicitud = async () => {
     try {
-      const { data, error } = await supabase
-        .from('alta_clientes')
-        .select('*')
-        .eq('id', solicitudId)
-        .single();
-      
+      const { data, error } = await supabase.from('alta_clientes').select('*').eq('id', solicitudId).single();
       if (error) throw error;
       if (!data) throw new Error('Solicitud no encontrada');
-      
       setSolicitud(data);
-      
-      // Restaurar estado según paso_actual
-      if (data.estatus === 'COMPLETADA') {
-        setPaso('completado');
-      } else if (data.estatus === 'PENDIENTE_CSR' || data.estatus === 'PENDIENTE_CXC' || data.estatus === 'PENDIENTE_CONFIRMACION') {
-        setPaso('enviado');
-      } else if (data.documentos_validados && data.datos_extraidos) {
-        setDatosExtraidos(data.datos_extraidos);
-        setPaso('formulario');
-      }
-      
+      if (data.estatus === 'COMPLETADA') setPaso('completado');
+      else if (['PENDIENTE_CSR', 'PENDIENTE_CXC', 'PENDIENTE_CONFIRMACION'].includes(data.estatus)) setPaso('enviado');
+      else if (data.documentos && Object.keys(data.documentos).length >= docsRequeridos.length) setPaso('formulario');
       if (data.documentos) setUploadedDocs(data.documentos);
-      if (data.errores_validacion) setErroresValidacion(data.errores_validacion);
-      
     } catch (err) {
       console.error('Error:', err);
       setError('Error al cargar la solicitud');
@@ -178,25 +135,11 @@ export function AltaClientePublico({ solicitudId }: AltaClientePublicoProps) {
     try {
       const fileExt = file.name.split('.').pop();
       const fileName = `${solicitudId}/${docKey}_${Date.now()}.${fileExt}`;
-      
-      const { error: uploadError } = await supabase.storage
-        .from('alta-documentos')
-        .upload(fileName, file, { upsert: true });
-      
+      const { error: uploadError } = await supabase.storage.from('alta-documentos').upload(fileName, file, { upsert: true });
       if (uploadError) throw uploadError;
-      
       const newDocs = { ...uploadedDocs, [docKey]: fileName };
       setUploadedDocs(newDocs);
-      
-      // Guardar en BD
-      await supabase
-        .from('alta_clientes')
-        .update({ documentos: newDocs, paso_actual: 'DOCUMENTOS' })
-        .eq('id', solicitudId);
-      
-      // Limpiar error de este documento si existía
-      setErroresValidacion(prev => prev.filter(e => e.documento !== docKey));
-      
+      await supabase.from('alta_clientes').update({ documentos: newDocs }).eq('id', solicitudId);
     } catch (err) {
       console.error('Error subiendo:', err);
       alert('Error al subir el documento');
@@ -205,64 +148,66 @@ export function AltaClientePublico({ solicitudId }: AltaClientePublicoProps) {
     }
   };
 
-  const validarDocumentos = async () => {
-    setValidando(true);
-    setPaso('validando');
-    setErroresValidacion([]);
+  const handleUploadMultiple = async (files: FileList) => {
+    setUploadingAll(true);
+    const newDocs = { ...uploadedDocs };
     
-    try {
-      // Llamar a Edge Function para validar con IA
-      const response = await fetch(`${supabaseUrl}/functions/v1/validar-documentos-alta`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${supabaseAnonKey}`
-        },
-        body: JSON.stringify({
-          solicitudId,
-          documentos: uploadedDocs,
-          tipoEmpresa
-        })
-      });
+    // Mapear nombres de archivo a tipos de documento
+    const fileMapping: Record<string, string[]> = {
+      'constancia_fiscal': ['constancia', 'situacion', 'fiscal', 'csf'],
+      'opinion_cumplimiento': ['opinion', 'cumplimiento', '32d'],
+      'comprobante_domicilio': ['comprobante', 'domicilio', 'luz', 'agua', 'cfe', 'telmex'],
+      'ine_representante': ['ine', 'identificacion', 'credencial'],
+      'acta_constitutiva': ['acta', 'constitutiva'],
+      'poder_notarial': ['poder', 'notarial']
+    };
+
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      const fileName = file.name.toLowerCase();
       
-      const result = await response.json();
-      
-      if (!result.success) {
-        // Hay errores de validación
-        setErroresValidacion(result.errores || []);
-        setPaso('documentos');
-      } else {
-        // Documentos válidos, extraer datos
-        setDatosExtraidos(result.datosExtraidos || {});
-        
-        // Guardar en BD
-        await supabase
-          .from('alta_clientes')
-          .update({
-            documentos_validados: true,
-            datos_extraidos: result.datosExtraidos,
-            paso_actual: 'FORMULARIO'
-          })
-          .eq('id', solicitudId);
-        
-        setPaso('formulario');
+      // Buscar a qué tipo de documento corresponde
+      let matchedKey = '';
+      for (const [key, keywords] of Object.entries(fileMapping)) {
+        if (keywords.some(kw => fileName.includes(kw))) {
+          matchedKey = key;
+          break;
+        }
       }
-    } catch (err) {
-      console.error('Error validando:', err);
-      // Por ahora, si falla la validación IA, pasar al formulario sin datos extraídos
-      setPaso('formulario');
-    } finally {
-      setValidando(false);
+      
+      // Si no se encontró match, asignar al primer documento sin subir
+      if (!matchedKey) {
+        const pendingDoc = documentos.find(d => !newDocs[d.key]);
+        if (pendingDoc) matchedKey = pendingDoc.key;
+      }
+      
+      if (matchedKey && !newDocs[matchedKey]) {
+        try {
+          const fileExt = file.name.split('.').pop();
+          const storageName = `${solicitudId}/${matchedKey}_${Date.now()}.${fileExt}`;
+          const { error: uploadError } = await supabase.storage.from('alta-documentos').upload(storageName, file, { upsert: true });
+          if (!uploadError) {
+            newDocs[matchedKey] = storageName;
+          }
+        } catch (err) {
+          console.error('Error:', err);
+        }
+      }
     }
+    
+    setUploadedDocs(newDocs);
+    await supabase.from('alta_clientes').update({ documentos: newDocs }).eq('id', solicitudId);
+    setUploadingAll(false);
+  };
+
+  const continuarAFormulario = () => {
+    if (todosRequeridosSubidos) setPaso('formulario');
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value, type } = e.target;
-    if (type === 'checkbox') {
-      setForm(prev => ({ ...prev, [name]: (e.target as HTMLInputElement).checked }));
-    } else {
-      setForm(prev => ({ ...prev, [name]: value }));
-    }
+    if (type === 'checkbox') setForm(prev => ({ ...prev, [name]: (e.target as HTMLInputElement).checked }));
+    else setForm(prev => ({ ...prev, [name]: value }));
   };
 
   const enviarFormulario = async () => {
@@ -270,38 +215,10 @@ export function AltaClientePublico({ solicitudId }: AltaClientePublicoProps) {
       alert('Debe aceptar los términos y firmar digitalmente');
       return;
     }
-    
     setSubmitting(true);
     try {
-      const dataToSave = {
-        ...form,
-        ...datosExtraidos,
-        estatus: 'PENDIENTE_CSR',
-        paso_actual: 'PENDIENTE_CSR',
-        firma_fecha: new Date().toISOString(),
-        firma_ip: 'Capturado en servidor'
-      };
-      
-      const { error } = await supabase
-        .from('alta_clientes')
-        .update(dataToSave)
-        .eq('id', solicitudId);
-      
+      const { error } = await supabase.from('alta_clientes').update({ ...form, estatus: 'PENDIENTE_CSR', firma_fecha: new Date().toISOString() }).eq('id', solicitudId);
       if (error) throw error;
-      
-      // Enviar correos (Edge Function)
-      await fetch(`${supabaseUrl}/functions/v1/enviar-correo-alta`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${supabaseAnonKey}`
-        },
-        body: JSON.stringify({
-          solicitudId,
-          tipo: 'cliente_completo'
-        })
-      });
-      
       setPaso('enviado');
     } catch (err) {
       console.error('Error:', err);
@@ -312,353 +229,154 @@ export function AltaClientePublico({ solicitudId }: AltaClientePublicoProps) {
   };
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // ESTILOS BASE
-  // ═══════════════════════════════════════════════════════════════════════════
-  const estilos = {
-    fondo: {
-      background: 'linear-gradient(135deg, #001f4d 0%, #003d7a 25%, #0066cc 50%, #1a8fff 75%, #4da6ff 100%)',
-      minHeight: '100vh',
-    },
-    overlay: {
-      background: 'linear-gradient(180deg, rgba(0,0,0,0.3) 0%, rgba(0,0,0,0.2) 50%, rgba(0,0,0,0.3) 100%)',
-      minHeight: '100vh',
-    },
-    card: {
-      background: 'linear-gradient(155deg, rgba(18,32,58,0.96) 0%, rgba(12,22,42,0.98) 35%, rgba(8,16,32,1) 70%, rgba(6,12,24,1) 100%)',
-      border: '1px solid rgba(255,255,255,0.1)',
-      borderRadius: '16px',
-      boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
-    },
-    input: {
-      background: 'rgba(255,255,255,0.05)',
-      border: '1px solid rgba(255,255,255,0.15)',
-      borderRadius: '8px',
-      color: '#fff',
-      fontFamily: "'Exo 2', sans-serif",
-      fontSize: '14px',
-    },
-    inputLocked: {
-      background: 'rgba(255,255,255,0.03)',
-      border: '1px solid rgba(254,80,0,0.3)',
-      borderRadius: '8px',
-      color: 'rgba(255,255,255,0.7)',
-      fontFamily: "'Exo 2', sans-serif",
-      fontSize: '14px',
-    },
-    label: {
-      fontFamily: "'Exo 2', sans-serif",
-      fontSize: '12px',
-      color: 'rgba(255,255,255,0.6)',
-      marginBottom: '4px',
-      display: 'block',
-    },
-    botonPrimario: {
-      background: 'linear-gradient(135deg, #fe5000 0%, #cc4000 100%)',
-      border: 'none',
-      borderRadius: '10px',
-      color: '#fff',
-      fontFamily: "'Exo 2', sans-serif",
-      fontWeight: 600,
-      cursor: 'pointer',
-      transition: 'all 0.3s',
-    },
-    botonSecundario: {
-      background: 'rgba(255,255,255,0.1)',
-      border: '1px solid rgba(255,255,255,0.2)',
-      borderRadius: '8px',
-      color: '#fff',
-      fontFamily: "'Exo 2', sans-serif",
-      cursor: 'pointer',
-    }
-  };
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  // RENDER: LOADING
+  // LOADING / ERROR / COMPLETADO / ENVIADO
   // ═══════════════════════════════════════════════════════════════════════════
   if (loading) {
     return (
-      <div style={estilos.fondo}>
-        <div style={estilos.overlay} className="flex items-center justify-center">
-          <Loader2 className="w-12 h-12 animate-spin text-white/50" />
-        </div>
+      <div className="h-screen flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #001f4d 0%, #0066cc 50%, #4da6ff 100%)' }}>
+        <Loader2 className="w-16 h-16 animate-spin text-white/50" />
       </div>
     );
   }
 
   if (error || !solicitud) {
     return (
-      <div style={estilos.fondo}>
-        <div style={estilos.overlay} className="flex items-center justify-center">
-          <div style={estilos.card} className="p-8 text-center max-w-md">
-            <AlertCircle className="w-16 h-16 mx-auto mb-4" style={{ color: '#fe5000' }} />
-            <h2 style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '20px', color: '#fff', marginBottom: '8px' }}>
-              Solicitud no encontrada
-            </h2>
-            <p style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '14px', color: 'rgba(255,255,255,0.6)' }}>
-              El enlace puede haber expirado o ser incorrecto.
-            </p>
-          </div>
+      <div className="h-screen flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #001f4d 0%, #0066cc 50%, #4da6ff 100%)' }}>
+        <div className="bg-[#0a1628]/95 p-10 rounded-2xl text-center max-w-md border border-white/10">
+          <AlertCircle className="w-16 h-16 mx-auto mb-4 text-orange-500" />
+          <h2 className="text-2xl font-semibold text-white mb-2" style={{ fontFamily: "'Exo 2'" }}>Solicitud no encontrada</h2>
+          <p className="text-white/60" style={{ fontFamily: "'Exo 2'" }}>El enlace puede haber expirado o ser incorrecto.</p>
         </div>
       </div>
     );
   }
 
-  // ═══════════════════════════════════════════════════════════════════════════
-  // RENDER: COMPLETADO
-  // ═══════════════════════════════════════════════════════════════════════════
-  if (paso === 'completado') {
+  if (paso === 'completado' || paso === 'enviado') {
+    const esCompletado = paso === 'completado';
     return (
-      <div style={estilos.fondo}>
-        <div style={estilos.overlay} className="flex items-center justify-center p-4">
-          <div style={estilos.card} className="p-10 text-center max-w-lg">
-            <div className="w-20 h-20 mx-auto mb-6 rounded-full flex items-center justify-center" style={{ background: 'rgba(34,197,94,0.2)' }}>
-              <CheckCircle2 className="w-10 h-10 text-green-400" />
-            </div>
-            <h2 style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '24px', fontWeight: 600, color: '#fff', marginBottom: '12px' }}>
-              ¡Alta Completada!
-            </h2>
-            <p style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '15px', color: 'rgba(255,255,255,0.7)', marginBottom: '24px' }}>
-              Su empresa ha sido dada de alta exitosamente en nuestro sistema.
-              <br /><br />
-              Recibirá un correo con los datos de sus ejecutivos asignados y el directorio de contacto.
-            </p>
-            <div className="p-4 rounded-lg" style={{ background: 'rgba(254,80,0,0.1)', border: '1px solid rgba(254,80,0,0.3)' }}>
-              <p style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '14px', color: '#fe5000' }}>
-                Gracias por confiar en Grupo Loma
-              </p>
-            </div>
+      <div className="h-screen flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #001f4d 0%, #0066cc 50%, #4da6ff 100%)' }}>
+        <div className="bg-[#0a1628]/95 p-12 rounded-2xl text-center max-w-lg border border-white/10">
+          <div className={`w-20 h-20 mx-auto mb-6 rounded-full flex items-center justify-center ${esCompletado ? 'bg-green-500/20' : 'bg-blue-500/20'}`}>
+            {esCompletado ? <CheckCircle2 className="w-10 h-10 text-green-400" /> : <Send className="w-10 h-10 text-blue-400" />}
           </div>
+          <h2 className="text-2xl font-semibold text-white mb-3" style={{ fontFamily: "'Exo 2'" }}>
+            {esCompletado ? '¡Alta Completada!' : '¡Solicitud Enviada!'}
+          </h2>
+          <p className="text-white/70 text-lg" style={{ fontFamily: "'Exo 2'" }}>
+            {esCompletado ? 'Su empresa ha sido dada de alta exitosamente.' : 'Hemos recibido su información. Pronto recibirá confirmación por correo.'}
+          </p>
         </div>
       </div>
     );
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // RENDER: ENVIADO (esperando asignaciones)
-  // ═══════════════════════════════════════════════════════════════════════════
-  if (paso === 'enviado') {
-    return (
-      <div style={estilos.fondo}>
-        <div style={estilos.overlay} className="flex items-center justify-center p-4">
-          <div style={estilos.card} className="p-10 text-center max-w-lg">
-            <div className="w-20 h-20 mx-auto mb-6 rounded-full flex items-center justify-center" style={{ background: 'rgba(59,130,246,0.2)' }}>
-              <Send className="w-10 h-10 text-blue-400" />
-            </div>
-            <h2 style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '24px', fontWeight: 600, color: '#fff', marginBottom: '12px' }}>
-              Solicitud Enviada
-            </h2>
-            <p style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '15px', color: 'rgba(255,255,255,0.7)', marginBottom: '24px' }}>
-              Hemos recibido su información correctamente.
-              <br /><br />
-              Nuestro equipo está procesando su alta y pronto recibirá confirmación por correo electrónico.
-            </p>
-            <div className="flex items-center justify-center gap-2 text-white/50">
-              <Loader2 className="w-5 h-5 animate-spin" />
-              <span style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '14px' }}>Procesando...</span>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  // RENDER: VALIDANDO
-  // ═══════════════════════════════════════════════════════════════════════════
-  if (paso === 'validando') {
-    return (
-      <div style={estilos.fondo}>
-        <div style={estilos.overlay} className="flex items-center justify-center p-4">
-          <div style={estilos.card} className="p-10 text-center max-w-lg">
-            <div className="w-20 h-20 mx-auto mb-6 rounded-full flex items-center justify-center" style={{ background: 'rgba(254,80,0,0.2)' }}>
-              <Shield className="w-10 h-10 animate-pulse" style={{ color: '#fe5000' }} />
-            </div>
-            <h2 style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '24px', fontWeight: 600, color: '#fff', marginBottom: '12px' }}>
-              Validando Documentos
-            </h2>
-            <p style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '15px', color: 'rgba(255,255,255,0.7)', marginBottom: '24px' }}>
-              Estamos verificando la vigencia y autenticidad de sus documentos...
-            </p>
-            
-            <div className="space-y-3 text-left">
-              {documentos.filter(d => d.required).map((doc, idx) => (
-                <div key={doc.key} className="flex items-center gap-3 p-3 rounded-lg" style={{ background: 'rgba(255,255,255,0.03)' }}>
-                  {idx < 2 ? (
-                    <CheckCircle2 className="w-5 h-5 text-green-400" />
-                  ) : idx === 2 ? (
-                    <Loader2 className="w-5 h-5 animate-spin text-orange-400" />
-                  ) : (
-                    <div className="w-5 h-5 rounded-full border border-white/20" />
-                  )}
-                  <span style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '14px', color: 'rgba(255,255,255,0.8)' }}>
-                    {doc.label}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  // RENDER: PASO 1 - DOCUMENTOS
+  // PASO 1: DOCUMENTOS - Sin scroll, todo visible
   // ═══════════════════════════════════════════════════════════════════════════
   if (paso === 'documentos') {
     return (
-      <div style={estilos.fondo}>
-        <div style={estilos.overlay}>
-          {/* Header */}
-          <header className="px-6 py-4 flex items-center justify-between" style={{ background: 'rgba(0,0,0,0.3)', backdropFilter: 'blur(10px)' }}>
-            <div className="flex items-center gap-4">
-              <img src="/grupo-loma-logo.png" alt="Grupo Loma" className="h-10" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
-              <div>
-                <h1 style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '18px', fontWeight: 600, color: '#fff' }}>
-                  Formulario de Alta de Cliente
-                </h1>
-                <p style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '12px', color: 'rgba(255,255,255,0.6)' }}>
-                  Paso 1 de 2: Documentación
-                </p>
-              </div>
-            </div>
-            <div className="px-4 py-2 rounded-full" style={{ background: tipoEmpresa === 'USA_CANADA' ? 'rgba(59,130,246,0.2)' : 'rgba(34,197,94,0.2)' }}>
-              <span style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '14px', color: tipoEmpresa === 'USA_CANADA' ? '#93c5fd' : '#86efac' }}>
-                {tipoEmpresa === 'USA_CANADA' ? '🇺🇸 USA/Canadá' : '🇲🇽 México'}
+      <div className="h-screen flex flex-col" style={{ background: 'linear-gradient(135deg, #001f4d 0%, #003d7a 25%, #0066cc 50%, #1a8fff 75%, #4da6ff 100%)' }}>
+        {/* Header compacto */}
+        <header className="px-6 py-3 flex items-center justify-between" style={{ background: 'rgba(0,0,0,0.4)' }}>
+          <div>
+            <h1 className="text-xl font-semibold text-white" style={{ fontFamily: "'Exo 2'" }}>Alta de Cliente</h1>
+            <p className="text-sm text-white/60" style={{ fontFamily: "'Exo 2'" }}>Paso 1: Documentación</p>
+          </div>
+          <div className="flex items-center gap-3">
+            <span className="text-white/70 text-sm" style={{ fontFamily: "'Exo 2'" }}>{cantidadSubidos}/{documentos.length} documentos</span>
+            <div className="px-4 py-1.5 rounded-full bg-green-500/20">
+              <span className="text-white font-medium" style={{ fontFamily: "'Exo 2'" }}>
+                {tipoEmpresa === 'USA_CANADA' ? '🇺🇸 USA' : '🇲🇽 México'}
               </span>
             </div>
-          </header>
+          </div>
+        </header>
 
-          {/* Contenido */}
-          <div className="max-w-3xl mx-auto p-6">
-            <div style={estilos.card} className="p-8">
-              {/* Título */}
-              <div className="text-center mb-8">
-                <div className="w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center" style={{ background: 'rgba(254,80,0,0.2)' }}>
-                  <Upload className="w-8 h-8" style={{ color: '#fe5000' }} />
+        {/* Contenido principal - flex-1 para ocupar resto */}
+        <div className="flex-1 flex items-center justify-center p-4">
+          <div className="w-full max-w-5xl">
+            <div className="bg-[#0a1628]/95 rounded-2xl border border-white/10 p-6" style={{ boxShadow: '0 8px 32px rgba(0,0,0,0.4)' }}>
+              
+              {/* Título y botón subir todos */}
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h2 className="text-xl font-semibold text-white" style={{ fontFamily: "'Exo 2'" }}>Suba sus documentos</h2>
+                  <p className="text-sm text-white/50" style={{ fontFamily: "'Exo 2'" }}>Suba cada archivo o todos de una vez</p>
                 </div>
-                <h2 style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '22px', fontWeight: 600, color: '#fff', marginBottom: '8px' }}>
-                  Suba sus documentos
-                </h2>
-                <p style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '14px', color: 'rgba(255,255,255,0.6)' }}>
-                  Para agilizar su registro, primero suba los documentos requeridos.
-                  <br />Extraeremos la información automáticamente.
-                </p>
+                <label className="px-5 py-2.5 rounded-xl cursor-pointer flex items-center gap-2 transition-all hover:scale-105"
+                  style={{ background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)' }}>
+                  {uploadingAll ? <Loader2 className="w-5 h-5 animate-spin text-white" /> : <FolderUp className="w-5 h-5 text-white" />}
+                  <span className="text-white font-semibold" style={{ fontFamily: "'Exo 2'" }}>Subir Todos</span>
+                  <input
+                    ref={multipleInputRef}
+                    type="file"
+                    accept=".pdf,.jpg,.jpeg,.png"
+                    multiple
+                    className="hidden"
+                    onChange={(e) => e.target.files && handleUploadMultiple(e.target.files)}
+                    disabled={uploadingAll}
+                  />
+                </label>
               </div>
 
-              {/* Errores de validación */}
-              {erroresValidacion.length > 0 && (
-                <div className="mb-6 p-4 rounded-lg" style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)' }}>
-                  <div className="flex items-center gap-2 mb-3">
-                    <AlertCircle className="w-5 h-5 text-red-400" />
-                    <span style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '14px', fontWeight: 600, color: '#fca5a5' }}>
-                      Problemas encontrados
-                    </span>
-                  </div>
-                  {erroresValidacion.map((err, idx) => (
-                    <div key={idx} className="ml-7 mb-2">
-                      <p style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '13px', color: '#fca5a5' }}>
-                        <strong>{err.documento}:</strong> {err.error}
-                      </p>
-                      <p style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '12px', color: 'rgba(255,255,255,0.5)' }}>
-                        → {err.solucion}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {/* Lista de documentos */}
-              <div className="space-y-3">
+              {/* Grid de documentos 2x3 */}
+              <div className="grid grid-cols-2 gap-3 mb-6">
                 {documentos.map((doc) => {
                   const subido = !!uploadedDocs[doc.key];
-                  const tieneError = erroresValidacion.some(e => e.documento === doc.key);
-                  
                   return (
                     <div
                       key={doc.key}
-                      className="flex items-center justify-between p-4 rounded-lg transition-all"
+                      className="flex items-center justify-between p-3 rounded-xl transition-all"
                       style={{
-                        background: subido 
-                          ? (tieneError ? 'rgba(239,68,68,0.1)' : 'rgba(34,197,94,0.1)')
-                          : 'rgba(255,255,255,0.03)',
-                        border: `1px solid ${subido ? (tieneError ? 'rgba(239,68,68,0.3)' : 'rgba(34,197,94,0.3)') : 'rgba(255,255,255,0.1)'}`,
+                        background: subido ? 'rgba(34,197,94,0.12)' : 'rgba(255,255,255,0.04)',
+                        border: `1.5px solid ${subido ? 'rgba(34,197,94,0.35)' : 'rgba(255,255,255,0.1)'}`,
                       }}
                     >
-                      <div className="flex items-center gap-4">
-                        {/* Estado */}
+                      <div className="flex items-center gap-3">
                         {subido ? (
-                          tieneError ? (
-                            <AlertCircle className="w-6 h-6 text-red-400" />
-                          ) : (
-                            <CheckCircle2 className="w-6 h-6 text-green-400" />
-                          )
+                          <CheckCircle2 className="w-5 h-5 text-green-400 flex-shrink-0" />
                         ) : (
-                          <div className="w-6 h-6 rounded-full border-2 border-white/20 flex items-center justify-center">
-                            <span>{doc.icon}</span>
-                          </div>
+                          <div className="w-5 h-5 rounded-full border-2 border-white/25 flex-shrink-0" />
                         )}
-                        
-                        {/* Info */}
                         <div>
-                          <div className="flex items-center gap-2">
-                            <span style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '14px', color: '#fff', fontWeight: 500 }}>
-                              {doc.label}
-                            </span>
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-white font-medium text-sm" style={{ fontFamily: "'Exo 2'" }}>{doc.label}</span>
                             {doc.required && <span className="text-red-400 text-xs">*</span>}
-                            
-                            {/* Tooltip */}
                             <div className="relative">
                               <button
                                 onMouseEnter={() => setTooltipVisible(doc.key)}
                                 onMouseLeave={() => setTooltipVisible(null)}
-                                className="p-1 hover:bg-white/10 rounded-full transition-colors"
+                                className="p-0.5 hover:bg-white/10 rounded-full"
                               >
-                                <HelpCircle className="w-4 h-4 text-white/40" />
+                                <HelpCircle className="w-3.5 h-3.5 text-white/40" />
                               </button>
                               {tooltipVisible === doc.key && (
-                                <div
-                                  className="absolute left-6 top-0 z-50 px-3 py-2 rounded-lg whitespace-nowrap"
-                                  style={{ background: 'rgba(0,0,0,0.9)', border: '1px solid rgba(254,80,0,0.5)' }}
-                                >
-                                  <span style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '12px', color: '#fff' }}>
-                                    {doc.tooltip}
-                                  </span>
+                                <div className="absolute left-5 top-0 z-50 px-2 py-1 rounded bg-black/95 border border-orange-500/50 whitespace-nowrap">
+                                  <span className="text-xs text-white" style={{ fontFamily: "'Exo 2'" }}>{doc.tooltip}</span>
                                 </div>
                               )}
                             </div>
                           </div>
-                          {subido && (
-                            <span style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '11px', color: 'rgba(255,255,255,0.5)' }}>
-                              Documento subido
-                            </span>
-                          )}
+                          {subido && <span className="text-xs text-green-400/80">✓ Subido</span>}
                         </div>
                       </div>
-
-                      {/* Botón subir */}
                       <label
-                        className="px-4 py-2 rounded-lg cursor-pointer transition-all flex items-center gap-2"
+                        className="px-3 py-1.5 rounded-lg cursor-pointer flex items-center gap-1.5 transition-all text-sm"
                         style={{
-                          background: subido ? 'rgba(255,255,255,0.1)' : 'linear-gradient(135deg, #fe5000 0%, #cc4000 100%)',
+                          background: subido ? 'rgba(255,255,255,0.08)' : 'linear-gradient(135deg, #fe5000 0%, #cc4000 100%)',
                           color: '#fff',
-                          fontFamily: "'Exo 2', sans-serif",
-                          fontSize: '13px',
+                          fontFamily: "'Exo 2'",
                           fontWeight: 500,
                         }}
                       >
-                        {uploadingDoc === doc.key ? (
-                          <Loader2 className="w-4 h-4 animate-spin" />
-                        ) : (
-                          <Upload className="w-4 h-4" />
-                        )}
+                        {uploadingDoc === doc.key ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
                         {subido ? 'Cambiar' : 'Subir'}
                         <input
                           type="file"
                           accept=".pdf,.jpg,.jpeg,.png"
                           className="hidden"
                           onChange={(e) => e.target.files?.[0] && handleUpload(doc.key, e.target.files[0])}
-                          disabled={uploadingDoc !== null}
+                          disabled={uploadingDoc !== null || uploadingAll}
                         />
                       </label>
                     </div>
@@ -667,29 +385,21 @@ export function AltaClientePublico({ solicitudId }: AltaClientePublicoProps) {
               </div>
 
               {/* Botón continuar */}
-              <div className="mt-8">
-                <button
-                  onClick={validarDocumentos}
-                  disabled={!todosRequeridosSubidos || validando}
-                  className="w-full py-4 rounded-lg flex items-center justify-center gap-3 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
-                  style={estilos.botonPrimario}
-                >
-                  {validando ? (
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                  ) : (
-                    <Shield className="w-5 h-5" />
-                  )}
-                  <span style={{ fontSize: '16px' }}>
-                    {validando ? 'Validando...' : 'Validar y Continuar'}
-                  </span>
-                </button>
-                
-                {!todosRequeridosSubidos && (
-                  <p className="text-center mt-3" style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '12px', color: 'rgba(255,255,255,0.5)' }}>
-                    Suba todos los documentos requeridos (*) para continuar
-                  </p>
-                )}
-              </div>
+              <button
+                onClick={continuarAFormulario}
+                disabled={!todosRequeridosSubidos}
+                className="w-full py-3.5 rounded-xl flex items-center justify-center gap-2 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                style={{ background: todosRequeridosSubidos ? 'linear-gradient(135deg, #fe5000 0%, #cc4000 100%)' : 'rgba(255,255,255,0.1)' }}
+              >
+                <Shield className="w-5 h-5 text-white" />
+                <span className="text-white font-semibold text-lg" style={{ fontFamily: "'Exo 2'" }}>Continuar al Formulario</span>
+              </button>
+              
+              {!todosRequeridosSubidos && (
+                <p className="text-center mt-3 text-white/50 text-sm" style={{ fontFamily: "'Exo 2'" }}>
+                  Complete los documentos marcados con * para continuar
+                </p>
+              )}
             </div>
           </div>
         </div>
@@ -698,390 +408,129 @@ export function AltaClientePublico({ solicitudId }: AltaClientePublicoProps) {
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // RENDER: PASO 2 - FORMULARIO
+  // PASO 2: FORMULARIO
   // ═══════════════════════════════════════════════════════════════════════════
+  const inputStyle = "w-full px-4 py-3 bg-white/5 border border-white/15 rounded-lg text-white text-base outline-none focus:border-orange-500/50 transition-colors";
+  const labelStyle = "block text-sm font-medium text-white/70 mb-2";
+
   return (
-    <div style={estilos.fondo}>
-      <div style={estilos.overlay} className="min-h-screen">
-        {/* Header */}
-        <header className="px-6 py-4 flex items-center justify-between sticky top-0 z-50" style={{ background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(10px)' }}>
-          <div className="flex items-center gap-4">
-            <img src="/grupo-loma-logo.png" alt="Grupo Loma" className="h-10" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+    <div className="min-h-screen" style={{ background: 'linear-gradient(135deg, #001f4d 0%, #003d7a 25%, #0066cc 50%, #1a8fff 75%, #4da6ff 100%)' }}>
+      {/* Header sticky */}
+      <header className="px-6 py-3 flex items-center justify-between sticky top-0 z-50" style={{ background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(10px)' }}>
+        <div>
+          <h1 className="text-xl font-semibold text-white" style={{ fontFamily: "'Exo 2'" }}>Alta de Cliente</h1>
+          <p className="text-sm text-white/60" style={{ fontFamily: "'Exo 2'" }}>Paso 2: Complete su información</p>
+        </div>
+        <div className="flex items-center gap-3">
+          <div className="px-3 py-1.5 rounded-full bg-green-500/20 flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4 text-green-400" />
+            <span className="text-green-300 text-sm font-medium" style={{ fontFamily: "'Exo 2'" }}>Docs OK</span>
+          </div>
+          <div className="px-4 py-1.5 rounded-full bg-green-500/20">
+            <span className="text-white font-medium" style={{ fontFamily: "'Exo 2'" }}>
+              {tipoEmpresa === 'USA_CANADA' ? '🇺🇸 USA' : '🇲🇽 México'}
+            </span>
+          </div>
+        </div>
+      </header>
+
+      {/* Formulario */}
+      <div className="max-w-4xl mx-auto p-6 space-y-6">
+        
+        {/* Info General */}
+        <div className="bg-[#0a1628]/95 rounded-xl border border-white/10 p-6">
+          <h3 className="text-lg font-semibold text-white mb-5" style={{ fontFamily: "'Exo 2'" }}>📋 Información General</h3>
+          <div className="grid grid-cols-2 gap-5">
             <div>
-              <h1 style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '18px', fontWeight: 600, color: '#fff' }}>
-                Formulario de Alta de Cliente
-              </h1>
-              <p style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '12px', color: 'rgba(255,255,255,0.6)' }}>
-                Paso 2 de 2: Complete su información
-              </p>
+              <label style={{ fontFamily: "'Exo 2'" }} className={labelStyle}>Giro / Actividad</label>
+              <input type="text" name="giro" value={form.giro} onChange={handleChange} placeholder="Ej: Comercialización de productos" style={{ fontFamily: "'Exo 2'" }} className={inputStyle} />
             </div>
-          </div>
-          <div className="flex items-center gap-3">
-            <div className="px-3 py-1 rounded-full" style={{ background: 'rgba(34,197,94,0.2)' }}>
-              <span style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '12px', color: '#86efac' }}>
-                ✓ Documentos validados
-              </span>
+            <div>
+              <label style={{ fontFamily: "'Exo 2'" }} className={labelStyle}>Página Web</label>
+              <input type="text" name="pagina_web" value={form.pagina_web} onChange={handleChange} placeholder="www.empresa.com" style={{ fontFamily: "'Exo 2'" }} className={inputStyle} />
             </div>
-            <div className="px-4 py-2 rounded-full" style={{ background: tipoEmpresa === 'USA_CANADA' ? 'rgba(59,130,246,0.2)' : 'rgba(34,197,94,0.2)' }}>
-              <span style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '14px', color: tipoEmpresa === 'USA_CANADA' ? '#93c5fd' : '#86efac' }}>
-                {tipoEmpresa === 'USA_CANADA' ? '🇺🇸 USA/Canadá' : '🇲🇽 México'}
-              </span>
+            <div>
+              <label style={{ fontFamily: "'Exo 2'" }} className={labelStyle}>WhatsApp</label>
+              <input type="tel" name="whatsapp" value={form.whatsapp} onChange={handleChange} placeholder="+52 449 000 0000" style={{ fontFamily: "'Exo 2'" }} className={inputStyle} />
             </div>
-          </div>
-        </header>
-
-        {/* Contenido */}
-        <div className="max-w-5xl mx-auto p-6">
-          <div className="grid grid-cols-3 gap-6">
-            
-            {/* Columna izquierda y centro: Formulario */}
-            <div className="col-span-2 space-y-6">
-              
-              {/* Datos Extraídos (bloqueados) */}
-              <div style={estilos.card} className="p-6">
-                <div className="flex items-center gap-3 mb-4">
-                  <Lock className="w-5 h-5" style={{ color: '#fe5000' }} />
-                  <h3 style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '16px', fontWeight: 600, color: '#fff' }}>
-                    Datos Extraídos de sus Documentos
-                  </h3>
-                </div>
-                <p style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '12px', color: 'rgba(255,255,255,0.5)', marginBottom: '16px' }}>
-                  Esta información fue extraída automáticamente y no puede ser modificada
-                </p>
-                
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="col-span-2">
-                    <label style={estilos.label}>Razón Social</label>
-                    <div className="relative">
-                      <input
-                        type="text"
-                        value={datosExtraidos.razon_social || 'Pendiente de extracción'}
-                        disabled
-                        className="w-full px-4 py-3 pr-10"
-                        style={estilos.inputLocked}
-                      />
-                      <Lock className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-orange-400/50" />
-                    </div>
-                  </div>
-                  
-                  <div>
-                    <label style={estilos.label}>RFC</label>
-                    <div className="relative">
-                      <input
-                        type="text"
-                        value={datosExtraidos.rfc || 'Pendiente'}
-                        disabled
-                        className="w-full px-4 py-3 pr-10"
-                        style={estilos.inputLocked}
-                      />
-                      <Lock className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-orange-400/50" />
-                    </div>
-                  </div>
-                  
-                  <div>
-                    <label style={estilos.label}>Representante Legal</label>
-                    <div className="relative">
-                      <input
-                        type="text"
-                        value={datosExtraidos.representante_legal || 'Pendiente'}
-                        disabled
-                        className="w-full px-4 py-3 pr-10"
-                        style={estilos.inputLocked}
-                      />
-                      <Lock className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-orange-400/50" />
-                    </div>
-                  </div>
-                </div>
-                
-                {/* Dirección extraída */}
-                <div className="mt-4 p-4 rounded-lg" style={{ background: 'rgba(255,255,255,0.02)' }}>
-                  <label style={estilos.label}>Dirección Fiscal</label>
-                  <p style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '14px', color: 'rgba(255,255,255,0.7)' }}>
-                    {datosExtraidos.calle ? (
-                      `${datosExtraidos.calle} ${datosExtraidos.no_ext || ''}${datosExtraidos.no_int ? ` Int. ${datosExtraidos.no_int}` : ''}, Col. ${datosExtraidos.colonia || ''}, ${datosExtraidos.ciudad || ''}, ${datosExtraidos.estado || ''} CP ${datosExtraidos.cp || ''}`
-                    ) : (
-                      'Pendiente de extracción'
-                    )}
-                  </p>
-                </div>
-              </div>
-
-              {/* Datos a complementar */}
-              <div style={estilos.card} className="p-6">
-                <h3 style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '16px', fontWeight: 600, color: '#fff', marginBottom: '16px' }}>
-                  ✏️ Información Adicional
-                </h3>
-                
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label style={estilos.label}>Giro / Actividad</label>
-                    <input
-                      type="text"
-                      name="giro"
-                      value={form.giro}
-                      onChange={handleChange}
-                      placeholder="Ej: Comercialización de productos"
-                      className="w-full px-4 py-3"
-                      style={estilos.input}
-                    />
-                  </div>
-                  <div>
-                    <label style={estilos.label}>Página Web</label>
-                    <input
-                      type="text"
-                      name="pagina_web"
-                      value={form.pagina_web}
-                      onChange={handleChange}
-                      placeholder="www.ejemplo.com"
-                      className="w-full px-4 py-3"
-                      style={estilos.input}
-                    />
-                  </div>
-                  <div>
-                    <label style={estilos.label}>WhatsApp de Contacto</label>
-                    <input
-                      type="tel"
-                      name="whatsapp"
-                      value={form.whatsapp}
-                      onChange={handleChange}
-                      placeholder="+52 449 000 0000"
-                      className="w-full px-4 py-3"
-                      style={estilos.input}
-                    />
-                  </div>
-                  <div>
-                    <label style={estilos.label}>Tamaño de Empresa</label>
-                    <select
-                      name="tamano_empresa"
-                      value={form.tamano_empresa}
-                      onChange={handleChange}
-                      className="w-full px-4 py-3"
-                      style={estilos.input}
-                    >
-                      {TAMANOS_EMPRESA.map(t => <option key={t} value={t}>{t}</option>)}
-                    </select>
-                  </div>
-                </div>
-              </div>
-
-              {/* Contactos */}
-              <div style={estilos.card} className="p-6">
-                <h3 style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '16px', fontWeight: 600, color: '#fff', marginBottom: '16px' }}>
-                  👥 Contactos
-                </h3>
-                
-                {[
-                  { prefix: 'contacto_admin', label: 'Administrativo' },
-                  { prefix: 'contacto_facturas', label: 'Facturas' },
-                  { prefix: 'contacto_op1', label: 'Operativo 1' },
-                  { prefix: 'contacto_op2', label: 'Operativo 2' }
-                ].map((contacto) => (
-                  <div key={contacto.prefix} className="mb-4 p-4 rounded-lg" style={{ background: 'rgba(255,255,255,0.02)' }}>
-                    <label style={{ ...estilos.label, fontSize: '13px', color: '#fe5000', marginBottom: '12px' }}>
-                      {contacto.label}
-                    </label>
-                    <div className="grid grid-cols-4 gap-3">
-                      <input
-                        type="text"
-                        name={`${contacto.prefix}_nombre`}
-                        value={(form as any)[`${contacto.prefix}_nombre`]}
-                        onChange={handleChange}
-                        placeholder="Nombre"
-                        className="px-3 py-2"
-                        style={estilos.input}
-                      />
-                      <input
-                        type="text"
-                        name={`${contacto.prefix}_puesto`}
-                        value={(form as any)[`${contacto.prefix}_puesto`]}
-                        onChange={handleChange}
-                        placeholder="Puesto"
-                        className="px-3 py-2"
-                        style={estilos.input}
-                      />
-                      <input
-                        type="email"
-                        name={`${contacto.prefix}_email`}
-                        value={(form as any)[`${contacto.prefix}_email`]}
-                        onChange={handleChange}
-                        placeholder="correo@empresa.com"
-                        className="px-3 py-2"
-                        style={estilos.input}
-                      />
-                      <input
-                        type="tel"
-                        name={`${contacto.prefix}_tel`}
-                        value={(form as any)[`${contacto.prefix}_tel`]}
-                        onChange={handleChange}
-                        placeholder="Teléfono"
-                        className="px-3 py-2"
-                        style={estilos.input}
-                      />
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              {/* Referencias Comerciales */}
-              <div style={estilos.card} className="p-6">
-                <h3 style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '16px', fontWeight: 600, color: '#fff', marginBottom: '16px' }}>
-                  🏢 Referencias Comerciales
-                </h3>
-                
-                {[1, 2, 3].map((num) => (
-                  <div key={num} className="mb-4 p-4 rounded-lg" style={{ background: 'rgba(255,255,255,0.02)' }}>
-                    <label style={{ ...estilos.label, fontSize: '13px', color: '#fe5000', marginBottom: '12px' }}>
-                      Referencia {num}
-                    </label>
-                    <div className="grid grid-cols-5 gap-3">
-                      <input
-                        type="text"
-                        name={`ref${num}_empresa`}
-                        value={(form as any)[`ref${num}_empresa`]}
-                        onChange={handleChange}
-                        placeholder="Empresa"
-                        className="px-3 py-2"
-                        style={estilos.input}
-                      />
-                      <input
-                        type="text"
-                        name={`ref${num}_contacto`}
-                        value={(form as any)[`ref${num}_contacto`]}
-                        onChange={handleChange}
-                        placeholder="Contacto"
-                        className="px-3 py-2"
-                        style={estilos.input}
-                      />
-                      <input
-                        type="tel"
-                        name={`ref${num}_whatsapp`}
-                        value={(form as any)[`ref${num}_whatsapp`]}
-                        onChange={handleChange}
-                        placeholder="WhatsApp"
-                        className="px-3 py-2"
-                        style={estilos.input}
-                      />
-                      <input
-                        type="email"
-                        name={`ref${num}_email`}
-                        value={(form as any)[`ref${num}_email`]}
-                        onChange={handleChange}
-                        placeholder="Email"
-                        className="px-3 py-2"
-                        style={estilos.input}
-                      />
-                      <input
-                        type="text"
-                        name={`ref${num}_anos`}
-                        value={(form as any)[`ref${num}_anos`]}
-                        onChange={handleChange}
-                        placeholder="Años"
-                        className="px-3 py-2"
-                        style={estilos.input}
-                      />
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              {/* Proceso de Facturación */}
-              <div style={estilos.card} className="p-6">
-                <h3 style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '16px', fontWeight: 600, color: '#fff', marginBottom: '16px' }}>
-                  📄 Proceso de Facturación
-                </h3>
-                <textarea
-                  name="proceso_facturacion"
-                  value={form.proceso_facturacion}
-                  onChange={handleChange}
-                  placeholder="Describa su proceso de facturación: portal de proveedores, requisitos, días de pago, condiciones de crédito..."
-                  rows={4}
-                  className="w-full px-4 py-3"
-                  style={estilos.input}
-                />
-              </div>
-
-              {/* Términos y Firma */}
-              <div style={estilos.card} className="p-6">
-                <h3 style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '16px', fontWeight: 600, color: '#fff', marginBottom: '16px' }}>
-                  ✍️ Términos y Firma Digital
-                </h3>
-                
-                <label className="flex items-start gap-3 cursor-pointer mb-6">
-                  <input
-                    type="checkbox"
-                    name="firma_aceptada"
-                    checked={form.firma_aceptada}
-                    onChange={handleChange}
-                    className="mt-1 w-5 h-5 rounded"
-                    style={{ accentColor: '#fe5000' }}
-                  />
-                  <span style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '13px', color: 'rgba(255,255,255,0.8)' }}>
-                    Acepto los <a href="#" className="text-orange-400 underline">Términos y Condiciones</a> y el tratamiento de mis datos conforme al <a href="#" className="text-orange-400 underline">Aviso de Privacidad</a>.
-                  </span>
-                </label>
-                
-                <div>
-                  <label style={estilos.label}>Nombre completo (Firma Digital) *</label>
-                  <input
-                    type="text"
-                    name="firma_nombre"
-                    value={form.firma_nombre}
-                    onChange={handleChange}
-                    placeholder="Nombre completo del representante legal"
-                    className="w-full px-4 py-3"
-                    style={estilos.input}
-                  />
-                </div>
-              </div>
-
-              {/* Botón enviar */}
-              <button
-                onClick={enviarFormulario}
-                disabled={submitting || !form.firma_aceptada || !form.firma_nombre}
-                className="w-full py-5 rounded-xl flex items-center justify-center gap-3 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
-                style={estilos.botonPrimario}
-              >
-                {submitting ? (
-                  <Loader2 className="w-6 h-6 animate-spin" />
-                ) : (
-                  <Send className="w-6 h-6" />
-                )}
-                <span style={{ fontSize: '18px', fontWeight: 600 }}>
-                  {submitting ? 'Enviando...' : 'Enviar Solicitud'}
-                </span>
-              </button>
-            </div>
-
-            {/* Columna derecha: Panel de documentos */}
-            <div className="col-span-1">
-              <div style={estilos.card} className="p-5 sticky top-24">
-                <div className="flex items-center gap-2 mb-4">
-                  <CheckCircle2 className="w-5 h-5 text-green-400" />
-                  <h3 style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '14px', fontWeight: 600, color: '#fff' }}>
-                    Documentos Validados
-                  </h3>
-                </div>
-                
-                <div className="space-y-2">
-                  {documentos.filter(d => uploadedDocs[d.key]).map((doc) => (
-                    <div key={doc.key} className="flex items-center gap-2 p-2 rounded" style={{ background: 'rgba(34,197,94,0.1)' }}>
-                      <CheckCircle2 className="w-4 h-4 text-green-400 flex-shrink-0" />
-                      <span style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '12px', color: 'rgba(255,255,255,0.8)' }}>
-                        {doc.label}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-                
-                <div className="mt-6 pt-4" style={{ borderTop: '1px solid rgba(255,255,255,0.1)' }}>
-                  <p style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '11px', color: 'rgba(255,255,255,0.5)' }}>
-                    Sus documentos han sido verificados y cumplen con los requisitos de vigencia.
-                  </p>
-                </div>
-              </div>
+            <div>
+              <label style={{ fontFamily: "'Exo 2'" }} className={labelStyle}>Tamaño de Empresa</label>
+              <select name="tamano_empresa" value={form.tamano_empresa} onChange={handleChange} style={{ fontFamily: "'Exo 2'" }} className={inputStyle}>
+                {TAMANOS_EMPRESA.map(t => <option key={t} value={t} style={{ background: '#1a1a2e' }}>{t}</option>)}
+              </select>
             </div>
           </div>
         </div>
+
+        {/* Contactos */}
+        <div className="bg-[#0a1628]/95 rounded-xl border border-white/10 p-6">
+          <h3 className="text-lg font-semibold text-white mb-5" style={{ fontFamily: "'Exo 2'" }}>👥 Contactos</h3>
+          {[
+            { prefix: 'contacto_admin', label: 'Administrativo', color: '#fe5000' },
+            { prefix: 'contacto_facturas', label: 'Facturas', color: '#3b82f6' },
+            { prefix: 'contacto_op1', label: 'Operativo 1', color: '#22c55e' },
+            { prefix: 'contacto_op2', label: 'Operativo 2', color: '#a855f7' }
+          ].map((c) => (
+            <div key={c.prefix} className="mb-4 p-4 rounded-lg" style={{ background: 'rgba(255,255,255,0.02)', border: `1px solid ${c.color}25` }}>
+              <label className="block text-sm font-semibold mb-3" style={{ fontFamily: "'Exo 2'", color: c.color }}>{c.label}</label>
+              <div className="grid grid-cols-4 gap-3">
+                <input type="text" name={`${c.prefix}_nombre`} value={(form as any)[`${c.prefix}_nombre`]} onChange={handleChange} placeholder="Nombre" style={{ fontFamily: "'Exo 2'" }} className={inputStyle} />
+                <input type="text" name={`${c.prefix}_puesto`} value={(form as any)[`${c.prefix}_puesto`]} onChange={handleChange} placeholder="Puesto" style={{ fontFamily: "'Exo 2'" }} className={inputStyle} />
+                <input type="email" name={`${c.prefix}_email`} value={(form as any)[`${c.prefix}_email`]} onChange={handleChange} placeholder="correo@emp.com" style={{ fontFamily: "'Exo 2'" }} className={inputStyle} />
+                <input type="tel" name={`${c.prefix}_tel`} value={(form as any)[`${c.prefix}_tel`]} onChange={handleChange} placeholder="Teléfono" style={{ fontFamily: "'Exo 2'" }} className={inputStyle} />
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Referencias */}
+        <div className="bg-[#0a1628]/95 rounded-xl border border-white/10 p-6">
+          <h3 className="text-lg font-semibold text-white mb-5" style={{ fontFamily: "'Exo 2'" }}>🏢 Referencias Comerciales</h3>
+          {[1, 2, 3].map((n) => (
+            <div key={n} className="mb-4 p-4 rounded-lg" style={{ background: 'rgba(255,255,255,0.02)' }}>
+              <label className="block text-sm font-semibold text-orange-500 mb-3" style={{ fontFamily: "'Exo 2'" }}>Referencia {n}</label>
+              <div className="grid grid-cols-5 gap-3">
+                <input type="text" name={`ref${n}_empresa`} value={(form as any)[`ref${n}_empresa`]} onChange={handleChange} placeholder="Empresa" style={{ fontFamily: "'Exo 2'" }} className={inputStyle} />
+                <input type="text" name={`ref${n}_contacto`} value={(form as any)[`ref${n}_contacto`]} onChange={handleChange} placeholder="Contacto" style={{ fontFamily: "'Exo 2'" }} className={inputStyle} />
+                <input type="tel" name={`ref${n}_whatsapp`} value={(form as any)[`ref${n}_whatsapp`]} onChange={handleChange} placeholder="WhatsApp" style={{ fontFamily: "'Exo 2'" }} className={inputStyle} />
+                <input type="email" name={`ref${n}_email`} value={(form as any)[`ref${n}_email`]} onChange={handleChange} placeholder="Email" style={{ fontFamily: "'Exo 2'" }} className={inputStyle} />
+                <input type="text" name={`ref${n}_anos`} value={(form as any)[`ref${n}_anos`]} onChange={handleChange} placeholder="Años" style={{ fontFamily: "'Exo 2'" }} className={inputStyle} />
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Facturación */}
+        <div className="bg-[#0a1628]/95 rounded-xl border border-white/10 p-6">
+          <h3 className="text-lg font-semibold text-white mb-5" style={{ fontFamily: "'Exo 2'" }}>📄 Proceso de Facturación</h3>
+          <textarea name="proceso_facturacion" value={form.proceso_facturacion} onChange={handleChange} placeholder="Describa: portal de proveedores, requisitos, días de pago, condiciones..." rows={4} style={{ fontFamily: "'Exo 2'", resize: 'vertical' }} className={inputStyle} />
+        </div>
+
+        {/* Firma */}
+        <div className="bg-[#0a1628]/95 rounded-xl border border-white/10 p-6">
+          <h3 className="text-lg font-semibold text-white mb-5" style={{ fontFamily: "'Exo 2'" }}>✍️ Términos y Firma</h3>
+          <label className="flex items-start gap-3 cursor-pointer mb-5">
+            <input type="checkbox" name="firma_aceptada" checked={form.firma_aceptada} onChange={handleChange} className="mt-1 w-5 h-5 rounded" style={{ accentColor: '#fe5000' }} />
+            <span className="text-white/80 text-sm" style={{ fontFamily: "'Exo 2'" }}>
+              Acepto los <a href="#" className="text-orange-400 underline">Términos y Condiciones</a> y el <a href="#" className="text-orange-400 underline">Aviso de Privacidad</a>.
+            </span>
+          </label>
+          <div>
+            <label style={{ fontFamily: "'Exo 2'" }} className={labelStyle}>Nombre completo (Firma Digital) *</label>
+            <input type="text" name="firma_nombre" value={form.firma_nombre} onChange={handleChange} placeholder="Escriba su nombre completo" style={{ fontFamily: "'Exo 2'" }} className={inputStyle} />
+          </div>
+        </div>
+
+        {/* Botón Enviar */}
+        <button
+          onClick={enviarFormulario}
+          disabled={submitting || !form.firma_aceptada || !form.firma_nombre}
+          className="w-full py-4 rounded-xl flex items-center justify-center gap-3 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+          style={{ background: 'linear-gradient(135deg, #fe5000 0%, #cc4000 100%)' }}
+        >
+          {submitting ? <Loader2 className="w-6 h-6 animate-spin text-white" /> : <Send className="w-6 h-6 text-white" />}
+          <span className="text-white font-semibold text-lg" style={{ fontFamily: "'Exo 2'" }}>{submitting ? 'Enviando...' : 'Enviar Solicitud'}</span>
+        </button>
       </div>
     </div>
   );
