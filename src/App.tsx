@@ -20,6 +20,9 @@ import { AdminCarrollModule } from './components/fx27/AdminCarrollModule';
 import { VistaClientesCarroll } from './components/fx27/VistaClientesCarroll';
 import { MapaClimaticoCarroll } from './components/fx27/MapaClimaticoCarroll';
 import { AltaClientePublico } from './components/fx27/AltaClientePublico';
+import { AsignarCSR } from './components/fx27/AsignarCSR';
+import { AsignarCxC } from './components/fx27/AsignarCxC';
+import { ConfirmarAlta } from './components/fx27/ConfirmarAlta';
 import SalesHorizonModule from './components/fx27/SalesHorizonModule';
 import { MODULE_IMAGES } from './assets/module-images';
 import { projectId, publicAnonKey } from './utils/supabase/info';
@@ -199,6 +202,14 @@ export default function App() {
     if (altaMatch) {
       setRutaPublica({ tipo: 'alta-cliente', id: altaMatch[1] });
     }
+    // Rutas internas de alta (requieren login pero se detectan para navegación directa)
+    if (path === '/alta-clientes/asignar-csr') {
+      setCurrentModule('asignar-csr');
+    } else if (path === '/alta-clientes/asignar-cxc') {
+      setCurrentModule('asignar-cxc');
+    } else if (path === '/alta-clientes/confirmar') {
+      setCurrentModule('confirmar-alta');
+    }
   }, []);
   // 🔧 INICIALIZAR AL CARGAR
   useEffect(() => {
@@ -234,7 +245,7 @@ export default function App() {
     console.log('🔐 Login:', email);
     setLoginError('');
 
-    const usuario = USUARIOS_AUTORIZADOS.find(u => 
+    const usuario = USUARIOS_AUTORIZADOS.find(u =>
       u.correo === email && u.password === password && u.activo
     );
 
@@ -246,7 +257,7 @@ export default function App() {
     console.log('✅ Login OK:', usuario.nombre, '| Rol:', usuario.rolDisplay);
     console.log('   → Ventas filtro:', usuario.vendedorVentas || 'VER TODO');
     console.log('   → Leads filtro:', usuario.vendedorLeads || 'VER TODO');
-    
+
     setUserRole(usuario.rol);
     setUserRolDisplay(usuario.rolDisplay);
     setUserVendedorVentas(usuario.vendedorVentas || '');
@@ -255,7 +266,7 @@ export default function App() {
     setIsLoggedIn(true);
     setCurrentUserEmail(email);
     setCurrentUserName(usuario.nombre);
-    
+
     localStorage.setItem('fx27-session', JSON.stringify({
       role: usuario.rol,
       rolDisplay: usuario.rolDisplay,
@@ -325,8 +336,8 @@ export default function App() {
         <>
           {currentModule === 'agregar-lead' && <AgregarLeadModule onBack={handleBack} />}
           {currentModule === 'panel-oportunidades' && (
-            <PanelOportunidadesModule 
-              onBack={handleBack} 
+            <PanelOportunidadesModule
+              onBack={handleBack}
               userVendedorLeads={userVendedorLeads}  // Nombre completo para filtrar leads
             />
           )}
@@ -347,9 +358,12 @@ export default function App() {
           {currentModule === 'vista-clientes-carroll' && <VistaClientesCarroll onBack={() => setCurrentModule('dedicados')} />}
           {currentModule === 'mapa-climatico-carroll' && <MapaClimaticoCarroll onBack={() => setCurrentModule('dedicados')} />}
           {currentModule === 'sales-horizon' && <SalesHorizonModule onBack={handleBack} />}
+          {currentModule === 'asignar-csr' && <AsignarCSR />}
+          {currentModule === 'asignar-cxc' && <AsignarCxC />}
+          {currentModule === 'confirmar-alta' && <ConfirmarAlta />}
         </>
       ) : (
-        <DashboardScreen 
+        <DashboardScreen
           onLogout={handleLogout}
           onNavigate={handleNavigate}
           userRole={userRole}
@@ -360,10 +374,3 @@ export default function App() {
     </div>
   );
 }
-
-
-
-
-
-
-
