@@ -3,7 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 import { Upload, CheckCircle2, AlertCircle, Loader2, FileText, Lock, Info, Send, Shield, X, HelpCircle } from 'lucide-react';
 
 const supabaseUrl = 'https://fbxbsslhewchyibdoyzk.supabase.co';
-const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZieGJzc2xoZXdjaHlpYmRveXprIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzIwNTM5NTQsImV4cCI6MjA0NzYyOTk1NH0.AYJxjsZbPOLUxNMejSdWX-Gl01gAXOVWwO_4xLYfYTw';
+const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZieGJzc2xoZXdjaHlpYmRveXprIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI1MzczODEsImV4cCI6MjA3ODExMzM4MX0.Z8JPlg7hhKbA624QGHp2bKKTNtCD3WInQMO5twjl6a0';
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 interface AltaClientePublicoProps {
