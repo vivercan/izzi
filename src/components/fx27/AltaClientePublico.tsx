@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { createClient } from '@supabase/supabase-js';
-import { Upload, CheckCircle2, AlertCircle, Loader2, Send, Shield, HelpCircle, FolderUp } from 'lucide-react';
+import { Upload, CheckCircle2, AlertCircle, Loader2, Send, Shield, HelpCircle, FolderUp, RefreshCw } from 'lucide-react';
 
 const supabaseUrl = 'https://fbxbsslhewchyibdoyzk.supabase.co';
 const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZieGJzc2xoZXdjaHlpYmRveXprIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI1MzczODEsImV4cCI6MjA3ODExMzM4MX0.Z8JPlg7hhKbA624QGHp2bKKTNtCD3WInQMO5twjl6a0';
@@ -8,6 +8,26 @@ const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 interface AltaClientePublicoProps {
   solicitudId: string;
+}
+
+interface DatosExtraidos {
+  rfc?: string;
+  razon_social?: string;
+  calle?: string;
+  no_ext?: string;
+  no_int?: string;
+  cp?: string;
+  colonia?: string;
+  ciudad?: string;
+  estado?: string;
+  pais?: string;
+  representante_legal?: string;
+}
+
+interface ErrorValidacion {
+  documento: string;
+  error: string;
+  solucion: string;
 }
 
 interface FormData {
@@ -81,11 +101,17 @@ export function AltaClientePublico({ solicitudId }: AltaClientePublicoProps) {
   const [loading, setLoading] = useState(true);
   const [solicitud, setSolicitud] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
-  const [paso, setPaso] = useState<'documentos' | 'formulario' | 'enviado' | 'completado'>('documentos');
+  
+  // Pasos: 'documentos' | 'validando' | 'errores' | 'formulario' | 'enviado' | 'completado'
+  const [paso, setPaso] = useState<'documentos' | 'validando' | 'errores' | 'formulario' | 'enviado' | 'completado'>('documentos');
+  
   const [uploadingDoc, setUploadingDoc] = useState<string | null>(null);
   const [uploadingAll, setUploadingAll] = useState(false);
   const [uploadedDocs, setUploadedDocs] = useState<Record<string, string>>({});
   const [tooltipVisible, setTooltipVisible] = useState<string | null>(null);
+  const [erroresValidacion, setErroresValidacion] = useState<ErrorValidacion[]>([]);
+  const [datosExtraidos, setDatosExtraidos] = useState<DatosExtraidos>({});
+  const [validacionProgreso, setValidacionProgreso] = useState(0);
   const multipleInputRef = useRef<HTMLInputElement>(null);
   
   const [form, setForm] = useState<FormData>({
@@ -118,9 +144,20 @@ export function AltaClientePublico({ solicitudId }: AltaClientePublicoProps) {
       if (error) throw error;
       if (!data) throw new Error('Solicitud no encontrada');
       setSolicitud(data);
-      if (data.estatus === 'COMPLETADA') setPaso('completado');
-      else if (['PENDIENTE_CSR', 'PENDIENTE_CXC', 'PENDIENTE_CONFIRMACION'].includes(data.estatus)) setPaso('enviado');
-      else if (data.documentos && Object.keys(data.documentos).length >= docsRequeridos.length) setPaso('formulario');
+      
+      // Restaurar estado según BD
+      if (data.estatus === 'COMPLETADA') {
+        setPaso('completado');
+      } else if (['PENDIENTE_CSR', 'PENDIENTE_CXC', 'PENDIENTE_CONFIRMACION'].includes(data.estatus)) {
+        setPaso('enviado');
+      } else if (data.documentos_validados && data.datos_extraidos) {
+        setDatosExtraidos(data.datos_extraidos);
+        setPaso('formulario');
+      } else if (data.errores_validacion && data.errores_validacion.length > 0) {
+        setErroresValidacion(data.errores_validacion);
+        setPaso('errores');
+      }
+      
       if (data.documentos) setUploadedDocs(data.documentos);
     } catch (err) {
       console.error('Error:', err);
@@ -140,6 +177,8 @@ export function AltaClientePublico({ solicitudId }: AltaClientePublicoProps) {
       const newDocs = { ...uploadedDocs, [docKey]: fileName };
       setUploadedDocs(newDocs);
       await supabase.from('alta_clientes').update({ documentos: newDocs }).eq('id', solicitudId);
+      // Limpiar error de este doc si existía
+      setErroresValidacion(prev => prev.filter(e => !e.documento.toLowerCase().includes(docKey.replace('_', ' '))));
     } catch (err) {
       console.error('Error subiendo:', err);
       alert('Error al subir el documento');
@@ -152,7 +191,6 @@ export function AltaClientePublico({ solicitudId }: AltaClientePublicoProps) {
     setUploadingAll(true);
     const newDocs = { ...uploadedDocs };
     
-    // Mapear nombres de archivo a tipos de documento
     const fileMapping: Record<string, string[]> = {
       'constancia_fiscal': ['constancia', 'situacion', 'fiscal', 'csf'],
       'opinion_cumplimiento': ['opinion', 'cumplimiento', '32d'],
@@ -166,7 +204,6 @@ export function AltaClientePublico({ solicitudId }: AltaClientePublicoProps) {
       const file = files[i];
       const fileName = file.name.toLowerCase();
       
-      // Buscar a qué tipo de documento corresponde
       let matchedKey = '';
       for (const [key, keywords] of Object.entries(fileMapping)) {
         if (keywords.some(kw => fileName.includes(kw))) {
@@ -175,7 +212,6 @@ export function AltaClientePublico({ solicitudId }: AltaClientePublicoProps) {
         }
       }
       
-      // Si no se encontró match, asignar al primer documento sin subir
       if (!matchedKey) {
         const pendingDoc = documentos.find(d => !newDocs[d.key]);
         if (pendingDoc) matchedKey = pendingDoc.key;
@@ -186,9 +222,7 @@ export function AltaClientePublico({ solicitudId }: AltaClientePublicoProps) {
           const fileExt = file.name.split('.').pop();
           const storageName = `${solicitudId}/${matchedKey}_${Date.now()}.${fileExt}`;
           const { error: uploadError } = await supabase.storage.from('alta-documentos').upload(storageName, file, { upsert: true });
-          if (!uploadError) {
-            newDocs[matchedKey] = storageName;
-          }
+          if (!uploadError) newDocs[matchedKey] = storageName;
         } catch (err) {
           console.error('Error:', err);
         }
@@ -200,8 +234,47 @@ export function AltaClientePublico({ solicitudId }: AltaClientePublicoProps) {
     setUploadingAll(false);
   };
 
-  const continuarAFormulario = () => {
-    if (todosRequeridosSubidos) setPaso('formulario');
+  const validarDocumentos = async () => {
+    setPaso('validando');
+    setValidacionProgreso(0);
+    setErroresValidacion([]);
+
+    // Simular progreso mientras la IA trabaja
+    const interval = setInterval(() => {
+      setValidacionProgreso(prev => Math.min(prev + 10, 90));
+    }, 500);
+
+    try {
+      const response = await fetch('/api/validar-documentos-alta', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          solicitudId,
+          documentos: uploadedDocs,
+          tipoEmpresa
+        })
+      });
+
+      clearInterval(interval);
+      setValidacionProgreso(100);
+
+      const result = await response.json();
+
+      if (!result.success) {
+        setErroresValidacion(result.errores || [{ documento: 'General', error: 'Error en validación', solucion: 'Intente de nuevo' }]);
+        setPaso('errores');
+      } else {
+        setDatosExtraidos(result.datosExtraidos || {});
+        setPaso('formulario');
+      }
+    } catch (err) {
+      clearInterval(interval);
+      console.error('Error validando:', err);
+      // Si falla la validación IA, permitir continuar de todos modos
+      setPaso('formulario');
+    }
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
@@ -217,8 +290,22 @@ export function AltaClientePublico({ solicitudId }: AltaClientePublicoProps) {
     }
     setSubmitting(true);
     try {
-      const { error } = await supabase.from('alta_clientes').update({ ...form, estatus: 'PENDIENTE_CSR', firma_fecha: new Date().toISOString() }).eq('id', solicitudId);
+      const { error } = await supabase.from('alta_clientes').update({ 
+        ...form, 
+        estatus: 'PENDIENTE_CSR', 
+        firma_fecha: new Date().toISOString() 
+      }).eq('id', solicitudId);
       if (error) throw error;
+      
+      // Enviar notificación por correo (Edge Function)
+      try {
+        await fetch(`${supabaseUrl}/functions/v1/enviar-correo-alta`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${supabaseAnonKey}` },
+          body: JSON.stringify({ solicitudId, tipo: 'cliente_completo' })
+        });
+      } catch (e) { console.log('Error enviando correo:', e); }
+      
       setPaso('enviado');
     } catch (err) {
       console.error('Error:', err);
@@ -229,7 +316,7 @@ export function AltaClientePublico({ solicitudId }: AltaClientePublicoProps) {
   };
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // LOADING / ERROR / COMPLETADO / ENVIADO
+  // ESTADOS: LOADING / ERROR / COMPLETADO / ENVIADO
   // ═══════════════════════════════════════════════════════════════════════════
   if (loading) {
     return (
@@ -271,19 +358,95 @@ export function AltaClientePublico({ solicitudId }: AltaClientePublicoProps) {
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // PASO 1: DOCUMENTOS - Sin scroll, todo visible
+  // VALIDANDO
+  // ═══════════════════════════════════════════════════════════════════════════
+  if (paso === 'validando') {
+    return (
+      <div className="h-screen flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #001f4d 0%, #0066cc 50%, #4da6ff 100%)' }}>
+        <div className="bg-[#0a1628]/95 p-10 rounded-2xl text-center max-w-md border border-white/10">
+          <div className="w-20 h-20 mx-auto mb-6 rounded-full flex items-center justify-center bg-orange-500/20">
+            <Shield className="w-10 h-10 text-orange-400 animate-pulse" />
+          </div>
+          <h2 className="text-2xl font-semibold text-white mb-3" style={{ fontFamily: "'Exo 2'" }}>Validando Documentos</h2>
+          <p className="text-white/60 mb-6" style={{ fontFamily: "'Exo 2'" }}>
+            Verificando vigencias y extrayendo información...
+          </p>
+          
+          {/* Barra de progreso */}
+          <div className="w-full h-2 bg-white/10 rounded-full overflow-hidden mb-4">
+            <div 
+              className="h-full bg-gradient-to-r from-orange-500 to-orange-400 transition-all duration-300"
+              style={{ width: `${validacionProgreso}%` }}
+            />
+          </div>
+          <p className="text-white/40 text-sm" style={{ fontFamily: "'Exo 2'" }}>{validacionProgreso}%</p>
+        </div>
+      </div>
+    );
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // ERRORES DE VALIDACIÓN
+  // ═══════════════════════════════════════════════════════════════════════════
+  if (paso === 'errores') {
+    return (
+      <div className="h-screen flex flex-col" style={{ background: 'linear-gradient(135deg, #001f4d 0%, #0066cc 50%, #4da6ff 100%)' }}>
+        <header className="px-6 py-3 flex items-center justify-between" style={{ background: 'rgba(0,0,0,0.4)' }}>
+          <div>
+            <h1 className="text-xl font-semibold text-white" style={{ fontFamily: "'Exo 2'" }}>Alta de Cliente</h1>
+            <p className="text-sm text-white/60" style={{ fontFamily: "'Exo 2'" }}>Corrija los documentos</p>
+          </div>
+        </header>
+
+        <div className="flex-1 flex items-center justify-center p-4">
+          <div className="w-full max-w-2xl bg-[#0a1628]/95 rounded-2xl border border-white/10 p-8">
+            <div className="flex items-center gap-3 mb-6">
+              <AlertCircle className="w-8 h-8 text-red-400" />
+              <h2 className="text-xl font-semibold text-white" style={{ fontFamily: "'Exo 2'" }}>
+                Problemas encontrados
+              </h2>
+            </div>
+            
+            <div className="space-y-4 mb-8">
+              {erroresValidacion.map((err, idx) => (
+                <div key={idx} className="p-4 rounded-xl bg-red-500/10 border border-red-500/30">
+                  <p className="text-red-300 font-semibold mb-1" style={{ fontFamily: "'Exo 2'" }}>
+                    ❌ {err.documento}
+                  </p>
+                  <p className="text-white/70 text-sm mb-2" style={{ fontFamily: "'Exo 2'" }}>{err.error}</p>
+                  <p className="text-white/50 text-sm" style={{ fontFamily: "'Exo 2'" }}>→ {err.solucion}</p>
+                </div>
+              ))}
+            </div>
+
+            <div className="flex gap-4">
+              <button
+                onClick={() => { setErroresValidacion([]); setPaso('documentos'); }}
+                className="flex-1 py-3 rounded-xl flex items-center justify-center gap-2 bg-white/10 hover:bg-white/15 transition-colors"
+              >
+                <RefreshCw className="w-5 h-5 text-white" />
+                <span className="text-white font-semibold" style={{ fontFamily: "'Exo 2'" }}>Corregir Documentos</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // PASO 1: DOCUMENTOS
   // ═══════════════════════════════════════════════════════════════════════════
   if (paso === 'documentos') {
     return (
       <div className="h-screen flex flex-col" style={{ background: 'linear-gradient(135deg, #001f4d 0%, #003d7a 25%, #0066cc 50%, #1a8fff 75%, #4da6ff 100%)' }}>
-        {/* Header compacto */}
         <header className="px-6 py-3 flex items-center justify-between" style={{ background: 'rgba(0,0,0,0.4)' }}>
           <div>
             <h1 className="text-xl font-semibold text-white" style={{ fontFamily: "'Exo 2'" }}>Alta de Cliente</h1>
             <p className="text-sm text-white/60" style={{ fontFamily: "'Exo 2'" }}>Paso 1: Documentación</p>
           </div>
           <div className="flex items-center gap-3">
-            <span className="text-white/70 text-sm" style={{ fontFamily: "'Exo 2'" }}>{cantidadSubidos}/{documentos.length} documentos</span>
+            <span className="text-white/70 text-sm" style={{ fontFamily: "'Exo 2'" }}>{cantidadSubidos}/{documentos.length}</span>
             <div className="px-4 py-1.5 rounded-full bg-green-500/20">
               <span className="text-white font-medium" style={{ fontFamily: "'Exo 2'" }}>
                 {tipoEmpresa === 'USA_CANADA' ? '🇺🇸 USA' : '🇲🇽 México'}
@@ -292,16 +455,14 @@ export function AltaClientePublico({ solicitudId }: AltaClientePublicoProps) {
           </div>
         </header>
 
-        {/* Contenido principal - flex-1 para ocupar resto */}
         <div className="flex-1 flex items-center justify-center p-4">
           <div className="w-full max-w-5xl">
             <div className="bg-[#0a1628]/95 rounded-2xl border border-white/10 p-6" style={{ boxShadow: '0 8px 32px rgba(0,0,0,0.4)' }}>
               
-              {/* Título y botón subir todos */}
               <div className="flex items-center justify-between mb-6">
                 <div>
                   <h2 className="text-xl font-semibold text-white" style={{ fontFamily: "'Exo 2'" }}>Suba sus documentos</h2>
-                  <p className="text-sm text-white/50" style={{ fontFamily: "'Exo 2'" }}>Suba cada archivo o todos de una vez</p>
+                  <p className="text-sm text-white/50" style={{ fontFamily: "'Exo 2'" }}>Validaremos vigencias y extraeremos la información</p>
                 </div>
                 <label className="px-5 py-2.5 rounded-xl cursor-pointer flex items-center gap-2 transition-all hover:scale-105"
                   style={{ background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)' }}>
@@ -319,21 +480,23 @@ export function AltaClientePublico({ solicitudId }: AltaClientePublicoProps) {
                 </label>
               </div>
 
-              {/* Grid de documentos 2x3 */}
               <div className="grid grid-cols-2 gap-3 mb-6">
                 {documentos.map((doc) => {
                   const subido = !!uploadedDocs[doc.key];
+                  const tieneError = erroresValidacion.some(e => e.documento.toLowerCase().includes(doc.label.toLowerCase().split(' ')[0]));
                   return (
                     <div
                       key={doc.key}
                       className="flex items-center justify-between p-3 rounded-xl transition-all"
                       style={{
-                        background: subido ? 'rgba(34,197,94,0.12)' : 'rgba(255,255,255,0.04)',
-                        border: `1.5px solid ${subido ? 'rgba(34,197,94,0.35)' : 'rgba(255,255,255,0.1)'}`,
+                        background: tieneError ? 'rgba(239,68,68,0.12)' : subido ? 'rgba(34,197,94,0.12)' : 'rgba(255,255,255,0.04)',
+                        border: `1.5px solid ${tieneError ? 'rgba(239,68,68,0.35)' : subido ? 'rgba(34,197,94,0.35)' : 'rgba(255,255,255,0.1)'}`,
                       }}
                     >
                       <div className="flex items-center gap-3">
-                        {subido ? (
+                        {tieneError ? (
+                          <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0" />
+                        ) : subido ? (
                           <CheckCircle2 className="w-5 h-5 text-green-400 flex-shrink-0" />
                         ) : (
                           <div className="w-5 h-5 rounded-full border-2 border-white/25 flex-shrink-0" />
@@ -357,7 +520,8 @@ export function AltaClientePublico({ solicitudId }: AltaClientePublicoProps) {
                               )}
                             </div>
                           </div>
-                          {subido && <span className="text-xs text-green-400/80">✓ Subido</span>}
+                          {subido && !tieneError && <span className="text-xs text-green-400/80">✓ Subido</span>}
+                          {tieneError && <span className="text-xs text-red-400/80">⚠ Requiere corrección</span>}
                         </div>
                       </div>
                       <label
@@ -384,15 +548,14 @@ export function AltaClientePublico({ solicitudId }: AltaClientePublicoProps) {
                 })}
               </div>
 
-              {/* Botón continuar */}
               <button
-                onClick={continuarAFormulario}
+                onClick={validarDocumentos}
                 disabled={!todosRequeridosSubidos}
                 className="w-full py-3.5 rounded-xl flex items-center justify-center gap-2 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
                 style={{ background: todosRequeridosSubidos ? 'linear-gradient(135deg, #fe5000 0%, #cc4000 100%)' : 'rgba(255,255,255,0.1)' }}
               >
                 <Shield className="w-5 h-5 text-white" />
-                <span className="text-white font-semibold text-lg" style={{ fontFamily: "'Exo 2'" }}>Continuar al Formulario</span>
+                <span className="text-white font-semibold text-lg" style={{ fontFamily: "'Exo 2'" }}>Validar y Continuar</span>
               </button>
               
               {!todosRequeridosSubidos && (
@@ -408,14 +571,16 @@ export function AltaClientePublico({ solicitudId }: AltaClientePublicoProps) {
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // PASO 2: FORMULARIO
+  // PASO 2: FORMULARIO - Solo campos a completar (datos extraídos ya guardados)
   // ═══════════════════════════════════════════════════════════════════════════
   const inputStyle = "w-full px-4 py-3 bg-white/5 border border-white/15 rounded-lg text-white text-base outline-none focus:border-orange-500/50 transition-colors";
   const labelStyle = "block text-sm font-medium text-white/70 mb-2";
 
+  // Mostrar resumen de datos extraídos
+  const tieneExtraccion = datosExtraidos.rfc || datosExtraidos.razon_social;
+
   return (
     <div className="min-h-screen" style={{ background: 'linear-gradient(135deg, #001f4d 0%, #003d7a 25%, #0066cc 50%, #1a8fff 75%, #4da6ff 100%)' }}>
-      {/* Header sticky */}
       <header className="px-6 py-3 flex items-center justify-between sticky top-0 z-50" style={{ background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(10px)' }}>
         <div>
           <h1 className="text-xl font-semibold text-white" style={{ fontFamily: "'Exo 2'" }}>Alta de Cliente</h1>
@@ -424,22 +589,54 @@ export function AltaClientePublico({ solicitudId }: AltaClientePublicoProps) {
         <div className="flex items-center gap-3">
           <div className="px-3 py-1.5 rounded-full bg-green-500/20 flex items-center gap-2">
             <CheckCircle2 className="w-4 h-4 text-green-400" />
-            <span className="text-green-300 text-sm font-medium" style={{ fontFamily: "'Exo 2'" }}>Docs OK</span>
-          </div>
-          <div className="px-4 py-1.5 rounded-full bg-green-500/20">
-            <span className="text-white font-medium" style={{ fontFamily: "'Exo 2'" }}>
-              {tipoEmpresa === 'USA_CANADA' ? '🇺🇸 USA' : '🇲🇽 México'}
-            </span>
+            <span className="text-green-300 text-sm font-medium" style={{ fontFamily: "'Exo 2'" }}>Docs Validados</span>
           </div>
         </div>
       </header>
 
-      {/* Formulario */}
       <div className="max-w-4xl mx-auto p-6 space-y-6">
         
+        {/* Resumen de datos extraídos */}
+        {tieneExtraccion && (
+          <div className="bg-green-500/10 rounded-xl border border-green-500/30 p-5">
+            <div className="flex items-center gap-2 mb-3">
+              <CheckCircle2 className="w-5 h-5 text-green-400" />
+              <h3 className="text-lg font-semibold text-white" style={{ fontFamily: "'Exo 2'" }}>Datos extraídos de sus documentos</h3>
+            </div>
+            <div className="grid grid-cols-2 gap-4 text-sm">
+              {datosExtraidos.razon_social && (
+                <div>
+                  <span className="text-white/50">Razón Social:</span>
+                  <span className="text-white ml-2 font-medium">{datosExtraidos.razon_social}</span>
+                </div>
+              )}
+              {datosExtraidos.rfc && (
+                <div>
+                  <span className="text-white/50">RFC:</span>
+                  <span className="text-white ml-2 font-medium">{datosExtraidos.rfc}</span>
+                </div>
+              )}
+              {datosExtraidos.representante_legal && (
+                <div>
+                  <span className="text-white/50">Rep. Legal:</span>
+                  <span className="text-white ml-2 font-medium">{datosExtraidos.representante_legal}</span>
+                </div>
+              )}
+              {datosExtraidos.calle && (
+                <div className="col-span-2">
+                  <span className="text-white/50">Dirección:</span>
+                  <span className="text-white ml-2 font-medium">
+                    {datosExtraidos.calle} {datosExtraidos.no_ext}, {datosExtraidos.colonia}, {datosExtraidos.ciudad}, {datosExtraidos.estado} CP {datosExtraidos.cp}
+                  </span>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* Info General */}
         <div className="bg-[#0a1628]/95 rounded-xl border border-white/10 p-6">
-          <h3 className="text-lg font-semibold text-white mb-5" style={{ fontFamily: "'Exo 2'" }}>📋 Información General</h3>
+          <h3 className="text-lg font-semibold text-white mb-5" style={{ fontFamily: "'Exo 2'" }}>📋 Información Adicional</h3>
           <div className="grid grid-cols-2 gap-5">
             <div>
               <label style={{ fontFamily: "'Exo 2'" }} className={labelStyle}>Giro / Actividad</label>
