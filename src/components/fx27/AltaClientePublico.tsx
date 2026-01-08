@@ -278,10 +278,40 @@ export function AltaClientePublico({ solicitudId }: AltaClientePublicoProps) {
     }
   };
 
+  // Capitalizar primera letra de cada palabra
+  const capitalizar = (texto: string) => {
+    return texto
+      .toLowerCase()
+      .split(' ')
+      .map(palabra => palabra.charAt(0).toUpperCase() + palabra.slice(1))
+      .join(' ');
+  };
+
+  // Formatear correo a mayúsculas
+  const formatearCorreo = (email: string) => {
+    return email.toUpperCase();
+  };
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value, type } = e.target;
-    if (type === 'checkbox') setForm(prev => ({ ...prev, [name]: (e.target as HTMLInputElement).checked }));
-    else setForm(prev => ({ ...prev, [name]: value }));
+    
+    if (type === 'checkbox') {
+      setForm(prev => ({ ...prev, [name]: (e.target as HTMLInputElement).checked }));
+      return;
+    }
+    
+    let valorFormateado = value;
+    
+    // Si es campo de correo → MAYÚSCULAS
+    if (name.includes('email')) {
+      valorFormateado = formatearCorreo(value);
+    }
+    // Si es campo de nombre o contacto → Primera letra mayúscula
+    else if (name.includes('nombre') || name.includes('contacto') || name === 'firma_nombre') {
+      valorFormateado = capitalizar(value);
+    }
+    
+    setForm(prev => ({ ...prev, [name]: valorFormateado }));
   };
 
   // Normalizar texto para comparación (quita acentos, mayúsculas, espacios extra)
