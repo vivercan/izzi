@@ -11,10 +11,10 @@ const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYm
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 const EMPRESAS_FACTURADORAS = [
-  { id: 'TROB', nombre: 'TROB TRANSPORTES', color: '#001f4d' },
-  { id: 'WE', nombre: 'WEXPRESS', color: '#059669' },
-  { id: 'SHI', nombre: 'SPEEDYHAUL INTERNATIONAL', color: '#7c3aed' },
-  { id: 'TROB_USA', nombre: 'TROB USA LLC', color: '#dc2626' }
+  { id: 'TROB', nombre: 'TROB TRANSPORTES', color: '#3b82f6' },
+  { id: 'WE', nombre: 'WEXPRESS', color: '#22c55e' },
+  { id: 'SHI', nombre: 'SPEEDYHAUL INTERNATIONAL', color: '#a855f7' },
+  { id: 'TROB_USA', nombre: 'TROB USA LLC', color: '#ef4444' }
 ];
 
 interface Props {

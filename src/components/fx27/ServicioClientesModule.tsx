@@ -29,10 +29,10 @@ const ESTATUS_CONFIG: Record<string, { label: string; color: string; bg: string;
 };
 
 const EMPRESAS = {
-  'TROB': { nombre: 'TROB TRANSPORTES', color: '#001f4d' },
-  'WE': { nombre: 'WEXPRESS', color: '#059669' },
-  'SHI': { nombre: 'SPEEDYHAUL INTERNATIONAL', color: '#7c3aed' },
-  'TROB_USA': { nombre: 'TROB USA LLC', color: '#dc2626' }
+  'TROB': { nombre: 'TROB TRANSPORTES', color: '#3b82f6', bg: 'rgba(59, 130, 246, 0.2)' },
+  'WE': { nombre: 'WEXPRESS', color: '#22c55e', bg: 'rgba(34, 197, 94, 0.2)' },
+  'SHI': { nombre: 'SPEEDYHAUL INTERNATIONAL', color: '#a855f7', bg: 'rgba(168, 85, 247, 0.2)' },
+  'TROB_USA': { nombre: 'TROB USA LLC', color: '#ef4444', bg: 'rgba(239, 68, 68, 0.2)' }
 };
 
 interface Props {
@@ -556,7 +556,17 @@ export function ServicioClientesModule({ onBack, userEmail, userName }: Props) {
                       </td>
                       <td className="px-4 py-3">
                         {empresa ? (
-                          <span className="px-2 py-1 rounded text-xs font-medium" style={{ background: `${empresa.color}20`, color: empresa.color, fontFamily: "'Exo 2', sans-serif" }}>{empresa.nombre}</span>
+                          <span 
+                            className="px-3 py-1 rounded text-xs font-semibold"
+                            style={{ 
+                              background: empresa.bg, 
+                              color: empresa.color,
+                              border: `1px solid ${empresa.color}40`,
+                              fontFamily: "'Exo 2', sans-serif" 
+                            }}
+                          >
+                            {empresa.nombre}
+                          </span>
                         ) : (
                           <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: '12px' }}>-</span>
                         )}
