@@ -11,7 +11,8 @@ import RevisarSolicitudAlta from './RevisarSolicitudAlta';
 import ConfirmarAltaNancy from './ConfirmarAltaNancy';
 import {
   UserPlus, FileText, CheckCircle2, Clock, AlertCircle,
-  Search, RefreshCw, Loader2, Eye, ArrowLeft, Shield, CreditCard, Mail
+  Search, RefreshCw, Loader2, Eye, ArrowLeft, Shield, CreditCard, Mail,
+  Edit2, Trash2, X, AlertTriangle
 } from 'lucide-react';
 
 const supabaseUrl = 'https://fbxbsslhewchyibdoyzk.supabase.co';
@@ -50,6 +51,34 @@ export function ServicioClientesModule({ onBack, userEmail, userName }: Props) {
   const [busqueda, setBusqueda] = useState('');
   const [showCrearModal, setShowCrearModal] = useState(false);
   const [solicitudSeleccionada, setSolicitudSeleccionada] = useState<string | null>(null);
+  
+  // Admin y modales
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState<string | null>(null);
+  const [deleteConfirmText, setDeleteConfirmText] = useState('');
+  const [deleting, setDeleting] = useState(false);
+
+  // Verificar si es admin
+  useEffect(() => {
+    const userData = localStorage.getItem('fx27_user');
+    if (userData) {
+      const user = JSON.parse(userData);
+      const adminEmails = [
+        'juan.viveros@trob.com.mx',
+        'jennifer.sanchez@trob.com.mx',
+        'juan.viveros',
+        'jennifer.sanchez',
+        'admin'
+      ];
+      const userIdentifier = (user.username || user.email || user.correo || '').toLowerCase();
+      setIsAdmin(
+        adminEmails.includes(userIdentifier) || 
+        user.role === 'admin' || 
+        user.rol === 'administrador' ||
+        user.rol === 'admin'
+      );
+    }
+  }, []);
 
   const cargarSolicitudes = async () => {
     setLoading(true);
@@ -63,6 +92,33 @@ export function ServicioClientesModule({ onBack, userEmail, userName }: Props) {
       console.error('Error cargando solicitudes:', err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Eliminar solicitud
+  const eliminarSolicitud = async (id: string) => {
+    if (deleteConfirmText !== 'DELETE') {
+      alert('Escriba DELETE para confirmar');
+      return;
+    }
+    
+    setDeleting(true);
+    try {
+      const { error } = await supabase
+        .from('alta_clientes')
+        .delete()
+        .eq('id', id);
+      
+      if (error) throw error;
+      
+      setShowDeleteModal(null);
+      setDeleteConfirmText('');
+      cargarSolicitudes();
+    } catch (err) {
+      console.error('Error eliminando:', err);
+      alert('Error al eliminar la solicitud');
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -439,17 +495,46 @@ export function ServicioClientesModule({ onBack, userEmail, userName }: Props) {
                         </span>
                       </td>
                       <td className="px-4 py-3">
-                        <button
-                          onClick={() => {
-                            setSolicitudSeleccionada(sol.id);
-                            if (sol.estatus === 'PENDIENTE_CSR' || sol.estatus === 'PENDIENTE_COBRANZA') setVista('revisar');
-                            else if (sol.estatus === 'PENDIENTE_CONFIRMACION') setVista('confirmar');
-                            else setVista('revisar');
-                          }}
-                          className="p-2 hover:bg-orange-500/20 rounded-lg transition-colors group"
-                        >
-                          <Eye className="w-4 h-4 text-white/40 group-hover:text-orange-400 transition-colors" />
-                        </button>
+                        <div className="flex items-center gap-1">
+                          {/* Ver */}
+                          <button
+                            onClick={() => {
+                              setSolicitudSeleccionada(sol.id);
+                              if (sol.estatus === 'PENDIENTE_CSR' || sol.estatus === 'PENDIENTE_COBRANZA') setVista('revisar');
+                              else if (sol.estatus === 'PENDIENTE_CONFIRMACION') setVista('confirmar');
+                              else setVista('revisar');
+                            }}
+                            className="p-2 hover:bg-orange-500/20 rounded-lg transition-colors group"
+                            title="Ver detalles"
+                          >
+                            <Eye className="w-4 h-4 text-white/40 group-hover:text-orange-400 transition-colors" />
+                          </button>
+                          
+                          {/* Editar - Solo Admin */}
+                          {isAdmin && (
+                            <button
+                              onClick={() => {
+                                setSolicitudSeleccionada(sol.id);
+                                setVista('revisar');
+                              }}
+                              className="p-2 hover:bg-blue-500/20 rounded-lg transition-colors group"
+                              title="Editar"
+                            >
+                              <Edit2 className="w-4 h-4 text-white/40 group-hover:text-blue-400 transition-colors" />
+                            </button>
+                          )}
+                          
+                          {/* Borrar - Solo Admin */}
+                          {isAdmin && (
+                            <button
+                              onClick={() => setShowDeleteModal(sol.id)}
+                              className="p-2 hover:bg-red-500/20 rounded-lg transition-colors group"
+                              title="Eliminar"
+                            >
+                              <Trash2 className="w-4 h-4 text-white/40 group-hover:text-red-400 transition-colors" />
+                            </button>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   );
@@ -465,6 +550,70 @@ export function ServicioClientesModule({ onBack, userEmail, userName }: Props) {
             onClose={() => setShowCrearModal(false)}
             onCreated={() => { setShowCrearModal(false); cargarSolicitudes(); }}
           />
+        )}
+
+        {/* Modal Confirmar Borrado */}
+        {showDeleteModal && (
+          <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div className="bg-[#0f1729] rounded-2xl border border-red-500/30 p-6 w-full max-w-md">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-12 h-12 rounded-full bg-red-500/20 flex items-center justify-center">
+                  <AlertTriangle className="w-6 h-6 text-red-400" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-white">Eliminar Solicitud</h3>
+                  <p className="text-sm text-red-400">Esta acción no se puede deshacer</p>
+                </div>
+              </div>
+              
+              <div className="mb-6">
+                <p className="text-white/70 mb-4">
+                  ¿Está seguro que desea eliminar esta solicitud? Se borrarán todos los datos y documentos asociados.
+                </p>
+                <label className="block text-sm font-medium text-white/50 mb-2">
+                  Escriba <span className="text-red-400 font-bold">DELETE</span> para confirmar:
+                </label>
+                <input
+                  type="text"
+                  value={deleteConfirmText}
+                  onChange={(e) => setDeleteConfirmText(e.target.value)}
+                  placeholder="DELETE"
+                  className="w-full px-4 py-3 bg-red-500/10 border border-red-500/30 rounded-lg text-white outline-none focus:border-red-500 font-mono text-center text-lg"
+                  style={{ letterSpacing: '0.2em' }}
+                />
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={() => {
+                    setShowDeleteModal(null);
+                    setDeleteConfirmText('');
+                  }}
+                  className="flex-1 py-3 rounded-xl bg-white/10 text-white/70 font-medium hover:bg-white/20 transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={() => eliminarSolicitud(showDeleteModal)}
+                  disabled={deleteConfirmText !== 'DELETE' || deleting}
+                  className="flex-1 py-3 rounded-xl font-medium flex items-center justify-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  style={{ 
+                    background: deleteConfirmText === 'DELETE' 
+                      ? 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)' 
+                      : 'rgba(255,255,255,0.1)',
+                    color: deleteConfirmText === 'DELETE' ? '#fff' : 'rgba(255,255,255,0.3)'
+                  }}
+                >
+                  {deleting ? (
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                  ) : (
+                    <Trash2 className="w-5 h-5" />
+                  )}
+                  Eliminar
+                </button>
+              </div>
+            </div>
+          </div>
         )}
       </div>
     </ModuleTemplate>
