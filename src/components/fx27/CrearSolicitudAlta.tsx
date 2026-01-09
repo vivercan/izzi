@@ -194,9 +194,9 @@ export default function CrearSolicitudAlta({ usuarioCreador, onClose, onCreated 
               <input
                 type="text"
                 value={nombreComercial}
-                onChange={e => setNombreComercial(e.target.value)}
-                placeholder="Ej: Bimbo, Soriana, ACME"
-                className="w-full px-4 py-3 rounded-xl text-white placeholder-white/40 outline-none transition-colors"
+                onChange={e => setNombreComercial(e.target.value.toUpperCase())}
+                placeholder="Ej: BIMBO, SORIANA, ACME"
+                className="w-full px-4 py-3 rounded-xl text-white placeholder-white/40 outline-none transition-colors uppercase"
                 style={{
                   background: 'rgba(0, 20, 50, 0.8)',
                   border: '1px solid rgba(255, 255, 255, 0.2)'
@@ -213,8 +213,15 @@ export default function CrearSolicitudAlta({ usuarioCreador, onClose, onCreated 
               <input
                 type="text"
                 value={nombreContacto}
-                onChange={e => setNombreContacto(e.target.value)}
-                placeholder="Ej: Lic. Roberto García"
+                onChange={e => {
+                  const titleCase = e.target.value
+                    .toLowerCase()
+                    .split(' ')
+                    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+                    .join(' ');
+                  setNombreContacto(titleCase);
+                }}
+                placeholder="Ej: Roberto García"
                 className="w-full px-4 py-3 rounded-xl text-white placeholder-white/40 outline-none transition-colors"
                 style={{
                   background: 'rgba(0, 20, 50, 0.8)',
@@ -235,9 +242,9 @@ export default function CrearSolicitudAlta({ usuarioCreador, onClose, onCreated 
             <input
               type="text"
               value={emails}
-              onChange={e => setEmails(e.target.value)}
+              onChange={e => setEmails(e.target.value.toLowerCase())}
               placeholder="correo@cliente.com, otro@cliente.com"
-              className="w-full px-4 py-3 rounded-xl text-white placeholder-white/40 outline-none transition-colors"
+              className="w-full px-4 py-3 rounded-xl text-white placeholder-white/40 outline-none transition-colors lowercase"
               style={{
                 background: 'rgba(0, 20, 50, 0.8)',
                 border: '1px solid rgba(255, 255, 255, 0.2)'
