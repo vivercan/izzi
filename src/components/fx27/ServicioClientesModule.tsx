@@ -60,22 +60,19 @@ export function ServicioClientesModule({ onBack, userEmail, userName }: Props) {
 
   // Verificar si es admin
   useEffect(() => {
-    const userData = localStorage.getItem('fx27_user');
+    const userData = localStorage.getItem('fx27-session');
     if (userData) {
       const user = JSON.parse(userData);
       const adminEmails = [
         'juan.viveros@trob.com.mx',
-        'jennifer.sanchez@trob.com.mx',
-        'juan.viveros',
-        'jennifer.sanchez',
-        'admin'
+        'jennifer.sanchez@trob.com.mx'
       ];
-      const userIdentifier = (user.username || user.email || user.correo || '').toLowerCase();
+      const userEmail = (user.email || '').toLowerCase();
+      const userRole = (user.role || '').toLowerCase();
       setIsAdmin(
-        adminEmails.includes(userIdentifier) || 
-        user.role === 'admin' || 
-        user.rol === 'administrador' ||
-        user.rol === 'admin'
+        adminEmails.includes(userEmail) || 
+        userRole === 'admin' || 
+        userRole === 'administrador'
       );
     }
   }, []);

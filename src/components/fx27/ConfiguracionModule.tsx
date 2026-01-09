@@ -14,25 +14,20 @@ export function ConfiguracionModule({ onBack }: Props) {
   const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
-    const userData = localStorage.getItem('fx27_user');
+    const userData = localStorage.getItem('fx27-session');
     if (userData) {
       const user = JSON.parse(userData);
-      // Administradores: Juan Viveros, Jennifer Sánchez (verificar username, email, o rol)
+      // Administradores: Juan Viveros, Jennifer Sánchez
       const adminEmails = [
         'juan.viveros@trob.com.mx',
-        'jennifer.sanchez@trob.com.mx',
-        'juan.viveros',
-        'jennifer.sanchez',
-        'admin',
-        'jviveros',
-        'jsanchez'
+        'jennifer.sanchez@trob.com.mx'
       ];
-      const userIdentifier = (user.username || user.email || user.correo || '').toLowerCase();
+      const userEmail = (user.email || '').toLowerCase();
+      const userRole = (user.role || '').toLowerCase();
       setIsAdmin(
-        adminEmails.includes(userIdentifier) || 
-        user.role === 'admin' || 
-        user.rol === 'administrador' ||
-        user.rol === 'admin'
+        adminEmails.includes(userEmail) || 
+        userRole === 'admin' || 
+        userRole === 'administrador'
       );
     }
   }, []);
