@@ -153,7 +153,7 @@ export function ServicioClientesModule({ onBack, userEmail, userName }: Props) {
                 marginBottom: '8px'
               }}
             >
-              Servicio a Clientes
+              Clientes
             </h2>
             <p 
               style={{ 
@@ -545,7 +545,7 @@ export function ServicioClientesModule({ onBack, userEmail, userName }: Props) {
   // ═══════════════════════════════════════════════════════════════════════════
   return (
     <ModuleTemplate
-      title="Servicio a Clientes"
+      title="Clientes"
       onBack={onBack}
       headerImage={MODULE_IMAGES.SERVICIO_CLIENTES}
     >
