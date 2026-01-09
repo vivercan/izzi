@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { createClient } from '@supabase/supabase-js';
-import { Upload, CheckCircle2, AlertCircle, Loader2, Send, Shield, HelpCircle, FolderUp, RefreshCw, CreditCard } from 'lucide-react';
+import { Upload, CheckCircle2, AlertCircle, Loader2, Send, Shield, HelpCircle, FolderUp, RefreshCw, CreditCard, AlertTriangle, X } from 'lucide-react';
 
 const supabaseUrl = 'https://fbxbsslhewchyibdoyzk.supabase.co';
 const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZieGJzc2xoZXdjaHlpYmRveXprIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI1MzczODEsImV4cCI6MjA3ODExMzM4MX0.Z8JPlg7hhKbA624QGHp2bKKTNtCD3WInQMO5twjl6a0';
@@ -40,7 +40,20 @@ const T = {
     poderNotarial: 'Poder Notarial', currentMonth: 'Mes actual', last3Months: 'Últimos 3 meses',
     valid: 'Vigente', copy: 'Copia', noMovements: 'Sin movimientos, solo datos', optional: 'Opcional',
     razonSocial: 'Razón Social', rfc: 'RFC', repLegal: 'Rep. Legal', direccion: 'Dirección',
-    banco: 'Banco', clabe: 'CLABE', titular: 'Titular'
+    banco: 'Banco', clabe: 'CLABE', titular: 'Titular',
+    // Modal confirmación
+    confirmTitle: 'CONFIRMACIÓN IMPORTANTE',
+    confirmSubtitle: 'Antes de enviar su solicitud, confirme lo siguiente:',
+    confirmCheck1: 'será quien PAGUE los servicios de transporte',
+    confirmCheck2: 'Las facturas se emitirán a nombre de',
+    confirmCheck3: 'NO se aceptarán solicitudes de refacturación a otra razón social',
+    confirmCheck4: 'Los días de crédito aplican únicamente para esta empresa',
+    confirmWarning: 'Al confirmar, usted declara bajo protesta de decir verdad que la información proporcionada es correcta y que la empresa registrada será la única responsable del pago de los servicios.',
+    confirmCancel: 'Cancelar',
+    confirmAccept: 'Confirmo y Acepto',
+    confirmMustAccept: 'Debe aceptar todos los puntos para continuar',
+    companyPays: 'Empresa que paga:',
+    invoiceTo: 'Facturar a:'
   },
   en: {
     title: 'Client Registration', step1: 'Step 1: Documentation', step2: 'Step 2: Complete your information',
@@ -72,7 +85,20 @@ const T = {
     poderNotarial: 'Power of Attorney', currentMonth: 'Current year', last3Months: 'Last 3 months',
     valid: 'Valid', copy: 'Copy', noMovements: 'Bank details only', optional: 'Optional',
     razonSocial: 'Company Name', rfc: 'Tax ID', repLegal: 'Legal Rep', direccion: 'Address',
-    banco: 'Bank', clabe: 'Routing #', titular: 'Account #'
+    banco: 'Bank', clabe: 'Routing #', titular: 'Account #',
+    // Modal confirmación
+    confirmTitle: 'IMPORTANT CONFIRMATION',
+    confirmSubtitle: 'Before submitting your request, please confirm the following:',
+    confirmCheck1: 'will PAY for transportation services',
+    confirmCheck2: 'Invoices will be issued to',
+    confirmCheck3: 'Re-invoicing requests to another company will NOT be accepted',
+    confirmCheck4: 'Credit terms apply only to this company',
+    confirmWarning: 'By confirming, you declare under penalty of perjury that the information provided is correct and that the registered company will be solely responsible for payment of services.',
+    confirmCancel: 'Cancel',
+    confirmAccept: 'I Confirm and Accept',
+    confirmMustAccept: 'You must accept all items to continue',
+    companyPays: 'Company that pays:',
+    invoiceTo: 'Invoice to:'
   }
 };
 
@@ -95,6 +121,13 @@ const DOCS_USA = [
 ];
 
 const SIZES = { es: ['Seleccione...','1-10 colaboradores','11-50','51-200','201-500','500+'], en: ['Select...','1-10 employees','11-50','51-200','201-500','500+'] };
+
+const EMPRESAS_FACTURADORAS: Record<string, string> = {
+  'TROB': 'TROB Transportes',
+  'WE': 'WExpress',
+  'SHI': 'Speedyhaul',
+  'TROB_USA': 'TROB USA'
+};
 
 interface Props { solicitudId: string; }
 
@@ -126,6 +159,9 @@ export function AltaClientePublico({ solicitudId }: Props) {
     forma_pago_transferencia:true,forma_pago_cheque:false,forma_pago_deposito:false,forma_pago_portal:false
   });
   const [submitting, setSubmitting] = useState(false);
+  // NUEVO: Estado para modal de confirmación
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [confirmChecks, setConfirmChecks] = useState({ c1: false, c2: false, c3: false, c4: false });
 
   const tipo = solicitud?.tipo_empresa || 'MEXICANA';
   const docs = tipo === 'USA_CANADA' ? DOCS_USA : DOCS_MX;
@@ -208,14 +244,40 @@ export function AltaClientePublico({ solicitudId }: Props) {
     return fp.join(', ') || 'Transferencia';
   };
 
+  // NUEVO: Función para intentar enviar (muestra modal primero)
+  const intentarEnviar = () => {
+    if (!form.firma_aceptada || !form.firma_nombre) { 
+      alert(lang === 'es' ? 'Acepte términos y firme' : 'Accept terms and sign'); 
+      return; 
+    }
+    if (!firmaOK()) { 
+      alert(lang === 'es' ? 'Firma no coincide' : 'Signature mismatch'); 
+      return; 
+    }
+    // Mostrar modal de confirmación
+    setConfirmChecks({ c1: false, c2: false, c3: false, c4: false });
+    setShowConfirmModal(true);
+  };
+
   const enviar = async () => {
-    if (!form.firma_aceptada || !form.firma_nombre) { alert(lang === 'es' ? 'Acepte términos y firme' : 'Accept terms and sign'); return; }
-    if (!firmaOK()) { alert(lang === 'es' ? 'Firma no coincide' : 'Signature mismatch'); return; }
+    setShowConfirmModal(false);
     setSubmitting(true);
     try {
-      await supabase.from('alta_clientes').update({ ...form, contacto_admin_banco: datos.banco || '', contacto_admin_clabe: datos.clabe || '', forma_pago: getFormaPago(), idioma: lang, estatus: 'PENDIENTE_CSR', firma_fecha: new Date().toISOString(), firma_navegador: navigator.userAgent }).eq('id', solicitudId);
+      await supabase.from('alta_clientes').update({ 
+        ...form, 
+        contacto_admin_banco: datos.banco || '', 
+        contacto_admin_clabe: datos.clabe || '', 
+        forma_pago: getFormaPago(), 
+        idioma: lang, 
+        estatus: 'PENDIENTE_CSR', 
+        firma_fecha: new Date().toISOString(), 
+        firma_navegador: navigator.userAgent,
+        confirmacion_pago: true,
+        confirmacion_pago_fecha: new Date().toISOString(),
+        confirmacion_pago_ip: 'captured'
+      }).eq('id', solicitudId);
       await fetch(`${supabaseUrl}/functions/v1/generar-pdf-solicitud`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${supabaseAnonKey}` }, body: JSON.stringify({ solicitudId, idioma: lang }) }).catch(() => {});
-      await fetch(`${supabaseUrl}/functions/v1/enviar-correo-alta`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${supabaseAnonKey}` }, body: JSON.stringify({ solicitudId, tipo: 'cliente_completo', idioma: lang }) }).catch(() => {});
+      await fetch(`${supabaseUrl}/functions/v1/enviar-correo-alta`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${supabaseAnonKey}` }, body: JSON.stringify({ tipo: 'solicitud_completada', solicitudId, razonSocial: datos.razon_social || solicitud?.razon_social, empresaFacturadora: EMPRESAS_FACTURADORAS[solicitud?.empresa_facturadora] || solicitud?.empresa_facturadora }) }).catch(() => {});
       setPaso('enviado');
     } catch { alert('Error'); }
     finally { setSubmitting(false); }
@@ -228,30 +290,148 @@ export function AltaClientePublico({ solicitudId }: Props) {
     </div>
   );
 
+  // ═══════════════════════════════════════════════════════════════════════════
+  // MODAL DE CONFIRMACIÓN DE PAGO (DISUASIVO)
+  // ═══════════════════════════════════════════════════════════════════════════
+  const ModalConfirmacion = () => {
+    const razonSocial = datos.razon_social || solicitud?.razon_social || 'Su empresa';
+    const rfc = datos.rfc || solicitud?.rfc_mc || '';
+    const empresaFacturadora = EMPRESAS_FACTURADORAS[solicitud?.empresa_facturadora] || solicitud?.empresa_facturadora || 'GRUPO LOMA';
+    const allChecked = confirmChecks.c1 && confirmChecks.c2 && confirmChecks.c3 && confirmChecks.c4;
+
+    return (
+      <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div className="bg-[#0f1729] rounded-2xl border border-orange-500/30 max-w-lg w-full overflow-hidden">
+          {/* Header */}
+          <div className="bg-orange-500/20 border-b border-orange-500/30 p-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-full bg-orange-500/30 flex items-center justify-center">
+                  <AlertTriangle className="w-7 h-7 text-orange-400" />
+                </div>
+                <div>
+                  <h2 className="text-xl font-bold text-orange-400">{t.confirmTitle}</h2>
+                  <p className="text-sm text-white/60">{t.confirmSubtitle}</p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setShowConfirmModal(false)}
+                className="p-2 hover:bg-white/10 rounded-lg transition-colors"
+              >
+                <X className="w-5 h-5 text-white/50" />
+              </button>
+            </div>
+          </div>
+
+          {/* Content */}
+          <div className="p-6 space-y-4">
+            {/* Info de la empresa */}
+            <div className="bg-blue-500/10 border border-blue-500/30 rounded-xl p-4 mb-6">
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <span className="text-white/50 block text-xs">{t.companyPays}</span>
+                  <span className="text-blue-400 font-bold">{razonSocial}</span>
+                </div>
+                <div>
+                  <span className="text-white/50 block text-xs">{t.invoiceTo}</span>
+                  <span className="text-orange-400 font-bold">{empresaFacturadora}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Checkboxes */}
+            <div className="space-y-3">
+              {[
+                { key: 'c1', text: `${razonSocial} ${t.confirmCheck1}` },
+                { key: 'c2', text: `${t.confirmCheck2} ${razonSocial} ${lang === 'es' ? 'con RFC' : 'with Tax ID'} ${rfc}` },
+                { key: 'c3', text: t.confirmCheck3 },
+                { key: 'c4', text: t.confirmCheck4 }
+              ].map(item => (
+                <label 
+                  key={item.key}
+                  className={`flex items-start gap-3 p-3 rounded-xl cursor-pointer transition-all ${
+                    (confirmChecks as any)[item.key] 
+                      ? 'bg-green-500/10 border border-green-500/30' 
+                      : 'bg-white/5 border border-white/10 hover:border-white/20'
+                  }`}
+                >
+                  <input
+                    type="checkbox"
+                    checked={(confirmChecks as any)[item.key]}
+                    onChange={e => setConfirmChecks({ ...confirmChecks, [item.key]: e.target.checked })}
+                    className="mt-1 w-5 h-5 rounded"
+                    style={{ accentColor: '#22c55e' }}
+                  />
+                  <span className={`text-sm ${(confirmChecks as any)[item.key] ? 'text-green-300' : 'text-white/80'}`}>
+                    {(confirmChecks as any)[item.key] && <CheckCircle2 className="w-4 h-4 inline mr-1 text-green-400" />}
+                    {item.text}
+                  </span>
+                </label>
+              ))}
+            </div>
+
+            {/* Warning */}
+            <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-xl p-4 mt-6">
+              <div className="flex items-start gap-3">
+                <Shield className="w-5 h-5 text-yellow-500 flex-shrink-0 mt-0.5" />
+                <p className="text-sm text-yellow-200/80">{t.confirmWarning}</p>
+              </div>
+            </div>
+
+            {/* Mensaje si no ha aceptado todo */}
+            {!allChecked && (
+              <p className="text-center text-sm text-orange-400">{t.confirmMustAccept}</p>
+            )}
+          </div>
+
+          {/* Footer */}
+          <div className="p-4 border-t border-white/10 flex gap-3">
+            <button
+              onClick={() => setShowConfirmModal(false)}
+              className="flex-1 py-3 rounded-xl font-semibold bg-white/10 text-white/70 hover:bg-white/20 transition-colors"
+            >
+              {t.confirmCancel}
+            </button>
+            <button
+              onClick={enviar}
+              disabled={!allChecked}
+              className="flex-1 py-3 rounded-xl font-semibold text-white disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+              style={{ 
+                background: allChecked 
+                  ? 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)' 
+                  : 'rgba(255,255,255,0.1)' 
+              }}
+            >
+              {t.confirmAccept}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   const bg = "linear-gradient(135deg, #001f4d 0%, #003d7a 25%, #0066cc 50%, #1a8fff 75%, #4da6ff 100%)";
   const inputStyle = "w-full px-4 py-3 bg-white/5 border border-white/15 rounded-lg text-white text-base outline-none focus:border-orange-500/50 transition-colors";
   const labelStyle = "block text-sm font-medium text-white/70 mb-2";
 
   if (loading) return <div className="h-screen flex items-center justify-center" style={{ background: bg }}><Loader2 className="w-16 h-16 animate-spin text-white/50" /></div>;
-  if (error || !solicitud) return <div className="h-screen flex items-center justify-center" style={{ background: bg }}><div className="bg-[#0a1628]/95 p-10 rounded-2xl text-center max-w-md border border-white/10"><AlertCircle className="w-16 h-16 mx-auto mb-4 text-orange-500" /><h2 className="text-2xl font-semibold text-white mb-2">{t.notFound}</h2><p className="text-white/60">{t.notFoundMsg}</p></div></div>;
-
-  if (paso === 'completado' || paso === 'enviado') {
-    const ok = paso === 'completado';
-    return <div className="h-screen flex items-center justify-center" style={{ background: bg }}><div className="bg-[#0a1628]/95 p-12 rounded-2xl text-center max-w-lg border border-white/10"><div className={`w-20 h-20 mx-auto mb-6 rounded-full flex items-center justify-center ${ok ? 'bg-green-500/20' : 'bg-blue-500/20'}`}>{ok ? <CheckCircle2 className="w-10 h-10 text-green-400" /> : <Send className="w-10 h-10 text-blue-400" />}</div><h2 className="text-2xl font-semibold text-white mb-3">{ok ? t.completed : t.sent}</h2><p className="text-white/70 text-lg">{ok ? t.completedMsg : t.sentMsg}</p></div></div>;
-  }
-
-  if (paso === 'validando') return <div className="h-screen flex items-center justify-center" style={{ background: bg }}><div className="bg-[#0a1628]/95 p-10 rounded-2xl text-center max-w-md border border-white/10"><div className="w-20 h-20 mx-auto mb-6 rounded-full flex items-center justify-center bg-orange-500/20"><Shield className="w-10 h-10 text-orange-400 animate-pulse" /></div><h2 className="text-2xl font-semibold text-white mb-3">{t.validating}</h2><p className="text-white/60 mb-6">{t.validatingDesc}</p><div className="w-full h-2 bg-white/10 rounded-full overflow-hidden mb-4"><div className="h-full bg-gradient-to-r from-orange-500 to-orange-400 transition-all duration-300" style={{ width: `${progreso}%` }} /></div><p className="text-white/40 text-sm">{progreso}%</p></div></div>;
-
+  if (error || !solicitud) return <div className="h-screen flex flex-col items-center justify-center" style={{ background: bg }}><AlertCircle className="w-20 h-20 text-red-400 mb-4" /><h1 className="text-2xl font-bold text-white mb-2">{t.notFound}</h1><p className="text-white/60">{t.notFoundMsg}</p></div>;
+  if (paso === 'completado') return <div className="h-screen flex flex-col items-center justify-center" style={{ background: bg }}><CheckCircle2 className="w-20 h-20 text-green-400 mb-4" /><h1 className="text-2xl font-bold text-white mb-2">{t.completed}</h1><p className="text-white/60">{t.completedMsg}</p></div>;
+  if (paso === 'enviado') return <div className="h-screen flex flex-col items-center justify-center" style={{ background: bg }}><CheckCircle2 className="w-20 h-20 text-green-400 mb-4" /><h1 className="text-2xl font-bold text-white mb-2">{t.sent}</h1><p className="text-white/60">{t.sentMsg}</p></div>;
+  if (paso === 'validando') return <div className="h-screen flex flex-col items-center justify-center" style={{ background: bg }}><Loader2 className="w-20 h-20 animate-spin text-orange-400 mb-4" /><h1 className="text-2xl font-bold text-white mb-2">{t.validating}</h1><p className="text-white/60 mb-6">{t.validatingDesc}</p><div className="w-64 h-2 bg-white/20 rounded-full overflow-hidden"><div className="h-full bg-orange-500 transition-all" style={{ width: `${progreso}%` }} /></div></div>;
   if (paso === 'errores') return (
-    <div className="h-screen flex flex-col" style={{ background: bg }}>
-      <header className="px-6 py-3 flex items-center justify-between" style={{ background: 'rgba(0,0,0,0.4)' }}><div><h1 className="text-xl font-semibold text-white">{t.title}</h1><p className="text-sm text-white/60">{t.correctDocs}</p></div><LangToggle /></header>
-      <div className="flex-1 flex items-center justify-center p-4"><div className="w-full max-w-2xl bg-[#0a1628]/95 rounded-2xl border border-white/10 p-8"><div className="flex items-center gap-3 mb-6"><AlertCircle className="w-8 h-8 text-red-400" /><h2 className="text-xl font-semibold text-white">{t.problemsFound}</h2></div><div className="space-y-4 mb-8">{errores.map((e,i) => <div key={i} className="p-4 rounded-xl bg-red-500/10 border border-red-500/30"><p className="text-red-300 font-semibold mb-1">❌ {e.documento}</p><p className="text-white/70 text-sm mb-2">{e.error}</p><p className="text-white/50 text-sm">→ {e.solucion}</p></div>)}</div><button onClick={() => { setErrores([]); setPaso('documentos'); }} className="w-full py-3 rounded-xl flex items-center justify-center gap-2 bg-white/10 hover:bg-white/15"><RefreshCw className="w-5 h-5 text-white" /><span className="text-white font-semibold">{t.correctDocs}</span></button></div></div>
+    <div className="h-screen flex flex-col items-center justify-center p-8" style={{ background: bg }}>
+      <AlertCircle className="w-20 h-20 text-red-400 mb-4" />
+      <h1 className="text-2xl font-bold text-white mb-4">{t.problemsFound}</h1>
+      <div className="bg-red-500/20 rounded-xl p-6 max-w-lg w-full mb-6">{errores.map((e, i) => <div key={i} className="mb-3 last:mb-0"><p className="text-red-300 font-medium">{e.documento}</p><p className="text-white/70 text-sm">{e.error}</p>{e.solucion && <p className="text-green-300 text-sm mt-1">💡 {e.solucion}</p>}</div>)}</div>
+      <button onClick={() => setPaso('documentos')} className="px-8 py-3 rounded-xl font-semibold text-white" style={{ background: 'linear-gradient(135deg, #fe5000 0%, #cc4000 100%)' }}><RefreshCw className="w-5 h-5 inline mr-2" />{t.correctDocs}</button>
     </div>
   );
 
+  // PASO 1: DOCUMENTOS
   if (paso === 'documentos') return (
-    <div className="h-screen flex flex-col" style={{ background: bg }}>
-      <header className="px-6 py-3 flex items-center justify-between" style={{ background: 'rgba(0,0,0,0.4)' }}><div><h1 className="text-xl font-semibold text-white">{t.title}</h1><p className="text-sm text-white/60">{t.step1}</p></div><div className="flex items-center gap-3"><span className="text-white/70 text-sm">{uploaded}/{docs.length}</span><LangToggle /><div className="px-4 py-1.5 rounded-full bg-green-500/20"><span className="text-white font-medium">{tipo === 'USA_CANADA' ? '🇺🇸 USA/CA' : '🇲🇽 México'}</span></div></div></header>
+    <div className="min-h-screen flex flex-col" style={{ background: bg }}>
+      <header className="px-6 py-3 flex items-center justify-between" style={{ background: 'rgba(0,0,0,0.3)' }}><div><h1 className="text-xl font-semibold text-white">{t.title}</h1><p className="text-sm text-white/60">{t.step1}</p></div><div className="flex items-center gap-4"><LangToggle /><div className="text-right"><span className="text-white font-medium">{uploaded}/{docs.length}</span><span className="text-white/50 text-sm ml-1">{t.uploaded}</span></div></div></header>
       <div className="flex-1 flex items-center justify-center p-4"><div className="w-full max-w-5xl"><div className="bg-[#0a1628]/95 rounded-2xl border border-white/10 p-6">
         <div className="flex items-center justify-between mb-6"><div><h2 className="text-xl font-semibold text-white">{t.uploadDocs}</h2></div><label className="px-5 py-2.5 rounded-xl cursor-pointer flex items-center gap-2" style={{ background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)' }}>{uploadingAll ? <Loader2 className="w-5 h-5 animate-spin text-white" /> : <FolderUp className="w-5 h-5 text-white" />}<span className="text-white font-semibold">{t.uploadAll}</span><input ref={multiRef} type="file" accept=".pdf,.jpg,.jpeg,.png" multiple className="hidden" disabled={uploadingAll} /></label></div>
         <div className="grid grid-cols-2 gap-3 mb-6">{docs.map(d => {
@@ -283,8 +463,12 @@ export function AltaClientePublico({ solicitudId }: Props) {
         <div className="bg-[#0a1628]/95 rounded-xl border border-white/10 p-6"><h3 className="text-lg font-semibold text-white mb-5">🏢 {t.commercialRefs}</h3>{[1,2,3].map(n => <div key={n} className="mb-4 p-4 rounded-lg" style={{ background: 'rgba(255,255,255,0.02)' }}><label className="block text-sm font-semibold text-orange-500 mb-3">{t.reference} {n}</label><div className="grid grid-cols-5 gap-3"><input type="text" name={`ref${n}_empresa`} value={(form as any)[`ref${n}_empresa`]} onChange={handleChange} placeholder={t.company} className={inputStyle} /><input type="text" name={`ref${n}_contacto`} value={(form as any)[`ref${n}_contacto`]} onChange={handleChange} placeholder={t.contact} className={inputStyle} /><input type="tel" name={`ref${n}_whatsapp`} value={(form as any)[`ref${n}_whatsapp`]} onChange={handleChange} placeholder="WhatsApp" className={inputStyle} /><input type="email" name={`ref${n}_email`} value={(form as any)[`ref${n}_email`]} onChange={handleChange} placeholder="Email" className={inputStyle} /><input type="text" name={`ref${n}_anos`} value={(form as any)[`ref${n}_anos`]} onChange={handleChange} placeholder={t.years} className={inputStyle} /></div></div>)}</div>
         <div className="bg-[#0a1628]/95 rounded-xl border border-white/10 p-6"><h3 className="text-lg font-semibold text-white mb-5">📄 {t.billingProcess}</h3><textarea name="proceso_facturacion" value={form.proceso_facturacion} onChange={handleChange} placeholder={t.billingDesc} rows={4} style={{ resize: 'vertical' }} className={inputStyle} /></div>
         <div className="bg-[#0a1628]/95 rounded-xl border border-white/10 p-6"><h3 className="text-lg font-semibold text-white mb-5">✍️ {t.termsSignature}</h3><label className="flex items-start gap-3 cursor-pointer mb-5"><input type="checkbox" name="firma_aceptada" checked={form.firma_aceptada} onChange={handleChange} className="mt-1 w-5 h-5 rounded" style={{ accentColor: '#fe5000' }} /><span className="text-white/80 text-sm">{t.acceptTerms} <a href="#" className="text-orange-400 underline">{t.termsConditions}</a> {lang === 'es' ? 'y el' : 'and the'} <a href="#" className="text-orange-400 underline">{t.privacyNotice}</a>.</span></label><div><label className={labelStyle}>{t.fullName}{datos.representante_legal && <span className="text-orange-400 ml-2">— {t.mustMatch}: {datos.representante_legal}</span>}</label><input type="text" name="firma_nombre" value={form.firma_nombre} onChange={handleChange} placeholder={datos.representante_legal || (lang === 'es' ? 'Escriba su nombre completo' : 'Enter your full name')} className={inputStyle} />{form.firma_nombre && !firmaOK() && <p className="text-red-400 text-sm mt-2">⚠️ {t.nameNoMatch}</p>}</div></div>
-        <button onClick={enviar} disabled={submitting || !form.firma_aceptada || !form.firma_nombre} className="w-full py-4 rounded-xl flex items-center justify-center gap-3 disabled:opacity-40 disabled:cursor-not-allowed" style={{ background: 'linear-gradient(135deg, #fe5000 0%, #cc4000 100%)' }}>{submitting ? <Loader2 className="w-6 h-6 animate-spin text-white" /> : <Send className="w-6 h-6 text-white" />}<span className="text-white font-semibold text-lg">{submitting ? t.sending : t.sendRequest}</span></button>
+        {/* BOTÓN MODIFICADO: Ahora llama a intentarEnviar que muestra el modal */}
+        <button onClick={intentarEnviar} disabled={submitting || !form.firma_aceptada || !form.firma_nombre} className="w-full py-4 rounded-xl flex items-center justify-center gap-3 disabled:opacity-40 disabled:cursor-not-allowed" style={{ background: 'linear-gradient(135deg, #fe5000 0%, #cc4000 100%)' }}>{submitting ? <Loader2 className="w-6 h-6 animate-spin text-white" /> : <Send className="w-6 h-6 text-white" />}<span className="text-white font-semibold text-lg">{submitting ? t.sending : t.sendRequest}</span></button>
       </div>
+      
+      {/* Modal de confirmación */}
+      {showConfirmModal && <ModalConfirmacion />}
     </div>
   );
 }
