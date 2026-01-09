@@ -100,8 +100,15 @@ export default function CrearSolicitudAlta({ usuarioCreador, onClose, onCreated 
 
   if (sent) {
     return (
-      <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-        <div className="bg-[#0f1729] rounded-2xl border border-white/10 p-8 max-w-md w-full text-center">
+      <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
+        <div 
+          className="rounded-2xl border p-8 max-w-md w-full text-center"
+          style={{
+            background: 'linear-gradient(145deg, #0a1628 0%, #0d1f3c 50%, #0a1628 100%)',
+            borderColor: 'rgba(34, 197, 94, 0.3)',
+            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.8), 0 0 40px rgba(34, 197, 94, 0.1)'
+          }}
+        >
           <div className="w-16 h-16 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
             <CheckCircle2 className="w-10 h-10 text-green-400" />
           </div>
@@ -134,8 +141,15 @@ export default function CrearSolicitudAlta({ usuarioCreador, onClose, onCreated 
   }
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-[#0f1729] rounded-2xl border border-white/10 p-6 max-w-lg w-full">
+    <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
+      <div 
+        className="rounded-2xl border p-6 max-w-lg w-full"
+        style={{
+          background: 'linear-gradient(145deg, #0a1628 0%, #0d1f3c 50%, #0a1628 100%)',
+          borderColor: 'rgba(254, 80, 0, 0.3)',
+          boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.8), 0 0 40px rgba(254, 80, 0, 0.1)'
+        }}
+      >
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
@@ -166,7 +180,13 @@ export default function CrearSolicitudAlta({ usuarioCreador, onClose, onCreated 
               value={emails}
               onChange={e => setEmails(e.target.value)}
               placeholder="correo@cliente.com, otro@cliente.com"
-              className="w-full px-4 py-3 bg-white/5 border border-white/15 rounded-xl text-white placeholder-white/30 outline-none focus:border-orange-500/50 transition-colors"
+              className="w-full px-4 py-3 rounded-xl text-white placeholder-white/40 outline-none transition-colors"
+              style={{
+                background: 'rgba(0, 20, 50, 0.8)',
+                border: '1px solid rgba(255, 255, 255, 0.2)'
+              }}
+              onFocus={(e) => e.currentTarget.style.borderColor = 'rgba(254, 80, 0, 0.5)'}
+              onBlur={(e) => e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.2)'}
             />
             <p className="text-xs text-white/40 mt-1">Separe múltiples correos con coma</p>
           </div>
