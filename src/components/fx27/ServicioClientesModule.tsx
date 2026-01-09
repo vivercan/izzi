@@ -29,10 +29,10 @@ const ESTATUS_CONFIG: Record<string, { label: string; color: string; bg: string;
 };
 
 const EMPRESAS = {
-  'TROB': { nombre: 'TROB', color: '#001f4d' },
-  'WE': { nombre: 'WExpress', color: '#059669' },
-  'SHI': { nombre: 'Speedyhaul', color: '#7c3aed' },
-  'TROB_USA': { nombre: 'TROB USA', color: '#dc2626' }
+  'TROB': { nombre: 'TROB TRANSPORTES', color: '#001f4d' },
+  'WE': { nombre: 'WEXPRESS', color: '#059669' },
+  'SHI': { nombre: 'SPEEDYHAUL INTERNATIONAL', color: '#7c3aed' },
+  'TROB_USA': { nombre: 'TROB USA LLC', color: '#dc2626' }
 };
 
 interface Props {
@@ -171,7 +171,7 @@ export function ServicioClientesModule({ onBack, userEmail, userName }: Props) {
   const solicitudesFiltradas = solicitudes.filter(s => {
     if (!busqueda) return true;
     const term = busqueda.toLowerCase();
-    return s.razon_social?.toLowerCase().includes(term) || s.rfc_mc?.toLowerCase().includes(term) || s.correo_cliente?.toLowerCase().includes(term);
+    return s.razon_social?.toLowerCase().includes(term) || s.rfc_mc?.toLowerCase().includes(term) || s.email_cliente?.toLowerCase().includes(term);
   });
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -222,7 +222,7 @@ export function ServicioClientesModule({ onBack, userEmail, userName }: Props) {
               style={{
                 background: '#fe5000',
                 border: '1px solid rgba(255,255,255,0.2)',
-                borderRadius: '50%',
+                borderRadius: '8px',
                 width: '40px',
                 height: '40px',
                 display: 'flex',
@@ -529,7 +529,7 @@ export function ServicioClientesModule({ onBack, userEmail, userName }: Props) {
                 {solicitudesFiltradas.map(sol => {
                   const estatus = ESTATUS_CONFIG[sol.estatus] || ESTATUS_CONFIG['ENVIADA'];
                   const EstatusIcon = estatus.icon;
-                  const empresa = EMPRESAS[sol.empresa_facturadora as keyof typeof EMPRESAS];
+                  const empresa = EMPRESAS[sol.giro as keyof typeof EMPRESAS];
 
                   return (
                     <tr key={sol.id} className="hover:bg-white/5 transition-colors" style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
@@ -548,7 +548,7 @@ export function ServicioClientesModule({ onBack, userEmail, userName }: Props) {
                       <td className="px-4 py-3">
                         <div>
                           <span style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '14px', fontWeight: 500, color: '#fff' }}>{sol.razon_social || 'Sin nombre'}</span>
-                          <span style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '12px', color: 'rgba(255,255,255,0.4)', display: 'block' }}>{sol.correo_cliente}</span>
+                          <span style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '12px', color: 'rgba(255,255,255,0.4)', display: 'block' }}>{sol.email_cliente}</span>
                         </div>
                       </td>
                       <td className="px-4 py-3">

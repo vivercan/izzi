@@ -11,10 +11,10 @@ const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYm
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 const EMPRESAS_FACTURADORAS = [
-  { id: 'TROB', nombre: 'TROB Transportes', color: '#001f4d' },
-  { id: 'WE', nombre: 'WExpress', color: '#059669' },
-  { id: 'SHI', nombre: 'Speedyhaul', color: '#7c3aed' },
-  { id: 'TROB_USA', nombre: 'TROB USA', color: '#dc2626' }
+  { id: 'TROB', nombre: 'TROB TRANSPORTES', color: '#001f4d' },
+  { id: 'WE', nombre: 'WEXPRESS', color: '#059669' },
+  { id: 'SHI', nombre: 'SPEEDYHAUL INTERNATIONAL', color: '#7c3aed' },
+  { id: 'TROB_USA', nombre: 'TROB USA LLC', color: '#dc2626' }
 ];
 
 interface Props {
@@ -25,7 +25,6 @@ interface Props {
 
 export default function CrearSolicitudAlta({ usuarioCreador, onClose, onCreated }: Props) {
   const [emails, setEmails] = useState('');
-  const [razonSocialTentativa, setRazonSocialTentativa] = useState('');
   const [tipoEmpresa, setTipoEmpresa] = useState<'MEXICANA' | 'USA_CANADA'>('MEXICANA');
   const [empresaFacturadora, setEmpresaFacturadora] = useState('');
   const [sending, setSending] = useState(false);
@@ -43,26 +42,22 @@ export default function CrearSolicitudAlta({ usuarioCreador, onClose, onCreated 
       setError('Seleccione la empresa facturadora');
       return;
     }
-    if (!razonSocialTentativa.trim()) {
-      setError('Ingrese el nombre del cliente');
-      return;
-    }
 
     setError('');
     setSending(true);
 
     try {
-      // Crear la solicitud en BD
+      // Crear la solicitud en BD - USANDO NOMBRES CORRECTOS DE COLUMNAS
       const { data: solicitud, error: insertError } = await supabase
         .from('alta_clientes')
         .insert({
-          correo_cliente: emails.split(',').map(e => e.trim()).join(', '),
-          razon_social: razonSocialTentativa.trim(),
+          email_cliente: emails.split(',').map(e => e.trim())[0], // Primer email como principal
+          emails_adicionales: emails.split(',').map(e => e.trim()).slice(1), // Resto como adicionales
           tipo_empresa: tipoEmpresa,
-          empresa_facturadora: empresaFacturadora,
-          usuario_creador: usuarioCreador,
-          estatus: 'ENVIADA',
-          fecha_creacion: new Date().toISOString()
+          giro: empresaFacturadora, // Usamos giro para empresa facturadora
+          enviado_por: usuarioCreador,
+          estatus: 'ENVIADA'
+          // razon_social se extrae automáticamente de los documentos
         })
         .select()
         .single();
@@ -73,21 +68,24 @@ export default function CrearSolicitudAlta({ usuarioCreador, onClose, onCreated 
       setLinkGenerado(linkPublico);
 
       // Enviar correo al cliente
-      await fetch(`${supabaseUrl}/functions/v1/enviar-correo-alta`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${supabaseAnonKey}`
-        },
-        body: JSON.stringify({
-          tipo: 'solicitud_cliente',
-          solicitudId: solicitud.id,
-          destinatarios: emails.split(',').map(e => e.trim()),
-          razonSocial: razonSocialTentativa,
-          linkFormulario: linkPublico,
-          empresaFacturadora: EMPRESAS_FACTURADORAS.find(e => e.id === empresaFacturadora)?.nombre
-        })
-      });
+      try {
+        await fetch(`${supabaseUrl}/functions/v1/enviar-correo-alta`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${supabaseAnonKey}`
+          },
+          body: JSON.stringify({
+            tipo: 'solicitud_cliente',
+            solicitudId: solicitud.id,
+            destinatarios: emails.split(',').map(e => e.trim()),
+            linkFormulario: linkPublico,
+            empresaFacturadora: EMPRESAS_FACTURADORAS.find(e => e.id === empresaFacturadora)?.nombre
+          })
+        });
+      } catch (emailErr) {
+        console.warn('Error enviando correo, pero solicitud creada:', emailErr);
+      }
 
       setSent(true);
       onCreated?.(solicitud.id);
@@ -158,20 +156,6 @@ export default function CrearSolicitudAlta({ usuarioCreador, onClose, onCreated 
 
         {/* Form */}
         <div className="space-y-5">
-          {/* Nombre del cliente */}
-          <div>
-            <label className="block text-sm font-medium text-white/70 mb-2">
-              Nombre / Razón Social del Cliente *
-            </label>
-            <input
-              type="text"
-              value={razonSocialTentativa}
-              onChange={e => setRazonSocialTentativa(e.target.value)}
-              placeholder="Ej: ACME Logistics SA de CV"
-              className="w-full px-4 py-3 bg-white/5 border border-white/15 rounded-xl text-white placeholder-white/30 outline-none focus:border-orange-500/50 transition-colors"
-            />
-          </div>
-
           {/* Correos */}
           <div>
             <label className="block text-sm font-medium text-white/70 mb-2">
@@ -201,8 +185,8 @@ export default function CrearSolicitudAlta({ usuarioCreador, onClose, onCreated 
                     : 'border-white/10 bg-white/5 hover:border-white/20'
                 }`}
               >
-                <span className="text-2xl mb-1 block">🇲🇽</span>
-                <span className={`font-medium ${tipoEmpresa === 'MEXICANA' ? 'text-orange-400' : 'text-white/70'}`}>
+                <span className="text-lg font-bold block">MX</span>
+                <span className={`text-sm ${tipoEmpresa === 'MEXICANA' ? 'text-orange-400' : 'text-white/70'}`}>
                   Mexicana
                 </span>
               </button>
@@ -214,8 +198,8 @@ export default function CrearSolicitudAlta({ usuarioCreador, onClose, onCreated 
                     : 'border-white/10 bg-white/5 hover:border-white/20'
                 }`}
               >
-                <span className="text-2xl mb-1 block">🇺🇸</span>
-                <span className={`font-medium ${tipoEmpresa === 'USA_CANADA' ? 'text-blue-400' : 'text-white/70'}`}>
+                <span className="text-lg font-bold block">US</span>
+                <span className={`text-sm ${tipoEmpresa === 'USA_CANADA' ? 'text-blue-400' : 'text-white/70'}`}>
                   USA / Canadá
                 </span>
               </button>
