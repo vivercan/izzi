@@ -25,6 +25,8 @@ interface Props {
 
 export default function CrearSolicitudAlta({ usuarioCreador, onClose, onCreated }: Props) {
   const [emails, setEmails] = useState('');
+  const [nombreContacto, setNombreContacto] = useState('');
+  const [nombreComercial, setNombreComercial] = useState('');
   const [tipoEmpresa, setTipoEmpresa] = useState<'MEXICANA' | 'USA_CANADA'>('MEXICANA');
   const [empresaFacturadora, setEmpresaFacturadora] = useState('');
   const [sending, setSending] = useState(false);
@@ -34,6 +36,14 @@ export default function CrearSolicitudAlta({ usuarioCreador, onClose, onCreated 
 
   const handleSubmit = async () => {
     // Validaciones
+    if (!nombreComercial.trim()) {
+      setError('Ingrese el nombre comercial del cliente');
+      return;
+    }
+    if (!nombreContacto.trim()) {
+      setError('Ingrese el nombre del contacto');
+      return;
+    }
     if (!emails.trim()) {
       setError('Ingrese al menos un correo electrónico');
       return;
@@ -53,11 +63,12 @@ export default function CrearSolicitudAlta({ usuarioCreador, onClose, onCreated 
         .insert({
           email_cliente: emails.split(',').map(e => e.trim())[0], // Primer email como principal
           emails_adicionales: emails.split(',').map(e => e.trim()).slice(1), // Resto como adicionales
+          nombre_cliente: nombreContacto.trim(), // Nombre del contacto
+          razon_social: nombreComercial.trim(), // Nombre comercial (se actualiza cuando IA extrae datos)
           tipo_empresa: tipoEmpresa,
           giro: empresaFacturadora, // Usamos giro para empresa facturadora
           enviado_por: usuarioCreador,
           estatus: 'ENVIADA'
-          // razon_social se extrae automáticamente de los documentos
         })
         .select()
         .single();
@@ -79,6 +90,8 @@ export default function CrearSolicitudAlta({ usuarioCreador, onClose, onCreated 
             tipo: 'solicitud_cliente',
             solicitudId: solicitud.id,
             destinatarios: emails.split(',').map(e => e.trim()),
+            nombreContacto: nombreContacto.trim(),
+            nombreComercial: nombreComercial.trim(),
             linkFormulario: linkPublico,
             empresaFacturadora: EMPRESAS_FACTURADORAS.find(e => e.id === empresaFacturadora)?.nombre
           })
@@ -113,10 +126,11 @@ export default function CrearSolicitudAlta({ usuarioCreador, onClose, onCreated 
             <CheckCircle2 className="w-10 h-10 text-green-400" />
           </div>
           <h2 className="text-2xl font-bold text-white mb-2">¡Solicitud Enviada!</h2>
-          <p className="text-white/70 mb-4">
-            Se ha enviado el formulario de alta a:<br />
-            <span className="text-orange-400 font-medium">{emails}</span>
+          <p className="text-white/70 mb-2">
+            Se ha enviado el formulario de alta a:
           </p>
+          <p className="text-orange-400 font-medium mb-1">{nombreComercial}</p>
+          <p className="text-white/50 text-sm mb-4">Contacto: {nombreContacto} ({emails})</p>
           
           <div className="bg-white/5 rounded-lg p-4 mb-6">
             <p className="text-xs text-white/50 mb-2">Link del formulario:</p>
@@ -170,6 +184,48 @@ export default function CrearSolicitudAlta({ usuarioCreador, onClose, onCreated 
 
         {/* Form */}
         <div className="space-y-5">
+          {/* Nombre Comercial */}
+          <div>
+            <label className="block text-sm font-medium text-white/70 mb-2">
+              Nombre Comercial *
+            </label>
+            <input
+              type="text"
+              value={nombreComercial}
+              onChange={e => setNombreComercial(e.target.value)}
+              placeholder="Ej: Bimbo, Soriana, ACME Logistics"
+              className="w-full px-4 py-3 rounded-xl text-white placeholder-white/40 outline-none transition-colors"
+              style={{
+                background: 'rgba(0, 20, 50, 0.8)',
+                border: '1px solid rgba(255, 255, 255, 0.2)'
+              }}
+              onFocus={(e) => e.currentTarget.style.borderColor = 'rgba(254, 80, 0, 0.5)'}
+              onBlur={(e) => e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.2)'}
+            />
+            <p className="text-xs text-white/40 mt-1">Referencia interna para identificar al cliente</p>
+          </div>
+
+          {/* Nombre del Contacto */}
+          <div>
+            <label className="block text-sm font-medium text-white/70 mb-2">
+              Nombre del Contacto *
+            </label>
+            <input
+              type="text"
+              value={nombreContacto}
+              onChange={e => setNombreContacto(e.target.value)}
+              placeholder="Ej: Lic. Roberto García"
+              className="w-full px-4 py-3 rounded-xl text-white placeholder-white/40 outline-none transition-colors"
+              style={{
+                background: 'rgba(0, 20, 50, 0.8)',
+                border: '1px solid rgba(255, 255, 255, 0.2)'
+              }}
+              onFocus={(e) => e.currentTarget.style.borderColor = 'rgba(254, 80, 0, 0.5)'}
+              onBlur={(e) => e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.2)'}
+            />
+            <p className="text-xs text-white/40 mt-1">Persona que recibirá el correo</p>
+          </div>
+
           {/* Correos */}
           <div>
             <label className="block text-sm font-medium text-white/70 mb-2">

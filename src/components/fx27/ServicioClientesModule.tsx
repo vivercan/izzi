@@ -171,7 +171,10 @@ export function ServicioClientesModule({ onBack, userEmail, userName }: Props) {
   const solicitudesFiltradas = solicitudes.filter(s => {
     if (!busqueda) return true;
     const term = busqueda.toLowerCase();
-    return s.razon_social?.toLowerCase().includes(term) || s.rfc_mc?.toLowerCase().includes(term) || s.email_cliente?.toLowerCase().includes(term);
+    return s.razon_social?.toLowerCase().includes(term) || 
+           s.nombre_cliente?.toLowerCase().includes(term) || 
+           s.rfc_mc?.toLowerCase().includes(term) || 
+           s.email_cliente?.toLowerCase().includes(term);
   });
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -548,7 +551,8 @@ export function ServicioClientesModule({ onBack, userEmail, userName }: Props) {
                       <td className="px-4 py-3">
                         <div>
                           <span style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '14px', fontWeight: 500, color: '#fff' }}>{sol.razon_social || 'Sin nombre'}</span>
-                          <span style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '12px', color: 'rgba(255,255,255,0.4)', display: 'block' }}>{sol.email_cliente}</span>
+                          <span style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '12px', color: 'rgba(255,255,255,0.5)', display: 'block' }}>{sol.nombre_cliente || ''}</span>
+                          <span style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '11px', color: 'rgba(255,255,255,0.35)', display: 'block' }}>{sol.email_cliente}</span>
                         </div>
                       </td>
                       <td className="px-4 py-3">
