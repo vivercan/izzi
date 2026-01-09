@@ -17,9 +17,23 @@ export function ConfiguracionModule({ onBack }: Props) {
     const userData = localStorage.getItem('fx27_user');
     if (userData) {
       const user = JSON.parse(userData);
-      // Administradores: Juan Viveros, Jennifer Sánchez
-      const admins = ['juan.viveros', 'jennifer.sanchez', 'admin', 'jviveros', 'jsanchez'];
-      setIsAdmin(admins.includes(user.username?.toLowerCase()) || user.role === 'admin' || user.rol === 'administrador');
+      // Administradores: Juan Viveros, Jennifer Sánchez (verificar username, email, o rol)
+      const adminEmails = [
+        'juan.viveros@trob.com.mx',
+        'jennifer.sanchez@trob.com.mx',
+        'juan.viveros',
+        'jennifer.sanchez',
+        'admin',
+        'jviveros',
+        'jsanchez'
+      ];
+      const userIdentifier = (user.username || user.email || user.correo || '').toLowerCase();
+      setIsAdmin(
+        adminEmails.includes(userIdentifier) || 
+        user.role === 'admin' || 
+        user.rol === 'administrador' ||
+        user.rol === 'admin'
+      );
     }
   }, []);
 
