@@ -54,6 +54,7 @@ export function ServicioClientesModule({ onBack, userEmail, userName }: Props) {
   const [busqueda, setBusqueda] = useState('');
   const [showCrearModal, setShowCrearModal] = useState(false);
   const [solicitudSeleccionada, setSolicitudSeleccionada] = useState<string | null>(null);
+  const [hoveredBtn, setHoveredBtn] = useState<string | null>(null);
 
   // Cargar solicitudes
   const cargarSolicitudes = async () => {
@@ -96,56 +97,44 @@ export function ServicioClientesModule({ onBack, userEmail, userName }: Props) {
   });
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // RENDER: HUB PRINCIPAL
+  // RENDER: HUB PRINCIPAL - ESTILO DASHBOARD
   // ═══════════════════════════════════════════════════════════════════════════
   const renderHub = () => {
     const botones = [
       {
         id: 'nueva-alta',
         nombre: 'Nueva Alta',
-        descripcion: 'Enviar formulario al cliente',
         icon: UserPlus,
-        color: '#fe5000',
         onClick: () => setShowCrearModal(true)
       },
       {
         id: 'solicitudes',
         nombre: 'Solicitudes',
-        descripcion: 'Ver todas las altas',
         icon: FileText,
-        color: '#3b82f6',
-        onClick: () => setVista('lista')
+        onClick: () => { setFiltroEstatus(''); setVista('lista'); }
       },
       {
         id: 'pendientes-csr',
         nombre: 'Pendientes CSR',
-        descripcion: 'Asignar servicio al cliente',
         icon: Clock,
-        color: '#f59e0b',
         onClick: () => { setFiltroEstatus('PENDIENTE_CSR'); setVista('lista'); }
       },
       {
         id: 'pendientes-cxc',
         nombre: 'Pendientes CxC',
-        descripcion: 'Asignar cobranza',
         icon: CreditCard,
-        color: '#8b5cf6',
         onClick: () => { setFiltroEstatus('PENDIENTE_COBRANZA'); setVista('lista'); }
       },
       {
         id: 'por-confirmar',
         nombre: 'Por Confirmar',
-        descripcion: 'Confirmar altas',
         icon: Shield,
-        color: '#22c55e',
         onClick: () => { setFiltroEstatus('PENDIENTE_CONFIRMACION'); setVista('lista'); }
       },
       {
         id: 'completadas',
         nombre: 'Completadas',
-        descripcion: 'Altas finalizadas',
         icon: CheckCircle2,
-        color: '#10b981',
         onClick: () => { setFiltroEstatus('COMPLETADA'); setVista('lista'); }
       }
     ];
@@ -153,29 +142,117 @@ export function ServicioClientesModule({ onBack, userEmail, userName }: Props) {
     return (
       <div className="p-8">
         <div className="max-w-4xl mx-auto">
-          <div className="text-center mb-8">
-            <h2 className="text-2xl font-bold text-white mb-2">Servicio a Clientes</h2>
-            <p className="text-white/60">Gestión de altas y atención al cliente</p>
+          {/* Header estilo Dashboard */}
+          <div className="text-center mb-10">
+            <h2 
+              style={{ 
+                fontFamily: "'Exo 2', sans-serif",
+                fontSize: '28px',
+                fontWeight: 700,
+                color: '#ffffff',
+                marginBottom: '8px'
+              }}
+            >
+              Servicio a Clientes
+            </h2>
+            <p 
+              style={{ 
+                fontFamily: "'Exo 2', sans-serif",
+                fontSize: '14px',
+                color: 'rgba(255,255,255,0.5)'
+              }}
+            >
+              Gestión de altas y atención al cliente
+            </p>
           </div>
 
-          <div className="grid grid-cols-3 gap-4">
+          {/* Grid de botones estilo Dashboard */}
+          <div className="grid grid-cols-3 gap-5">
             {botones.map(btn => {
               const Icon = btn.icon;
+              const isHovered = hoveredBtn === btn.id;
+              
               return (
                 <button
                   key={btn.id}
                   onClick={btn.onClick}
-                  className="p-6 rounded-xl border border-white/10 hover:border-white/20 transition-all group"
-                  style={{ background: 'rgba(255,255,255,0.03)' }}
+                  onMouseEnter={() => setHoveredBtn(btn.id)}
+                  onMouseLeave={() => setHoveredBtn(null)}
+                  className="relative group"
+                  style={{
+                    background: 'rgba(255, 255, 255, 0.03)',
+                    backdropFilter: 'blur(10px)',
+                    borderRadius: '16px',
+                    border: isHovered ? '1.5px solid rgba(254, 80, 0, 0.6)' : '1px solid rgba(255, 255, 255, 0.08)',
+                    padding: '32px 24px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '16px',
+                    cursor: 'pointer',
+                    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                    transform: isHovered ? 'translateY(-4px)' : 'translateY(0)',
+                    boxShadow: isHovered 
+                      ? '0 20px 40px rgba(254, 80, 0, 0.15), 0 0 30px rgba(254, 80, 0, 0.1)' 
+                      : '0 4px 20px rgba(0, 0, 0, 0.3)',
+                  }}
                 >
+                  {/* Efecto de brillo en hover */}
                   <div
-                    className="w-14 h-14 rounded-xl flex items-center justify-center mb-4 mx-auto transition-transform group-hover:scale-110"
-                    style={{ background: `${btn.color}20` }}
+                    style={{
+                      position: 'absolute',
+                      inset: 0,
+                      borderRadius: '16px',
+                      background: isHovered 
+                        ? 'linear-gradient(135deg, rgba(254, 80, 0, 0.1) 0%, transparent 50%, rgba(254, 80, 0, 0.05) 100%)'
+                        : 'transparent',
+                      transition: 'all 0.3s ease',
+                      pointerEvents: 'none'
+                    }}
+                  />
+                  
+                  {/* Icono */}
+                  <div
+                    style={{
+                      width: '56px',
+                      height: '56px',
+                      borderRadius: '14px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      background: isHovered 
+                        ? 'rgba(254, 80, 0, 0.15)' 
+                        : 'rgba(255, 255, 255, 0.05)',
+                      border: isHovered 
+                        ? '1px solid rgba(254, 80, 0, 0.3)' 
+                        : '1px solid rgba(255, 255, 255, 0.1)',
+                      transition: 'all 0.3s ease'
+                    }}
                   >
-                    <Icon className="w-7 h-7" style={{ color: btn.color }} />
+                    <Icon 
+                      style={{ 
+                        width: '28px', 
+                        height: '28px',
+                        color: isHovered ? '#fe5000' : 'rgba(255, 255, 255, 0.7)',
+                        transition: 'all 0.3s ease'
+                      }} 
+                    />
                   </div>
-                  <h3 className="text-white font-semibold text-lg mb-1">{btn.nombre}</h3>
-                  <p className="text-white/50 text-sm">{btn.descripcion}</p>
+                  
+                  {/* Nombre */}
+                  <span
+                    style={{
+                      fontFamily: "'Exo 2', sans-serif",
+                      fontSize: '15px',
+                      fontWeight: 600,
+                      color: isHovered ? '#ffffff' : 'rgba(255, 255, 255, 0.85)',
+                      textAlign: 'center',
+                      transition: 'all 0.3s ease'
+                    }}
+                  >
+                    {btn.nombre}
+                  </span>
                 </button>
               );
             })}
@@ -200,8 +277,23 @@ export function ServicioClientesModule({ onBack, userEmail, userName }: Props) {
             <ArrowLeft className="w-5 h-5 text-white/60" />
           </button>
           <div>
-            <h2 className="text-xl font-bold text-white">Solicitudes de Alta</h2>
-            <p className="text-sm text-white/50">
+            <h2 
+              style={{ 
+                fontFamily: "'Exo 2', sans-serif",
+                fontSize: '20px',
+                fontWeight: 700,
+                color: '#ffffff'
+              }}
+            >
+              Solicitudes de Alta
+            </h2>
+            <p 
+              style={{ 
+                fontFamily: "'Exo 2', sans-serif",
+                fontSize: '13px',
+                color: 'rgba(255,255,255,0.5)'
+              }}
+            >
               {filtroEstatus ? ESTATUS_CONFIG[filtroEstatus]?.label : 'Todas las solicitudes'}
             </p>
           </div>
@@ -217,6 +309,7 @@ export function ServicioClientesModule({ onBack, userEmail, userName }: Props) {
               onChange={e => setBusqueda(e.target.value)}
               placeholder="Buscar..."
               className="pl-10 pr-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-white/30 text-sm w-64 outline-none focus:border-orange-500/50"
+              style={{ fontFamily: "'Exo 2', sans-serif" }}
             />
           </div>
 
@@ -225,6 +318,7 @@ export function ServicioClientesModule({ onBack, userEmail, userName }: Props) {
             value={filtroEstatus}
             onChange={e => setFiltroEstatus(e.target.value)}
             className="px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm outline-none"
+            style={{ fontFamily: "'Exo 2', sans-serif" }}
           >
             <option value="" style={{ background: '#1a1a2e' }}>Todos</option>
             {Object.entries(ESTATUS_CONFIG).map(([key, cfg]) => (
@@ -244,8 +338,12 @@ export function ServicioClientesModule({ onBack, userEmail, userName }: Props) {
           {/* Nueva Alta */}
           <button
             onClick={() => setShowCrearModal(true)}
-            className="px-4 py-2 rounded-lg flex items-center gap-2 font-medium text-white"
-            style={{ background: 'linear-gradient(135deg, #fe5000 0%, #cc4000 100%)' }}
+            className="px-4 py-2 rounded-lg flex items-center gap-2 font-medium text-white transition-all hover:scale-105"
+            style={{ 
+              background: 'linear-gradient(135deg, #fe5000 0%, #cc4000 100%)',
+              fontFamily: "'Exo 2', sans-serif",
+              fontSize: '14px'
+            }}
           >
             <UserPlus className="w-4 h-4" />
             Nueva Alta
@@ -254,25 +352,34 @@ export function ServicioClientesModule({ onBack, userEmail, userName }: Props) {
       </div>
 
       {/* Tabla */}
-      <div className="bg-[#0a1628]/95 rounded-xl border border-white/10 overflow-hidden">
+      <div 
+        className="rounded-xl border overflow-hidden"
+        style={{ 
+          background: 'rgba(10, 22, 40, 0.95)',
+          borderColor: 'rgba(255,255,255,0.1)'
+        }}
+      >
         {loading ? (
           <div className="flex items-center justify-center py-20">
             <Loader2 className="w-8 h-8 animate-spin text-orange-500" />
           </div>
         ) : solicitudesFiltradas.length === 0 ? (
-          <div className="text-center py-20 text-white/50">
-            No hay solicitudes
+          <div className="text-center py-20">
+            <FileText className="w-12 h-12 text-white/20 mx-auto mb-4" />
+            <p style={{ fontFamily: "'Exo 2', sans-serif", color: 'rgba(255,255,255,0.5)' }}>
+              No hay solicitudes
+            </p>
           </div>
         ) : (
           <table className="w-full">
             <thead>
-              <tr className="border-b border-white/10">
-                <th className="text-left px-4 py-3 text-xs font-medium text-white/50 uppercase">Cliente</th>
-                <th className="text-left px-4 py-3 text-xs font-medium text-white/50 uppercase">RFC</th>
-                <th className="text-left px-4 py-3 text-xs font-medium text-white/50 uppercase">Empresa</th>
-                <th className="text-left px-4 py-3 text-xs font-medium text-white/50 uppercase">Estatus</th>
-                <th className="text-left px-4 py-3 text-xs font-medium text-white/50 uppercase">Fecha</th>
-                <th className="text-left px-4 py-3 text-xs font-medium text-white/50 uppercase">Acciones</th>
+              <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
+                <th className="text-left px-4 py-3" style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '11px', fontWeight: 600, color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Cliente</th>
+                <th className="text-left px-4 py-3" style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '11px', fontWeight: 600, color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>RFC</th>
+                <th className="text-left px-4 py-3" style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '11px', fontWeight: 600, color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Empresa</th>
+                <th className="text-left px-4 py-3" style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '11px', fontWeight: 600, color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Estatus</th>
+                <th className="text-left px-4 py-3" style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '11px', fontWeight: 600, color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Fecha</th>
+                <th className="text-left px-4 py-3" style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '11px', fontWeight: 600, color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Acciones</th>
               </tr>
             </thead>
             <tbody>
@@ -282,39 +389,57 @@ export function ServicioClientesModule({ onBack, userEmail, userName }: Props) {
                 const empresa = EMPRESAS[sol.empresa_facturadora as keyof typeof EMPRESAS];
 
                 return (
-                  <tr key={sol.id} className="border-b border-white/5 hover:bg-white/5 transition-colors">
+                  <tr 
+                    key={sol.id} 
+                    className="hover:bg-white/5 transition-colors"
+                    style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}
+                  >
                     <td className="px-4 py-3">
                       <div>
-                        <span className="text-white font-medium">{sol.razon_social || 'Sin nombre'}</span>
-                        <span className="text-white/40 text-xs block">{sol.correo_cliente}</span>
+                        <span style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '14px', fontWeight: 500, color: '#fff' }}>
+                          {sol.razon_social || 'Sin nombre'}
+                        </span>
+                        <span style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '12px', color: 'rgba(255,255,255,0.4)', display: 'block' }}>
+                          {sol.correo_cliente}
+                        </span>
                       </div>
                     </td>
                     <td className="px-4 py-3">
-                      <span className="text-white/70 font-mono text-sm">{sol.rfc_mc || '-'}</span>
+                      <span style={{ fontFamily: "'Roboto Mono', monospace", fontSize: '13px', color: 'rgba(255,255,255,0.7)' }}>
+                        {sol.rfc_mc || '-'}
+                      </span>
                     </td>
                     <td className="px-4 py-3">
                       {empresa ? (
                         <span
                           className="px-2 py-1 rounded text-xs font-medium"
-                          style={{ background: `${empresa.color}20`, color: empresa.color }}
+                          style={{ 
+                            background: `${empresa.color}20`, 
+                            color: empresa.color,
+                            fontFamily: "'Exo 2', sans-serif"
+                          }}
                         >
                           {empresa.nombre}
                         </span>
                       ) : (
-                        <span className="text-white/40 text-xs">-</span>
+                        <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: '12px' }}>-</span>
                       )}
                     </td>
                     <td className="px-4 py-3">
                       <span
                         className="px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1.5 w-fit"
-                        style={{ background: estatus.bg, color: estatus.color }}
+                        style={{ 
+                          background: estatus.bg, 
+                          color: estatus.color,
+                          fontFamily: "'Exo 2', sans-serif"
+                        }}
                       >
                         <EstatusIcon className="w-3 h-3" />
                         {estatus.label}
                       </span>
                     </td>
                     <td className="px-4 py-3">
-                      <span className="text-white/50 text-sm">
+                      <span style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '13px', color: 'rgba(255,255,255,0.5)' }}>
                         {sol.created_at ? new Date(sol.created_at).toLocaleDateString('es-MX') : '-'}
                       </span>
                     </td>
@@ -322,7 +447,6 @@ export function ServicioClientesModule({ onBack, userEmail, userName }: Props) {
                       <button
                         onClick={() => {
                           setSolicitudSeleccionada(sol.id);
-                          // Determinar vista según estatus
                           if (sol.estatus === 'PENDIENTE_CSR' || sol.estatus === 'PENDIENTE_COBRANZA') {
                             setVista('revisar');
                           } else if (sol.estatus === 'PENDIENTE_CONFIRMACION') {
@@ -331,9 +455,9 @@ export function ServicioClientesModule({ onBack, userEmail, userName }: Props) {
                             setVista('revisar');
                           }
                         }}
-                        className="p-2 hover:bg-white/10 rounded-lg transition-colors group"
+                        className="p-2 hover:bg-orange-500/20 rounded-lg transition-colors group"
                       >
-                        <Eye className="w-4 h-4 text-white/40 group-hover:text-orange-400" />
+                        <Eye className="w-4 h-4 text-white/40 group-hover:text-orange-400 transition-colors" />
                       </button>
                     </td>
                   </tr>
@@ -359,8 +483,12 @@ export function ServicioClientesModule({ onBack, userEmail, userName }: Props) {
           <ArrowLeft className="w-5 h-5 text-white/60" />
         </button>
         <div>
-          <h2 className="text-xl font-bold text-white">Revisar Solicitud</h2>
-          <p className="text-sm text-white/50">Validar cliente, asignar CSR y crédito</p>
+          <h2 style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '20px', fontWeight: 700, color: '#ffffff' }}>
+            Revisar Solicitud
+          </h2>
+          <p style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '13px', color: 'rgba(255,255,255,0.5)' }}>
+            Validar cliente, asignar CSR y crédito
+          </p>
         </div>
       </div>
 
@@ -390,8 +518,12 @@ export function ServicioClientesModule({ onBack, userEmail, userName }: Props) {
           <ArrowLeft className="w-5 h-5 text-white/60" />
         </button>
         <div>
-          <h2 className="text-xl font-bold text-white">Confirmar Alta</h2>
-          <p className="text-sm text-white/50">Revisión final y confirmación al cliente</p>
+          <h2 style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '20px', fontWeight: 700, color: '#ffffff' }}>
+            Confirmar Alta
+          </h2>
+          <p style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '13px', color: 'rgba(255,255,255,0.5)' }}>
+            Revisión final y confirmación al cliente
+          </p>
         </div>
       </div>
 
