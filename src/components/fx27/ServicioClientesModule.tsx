@@ -57,6 +57,8 @@ export function ServicioClientesModule({ onBack, userEmail, userName }: Props) {
   const [showDeleteModal, setShowDeleteModal] = useState<string | null>(null);
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
   const [deleting, setDeleting] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [showDeleteMultipleModal, setShowDeleteMultipleModal] = useState(false);
 
   // Verificar si es admin
   useEffect(() => {
@@ -116,6 +118,49 @@ export function ServicioClientesModule({ onBack, userEmail, userName }: Props) {
       alert('Error al eliminar la solicitud');
     } finally {
       setDeleting(false);
+    }
+  };
+
+  // Eliminar múltiples solicitudes
+  const eliminarMultiples = async () => {
+    if (deleteConfirmText !== 'DELETE') {
+      alert('Escriba DELETE para confirmar');
+      return;
+    }
+    
+    setDeleting(true);
+    try {
+      const { error } = await supabase
+        .from('alta_clientes')
+        .delete()
+        .in('id', selectedIds);
+      
+      if (error) throw error;
+      
+      setShowDeleteMultipleModal(false);
+      setDeleteConfirmText('');
+      setSelectedIds([]);
+      cargarSolicitudes();
+    } catch (err) {
+      console.error('Error eliminando:', err);
+      alert('Error al eliminar las solicitudes');
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  // Toggle selección
+  const toggleSeleccion = (id: string) => {
+    setSelectedIds(prev => 
+      prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
+    );
+  };
+
+  const toggleSeleccionTodos = () => {
+    if (selectedIds.length === solicitudesFiltradas.length) {
+      setSelectedIds([]);
+    } else {
+      setSelectedIds(solicitudesFiltradas.map(s => s.id));
     }
   };
 
@@ -423,6 +468,18 @@ export function ServicioClientesModule({ onBack, userEmail, userName }: Props) {
               <RefreshCw className={`w-5 h-5 text-white/60 ${loading ? 'animate-spin' : ''}`} />
             </button>
 
+            {/* Botón borrar seleccionados - Solo Admin */}
+            {isAdmin && selectedIds.length > 0 && (
+              <button
+                onClick={() => setShowDeleteMultipleModal(true)}
+                className="px-4 py-2 rounded-lg flex items-center gap-2 font-medium text-white transition-all hover:scale-105"
+                style={{ background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)', fontFamily: "'Exo 2', sans-serif", fontSize: '14px' }}
+              >
+                <Trash2 className="w-4 h-4" />
+                Borrar ({selectedIds.length})
+              </button>
+            )}
+
             <button
               onClick={() => setShowCrearModal(true)}
               className="px-4 py-2 rounded-lg flex items-center gap-2 font-medium text-white transition-all hover:scale-105"
@@ -448,6 +505,18 @@ export function ServicioClientesModule({ onBack, userEmail, userName }: Props) {
             <table className="w-full">
               <thead>
                 <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
+                  {/* Checkbox seleccionar todos - Solo Admin */}
+                  {isAdmin && (
+                    <th className="text-left px-4 py-3 w-12">
+                      <input
+                        type="checkbox"
+                        checked={selectedIds.length === solicitudesFiltradas.length && solicitudesFiltradas.length > 0}
+                        onChange={toggleSeleccionTodos}
+                        className="w-4 h-4 rounded cursor-pointer"
+                        style={{ accentColor: '#fe5000' }}
+                      />
+                    </th>
+                  )}
                   <th className="text-left px-4 py-3" style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '11px', fontWeight: 600, color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase' }}>Cliente</th>
                   <th className="text-left px-4 py-3" style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '11px', fontWeight: 600, color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase' }}>RFC</th>
                   <th className="text-left px-4 py-3" style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '11px', fontWeight: 600, color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase' }}>Empresa</th>
@@ -464,6 +533,18 @@ export function ServicioClientesModule({ onBack, userEmail, userName }: Props) {
 
                   return (
                     <tr key={sol.id} className="hover:bg-white/5 transition-colors" style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                      {/* Checkbox selección - Solo Admin */}
+                      {isAdmin && (
+                        <td className="px-4 py-3 w-12">
+                          <input
+                            type="checkbox"
+                            checked={selectedIds.includes(sol.id)}
+                            onChange={() => toggleSeleccion(sol.id)}
+                            className="w-4 h-4 rounded cursor-pointer"
+                            style={{ accentColor: '#fe5000' }}
+                          />
+                        </td>
+                      )}
                       <td className="px-4 py-3">
                         <div>
                           <span style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '14px', fontWeight: 500, color: '#fff' }}>{sol.razon_social || 'Sin nombre'}</span>
@@ -607,6 +688,70 @@ export function ServicioClientesModule({ onBack, userEmail, userName }: Props) {
                     <Trash2 className="w-5 h-5" />
                   )}
                   Eliminar
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Modal Confirmar Borrado Múltiple */}
+        {showDeleteMultipleModal && (
+          <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div className="bg-[#0f1729] rounded-2xl border border-red-500/30 p-6 w-full max-w-md">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-12 h-12 rounded-full bg-red-500/20 flex items-center justify-center">
+                  <AlertTriangle className="w-6 h-6 text-red-400" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-white">Eliminar {selectedIds.length} Solicitudes</h3>
+                  <p className="text-sm text-red-400">Esta acción no se puede deshacer</p>
+                </div>
+              </div>
+              
+              <div className="mb-6">
+                <p className="text-white/70 mb-4">
+                  ¿Está seguro que desea eliminar <span className="text-red-400 font-bold">{selectedIds.length}</span> solicitudes? Se borrarán todos los datos y documentos asociados.
+                </p>
+                <label className="block text-sm font-medium text-white/50 mb-2">
+                  Escriba <span className="text-red-400 font-bold">DELETE</span> para confirmar:
+                </label>
+                <input
+                  type="text"
+                  value={deleteConfirmText}
+                  onChange={(e) => setDeleteConfirmText(e.target.value)}
+                  placeholder="DELETE"
+                  className="w-full px-4 py-3 bg-red-500/10 border border-red-500/30 rounded-lg text-white outline-none focus:border-red-500 font-mono text-center text-lg"
+                  style={{ letterSpacing: '0.2em' }}
+                />
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={() => {
+                    setShowDeleteMultipleModal(false);
+                    setDeleteConfirmText('');
+                  }}
+                  className="flex-1 py-3 rounded-xl bg-white/10 text-white/70 font-medium hover:bg-white/20 transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={eliminarMultiples}
+                  disabled={deleteConfirmText !== 'DELETE' || deleting}
+                  className="flex-1 py-3 rounded-xl font-medium flex items-center justify-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  style={{ 
+                    background: deleteConfirmText === 'DELETE' 
+                      ? 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)' 
+                      : 'rgba(255,255,255,0.1)',
+                    color: deleteConfirmText === 'DELETE' ? '#fff' : 'rgba(255,255,255,0.3)'
+                  }}
+                >
+                  {deleting ? (
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                  ) : (
+                    <Trash2 className="w-5 h-5" />
+                  )}
+                  Eliminar {selectedIds.length}
                 </button>
               </div>
             </div>

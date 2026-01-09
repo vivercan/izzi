@@ -78,14 +78,25 @@ export function ConfiguracionModule({ onBack }: Props) {
         <div className="bg-slate-800/50 border-b border-slate-700/50 px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <button onClick={() => setSubModulo(null)} className="p-2 bg-orange-500 hover:bg-orange-600 rounded-full transition-colors">
+              <button onClick={() => setSubModulo(null)} className="p-2 bg-orange-500 hover:bg-orange-600 rounded-lg transition-colors">
                 <ArrowLeft className="w-5 h-5 text-white" />
               </button>
               <h1 className="text-2xl font-bold text-white">Proceso de Alta</h1>
             </div>
             <div className="text-right">
-              <div className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-orange-400 to-red-500">FX27</div>
-              <div className="text-xs text-slate-400 tracking-wider">FUTURE EXPERIENCE 27</div>
+              <div 
+                className="text-3xl font-black leading-none"
+                style={{ 
+                  fontFamily: 'Exo 2, sans-serif',
+                  background: 'linear-gradient(135deg, #E8EEF4 0%, #B5C4D8 30%, #D8DFE8 55%, #9FB0C5 80%, #D0D9E4 100%)',
+                  WebkitBackgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent',
+                  backgroundClip: 'text',
+                }}
+              >
+                FX27
+              </div>
+              <div className="text-[9px] tracking-[0.15em] uppercase text-orange-400/70">FUTURE EXPERIENCE 27</div>
             </div>
           </div>
         </div>
@@ -114,14 +125,25 @@ export function ConfiguracionModule({ onBack }: Props) {
       <div className="bg-slate-800/50 border-b border-slate-700/50 px-6 py-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <button onClick={onBack} className="p-2 bg-orange-500 hover:bg-orange-600 rounded-full">
+            <button onClick={onBack} className="p-2 bg-orange-500 hover:bg-orange-600 rounded-lg transition-colors">
               <ArrowLeft className="w-5 h-5 text-white" />
             </button>
             <h1 className="text-2xl font-bold text-white">Configuración</h1>
           </div>
           <div className="text-right">
-            <div className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-orange-400 to-red-500">FX27</div>
-            <div className="text-xs text-slate-400 tracking-wider">FUTURE EXPERIENCE 27</div>
+            <div 
+              className="text-3xl font-black leading-none"
+              style={{ 
+                fontFamily: 'Exo 2, sans-serif',
+                background: 'linear-gradient(135deg, #E8EEF4 0%, #B5C4D8 30%, #D8DFE8 55%, #9FB0C5 80%, #D0D9E4 100%)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                backgroundClip: 'text',
+              }}
+            >
+              FX27
+            </div>
+            <div className="text-[9px] tracking-[0.15em] uppercase text-orange-400/70">FUTURE EXPERIENCE 27</div>
           </div>
         </div>
       </div>
