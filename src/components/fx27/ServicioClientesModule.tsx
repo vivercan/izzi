@@ -54,7 +54,6 @@ export function ServicioClientesModule({ onBack, userEmail, userName }: Props) {
   const [busqueda, setBusqueda] = useState('');
   const [showCrearModal, setShowCrearModal] = useState(false);
   const [solicitudSeleccionada, setSolicitudSeleccionada] = useState<string | null>(null);
-  const [hoveredBtn, setHoveredBtn] = useState<string | null>(null);
 
   // Cargar solicitudes
   const cargarSolicitudes = async () => {
@@ -97,158 +96,128 @@ export function ServicioClientesModule({ onBack, userEmail, userName }: Props) {
   });
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // RENDER: HUB PRINCIPAL - ESTILO DASHBOARD
+  // RENDER: HUB PRINCIPAL - ESTILO DASHBOARD EXACTO
   // ═══════════════════════════════════════════════════════════════════════════
   const renderHub = () => {
     const botones = [
-      {
-        id: 'nueva-alta',
-        nombre: 'Nueva Alta',
-        icon: UserPlus,
-        onClick: () => setShowCrearModal(true)
-      },
-      {
-        id: 'solicitudes',
-        nombre: 'Solicitudes',
-        icon: FileText,
-        onClick: () => { setFiltroEstatus(''); setVista('lista'); }
-      },
-      {
-        id: 'pendientes-csr',
-        nombre: 'Pendientes CSR',
-        icon: Clock,
-        onClick: () => { setFiltroEstatus('PENDIENTE_CSR'); setVista('lista'); }
-      },
-      {
-        id: 'pendientes-cxc',
-        nombre: 'Pendientes CxC',
-        icon: CreditCard,
-        onClick: () => { setFiltroEstatus('PENDIENTE_COBRANZA'); setVista('lista'); }
-      },
-      {
-        id: 'por-confirmar',
-        nombre: 'Por Confirmar',
-        icon: Shield,
-        onClick: () => { setFiltroEstatus('PENDIENTE_CONFIRMACION'); setVista('lista'); }
-      },
-      {
-        id: 'completadas',
-        nombre: 'Completadas',
-        icon: CheckCircle2,
-        onClick: () => { setFiltroEstatus('COMPLETADA'); setVista('lista'); }
-      }
+      { id: 'nueva-alta', nombre: 'Nueva Alta', icon: UserPlus, onClick: () => setShowCrearModal(true) },
+      { id: 'solicitudes', nombre: 'Solicitudes', icon: FileText, onClick: () => { setFiltroEstatus(''); setVista('lista'); } },
+      { id: 'pendientes-csr', nombre: 'Pendientes CSR', icon: Clock, onClick: () => { setFiltroEstatus('PENDIENTE_CSR'); setVista('lista'); } },
+      { id: 'pendientes-cxc', nombre: 'Pendientes CxC', icon: CreditCard, onClick: () => { setFiltroEstatus('PENDIENTE_COBRANZA'); setVista('lista'); } },
+      { id: 'por-confirmar', nombre: 'Por Confirmar', icon: Shield, onClick: () => { setFiltroEstatus('PENDIENTE_CONFIRMACION'); setVista('lista'); } },
+      { id: 'completadas', nombre: 'Completadas', icon: CheckCircle2, onClick: () => { setFiltroEstatus('COMPLETADA'); setVista('lista'); } }
     ];
 
     return (
       <div className="p-8">
-        <div className="max-w-4xl mx-auto">
-          {/* Header estilo Dashboard */}
+        <div className="max-w-5xl mx-auto">
+          {/* Header */}
           <div className="text-center mb-10">
-            <h2 
-              style={{ 
-                fontFamily: "'Exo 2', sans-serif",
-                fontSize: '28px',
-                fontWeight: 700,
-                color: '#ffffff',
-                marginBottom: '8px'
-              }}
-            >
+            <h2 style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '28px', fontWeight: 700, color: '#ffffff', marginBottom: '8px' }}>
               Clientes
             </h2>
-            <p 
-              style={{ 
-                fontFamily: "'Exo 2', sans-serif",
-                fontSize: '14px',
-                color: 'rgba(255,255,255,0.5)'
-              }}
-            >
+            <p style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '14px', color: 'rgba(255,255,255,0.5)' }}>
               Gestión de altas y atención al cliente
             </p>
           </div>
 
-          {/* Grid de botones estilo Dashboard */}
-          <div className="grid grid-cols-3 gap-5">
+          {/* Grid de botones - Estilo Dashboard exacto */}
+          <div className="flex justify-center gap-5 flex-wrap">
             {botones.map(btn => {
               const Icon = btn.icon;
-              const isHovered = hoveredBtn === btn.id;
-              
               return (
                 <button
                   key={btn.id}
                   onClick={btn.onClick}
-                  onMouseEnter={() => setHoveredBtn(btn.id)}
-                  onMouseLeave={() => setHoveredBtn(null)}
-                  className="relative group"
+                  className="group relative flex flex-col items-center justify-center gap-3 p-5 transition-all duration-300"
                   style={{
-                    background: 'rgba(255, 255, 255, 0.03)',
-                    backdropFilter: 'blur(10px)',
-                    borderRadius: '16px',
-                    border: isHovered ? '1.5px solid rgba(254, 80, 0, 0.6)' : '1px solid rgba(255, 255, 255, 0.08)',
-                    padding: '32px 24px',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '16px',
-                    cursor: 'pointer',
-                    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                    transform: isHovered ? 'translateY(-4px)' : 'translateY(0)',
-                    boxShadow: isHovered 
-                      ? '0 20px 40px rgba(254, 80, 0, 0.15), 0 0 30px rgba(254, 80, 0, 0.1)' 
-                      : '0 4px 20px rgba(0, 0, 0, 0.3)',
+                    width: '160px',
+                    height: '160px',
+                    background: 'linear-gradient(155deg, rgba(18, 32, 58, 0.96) 0%, rgba(12, 22, 42, 0.98) 35%, rgba(8, 16, 32, 1) 70%, rgba(6, 12, 24, 1) 100%)',
+                    border: '2px solid transparent',
+                    backgroundImage: 'linear-gradient(155deg, rgba(18, 32, 58, 0.96) 0%, rgba(12, 22, 42, 0.98) 35%, rgba(8, 16, 32, 1) 70%, rgba(6, 12, 24, 1) 100%), linear-gradient(135deg, rgba(180, 100, 50, 0.28) 0%, rgba(60, 90, 140, 0.25) 50%, rgba(180, 100, 50, 0.28) 100%)',
+                    backgroundOrigin: 'border-box',
+                    backgroundClip: 'padding-box, border-box',
+                    boxShadow: '0 2px 4px rgba(0, 0, 0, 0.3), 0 6px 16px rgba(0, 0, 0, 0.5), inset -2px -2px 4px rgba(0, 0, 0, 0.2)',
+                    borderRadius: '10px',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.transform = 'translateY(-6px)';
+                    e.currentTarget.style.backgroundImage = 'linear-gradient(155deg, rgba(28, 48, 82, 1) 0%, rgba(20, 35, 62, 1) 35%, rgba(14, 24, 45, 1) 70%, rgba(10, 18, 35, 1) 100%), linear-gradient(135deg, rgba(240, 160, 80, 0.65) 0%, rgba(220, 140, 70, 0.6) 25%, rgba(70, 110, 170, 0.4) 50%, rgba(220, 140, 70, 0.6) 75%, rgba(240, 160, 80, 0.65) 100%)';
+                    e.currentTarget.style.boxShadow = '0 4px 8px rgba(0, 0, 0, 0.4), 0 10px 24px rgba(0, 0, 0, 0.6), 0 0 30px rgba(240, 160, 80, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.05)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = 'translateY(0)';
+                    e.currentTarget.style.backgroundImage = 'linear-gradient(155deg, rgba(18, 32, 58, 0.96) 0%, rgba(12, 22, 42, 0.98) 35%, rgba(8, 16, 32, 1) 70%, rgba(6, 12, 24, 1) 100%), linear-gradient(135deg, rgba(180, 100, 50, 0.28) 0%, rgba(60, 90, 140, 0.25) 50%, rgba(180, 100, 50, 0.28) 100%)';
+                    e.currentTarget.style.boxShadow = '0 2px 4px rgba(0, 0, 0, 0.3), 0 6px 16px rgba(0, 0, 0, 0.5), inset -2px -2px 4px rgba(0, 0, 0, 0.2)';
                   }}
                 >
-                  {/* Efecto de brillo en hover */}
-                  <div
+                  {/* Highlight superior - Efecto 3D bisel */}
+                  <div 
+                    className="absolute top-0 left-0 right-0 h-[35%] opacity-30 group-hover:opacity-50 transition-opacity duration-300 pointer-events-none"
                     style={{
-                      position: 'absolute',
-                      inset: 0,
-                      borderRadius: '16px',
-                      background: isHovered 
-                        ? 'linear-gradient(135deg, rgba(254, 80, 0, 0.1) 0%, transparent 50%, rgba(254, 80, 0, 0.05) 100%)'
-                        : 'transparent',
-                      transition: 'all 0.3s ease',
-                      pointerEvents: 'none'
+                      background: 'linear-gradient(180deg, rgba(255, 255, 255, 0.12) 0%, transparent 100%)',
+                      borderTopLeftRadius: '10px',
+                      borderTopRightRadius: '10px',
                     }}
                   />
                   
-                  {/* Icono */}
-                  <div
+                  {/* Línea superior naranja en hover */}
+                  <div 
+                    className="absolute top-0 left-0 right-0 h-[3px] opacity-0 group-hover:opacity-100 transition-opacity duration-300"
                     style={{
-                      width: '56px',
-                      height: '56px',
-                      borderRadius: '14px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      background: isHovered 
-                        ? 'rgba(254, 80, 0, 0.15)' 
-                        : 'rgba(255, 255, 255, 0.05)',
-                      border: isHovered 
-                        ? '1px solid rgba(254, 80, 0, 0.3)' 
-                        : '1px solid rgba(255, 255, 255, 0.1)',
-                      transition: 'all 0.3s ease'
+                      background: 'linear-gradient(90deg, transparent 0%, rgba(240, 160, 80, 0.3) 15%, rgba(240, 160, 80, 0.85) 50%, rgba(240, 160, 80, 0.3) 85%, transparent 100%)',
+                      boxShadow: '0 2px 12px rgba(240, 160, 80, 0.5), 0 0 20px rgba(240, 160, 80, 0.3)',
+                      borderTopLeftRadius: '10px',
+                      borderTopRightRadius: '10px',
                     }}
-                  >
-                    <Icon 
-                      style={{ 
-                        width: '28px', 
-                        height: '28px',
-                        color: isHovered ? '#fe5000' : 'rgba(255, 255, 255, 0.7)',
-                        transition: 'all 0.3s ease'
-                      }} 
-                    />
-                  </div>
+                  />
+
+                  {/* Inner glow naranja desde arriba */}
+                  <div 
+                    className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+                    style={{
+                      background: 'radial-gradient(ellipse at 50% 0%, rgba(240, 160, 80, 0.15) 0%, rgba(220, 140, 70, 0.08) 40%, transparent 70%)',
+                      pointerEvents: 'none',
+                      borderRadius: '10px',
+                    }}
+                  />
+
+                  {/* Ícono */}
+                  <Icon 
+                    className="w-16 h-16 relative z-10 transition-all duration-300 group-hover:scale-110" 
+                    style={{ 
+                      color: 'rgba(255, 255, 255, 0.95)',
+                      strokeWidth: 1.8,
+                      filter: 'drop-shadow(0 4px 10px rgba(0, 0, 0, 0.6)) drop-shadow(0 0 14px rgba(255, 255, 255, 0.15))',
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.color = 'rgba(240, 160, 80, 1)';
+                      e.currentTarget.style.filter = 'drop-shadow(0 4px 10px rgba(0, 0, 0, 0.6)) drop-shadow(0 0 16px rgba(240, 160, 80, 0.6)) drop-shadow(0 0 24px rgba(240, 160, 80, 0.5))';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.color = 'rgba(255, 255, 255, 0.95)';
+                      e.currentTarget.style.filter = 'drop-shadow(0 4px 10px rgba(0, 0, 0, 0.6)) drop-shadow(0 0 14px rgba(255, 255, 255, 0.15))';
+                    }}
+                  />
                   
-                  {/* Nombre */}
-                  <span
+                  {/* Texto */}
+                  <span 
+                    className="text-center relative z-10 transition-all duration-300"
                     style={{
                       fontFamily: "'Exo 2', sans-serif",
-                      fontSize: '15px',
+                      fontSize: '13px',
                       fontWeight: 600,
-                      color: isHovered ? '#ffffff' : 'rgba(255, 255, 255, 0.85)',
-                      textAlign: 'center',
-                      transition: 'all 0.3s ease'
+                      color: 'rgba(255, 255, 255, 0.9)',
+                      textShadow: '0 2px 8px rgba(0, 0, 0, 0.6), 0 1px 3px rgba(0, 0, 0, 0.8)',
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.color = 'rgba(240, 160, 80, 1)';
+                      e.currentTarget.style.textShadow = '0 2px 8px rgba(0, 0, 0, 0.6), 0 0 12px rgba(240, 160, 80, 0.5)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.color = 'rgba(255, 255, 255, 0.9)';
+                      e.currentTarget.style.textShadow = '0 2px 8px rgba(0, 0, 0, 0.6), 0 1px 3px rgba(0, 0, 0, 0.8)';
                     }}
                   >
                     {btn.nombre}
