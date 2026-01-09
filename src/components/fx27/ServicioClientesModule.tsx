@@ -188,19 +188,32 @@ export function ServicioClientesModule({ onBack, userEmail, userName }: Props) {
         </div>
 
         {/* Grid de botones */}
-        <div className="relative z-10 w-full h-full flex items-center justify-center px-12" style={{ paddingTop: '80px' }}>
-          <div className="flex justify-center gap-5 flex-wrap" style={{ maxWidth: '1000px' }}>
+        <div className="relative z-10 w-full h-full px-12" style={{ paddingTop: '120px' }}>
+          {/* Título */}
+          <h2 
+            style={{ 
+              fontFamily: "'Exo 2', sans-serif",
+              fontSize: '24px',
+              fontWeight: 600,
+              color: 'rgba(255, 255, 255, 0.9)',
+              marginBottom: '24px',
+              textShadow: '0 2px 8px rgba(0, 0, 0, 0.3)'
+            }}
+          >
+            Administración de Clientes
+          </h2>
+          
+          <div className="flex gap-5 flex-wrap" style={{ maxWidth: '1200px' }}>
             {botones.map(btn => {
               const Icon = btn.icon;
               return (
                 <button
                   key={btn.id}
                   onClick={btn.onClick}
-                  className="group relative flex flex-col items-center justify-center gap-3 aspect-square p-5 transition-all duration-300"
+                  className="group relative flex flex-col items-center justify-center gap-3 p-5 transition-all duration-300"
                   style={{
-                    width: 'calc((100% - 40px) / 3)',
-                    minWidth: '180px',
-                    maxWidth: '220px',
+                    width: '180px',
+                    height: '180px',
                     background: 'linear-gradient(155deg, rgba(18, 32, 58, 0.96) 0%, rgba(12, 22, 42, 0.98) 35%, rgba(8, 16, 32, 1) 70%, rgba(6, 12, 24, 1) 100%)',
                     border: '2px solid transparent',
                     backgroundImage: 'linear-gradient(155deg, rgba(18, 32, 58, 0.96) 0%, rgba(12, 22, 42, 0.98) 35%, rgba(8, 16, 32, 1) 70%, rgba(6, 12, 24, 1) 100%), linear-gradient(135deg, rgba(180, 100, 50, 0.28) 0%, rgba(60, 90, 140, 0.25) 50%, rgba(180, 100, 50, 0.28) 100%)',
