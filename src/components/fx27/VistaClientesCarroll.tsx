@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { ArrowLeft, Truck, MapPin, Clock, RefreshCw, Navigation, Search, List, Map, X, Phone, Gauge, Zap } from 'lucide-react';
+import { ArrowLeft, Truck, MapPin, Clock, RefreshCw, Navigation, Search, List, Map as MapIcon, X, Phone, Gauge, Zap } from 'lucide-react';
 import { createClient } from '@supabase/supabase-js';
 
 const supabase = createClient(
@@ -339,7 +339,7 @@ export const VistaClientesCarroll = ({ onBack }: VistaClientesCarrollProps) => {
               <List className="w-4 h-4" />Lista
             </button>
             <button onClick={() => setVista('mapa')} className="flex items-center gap-1 px-3 py-2 text-sm transition-colors" style={{ background: vista === 'mapa' ? '#10b981' : '#1e293b', color: vista === 'mapa' ? '#fff' : '#94a3b8' }}>
-              <Map className="w-4 h-4" />Mapa
+              <MapIcon className="w-4 h-4" />Mapa
             </button>
           </div>
           <div className="relative">
@@ -524,7 +524,7 @@ export const VistaClientesCarroll = ({ onBack }: VistaClientesCarrollProps) => {
               )}
               <div className="flex gap-3">
                 {selectedUnidad.telefono_efectivo && (<a href={`tel:${selectedUnidad.telefono_efectivo}`} className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-medium transition-colors hover:opacity-90" style={{ background: '#10b981', color: '#fff' }}><Phone className="w-4 h-4" />Llamar</a>)}
-                <button onClick={() => window.open(`https://www.google.com/maps?q=${selectedUnidad.latitud},${selectedUnidad.longitud}`, '_blank')} className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-medium transition-colors hover:opacity-90" style={{ background: '#3b82f6', color: '#fff' }}><Map className="w-4 h-4" />Abrir Maps</button>
+                <button onClick={() => window.open(`https://www.google.com/maps?q=${selectedUnidad.latitud},${selectedUnidad.longitud}`, '_blank')} className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-medium transition-colors hover:opacity-90" style={{ background: '#3b82f6', color: '#fff' }}><MapIcon className="w-4 h-4" />Abrir Maps</button>
               </div>
             </div>
           </div>
@@ -535,3 +535,4 @@ export const VistaClientesCarroll = ({ onBack }: VistaClientesCarrollProps) => {
 };
 
 export default VistaClientesCarroll;
+
