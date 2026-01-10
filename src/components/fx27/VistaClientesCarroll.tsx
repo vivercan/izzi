@@ -46,7 +46,7 @@ const mapStylePremium = [
   { featureType: "road.arterial", stylers: [{ visibility: "simplified" }] },
   { featureType: "road.local", stylers: [{ visibility: "off" }] },
   { featureType: "transit", stylers: [{ visibility: "off" }] },
-  { featureType: "water", elementType: "geometry", stylers: [{ color: "#0f172a" }] },
+  { featureType: "water", elementType: "geometry", stylers: [{ color: "#0ea5e9" }] },
   { featureType: "water", elementType: "labels", stylers: [{ visibility: "off" }] },
 ];
 
@@ -535,5 +535,6 @@ export const VistaClientesCarroll = ({ onBack }: VistaClientesCarrollProps) => {
 };
 
 export default VistaClientesCarroll;
+
 
 
