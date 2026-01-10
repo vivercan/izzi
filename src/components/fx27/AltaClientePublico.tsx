@@ -31,7 +31,7 @@ const T = {
     companySize: 'Tamaño de Empresa', name: 'Nombre', position: 'Puesto', department: 'Depto',
     phone: 'Teléfono', company: 'Empresa', contact: 'Contacto', years: 'Años',
     billingDesc: 'Describa: portal de proveedores, requisitos, días de pago, condiciones...',
-    adminPayments: 'Administrativo (Pagos)', invoices: 'Facturas', operative1: 'Operativo 1 (Embarques)',
+    adminPayments: 'Administrativo (Pagos)', invoices: 'Facturas', operative1: 'Compras',
     operative2: 'Operativo 2', reference: 'Referencia', transfer: 'Transferencia', check: 'Cheque',
     deposit: 'Depósito', supplierPortal: 'Portal de Proveedores',
     constanciaFiscal: 'Constancia Situación Fiscal', opinionCumplimiento: 'Opinión de Cumplimiento',
@@ -472,3 +472,4 @@ export function AltaClientePublico({ solicitudId }: Props) {
     </div>
   );
 }
+
