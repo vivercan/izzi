@@ -365,7 +365,7 @@ export const VistaClientesCarroll = ({ onBack }: VistaClientesCarrollProps) => {
               {/* Botones */}
               <div className="flex gap-3">
                 {selectedUnidad.telefono_efectivo && (
-                  
+                  <a
                     href={`tel:${selectedUnidad.telefono_efectivo}`}
                     className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-medium transition-colors"
                     style={{ background: '#10b981', color: '#fff' }}
@@ -392,4 +392,5 @@ export const VistaClientesCarroll = ({ onBack }: VistaClientesCarrollProps) => {
 };
 
 export default VistaClientesCarroll;
+
 
