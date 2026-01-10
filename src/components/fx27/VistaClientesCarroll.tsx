@@ -52,16 +52,22 @@ const mapStylePremium = [
 
 const loadGoogleMaps = (): Promise<void> => {
   return new Promise((resolve) => {
-    if (window.google?.maps) { resolve(); return; }
+    if (window.google?.maps?.marker) { resolve(); return; }
     const script = document.createElement('script');
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_KEY}`;
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_KEY}&libraries=marker`;
     script.async = true;
-    script.onload = () => resolve();
+    script.onload = () => {
+      // Cargar MarkerClusterer
+      const clusterScript = document.createElement('script');
+      clusterScript.src = 'https://unpkg.com/@googlemaps/markerclusterer/dist/index.min.js';
+      clusterScript.onload = () => resolve();
+      document.head.appendChild(clusterScript);
+    };
     document.head.appendChild(script);
   });
 };
 
-declare global { interface Window { google: any; } }
+declare global { interface Window { google: any; markerClusterer: any; } }
 
 export const VistaClientesCarroll = ({ onBack }: VistaClientesCarrollProps) => {
   const [unidades, setUnidades] = useState<Unidad[]>([]);
@@ -77,6 +83,7 @@ export const VistaClientesCarroll = ({ onBack }: VistaClientesCarrollProps) => {
   const googleMapRef = useRef<any>(null);
   const markersRef = useRef<Map<string, any>>(new Map());
   const infoWindowRef = useRef<any>(null);
+  const clustererRef = useRef<any>(null);
 
   useEffect(() => {
     fetchUnidades();
@@ -234,6 +241,37 @@ export const VistaClientesCarroll = ({ onBack }: VistaClientesCarrollProps) => {
       }
     });
     
+    // Crear o actualizar clusterer
+    if (window.markerClusterer && markersRef.current.size > 0) {
+      if (clustererRef.current) {
+        clustererRef.current.clearMarkers();
+      }
+      clustererRef.current = new window.markerClusterer.MarkerClusterer({
+        map: googleMapRef.current,
+        markers: Array.from(markersRef.current.values()),
+        renderer: {
+          render: ({ count, position }: any) => {
+            const color = count > 10 ? '#ef4444' : count > 5 ? '#f59e0b' : '#22c55e';
+            return new window.google.maps.Marker({
+              position,
+              icon: {
+                url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`
+                  <svg xmlns="http://www.w3.org/2000/svg" width="50" height="50" viewBox="0 0 50 50">
+                    <circle cx="25" cy="25" r="22" fill="${color}" stroke="#fff" stroke-width="3"/>
+                    <text x="25" y="30" text-anchor="middle" fill="#fff" font-size="14" font-weight="bold" font-family="Arial">${count}</text>
+                  </svg>
+                `)}`,
+                scaledSize: new window.google.maps.Size(50, 50),
+                anchor: new window.google.maps.Point(25, 25),
+              },
+              label: '',
+              zIndex: 1000 + count,
+            });
+          },
+        },
+      });
+    }
+
     if (filtered.length > 1) {
       googleMapRef.current.fitBounds(bounds, { padding: 50 });
       window.google.maps.event.addListenerOnce(googleMapRef.current, 'idle', () => {
@@ -535,6 +573,7 @@ export const VistaClientesCarroll = ({ onBack }: VistaClientesCarrollProps) => {
 };
 
 export default VistaClientesCarroll;
+
 
 
 
