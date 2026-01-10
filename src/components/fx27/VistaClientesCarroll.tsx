@@ -29,24 +29,24 @@ interface Unidad {
 }
 
 const mapStylePremium = [
-  { elementType: "geometry", stylers: [{ color: "#1e293b" }] },
-  { elementType: "labels.text.fill", stylers: [{ color: "#94a3b8" }] },
-  { elementType: "labels.text.stroke", stylers: [{ color: "#1e293b" }, { weight: 2 }] },
-  { featureType: "administrative.country", elementType: "geometry.stroke", stylers: [{ color: "#475569" }, { weight: 1.5 }] },
-  { featureType: "administrative.country", elementType: "labels.text.fill", stylers: [{ color: "#cbd5e1" }] },
-  { featureType: "administrative.province", elementType: "geometry.stroke", stylers: [{ color: "#334155" }] },
-  { featureType: "administrative.province", elementType: "labels.text.fill", stylers: [{ color: "#94a3b8" }] },
+  { elementType: "geometry", stylers: [{ color: "#2f353b" }] },
+  { elementType: "labels.text.fill", stylers: [{ color: "#6b7280" }] },
+  { elementType: "labels.text.stroke", stylers: [{ color: "#1f2937" }, { weight: 2 }] },
+  { featureType: "administrative.country", elementType: "geometry.stroke", stylers: [{ color: "#4b5563" }, { weight: 1 }] },
+  { featureType: "administrative.country", elementType: "labels.text.fill", stylers: [{ color: "#9ca3af" }] },
+  { featureType: "administrative.province", elementType: "geometry.stroke", stylers: [{ color: "#374151" }] },
+  { featureType: "administrative.province", elementType: "labels.text.fill", stylers: [{ color: "#6b7280" }] },
   { featureType: "administrative.locality", elementType: "labels", stylers: [{ visibility: "simplified" }] },
-  { featureType: "administrative.locality", elementType: "labels.text.fill", stylers: [{ color: "#64748b" }] },
+  { featureType: "administrative.locality", elementType: "labels.text.fill", stylers: [{ color: "#4b5563" }] },
   { featureType: "administrative.neighborhood", stylers: [{ visibility: "off" }] },
   { featureType: "poi", stylers: [{ visibility: "off" }] },
-  { featureType: "road", elementType: "geometry", stylers: [{ color: "#334155" }] },
-  { featureType: "road.highway", elementType: "geometry", stylers: [{ color: "#475569" }] },
-  { featureType: "road.highway", elementType: "geometry.stroke", stylers: [{ color: "#334155" }] },
-  { featureType: "road.arterial", stylers: [{ visibility: "simplified" }] },
+  { featureType: "road", elementType: "geometry", stylers: [{ color: "#374151" }] },
+  { featureType: "road.highway", elementType: "geometry", stylers: [{ color: "#4b5563" }] },
+  { featureType: "road.highway", elementType: "geometry.stroke", stylers: [{ color: "#374151" }] },
+  { featureType: "road.arterial", stylers: [{ visibility: "off" }] },
   { featureType: "road.local", stylers: [{ visibility: "off" }] },
   { featureType: "transit", stylers: [{ visibility: "off" }] },
-  { featureType: "water", elementType: "geometry", stylers: [{ color: "#0ea5e9" }] },
+  { featureType: "water", elementType: "geometry", stylers: [{ color: "#1a1f2c" }] },
   { featureType: "water", elementType: "labels", stylers: [{ visibility: "off" }] },
 ];
 
@@ -535,6 +535,7 @@ export const VistaClientesCarroll = ({ onBack }: VistaClientesCarrollProps) => {
 };
 
 export default VistaClientesCarroll;
+
 
 
 
