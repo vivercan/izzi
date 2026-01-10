@@ -1,3 +1,4 @@
+// Updated: 2026-01-10 13:46:31
 import { useState, useEffect } from 'react';
 import { 
   ArrowLeft, Truck, MapPin, Clock, Phone, User, 
@@ -705,3 +706,4 @@ export const VistaClientesCarroll = ({ onBack }: VistaClientesCarrollProps) => {
 };
 
 export default VistaClientesCarroll;
+
