@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { ArrowLeft, Truck, MapPin, Clock, RefreshCw, Navigation, Search, List, Map, X, Phone, Gauge } from 'lucide-react';
+import { ArrowLeft, Truck, MapPin, Clock, RefreshCw, Navigation, Search, List, Map, X, Phone, Gauge, Zap } from 'lucide-react';
 import { createClient } from '@supabase/supabase-js';
 
 const supabase = createClient(
@@ -28,7 +28,28 @@ interface Unidad {
   telefono_efectivo: string;
 }
 
-// Cargar Google Maps Script
+const mapStylePremium = [
+  { elementType: "geometry", stylers: [{ color: "#0f172a" }] },
+  { elementType: "labels.text.fill", stylers: [{ color: "#64748b" }] },
+  { elementType: "labels.text.stroke", stylers: [{ color: "#0f172a" }, { weight: 2 }] },
+  { featureType: "administrative.country", elementType: "geometry.stroke", stylers: [{ color: "#334155" }, { weight: 1 }] },
+  { featureType: "administrative.country", elementType: "labels.text.fill", stylers: [{ color: "#94a3b8" }] },
+  { featureType: "administrative.province", elementType: "geometry.stroke", stylers: [{ color: "#1e293b" }] },
+  { featureType: "administrative.province", elementType: "labels.text.fill", stylers: [{ color: "#64748b" }] },
+  { featureType: "administrative.locality", elementType: "labels", stylers: [{ visibility: "simplified" }] },
+  { featureType: "administrative.locality", elementType: "labels.text.fill", stylers: [{ color: "#475569" }] },
+  { featureType: "administrative.neighborhood", stylers: [{ visibility: "off" }] },
+  { featureType: "poi", stylers: [{ visibility: "off" }] },
+  { featureType: "road", elementType: "geometry", stylers: [{ color: "#1e293b" }] },
+  { featureType: "road.highway", elementType: "geometry", stylers: [{ color: "#334155" }] },
+  { featureType: "road.highway", elementType: "geometry.stroke", stylers: [{ color: "#1e293b" }] },
+  { featureType: "road.arterial", stylers: [{ visibility: "simplified" }] },
+  { featureType: "road.local", stylers: [{ visibility: "off" }] },
+  { featureType: "transit", stylers: [{ visibility: "off" }] },
+  { featureType: "water", elementType: "geometry", stylers: [{ color: "#0c1222" }] },
+  { featureType: "water", elementType: "labels", stylers: [{ visibility: "off" }] },
+];
+
 const loadGoogleMaps = (): Promise<void> => {
   return new Promise((resolve) => {
     if (window.google?.maps) { resolve(); return; }
@@ -49,11 +70,13 @@ export const VistaClientesCarroll = ({ onBack }: VistaClientesCarrollProps) => {
   const [filtro, setFiltro] = useState('todos');
   const [vista, setVista] = useState<'lista' | 'mapa'>('lista');
   const [selectedUnidad, setSelectedUnidad] = useState<Unidad | null>(null);
+  const [hoveredUnidad, setHoveredUnidad] = useState<string | null>(null);
   const [lastUpdate, setLastUpdate] = useState(new Date());
   const [mapLoaded, setMapLoaded] = useState(false);
   const mapRef = useRef<HTMLDivElement>(null);
   const googleMapRef = useRef<any>(null);
-  const markersRef = useRef<any[]>([]);
+  const markersRef = useRef<Map<string, any>>(new Map());
+  const infoWindowRef = useRef<any>(null);
 
   useEffect(() => {
     fetchUnidades();
@@ -76,6 +99,16 @@ export const VistaClientesCarroll = ({ onBack }: VistaClientesCarrollProps) => {
     }
   }, [unidades, mapLoaded, filtro, busqueda]);
 
+  useEffect(() => {
+    if (hoveredUnidad && markersRef.current.has(hoveredUnidad)) {
+      const marker = markersRef.current.get(hoveredUnidad);
+      if (marker) {
+        marker.setAnimation(window.google?.maps?.Animation?.BOUNCE);
+        setTimeout(() => marker.setAnimation(null), 700);
+      }
+    }
+  }, [hoveredUnidad]);
+
   const fetchUnidades = async () => {
     try {
       const { data, error } = await supabase.from('carroll_monitor').select('*');
@@ -88,96 +121,124 @@ export const VistaClientesCarroll = ({ onBack }: VistaClientesCarrollProps) => {
     if (!mapRef.current || !window.google) return;
     
     googleMapRef.current = new window.google.maps.Map(mapRef.current, {
-      center: { lat: 23.6345, lng: -102.5528 }, // Centro de Mexico
-      zoom: 5,
-      styles: [
-        { elementType: "geometry", stylers: [{ color: "#1d2c4d" }] },
-        { elementType: "labels.text.fill", stylers: [{ color: "#8ec3b9" }] },
-        { elementType: "labels.text.stroke", stylers: [{ color: "#1a3646" }] },
-        { featureType: "road", elementType: "geometry", stylers: [{ color: "#304a7d" }] },
-        { featureType: "road", elementType: "geometry.stroke", stylers: [{ color: "#255763" }] },
-        { featureType: "water", elementType: "geometry", stylers: [{ color: "#0e1626" }] },
-      ],
+      center: { lat: 23.0, lng: -102.0 },
+      zoom: 5.5,
+      styles: mapStylePremium,
       mapTypeControl: false,
       streetViewControl: false,
       fullscreenControl: true,
+      zoomControl: true,
+      zoomControlOptions: { position: window.google.maps.ControlPosition.RIGHT_CENTER },
     });
     
+    infoWindowRef.current = new window.google.maps.InfoWindow();
     updateMarkers();
   };
 
-  const updateMarkers = () => {
-    if (!googleMapRef.current) return;
+  const createMarkerIcon = (u: Unidad, isHovered: boolean = false) => {
+    const isMoving = u.velocidad > 0;
+    const baseColor = isMoving ? '#22c55e' : u.viaje_id ? '#f59e0b' : '#6b7280';
+    const size = isHovered ? 50 : 42;
     
-    // Limpiar markers anteriores
-    markersRef.current.forEach(m => m.setMap(null));
-    markersRef.current = [];
+    const svg = `
+      <svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size + 10}" viewBox="0 0 ${size} ${size + 10}">
+        <defs>
+          <filter id="shadow${u.economico}" x="-50%" y="-50%" width="200%" height="200%">
+            <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="${baseColor}" flood-opacity="0.5"/>
+          </filter>
+          ${isMoving ? `
+          <filter id="glow${u.economico}">
+            <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
+            <feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge>
+          </filter>
+          ` : ''}
+        </defs>
+        <circle cx="${size/2}" cy="${size/2}" r="${size/2 - 4}" fill="${baseColor}" filter="${isMoving ? `url(#glow${u.economico})` : `url(#shadow${u.economico})`}" stroke="#fff" stroke-width="2"/>
+        <text x="${size/2}" y="${size/2 + 1}" text-anchor="middle" dominant-baseline="middle" fill="#fff" font-size="${isHovered ? '12' : '10'}" font-weight="bold" font-family="Arial">${u.economico}</text>
+        ${isMoving ? `<text x="${size/2}" y="${size/2 + 13}" text-anchor="middle" fill="#fff" font-size="8" font-family="Arial">${u.velocidad}km/h</text>` : ''}
+        <polygon points="${size/2},${size + 6} ${size/2 - 6},${size - 2} ${size/2 + 6},${size - 2}" fill="${baseColor}"/>
+      </svg>
+    `;
+    
+    return {
+      url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(svg),
+      scaledSize: new window.google.maps.Size(size, size + 10),
+      anchor: new window.google.maps.Point(size / 2, size + 6),
+    };
+  };
+
+  const updateMarkers = () => {
+    if (!googleMapRef.current || !window.google) return;
     
     const filtered = getFilteredUnidades();
+    const currentEcos = new Set(filtered.map(u => u.economico));
+    
+    markersRef.current.forEach((marker, eco) => {
+      if (!currentEcos.has(eco)) {
+        marker.setMap(null);
+        markersRef.current.delete(eco);
+      }
+    });
+    
     const bounds = new window.google.maps.LatLngBounds();
     
     filtered.forEach((u) => {
       if (!u.latitud || !u.longitud) return;
       
-      const isMoving = u.velocidad > 0;
       const position = { lat: u.latitud, lng: u.longitud };
-      
-      // Crear marker con icono custom
-      const marker = new window.google.maps.Marker({
-        position,
-        map: googleMapRef.current,
-        title: `ECO ${u.economico}`,
-        icon: {
-          path: window.google.maps.SymbolPath.FORWARD_CLOSED_ARROW,
-          scale: 6,
-          fillColor: isMoving ? '#10b981' : '#f59e0b',
-          fillOpacity: 1,
-          strokeColor: '#fff',
-          strokeWeight: 2,
-          rotation: 0,
-        },
-        label: {
-          text: u.economico,
-          color: '#fff',
-          fontSize: '10px',
-          fontWeight: 'bold',
-        },
-      });
-      
-      // Info window al hacer click
-      const infoWindow = new window.google.maps.InfoWindow({
-        content: `
-          <div style="padding:8px;min-width:200px;color:#333;">
-            <div style="font-weight:bold;font-size:14px;margin-bottom:4px;">ECO ${u.economico}</div>
-            <div style="font-size:12px;color:#666;margin-bottom:8px;">${u.operador_efectivo || 'Sin operador'}</div>
-            <div style="display:flex;gap:8px;margin-bottom:4px;">
-              <span style="background:${isMoving ? '#10b981' : '#f59e0b'};color:#fff;padding:2px 6px;border-radius:4px;font-size:11px;">
-                ${isMoving ? u.velocidad + ' km/h' : 'Detenido'}
-              </span>
-              <span style="background:#3b82f6;color:#fff;padding:2px 6px;border-radius:4px;font-size:11px;">${u.empresa}</span>
-            </div>
-            <div style="font-size:11px;color:#888;margin-top:6px;">${u.ubicacion || ''}</div>
-            ${u.cliente_destino ? `<div style="font-size:11px;color:#3b82f6;margin-top:4px;">→ ${u.cliente_destino}</div>` : ''}
-          </div>
-        `,
-      });
-      
-      marker.addListener('click', () => {
-        infoWindow.open(googleMapRef.current, marker);
-        setSelectedUnidad(u);
-      });
-      
-      markersRef.current.push(marker);
       bounds.extend(position);
+      
+      if (markersRef.current.has(u.economico)) {
+        const marker = markersRef.current.get(u.economico);
+        marker.setPosition(position);
+        marker.setIcon(createMarkerIcon(u));
+      } else {
+        const marker = new window.google.maps.Marker({
+          position,
+          map: googleMapRef.current,
+          icon: createMarkerIcon(u),
+          title: `ECO ${u.economico}`,
+          optimized: false,
+        });
+        
+        marker.addListener('click', () => {
+          const isMoving = u.velocidad > 0;
+          const statusColor = isMoving ? '#22c55e' : u.viaje_id ? '#f59e0b' : '#6b7280';
+          const statusText = isMoving ? `${u.velocidad} km/h` : u.viaje_id ? 'Detenido' : 'Sin viaje';
+          
+          infoWindowRef.current.setContent(`
+            <div style="padding:12px;min-width:220px;font-family:system-ui,-apple-system,sans-serif;background:#0f172a;border-radius:12px;border:1px solid #334155;">
+              <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+                <div style="width:40px;height:40px;border-radius:10px;background:${statusColor}20;display:flex;align-items:center;justify-content:center;">
+                  <span style="font-size:14px;font-weight:bold;color:${statusColor};">${u.economico}</span>
+                </div>
+                <div>
+                  <div style="font-weight:600;color:#fff;font-size:14px;">${u.operador_efectivo || 'Sin operador'}</div>
+                  <div style="color:#64748b;font-size:11px;">${u.empresa}</div>
+                </div>
+              </div>
+              <div style="display:flex;gap:6px;margin-bottom:10px;">
+                <span style="background:${statusColor};color:#fff;padding:4px 10px;border-radius:6px;font-size:11px;font-weight:500;">${statusText}</span>
+              </div>
+              <div style="color:#94a3b8;font-size:11px;line-height:1.4;">
+                <div style="margin-bottom:4px;">📍 ${u.ubicacion || 'Sin ubicación'}</div>
+                ${u.cliente_destino ? `<div style="color:#60a5fa;">🎯 ${u.cliente_destino}</div>` : ''}
+              </div>
+            </div>
+          `);
+          infoWindowRef.current.open(googleMapRef.current, marker);
+          setSelectedUnidad(u);
+        });
+        
+        markersRef.current.set(u.economico, marker);
+      }
     });
     
-    // Ajustar zoom para mostrar todos los markers
-    if (filtered.length > 0) {
-      googleMapRef.current.fitBounds(bounds);
-      // Limitar zoom maximo
-      const listener = window.google.maps.event.addListener(googleMapRef.current, 'idle', () => {
-        if (googleMapRef.current.getZoom() > 15) googleMapRef.current.setZoom(15);
-        window.google.maps.event.removeListener(listener);
+    if (filtered.length > 1) {
+      googleMapRef.current.fitBounds(bounds, { padding: 50 });
+      window.google.maps.event.addListenerOnce(googleMapRef.current, 'idle', () => {
+        if (googleMapRef.current.getZoom() > 12) googleMapRef.current.setZoom(12);
+        if (googleMapRef.current.getZoom() < 5) googleMapRef.current.setZoom(5);
       });
     }
   };
@@ -185,13 +246,14 @@ export const VistaClientesCarroll = ({ onBack }: VistaClientesCarrollProps) => {
   const stats = {
     total: unidades.length,
     movimiento: unidades.filter(u => u.velocidad > 0).length,
-    detenidos: unidades.filter(u => u.velocidad === 0).length,
+    detenidos: unidades.filter(u => u.velocidad === 0 && u.viaje_id).length,
+    sinViaje: unidades.filter(u => !u.viaje_id).length,
   };
 
   const getEstadoColor = (u: Unidad) => {
-    if (u.velocidad > 0) return { bg: '#10b981', text: 'En Movimiento' };
-    if (u.viaje_id) return { bg: '#f59e0b', text: 'Detenido' };
-    return { bg: '#6b7280', text: 'En Espera' };
+    if (u.velocidad > 0) return { bg: '#22c55e', text: 'En Movimiento', icon: '🟢' };
+    if (u.viaje_id) return { bg: '#f59e0b', text: 'Detenido', icon: '🟡' };
+    return { bg: '#6b7280', text: 'Sin Viaje', icon: '⚫' };
   };
 
   const tiempoDesde = (fecha: string) => {
@@ -219,7 +281,9 @@ export const VistaClientesCarroll = ({ onBack }: VistaClientesCarrollProps) => {
     setSelectedUnidad(u);
     if (vista === 'mapa' && googleMapRef.current && u.latitud && u.longitud) {
       googleMapRef.current.panTo({ lat: u.latitud, lng: u.longitud });
-      googleMapRef.current.setZoom(14);
+      googleMapRef.current.setZoom(12);
+      const marker = markersRef.current.get(u.economico);
+      if (marker) window.google.maps.event.trigger(marker, 'click');
     }
   };
 
@@ -229,7 +293,7 @@ export const VistaClientesCarroll = ({ onBack }: VistaClientesCarrollProps) => {
       <div className="px-4 py-3 border-b" style={{ borderColor: '#1e293b' }}>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <button onClick={onBack} className="p-2 rounded-lg hover:bg-slate-800"><ArrowLeft className="w-5 h-5 text-white" /></button>
+            <button onClick={onBack} className="p-2 rounded-lg hover:bg-slate-800 transition-colors"><ArrowLeft className="w-5 h-5 text-white" /></button>
             <div>
               <div className="flex items-center gap-2">
                 <Truck className="w-5 h-5 text-emerald-500" />
@@ -240,10 +304,10 @@ export const VistaClientesCarroll = ({ onBack }: VistaClientesCarrollProps) => {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <button onClick={fetchUnidades} className="p-2 rounded-lg hover:bg-slate-800">
+            <button onClick={fetchUnidades} className="p-2 rounded-lg hover:bg-slate-800 transition-colors">
               <RefreshCw className={`w-4 h-4 text-gray-400 ${loading ? 'animate-spin' : ''}`} />
             </button>
-            <div className="flex items-center gap-1 px-3 py-1 rounded-lg" style={{ background: 'rgba(16,185,129,0.2)' }}>
+            <div className="flex items-center gap-1 px-3 py-1.5 rounded-lg" style={{ background: 'rgba(16,185,129,0.15)', border: '1px solid rgba(16,185,129,0.3)' }}>
               <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
               <span className="text-emerald-500 text-xs font-medium">En vivo</span>
             </div>
@@ -253,36 +317,36 @@ export const VistaClientesCarroll = ({ onBack }: VistaClientesCarrollProps) => {
 
       {/* Stats + Filtros */}
       <div className="px-4 py-3 border-b flex items-center justify-between gap-4 flex-wrap" style={{ borderColor: '#1e293b' }}>
-        <div className="flex items-center gap-6">
-          <div className="flex items-center gap-2">
-            <span className="text-2xl font-bold text-white">{stats.total}</span>
-            <span className="text-gray-500 text-sm">Unidades</span>
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg" style={{ background: '#1e293b' }}>
+            <span className="text-xl font-bold text-white">{stats.total}</span>
+            <span className="text-gray-500 text-xs">Total</span>
           </div>
-          <div className="flex items-center gap-2">
-            <Navigation className="w-4 h-4 text-emerald-500" />
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg" style={{ background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.2)' }}>
+            <Zap className="w-4 h-4 text-emerald-500" />
             <span className="text-emerald-500 font-bold">{stats.movimiento}</span>
-            <span className="text-gray-500 text-xs">Movimiento</span>
+            <span className="text-emerald-500/70 text-xs">Movimiento</span>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg" style={{ background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.2)' }}>
             <Clock className="w-4 h-4 text-amber-500" />
             <span className="text-amber-500 font-bold">{stats.detenidos}</span>
-            <span className="text-gray-500 text-xs">Detenidos</span>
+            <span className="text-amber-500/70 text-xs">Detenidos</span>
           </div>
         </div>
         <div className="flex items-center gap-2">
           <div className="flex rounded-lg overflow-hidden" style={{ border: '1px solid #334155' }}>
-            <button onClick={() => setVista('lista')} className="flex items-center gap-1 px-3 py-2 text-sm" style={{ background: vista === 'lista' ? '#10b981' : '#1e293b', color: vista === 'lista' ? '#fff' : '#94a3b8' }}>
+            <button onClick={() => setVista('lista')} className="flex items-center gap-1 px-3 py-2 text-sm transition-colors" style={{ background: vista === 'lista' ? '#10b981' : '#1e293b', color: vista === 'lista' ? '#fff' : '#94a3b8' }}>
               <List className="w-4 h-4" />Lista
             </button>
-            <button onClick={() => setVista('mapa')} className="flex items-center gap-1 px-3 py-2 text-sm" style={{ background: vista === 'mapa' ? '#10b981' : '#1e293b', color: vista === 'mapa' ? '#fff' : '#94a3b8' }}>
+            <button onClick={() => setVista('mapa')} className="flex items-center gap-1 px-3 py-2 text-sm transition-colors" style={{ background: vista === 'mapa' ? '#10b981' : '#1e293b', color: vista === 'mapa' ? '#fff' : '#94a3b8' }}>
               <Map className="w-4 h-4" />Mapa
             </button>
           </div>
           <div className="relative">
             <Search className="w-4 h-4 text-gray-500 absolute left-3 top-1/2 -translate-y-1/2" />
-            <input value={busqueda} onChange={(e) => setBusqueda(e.target.value)} placeholder="Buscar eco..." className="pl-9 pr-3 py-2 rounded-lg text-sm text-white" style={{ background: '#1e293b', border: '1px solid #334155', width: '140px' }} />
+            <input value={busqueda} onChange={(e) => setBusqueda(e.target.value)} placeholder="Buscar eco..." className="pl-9 pr-3 py-2 rounded-lg text-sm text-white transition-colors focus:outline-none focus:ring-1 focus:ring-emerald-500" style={{ background: '#1e293b', border: '1px solid #334155', width: '140px' }} />
           </div>
-          <select value={filtro} onChange={(e) => setFiltro(e.target.value)} className="px-3 py-2 rounded-lg text-sm text-gray-300" style={{ background: '#1e293b', border: '1px solid #334155' }}>
+          <select value={filtro} onChange={(e) => setFiltro(e.target.value)} className="px-3 py-2 rounded-lg text-sm text-gray-300 cursor-pointer" style={{ background: '#1e293b', border: '1px solid #334155' }}>
             <option value="todos">Todos</option>
             <option value="movimiento">En movimiento</option>
             <option value="detenido">Detenidos</option>
@@ -309,8 +373,8 @@ export const VistaClientesCarroll = ({ onBack }: VistaClientesCarrollProps) => {
               {filtered.map((u) => {
                 const estado = getEstadoColor(u);
                 return (
-                  <tr key={u.economico} className="border-b hover:bg-slate-800/50 cursor-pointer" style={{ borderColor: '#1e293b' }} onClick={() => setSelectedUnidad(u)}>
-                    <td className="px-4 py-3"><div className="flex items-center gap-2"><Truck className="w-4 h-4 text-gray-500" /><span className="text-white font-bold">{u.economico}</span></div></td>
+                  <tr key={u.economico} className="border-b hover:bg-slate-800/50 cursor-pointer transition-colors" style={{ borderColor: '#1e293b' }} onClick={() => setSelectedUnidad(u)}>
+                    <td className="px-4 py-3"><div className="flex items-center gap-2"><div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: `${estado.bg}20` }}><span className="font-bold text-sm" style={{ color: estado.bg }}>{u.economico}</span></div></div></td>
                     <td className="px-4 py-3"><span className="px-2 py-1 rounded text-xs font-bold" style={{ background: u.empresa === 'TROB' ? '#3b82f6' : u.empresa === 'WE' ? '#8b5cf6' : '#f59e0b', color: '#fff' }}>{u.empresa}</span></td>
                     <td className="px-4 py-3"><div className="flex items-center gap-2"><div className="w-2 h-2 rounded-full" style={{ background: estado.bg }} /><span className="text-sm" style={{ color: estado.bg }}>{estado.text}</span></div></td>
                     <td className="px-4 py-3">{u.velocidad > 0 ? <span className="text-emerald-400 font-medium">{u.velocidad} km/h</span> : <span className="text-gray-500">-</span>}</td>
@@ -328,29 +392,92 @@ export const VistaClientesCarroll = ({ onBack }: VistaClientesCarrollProps) => {
           {/* Mapa */}
           <div className="flex-1 relative">
             <div ref={mapRef} className="w-full h-full" />
-            {!mapLoaded && <div className="absolute inset-0 flex items-center justify-center bg-slate-900"><RefreshCw className="w-8 h-8 text-emerald-500 animate-spin" /></div>}
-          </div>
-          {/* Lista lateral */}
-          <div className="w-72 border-l overflow-auto" style={{ borderColor: '#1e293b', background: '#0f172a' }}>
-            <div className="p-3 border-b sticky top-0" style={{ borderColor: '#1e293b', background: '#0f172a' }}>
-              <span className="text-gray-400 text-xs uppercase">Unidades ({filtered.length})</span>
+            {!mapLoaded && <div className="absolute inset-0 flex items-center justify-center" style={{ background: '#0f172a' }}><RefreshCw className="w-8 h-8 text-emerald-500 animate-spin" /></div>}
+            
+            {/* Leyenda flotante */}
+            <div className="absolute top-4 left-4 flex items-center gap-3 px-4 py-2 rounded-xl" style={{ background: 'rgba(15,23,42,0.95)', border: '1px solid #334155', backdropFilter: 'blur(8px)' }}>
+              <div className="flex items-center gap-1.5">
+                <div className="w-3 h-3 rounded-full" style={{ background: '#22c55e', boxShadow: '0 0 8px #22c55e' }} />
+                <span className="text-xs text-gray-300">Movimiento</span>
+              </div>
+              <div className="w-px h-4 bg-slate-700" />
+              <div className="flex items-center gap-1.5">
+                <div className="w-3 h-3 rounded-full" style={{ background: '#f59e0b' }} />
+                <span className="text-xs text-gray-300">Detenido</span>
+              </div>
+              <div className="w-px h-4 bg-slate-700" />
+              <div className="flex items-center gap-1.5">
+                <div className="w-3 h-3 rounded-full" style={{ background: '#6b7280' }} />
+                <span className="text-xs text-gray-300">Sin viaje</span>
+              </div>
             </div>
-            {filtered.map((u) => {
-              const estado = getEstadoColor(u);
-              const isSelected = selectedUnidad?.economico === u.economico;
-              return (
-                <button key={u.economico} onClick={() => focusOnUnit(u)} className={`w-full p-3 border-b text-left transition-colors ${isSelected ? 'bg-slate-800' : 'hover:bg-slate-800/50'}`} style={{ borderColor: '#1e293b' }}>
-                  <div className="flex items-center justify-between mb-1">
-                    <div className="flex items-center gap-2">
-                      <Truck className="w-4 h-4" style={{ color: estado.bg }} />
-                      <span className="text-white font-bold">{u.economico}</span>
+          </div>
+          
+          {/* Panel lateral premium */}
+          <div className="w-80 border-l overflow-auto" style={{ borderColor: '#1e293b', background: '#0a0f1a' }}>
+            <div className="p-4 border-b sticky top-0 z-10" style={{ borderColor: '#1e293b', background: '#0a0f1a' }}>
+              <div className="flex items-center justify-between">
+                <span className="text-white font-semibold">UNIDADES</span>
+                <span className="text-emerald-500 text-sm font-bold">{filtered.length}</span>
+              </div>
+            </div>
+            
+            <div className="p-2 space-y-2">
+              {filtered.map((u) => {
+                const estado = getEstadoColor(u);
+                const isSelected = selectedUnidad?.economico === u.economico;
+                const isHovered = hoveredUnidad === u.economico;
+                
+                return (
+                  <button
+                    key={u.economico}
+                    onClick={() => focusOnUnit(u)}
+                    onMouseEnter={() => setHoveredUnidad(u.economico)}
+                    onMouseLeave={() => setHoveredUnidad(null)}
+                    className={`w-full p-3 rounded-xl text-left transition-all duration-200 ${isSelected ? 'ring-1 ring-emerald-500' : ''}`}
+                    style={{ 
+                      background: isSelected ? 'rgba(16,185,129,0.1)' : isHovered ? '#1e293b' : '#111827',
+                      borderLeft: `4px solid ${estado.bg}`,
+                    }}
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ background: `${estado.bg}20` }}>
+                          <span className="font-bold" style={{ color: estado.bg }}>{u.economico}</span>
+                        </div>
+                        <div>
+                          <div className="text-white font-medium text-sm">{u.operador_efectivo || 'Sin operador'}</div>
+                          <div className="text-gray-500 text-xs">{u.empresa}</div>
+                        </div>
+                      </div>
+                      {u.velocidad > 0 && (
+                        <div className="flex items-center gap-1 px-2 py-1 rounded-lg" style={{ background: 'rgba(34,197,94,0.2)' }}>
+                          <Zap className="w-3 h-3 text-emerald-500" />
+                          <span className="text-emerald-500 text-xs font-bold">{u.velocidad} km/h</span>
+                        </div>
+                      )}
                     </div>
-                    {u.velocidad > 0 && <span className="text-emerald-400 text-xs font-medium">{u.velocidad} km/h</span>}
-                  </div>
-                  <p className="text-gray-500 text-xs truncate">{u.ubicacion || 'Sin ubicacion'}</p>
-                </button>
-              );
-            })}
+                    
+                    <div className="flex items-center gap-1 text-gray-400 text-xs">
+                      <MapPin className="w-3 h-3 flex-shrink-0" />
+                      <span className="truncate">{u.ubicacion || 'Sin ubicación'}</span>
+                    </div>
+                    
+                    {u.cliente_destino && (
+                      <div className="flex items-center gap-1 text-blue-400 text-xs mt-1">
+                        <span>→</span>
+                        <span className="truncate">{u.cliente_destino}</span>
+                      </div>
+                    )}
+                    
+                    <div className="flex items-center justify-between mt-2 pt-2" style={{ borderTop: '1px solid #1e293b' }}>
+                      <span className="text-xs px-2 py-0.5 rounded" style={{ background: `${estado.bg}20`, color: estado.bg }}>{estado.text}</span>
+                      <span className="text-gray-500 text-xs">{tiempoDesde(u.ultima_actualizacion)}</span>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
           </div>
         </div>
       )}
@@ -358,35 +485,46 @@ export const VistaClientesCarroll = ({ onBack }: VistaClientesCarrollProps) => {
       {/* Modal Detalle */}
       {selectedUnidad && vista === 'lista' && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={() => setSelectedUnidad(null)}>
-          <div className="absolute inset-0" style={{ background: 'rgba(0,0,0,0.7)' }} />
+          <div className="absolute inset-0" style={{ background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(4px)' }} />
           <div className="relative w-full max-w-2xl rounded-2xl overflow-hidden" style={{ background: '#0f172a', border: '1px solid #334155' }} onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between px-5 py-4 border-b" style={{ borderColor: '#1e293b' }}>
               <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-xl flex items-center justify-center" style={{ background: 'rgba(16,185,129,0.2)' }}><Truck className="w-6 h-6 text-emerald-500" /></div>
+                <div className="w-14 h-14 rounded-xl flex items-center justify-center" style={{ background: `${getEstadoColor(selectedUnidad).bg}20` }}>
+                  <span className="text-xl font-bold" style={{ color: getEstadoColor(selectedUnidad).bg }}>{selectedUnidad.economico}</span>
+                </div>
                 <div>
-                  <div className="flex items-center gap-2"><span className="text-xl font-bold text-white">ECO {selectedUnidad.economico}</span><span className="px-2 py-0.5 rounded text-xs font-bold" style={{ background: selectedUnidad.empresa === 'TROB' ? '#3b82f6' : '#8b5cf6', color: '#fff' }}>{selectedUnidad.empresa}</span></div>
-                  <span className="text-gray-400 text-sm">{selectedUnidad.operador_efectivo || 'Sin operador'}</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-lg font-bold text-white">{selectedUnidad.operador_efectivo || 'Sin operador'}</span>
+                    <span className="px-2 py-0.5 rounded text-xs font-bold" style={{ background: selectedUnidad.empresa === 'TROB' ? '#3b82f6' : '#8b5cf6', color: '#fff' }}>{selectedUnidad.empresa}</span>
+                  </div>
+                  <span className="text-gray-400 text-sm">{getEstadoColor(selectedUnidad).text}</span>
                 </div>
               </div>
-              <button onClick={() => setSelectedUnidad(null)} className="p-2 rounded-lg hover:bg-slate-800"><X className="w-5 h-5 text-gray-400" /></button>
+              <button onClick={() => setSelectedUnidad(null)} className="p-2 rounded-lg hover:bg-slate-800 transition-colors"><X className="w-5 h-5 text-gray-400" /></button>
             </div>
-            <div className="h-64">
+            <div className="h-56">
               {selectedUnidad.latitud && selectedUnidad.longitud ? (
-                <iframe width="100%" height="100%" style={{ border: 0 }} loading="lazy" src={`https://www.google.com/maps/embed/v1/place?key=${GOOGLE_MAPS_KEY}&q=${selectedUnidad.latitud},${selectedUnidad.longitud}&zoom=15`} />
+                <iframe width="100%" height="100%" style={{ border: 0 }} loading="lazy" src={`https://www.google.com/maps/embed/v1/place?key=${GOOGLE_MAPS_KEY}&q=${selectedUnidad.latitud},${selectedUnidad.longitud}&zoom=15&maptype=roadmap`} />
               ) : (
                 <div className="w-full h-full flex items-center justify-center" style={{ background: '#1e293b' }}><span className="text-gray-500">Sin coordenadas GPS</span></div>
               )}
             </div>
             <div className="p-5 space-y-4">
               <div className="grid grid-cols-3 gap-3">
-                <div className="p-3 rounded-xl text-center" style={{ background: '#1e293b' }}><Gauge className="w-5 h-5 text-emerald-500 mx-auto mb-1" /><p className="text-xl font-bold text-white">{selectedUnidad.velocidad || 0}</p><p className="text-xs text-gray-500">km/h</p></div>
-                <div className="p-3 rounded-xl text-center" style={{ background: '#1e293b' }}><Navigation className="w-5 h-5 text-blue-500 mx-auto mb-1" /><p className="text-lg font-bold text-white">{selectedUnidad.gps_estatus || 'N/A'}</p><p className="text-xs text-gray-500">GPS</p></div>
-                <div className="p-3 rounded-xl text-center" style={{ background: '#1e293b' }}><Clock className="w-5 h-5 text-amber-500 mx-auto mb-1" /><p className="text-lg font-bold text-white">{tiempoDesde(selectedUnidad.ultima_actualizacion)}</p><p className="text-xs text-gray-500">Actualizado</p></div>
+                <div className="p-4 rounded-xl text-center" style={{ background: '#1e293b' }}><Gauge className="w-6 h-6 text-emerald-500 mx-auto mb-2" /><p className="text-2xl font-bold text-white">{selectedUnidad.velocidad || 0}</p><p className="text-xs text-gray-500">km/h</p></div>
+                <div className="p-4 rounded-xl text-center" style={{ background: '#1e293b' }}><Navigation className="w-6 h-6 text-blue-500 mx-auto mb-2" /><p className="text-lg font-bold text-white">{selectedUnidad.gps_estatus || 'N/A'}</p><p className="text-xs text-gray-500">GPS</p></div>
+                <div className="p-4 rounded-xl text-center" style={{ background: '#1e293b' }}><Clock className="w-6 h-6 text-amber-500 mx-auto mb-2" /><p className="text-lg font-bold text-white">{tiempoDesde(selectedUnidad.ultima_actualizacion)}</p><p className="text-xs text-gray-500">Actualizado</p></div>
               </div>
-              <div className="p-4 rounded-xl" style={{ background: '#1e293b' }}><div className="flex items-start gap-2"><MapPin className="w-4 h-4 text-blue-500 mt-0.5 flex-shrink-0" /><div><p className="text-white text-sm">{selectedUnidad.ubicacion || 'Ubicacion no disponible'}</p><p className="text-gray-500 text-xs mt-1">{selectedUnidad.estado_geo}, {selectedUnidad.municipio_geo}</p></div></div></div>
+              <div className="p-4 rounded-xl" style={{ background: '#1e293b' }}><div className="flex items-start gap-2"><MapPin className="w-5 h-5 text-blue-500 mt-0.5 flex-shrink-0" /><div><p className="text-white">{selectedUnidad.ubicacion || 'Ubicacion no disponible'}</p><p className="text-gray-500 text-sm mt-1">{selectedUnidad.estado_geo}, {selectedUnidad.municipio_geo}</p></div></div></div>
+              {selectedUnidad.cliente_destino && (
+                <div className="p-4 rounded-xl" style={{ background: 'rgba(59,130,246,0.1)', border: '1px solid rgba(59,130,246,0.2)' }}>
+                  <p className="text-xs text-gray-400 uppercase mb-1">Destino</p>
+                  <p className="text-blue-400 font-medium">{selectedUnidad.cliente_destino}</p>
+                </div>
+              )}
               <div className="flex gap-3">
-                {selectedUnidad.telefono_efectivo && (<a href={`tel:${selectedUnidad.telefono_efectivo}`} className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-medium" style={{ background: '#10b981', color: '#fff' }}><Phone className="w-4 h-4" />Llamar</a>)}
-                <button onClick={() => window.open(`https://www.google.com/maps?q=${selectedUnidad.latitud},${selectedUnidad.longitud}`, '_blank')} className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-medium" style={{ background: '#3b82f6', color: '#fff' }}><Map className="w-4 h-4" />Abrir Maps</button>
+                {selectedUnidad.telefono_efectivo && (<a href={`tel:${selectedUnidad.telefono_efectivo}`} className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-medium transition-colors hover:opacity-90" style={{ background: '#10b981', color: '#fff' }}><Phone className="w-4 h-4" />Llamar</a>)}
+                <button onClick={() => window.open(`https://www.google.com/maps?q=${selectedUnidad.latitud},${selectedUnidad.longitud}`, '_blank')} className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-medium transition-colors hover:opacity-90" style={{ background: '#3b82f6', color: '#fff' }}><Map className="w-4 h-4" />Abrir Maps</button>
               </div>
             </div>
           </div>
@@ -397,4 +535,3 @@ export const VistaClientesCarroll = ({ onBack }: VistaClientesCarrollProps) => {
 };
 
 export default VistaClientesCarroll;
-
