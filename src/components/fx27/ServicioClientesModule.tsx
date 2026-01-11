@@ -494,3 +494,5 @@ export function ServicioClientesModule() {
 }
 
 export default ServicioClientesModule;
+
+export default ServicioClientesModule;
