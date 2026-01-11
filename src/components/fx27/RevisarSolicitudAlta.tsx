@@ -271,3 +271,8 @@ export default function RevisarSolicitudAlta({ solicitudId, onUpdated }: Props) 
   );
 }
 
+
+
+
+
+
