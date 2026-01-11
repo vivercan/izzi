@@ -337,7 +337,7 @@ export function ServicioClientesModule() {
                       <span>•</span>
                       <span>{solicitud.nombre_cliente || '-'}</span>
                       <span>•</span>
-                      <span>{solicitud.empresa_facturadora || '-'}</span>
+                      <span>{solicitud.giro || solicitud.empresa_facturadora || '-'}</span>
                     </div>
                   </div>
                   <div className="flex items-center gap-3 text-xs">
@@ -383,7 +383,7 @@ export function ServicioClientesModule() {
               <button onClick={() => setShowCrear(false)} className="text-white/50 hover:text-white"><X className="w-5 h-5" /></button>
             </div>
             <div className="p-4">
-              <CrearSolicitudAlta onCreated={() => { setShowCrear(false); cargarSolicitudes(); }} />
+              <CrearSolicitudAlta usuarioCreador={userEmail || "sistema"} onClose={() => setShowCrear(false)} onCreated={() => { setShowCrear(false); cargarSolicitudes(); }} />
             </div>
           </div>
         </div>
@@ -494,3 +494,5 @@ export function ServicioClientesModule() {
 }
 
 export default ServicioClientesModule;
+
+

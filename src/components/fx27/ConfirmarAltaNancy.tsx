@@ -94,7 +94,7 @@ export default function ConfirmarAltaNancy({ solicitudId, onConfirmed }: Props) 
           rfc: solicitud.rfc_mc || solicitud.rfc,
           nombreContacto: solicitud.nombre_cliente,
           emailCliente: solicitud.email_cliente,
-          empresaFacturadora: solicitud.empresa_facturadora,
+          empresaFacturadora: solicitud.giro || solicitud.empresa_facturadora,
           csrNombre: solicitud.csr_nombre,
           csrEmail: solicitud.csr_email,
           csrTelefono: solicitud.csr_celular || solicitud.csr_telefono,
@@ -120,7 +120,7 @@ export default function ConfirmarAltaNancy({ solicitudId, onConfirmed }: Props) 
   if (loading) return <div className="flex items-center justify-center p-12"><Loader2 className="w-8 h-8 animate-spin text-orange-500" /></div>;
   if (!solicitud) return <div className="text-center p-12 text-white/50">Solicitud no encontrada</div>;
 
-  const empresaInfo = EMPRESAS[solicitud.empresa_facturadora];
+  const empresaInfo = EMPRESAS[solicitud.giro] || EMPRESAS[solicitud.empresa_facturadora];
   const tipoPagoLabel = solicitud.tipo_pago === 'CREDITO' ? `Crédito a ${solicitud.dias_credito || 30} días` : 'Prepago';
 
   return (
@@ -217,3 +217,4 @@ export default function ConfirmarAltaNancy({ solicitudId, onConfirmed }: Props) 
     </div>
   );
 }
+

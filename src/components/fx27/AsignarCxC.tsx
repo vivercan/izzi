@@ -28,6 +28,7 @@ interface Solicitud {
   nombre_cliente?: string;
   email_cliente?: string;
   empresa_facturadora?: string;
+  giro?: string;
   csr_nombre: string; 
   csr_email: string;
   csr_celular?: string;
@@ -113,7 +114,7 @@ export function AsignarCxC() {
           rfc: selectedSolicitud.rfc_mc || selectedSolicitud.rfc,
           nombreContacto: selectedSolicitud.nombre_cliente,
           emailCliente: selectedSolicitud.email_cliente,
-          empresaFacturadora: selectedSolicitud.empresa_facturadora,
+          empresaFacturadora: selectedSolicitud.giro || selectedSolicitud.empresa_facturadora,
           csrNombre: selectedSolicitud.csr_nombre,
           csrEmail: selectedSolicitud.csr_email,
           csrTelefono: selectedSolicitud.csr_celular || selectedSolicitud.csr_telefono,
@@ -220,10 +221,10 @@ export function AsignarCxC() {
                   </div>
                 </div>
 
-                {selectedSolicitud.empresa_facturadora && (
+                {(selectedSolicitud.giro || selectedSolicitud.empresa_facturadora) && (
                   <div className="bg-orange-500/10 border border-orange-500/30 rounded-lg p-2 mb-3">
                     <p className="text-[10px] text-orange-400">Empresa Facturadora</p>
-                    <p className="text-white text-sm">{selectedSolicitud.empresa_facturadora}</p>
+                    <p className="text-white text-sm">{selectedSolicitud.giro || selectedSolicitud.empresa_facturadora}</p>
                   </div>
                 )}
 
@@ -292,3 +293,5 @@ export function AsignarCxC() {
 }
 
 export default AsignarCxC;
+
+

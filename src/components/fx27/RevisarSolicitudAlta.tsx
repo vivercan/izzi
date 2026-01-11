@@ -121,7 +121,7 @@ export default function RevisarSolicitudAlta({ solicitudId, onUpdated }: Props) 
           rfc: solicitud.rfc_mc || solicitud.rfc,
           nombreContacto: solicitud.nombre_cliente,
           emailCliente: solicitud.email_cliente,
-          empresaFacturadora: solicitud.empresa_facturadora,
+          empresaFacturadora: solicitud.giro || solicitud.empresa_facturadora,
           csrNombre: csr?.nombre,
           csrEmail: csr?.email,
           csrTelefono: csr?.celular,
@@ -270,3 +270,4 @@ export default function RevisarSolicitudAlta({ solicitudId, onUpdated }: Props) 
     </div>
   );
 }
+
