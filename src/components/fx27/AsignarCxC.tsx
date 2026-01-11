@@ -1,6 +1,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
 // ASIGNAR CXC (COBRANZA) - Para Claudia Priana / Martha Velasco
-// CORREGIDO: Usa PENDIENTE_COBRANZA (no PENDIENTE_CXC) y envía datos completos
+// CORREGIDO: Usa PENDIENTE_COBRANZA y envía datos completos
+// Versión: 2.0 - 10/Ene/2026
 // ═══════════════════════════════════════════════════════════════════════════
 
 import { useState, useEffect } from 'react';
@@ -51,7 +52,7 @@ export function AsignarCxC() {
   const fetchData = async () => {
     setLoading(true);
     
-    // CORREGIDO: Buscar PENDIENTE_COBRANZA (el estatus que usa RevisarSolicitudAlta)
+    // CORREGIDO: Buscar PENDIENTE_COBRANZA (no PENDIENTE_CXC)
     const { data: sols } = await supabase
       .from('alta_clientes')
       .select('*')
@@ -79,13 +80,11 @@ export function AsignarCxC() {
     }
 
     try {
-      // Obtener usuario actual (Claudia o Martha)
       const { data: { user } } = await supabase.auth.getUser();
       const asignadoPor = user?.email?.includes('claudia') ? 'Claudia Priana' : 
                           user?.email?.includes('martha') ? 'Martha Velasco' : 
                           'Gerencia CxC';
 
-      // Actualizar en base de datos
       await supabase
         .from('alta_clientes')
         .update({
@@ -100,7 +99,7 @@ export function AsignarCxC() {
         })
         .eq('id', selectedSolicitud.id);
 
-      // CORREGIDO: Enviar datos completos al Edge Function para el correo a Nancy
+      // CORREGIDO: Enviar datos completos al Edge Function
       await fetch(`${supabaseUrl}/functions/v1/enviar-correo-alta`, {
         method: 'POST', 
         headers: { 
@@ -110,21 +109,17 @@ export function AsignarCxC() {
         body: JSON.stringify({ 
           tipo: 'pendiente_confirmacion',
           solicitudId: selectedSolicitud.id,
-          // Datos del cliente
           razonSocial: selectedSolicitud.razon_social,
           rfc: selectedSolicitud.rfc_mc || selectedSolicitud.rfc,
           nombreContacto: selectedSolicitud.nombre_cliente,
           emailCliente: selectedSolicitud.email_cliente,
           empresaFacturadora: selectedSolicitud.empresa_facturadora,
-          // Datos del CSR
           csrNombre: selectedSolicitud.csr_nombre,
           csrEmail: selectedSolicitud.csr_email,
           csrTelefono: selectedSolicitud.csr_celular || selectedSolicitud.csr_telefono,
-          // Datos del CxC
           cxcNombre: cxcData.nombre,
           cxcEmail: cxcData.email,
           cxcTelefono: cxcData.telefono || cxcData.celular,
-          // Tipo de pago
           tipoPago: selectedSolicitud.tipo_pago,
           diasCredito: selectedSolicitud.dias_credito
         })
@@ -163,11 +158,7 @@ export function AsignarCxC() {
         <span className="px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-300 text-xs">
           {solicitudes.length} pendientes
         </span>
-        <button
-          onClick={fetchData}
-          className="ml-auto p-2 rounded-lg bg-white/5 hover:bg-white/10 transition-all"
-          title="Actualizar"
-        >
+        <button onClick={fetchData} className="ml-auto p-2 rounded-lg bg-white/5 hover:bg-white/10 transition-all" title="Actualizar">
           <RefreshCw className={`w-4 h-4 text-white/50 ${loading ? 'animate-spin' : ''}`} />
         </button>
       </div>
@@ -179,7 +170,7 @@ export function AsignarCxC() {
         </div>
       ) : (
         <div className="flex-1 grid grid-cols-3 gap-3 min-h-0">
-          {/* Lista de solicitudes */}
+          {/* Lista */}
           <div className="bg-white/5 rounded-xl border border-white/10 p-2 overflow-y-auto">
             {solicitudes.map((sol) => (
               <div 
@@ -204,17 +195,13 @@ export function AsignarCxC() {
             ))}
           </div>
 
-          {/* Panel de detalle */}
+          {/* Panel */}
           <div className="col-span-2 bg-white/5 rounded-xl border border-white/10 p-4 flex flex-col">
             {!selectedSolicitud ? (
-              <div className="flex-1 flex items-center justify-center text-white/40">
-                Selecciona una solicitud
-              </div>
+              <div className="flex-1 flex items-center justify-center text-white/40">Selecciona una solicitud</div>
             ) : (
               <>
-                <h2 className="text-lg font-semibold text-blue-400 mb-3 truncate">
-                  {selectedSolicitud.razon_social}
-                </h2>
+                <h2 className="text-lg font-semibold text-blue-400 mb-3 truncate">{selectedSolicitud.razon_social}</h2>
 
                 <div className="grid grid-cols-3 gap-2 mb-3">
                   <div className="bg-black/20 rounded-lg p-2">
@@ -233,7 +220,6 @@ export function AsignarCxC() {
                   </div>
                 </div>
 
-                {/* Empresa facturadora */}
                 {selectedSolicitud.empresa_facturadora && (
                   <div className="bg-orange-500/10 border border-orange-500/30 rounded-lg p-2 mb-3">
                     <p className="text-[10px] text-orange-400">Empresa Facturadora</p>
@@ -241,7 +227,6 @@ export function AsignarCxC() {
                   </div>
                 )}
 
-                {/* Selector de CxC */}
                 <div className="mb-4">
                   <label className="text-[10px] text-white/60 mb-1 block">Ejecutivo Cobranza *</label>
                   <div className="relative">
@@ -252,21 +237,16 @@ export function AsignarCxC() {
                     >
                       <option value="" style={{ background: '#1a2d4a' }}>Seleccionar...</option>
                       {cxcList.map((cxc) => (
-                        <option key={cxc.id} value={cxc.id} style={{ background: '#1a2d4a' }}>
-                          {cxc.nombre}
-                        </option>
+                        <option key={cxc.id} value={cxc.id} style={{ background: '#1a2d4a' }}>{cxc.nombre}</option>
                       ))}
                     </select>
                     <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40" />
                   </div>
                   {cxcSeleccionado && (
-                    <p className="text-blue-400 text-xs mt-1">
-                      {cxcSeleccionado.email} | {cxcSeleccionado.telefono || cxcSeleccionado.celular}
-                    </p>
+                    <p className="text-blue-400 text-xs mt-1">{cxcSeleccionado.email} | {cxcSeleccionado.telefono || cxcSeleccionado.celular}</p>
                   )}
                 </div>
 
-                {/* Info de lo que pasará */}
                 {cxcSeleccionado && (
                   <div className="mb-4 p-3 bg-blue-500/10 rounded-lg border border-blue-500/30">
                     <p className="text-blue-300 text-xs">
@@ -289,7 +269,7 @@ export function AsignarCxC() {
         </div>
       )}
 
-      {/* Modal de confirmación */}
+      {/* Modal */}
       {showConfirm && selectedSolicitud && cxcSeleccionado && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
           <div className="bg-[#0a1628] rounded-xl border border-white/20 p-5 max-w-sm w-full">
@@ -297,21 +277,10 @@ export function AsignarCxC() {
             <p className="text-white/70 text-sm mb-3">
               ¿Asignar <b className="text-white">{selectedSolicitud.razon_social}</b> a <b className="text-blue-400">{cxcSeleccionado.nombre}</b>?
             </p>
-            <p className="text-white/50 text-xs mb-4">
-              Se enviará notificación a Nancy Alonso para confirmar el alta.
-            </p>
+            <p className="text-white/50 text-xs mb-4">Se enviará notificación a Nancy Alonso.</p>
             <div className="flex gap-2">
-              <button 
-                onClick={() => setShowConfirm(false)} 
-                className="flex-1 py-2 rounded-lg bg-white/10 text-white text-sm hover:bg-white/20 transition-all"
-              >
-                Cancelar
-              </button>
-              <button 
-                onClick={handleAsignar} 
-                disabled={submitting} 
-                className="flex-1 py-2 rounded-lg bg-blue-500 text-white text-sm flex items-center justify-center gap-1 hover:bg-blue-600 transition-all disabled:opacity-50"
-              >
+              <button onClick={() => setShowConfirm(false)} className="flex-1 py-2 rounded-lg bg-white/10 text-white text-sm hover:bg-white/20 transition-all">Cancelar</button>
+              <button onClick={handleAsignar} disabled={submitting} className="flex-1 py-2 rounded-lg bg-blue-500 text-white text-sm flex items-center justify-center gap-1 hover:bg-blue-600 transition-all disabled:opacity-50">
                 {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />} Confirmar
               </button>
             </div>
@@ -322,5 +291,4 @@ export function AsignarCxC() {
   );
 }
 
-// También exportar como default para compatibilidad con imports
 export default AsignarCxC;
