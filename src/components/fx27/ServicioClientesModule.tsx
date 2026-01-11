@@ -73,7 +73,7 @@ const ESTATUS_CONFIG: Record<string, { label: string; color: string; bg: string;
 // Orden de estatus para tabs
 const ESTATUS_ORDEN = ['PENDIENTE_CSR', 'PENDIENTE_COBRANZA', 'PENDIENTE_CONFIRMACION', 'ENVIADA', 'COMPLETADA'];
 
-export default function ServicioClientesModule() {
+export function ServicioClientesModule() {
   const [solicitudes, setSolicitudes] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [filtroEstatus, setFiltroEstatus] = useState<string>('TODOS');
@@ -492,3 +492,5 @@ export default function ServicioClientesModule() {
     </div>
   );
 }
+
+export default ServicioClientesModule;
