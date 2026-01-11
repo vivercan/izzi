@@ -277,7 +277,7 @@ export function AltaClientePublico({ solicitudId }: Props) {
         confirmacion_pago_ip: 'captured'
       }).eq('id', solicitudId);
       await fetch(`${supabaseUrl}/functions/v1/generar-pdf-solicitud`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${supabaseAnonKey}` }, body: JSON.stringify({ solicitudId, idioma: lang }) }).catch(() => {});
-      await fetch(`${supabaseUrl}/functions/v1/enviar-correo-alta`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${supabaseAnonKey}` }, body: JSON.stringify({ tipo: 'solicitud_completada', solicitudId, razonSocial: datos.razon_social || solicitud?.razon_social, empresaFacturadora: EMPRESAS_FACTURADORAS[solicitud?.empresa_facturadora] || solicitud?.empresa_facturadora }) }).catch(() => {});
+      await fetch(`${supabaseUrl}/functions/v1/enviar-correo-alta`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${supabaseAnonKey}` }, body: JSON.stringify({ tipo: 'solicitud_completada', solicitudId, razonSocial: datos.razon_social || solicitud?.razon_social, empresaFacturadora: EMPRESAS_FACTURADORAS[solicitud?.giro] || EMPRESAS_FACTURADORAS[solicitud?.empresa_facturadora] || solicitud?.giro || solicitud?.empresa_facturadora }) }).catch(() => {});
       setPaso('enviado');
     } catch { alert('Error'); }
     finally { setSubmitting(false); }
@@ -296,7 +296,7 @@ export function AltaClientePublico({ solicitudId }: Props) {
   const ModalConfirmacion = () => {
     const razonSocial = datos.razon_social || solicitud?.razon_social || 'Su empresa';
     const rfc = datos.rfc || solicitud?.rfc_mc || '';
-    const empresaFacturadora = EMPRESAS_FACTURADORAS[solicitud?.empresa_facturadora] || solicitud?.empresa_facturadora || 'GRUPO LOMA';
+    const empresaFacturadora = EMPRESAS_FACTURADORAS[solicitud?.giro] || EMPRESAS_FACTURADORAS[solicitud?.empresa_facturadora] || solicitud?.giro || solicitud?.empresa_facturadora || 'GRUPO LOMA';
     const allChecked = confirmChecks.c1 && confirmChecks.c2 && confirmChecks.c3 && confirmChecks.c4;
 
     return (
@@ -472,4 +472,6 @@ export function AltaClientePublico({ solicitudId }: Props) {
     </div>
   );
 }
+
+
 
