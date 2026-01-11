@@ -1,12 +1,13 @@
-// Componente de Confirmación de Alta - Para Nancy Alonso
-// Muestra claramente: Empresa que paga → Empresa que cobra
-// Permite descargar docs y confirmar el alta
-// Ubicación: src/components/fx27/ConfirmarAltaNancy.tsx
+// ═══════════════════════════════════════════════════════════════════════════
+// CONFIRMAR ALTA - Para Nancy Alonso
+// Muestra: Cliente → Empresa que factura, ejecutivos asignados
+// CORREGIDO: Usa columnas csr_* y cxc_* de la tabla
+// ═══════════════════════════════════════════════════════════════════════════
 
 import { useState, useEffect } from 'react';
 import { createClient } from '@supabase/supabase-js';
 import {
-  Download, CheckCircle2, Loader2, FileText, Building2, 
+  Download, CheckCircle2, Loader2, FileText, Building2,
   CreditCard, User, Calendar, DollarSign, Send, AlertCircle,
   Briefcase, Phone, Mail
 } from 'lucide-react';
@@ -16,7 +17,7 @@ const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYm
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 // Mapeo de empresas
-const EMPRESAS = {
+const EMPRESAS: Record<string, { nombre: string; razonSocial: string; color: string }> = {
   'TROB': { nombre: 'TROB Transportes', razonSocial: 'TROB TRANSPORTES SA DE CV', color: '#001f4d' },
   'WE': { nombre: 'WExpress', razonSocial: 'WEXPRESS LOGISTICS SA DE CV', color: '#059669' },
   'SHI': { nombre: 'Speedyhaul', razonSocial: 'SPEEDYHAUL SA DE CV', color: '#7c3aed' },
@@ -62,14 +63,12 @@ export default function ConfirmarAltaNancy({ solicitudId, onConfirmed }: Props) 
   const descargarDocumentos = async () => {
     setDownloading(true);
     try {
-      // Listar archivos de la solicitud
       const { data: files, error } = await supabase.storage
         .from('alta-documentos')
         .list(solicitudId);
 
       if (error) throw error;
 
-      // Descargar cada archivo
       for (const file of files || []) {
         const { data: fileData, error: downloadError } = await supabase.storage
           .from('alta-documentos')
@@ -77,7 +76,6 @@ export default function ConfirmarAltaNancy({ solicitudId, onConfirmed }: Props) 
 
         if (downloadError) continue;
 
-        // Crear link de descarga
         const url = URL.createObjectURL(fileData);
         const a = document.createElement('a');
         a.href = url;
@@ -87,7 +85,6 @@ export default function ConfirmarAltaNancy({ solicitudId, onConfirmed }: Props) 
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
 
-        // Pequeña pausa entre descargas
         await new Promise(resolve => setTimeout(resolve, 500));
       }
 
@@ -128,7 +125,9 @@ export default function ConfirmarAltaNancy({ solicitudId, onConfirmed }: Props) 
     }
   };
 
-  // Confirmar alta
+  // ═══════════════════════════════════════════════════════════════════════════
+  // CONFIRMAR ALTA - CORREGIDO: Usa columnas csr_* y cxc_*
+  // ═══════════════════════════════════════════════════════════════════════════
   const confirmarAlta = async () => {
     setConfirming(true);
     try {
@@ -137,12 +136,13 @@ export default function ConfirmarAltaNancy({ solicitudId, onConfirmed }: Props) 
         .from('alta_clientes')
         .update({
           estatus: 'COMPLETADA',
-          fecha_alta_completada: new Date().toISOString(),
-          confirmado_por: 'Nancy Alonso'
+          confirmado_por: 'Nancy Alonso',
+          confirmado_fecha: new Date().toISOString(),
+          fecha_completado: new Date().toISOString()
         })
         .eq('id', solicitudId);
 
-      // Enviar correo de confirmación al cliente
+      // Enviar correo de confirmación (cliente + internos)
       await fetch(`${supabaseUrl}/functions/v1/enviar-correo-alta`, {
         method: 'POST',
         headers: {
@@ -150,27 +150,32 @@ export default function ConfirmarAltaNancy({ solicitudId, onConfirmed }: Props) 
           'Authorization': `Bearer ${supabaseAnonKey}`
         },
         body: JSON.stringify({
-          tipo: 'alta_confirmada',
+          tipo: 'alta_completada',
           solicitudId,
-          destinatarios: solicitud.correo_cliente?.split(',').map((e: string) => e.trim()),
+          // Datos del cliente
           razonSocial: solicitud.razon_social,
-          empresaFacturadora: EMPRESAS[solicitud.empresa_facturadora as keyof typeof EMPRESAS]?.nombre || solicitud.empresa_facturadora,
-          tipoCredito: solicitud.tipo_credito,
+          rfc: solicitud.rfc_mc || solicitud.rfc,
+          nombreContacto: solicitud.nombre_cliente,
+          emailCliente: solicitud.email_cliente,
+          empresaFacturadora: solicitud.empresa_facturadora,
+          // Datos del CSR (columnas correctas)
+          csrNombre: solicitud.csr_nombre,
+          csrEmail: solicitud.csr_email,
+          csrTelefono: solicitud.csr_celular || solicitud.csr_telefono,
+          // Datos del CxC (columnas correctas)
+          cxcNombre: solicitud.cxc_nombre,
+          cxcEmail: solicitud.cxc_email,
+          cxcTelefono: solicitud.cxc_telefono,
+          // Tipo de pago
+          tipoPago: solicitud.tipo_pago,
           diasCredito: solicitud.dias_credito,
-          ejecutivoServicio: {
-            nombre: solicitud.ejecutivo_servicio_nombre,
-            email: solicitud.ejecutivo_servicio_email,
-            telefono: solicitud.ejecutivo_servicio_tel
-          },
-          ejecutivoCobranza: {
-            nombre: solicitud.ejecutivo_cobranza_nombre,
-            telefono: solicitud.ejecutivo_cobranza_tel
-          }
+          // Quien creó la solicitud
+          creadoPorEmail: solicitud.creado_por_email || solicitud.enviado_por
         })
       });
 
       setConfirmed(true);
-      alert('Alta confirmada. Se envió correo al cliente.');
+      alert('Alta confirmada. Se envió correo de bienvenida al cliente.');
       onConfirmed?.();
 
     } catch (err) {
@@ -197,7 +202,10 @@ export default function ConfirmarAltaNancy({ solicitudId, onConfirmed }: Props) 
     );
   }
 
-  const empresaInfo = EMPRESAS[solicitud.empresa_facturadora as keyof typeof EMPRESAS];
+  const empresaInfo = EMPRESAS[solicitud.empresa_facturadora];
+  const tipoPagoLabel = solicitud.tipo_pago === 'CREDITO'
+    ? `Crédito a ${solicitud.dias_credito || 30} días`
+    : 'Prepago';
 
   return (
     <div className="space-y-6">
@@ -206,7 +214,7 @@ export default function ConfirmarAltaNancy({ solicitudId, onConfirmed }: Props) 
           ═══════════════════════════════════════════════════════════════════════════ */}
       <div className="bg-gradient-to-r from-blue-500/20 to-orange-500/20 rounded-2xl border-2 border-blue-500/30 p-6">
         <h2 className="text-center text-sm font-bold text-white/50 mb-4">💰 INFORMACIÓN DE FACTURACIÓN</h2>
-        
+
         <div className="grid grid-cols-3 gap-4 items-center">
           {/* Empresa que paga */}
           <div className="text-center p-4 bg-blue-500/20 rounded-xl border border-blue-500/40">
@@ -215,7 +223,7 @@ export default function ConfirmarAltaNancy({ solicitudId, onConfirmed }: Props) 
             </div>
             <span className="text-xs text-blue-300/70 block mb-1">CLIENTE PAGA</span>
             <span className="text-lg font-bold text-blue-300">{solicitud.razon_social}</span>
-            <span className="text-xs text-blue-300/60 block mt-1">{solicitud.rfc_mc}</span>
+            <span className="text-xs text-blue-300/60 block mt-1">{solicitud.rfc_mc || solicitud.rfc}</span>
           </div>
 
           {/* Flecha */}
@@ -231,39 +239,31 @@ export default function ConfirmarAltaNancy({ solicitudId, onConfirmed }: Props) 
             </div>
             <span className="text-xs text-orange-300/70 block mb-1">FACTURAR A</span>
             <span className="text-lg font-bold text-orange-300">
-              {empresaInfo?.nombre || solicitud.empresa_facturadora}
+              {empresaInfo?.nombre || solicitud.empresa_facturadora || 'Por definir'}
             </span>
             <span className="text-xs text-orange-300/60 block mt-1">
-              {empresaInfo?.razonSocial}
+              {empresaInfo?.razonSocial || ''}
             </span>
           </div>
         </div>
 
-        {/* Tipo de crédito */}
+        {/* Tipo de pago */}
         <div className="mt-6 flex justify-center gap-8">
           <div className="flex items-center gap-2">
             <DollarSign className="w-5 h-5 text-green-400" />
             <span className="text-white/60">Tipo:</span>
-            <span className={`font-bold ${solicitud.tipo_credito === 'CREDITO' ? 'text-green-400' : 'text-blue-400'}`}>
-              {solicitud.tipo_credito || 'Prepago'}
+            <span className={`font-bold ${solicitud.tipo_pago === 'CREDITO' ? 'text-green-400' : 'text-blue-400'}`}>
+              {tipoPagoLabel}
             </span>
           </div>
-          
-          {solicitud.tipo_credito === 'CREDITO' && solicitud.dias_credito && (
-            <div className="flex items-center gap-2">
-              <Calendar className="w-5 h-5 text-green-400" />
-              <span className="text-white/60">Días:</span>
-              <span className="font-bold text-green-400">{solicitud.dias_credito}</span>
-            </div>
-          )}
         </div>
       </div>
 
       {/* ═══════════════════════════════════════════════════════════════════════════
-          EJECUTIVOS ASIGNADOS
+          EJECUTIVOS ASIGNADOS - COLUMNAS CORRECTAS
           ═══════════════════════════════════════════════════════════════════════════ */}
       <div className="grid grid-cols-2 gap-4">
-        {/* CSR */}
+        {/* CSR (Servicio a Clientes) */}
         <div className="bg-[#0a1628]/95 rounded-xl border border-white/10 p-5">
           <div className="flex items-center gap-2 mb-4">
             <User className="w-5 h-5 text-purple-400" />
@@ -272,20 +272,20 @@ export default function ConfirmarAltaNancy({ solicitudId, onConfirmed }: Props) 
           <div className="space-y-2 text-sm">
             <div className="flex items-center gap-2">
               <span className="text-white/50 w-16">Nombre:</span>
-              <span className="text-white font-medium">{solicitud.ejecutivo_servicio_nombre || '-'}</span>
+              <span className="text-white font-medium">{solicitud.csr_nombre || '-'}</span>
             </div>
             <div className="flex items-center gap-2">
               <Mail className="w-4 h-4 text-white/30" />
-              <span className="text-white/70">{solicitud.ejecutivo_servicio_email || '-'}</span>
+              <span className="text-white/70">{solicitud.csr_email || '-'}</span>
             </div>
             <div className="flex items-center gap-2">
               <Phone className="w-4 h-4 text-white/30" />
-              <span className="text-white/70">{solicitud.ejecutivo_servicio_tel || '-'}</span>
+              <span className="text-white/70">{solicitud.csr_celular || solicitud.csr_telefono || '-'}</span>
             </div>
           </div>
         </div>
 
-        {/* Cobranza */}
+        {/* CxC (Cobranza) */}
         <div className="bg-[#0a1628]/95 rounded-xl border border-white/10 p-5">
           <div className="flex items-center gap-2 mb-4">
             <CreditCard className="w-5 h-5 text-green-400" />
@@ -294,11 +294,15 @@ export default function ConfirmarAltaNancy({ solicitudId, onConfirmed }: Props) 
           <div className="space-y-2 text-sm">
             <div className="flex items-center gap-2">
               <span className="text-white/50 w-16">Nombre:</span>
-              <span className="text-white font-medium">{solicitud.ejecutivo_cobranza_nombre || '-'}</span>
+              <span className="text-white font-medium">{solicitud.cxc_nombre || '-'}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Mail className="w-4 h-4 text-white/30" />
+              <span className="text-white/70">{solicitud.cxc_email || '-'}</span>
             </div>
             <div className="flex items-center gap-2">
               <Phone className="w-4 h-4 text-white/30" />
-              <span className="text-white/70">{solicitud.ejecutivo_cobranza_tel || '-'}</span>
+              <span className="text-white/70">{solicitud.cxc_telefono || '-'}</span>
             </div>
           </div>
         </div>
@@ -360,6 +364,21 @@ export default function ConfirmarAltaNancy({ solicitudId, onConfirmed }: Props) 
           )}
         </div>
 
+        {/* Validación: Verificar que tenga CSR y CxC asignados */}
+        {(!solicitud.csr_nombre || !solicitud.cxc_nombre) && !confirmed && (
+          <div className="mb-4 p-4 bg-yellow-500/20 rounded-xl border border-yellow-500/30">
+            <div className="flex items-center gap-2 text-yellow-300">
+              <AlertCircle className="w-5 h-5" />
+              <span className="font-medium">Faltan asignaciones</span>
+            </div>
+            <p className="text-yellow-300/70 text-sm mt-1">
+              {!solicitud.csr_nombre && '• Falta asignar ejecutivo de Servicio a Clientes'}
+              {!solicitud.csr_nombre && !solicitud.cxc_nombre && <br />}
+              {!solicitud.cxc_nombre && '• Falta asignar ejecutivo de Cobranza'}
+            </p>
+          </div>
+        )}
+
         {/* Botón confirmar */}
         {confirmed ? (
           <div className="flex items-center justify-center gap-3 p-4 bg-green-500/20 rounded-xl border border-green-500/30">
@@ -369,8 +388,8 @@ export default function ConfirmarAltaNancy({ solicitudId, onConfirmed }: Props) 
         ) : (
           <button
             onClick={confirmarAlta}
-            disabled={confirming}
-            className="w-full py-4 rounded-xl flex items-center justify-center gap-3 font-bold text-white disabled:opacity-50"
+            disabled={confirming || !solicitud.csr_nombre || !solicitud.cxc_nombre}
+            className="w-full py-4 rounded-xl flex items-center justify-center gap-3 font-bold text-white disabled:opacity-50 disabled:cursor-not-allowed"
             style={{ background: 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)' }}
           >
             {confirming ? (
