@@ -314,6 +314,29 @@ export const ProspeccionIAModule = ({ onBack }: ProspeccionIAModuleProps) => {
         ? estadosSeleccionados.map(e => `${e}, Mexico`)
         : ['Mexico'];
 
+      // Obtener keywords de los segmentos seleccionados
+      const keywords = segmentosSeleccionados.flatMap(s => 
+        SEGMENTOS_MERCADO[s]?.keywords || []
+      );
+
+      // Industries para Apollo (en inglés)
+      const industries = [
+        'automotive', 'aviation & aerospace', 'mining & metals', 
+        'food production', 'food & beverages', 'retail', 
+        'consumer goods', 'pharmaceuticals', 'manufacturing'
+      ].filter(ind => {
+        // Filtrar según segmentos seleccionados
+        if (segmentosSeleccionados.includes('automotriz') && ind === 'automotive') return true;
+        if (segmentosSeleccionados.includes('aeroespacial') && ind === 'aviation & aerospace') return true;
+        if (segmentosSeleccionados.includes('mineria') && ind === 'mining & metals') return true;
+        if (segmentosSeleccionados.includes('alimentos') && (ind === 'food production' || ind === 'food & beverages')) return true;
+        if (segmentosSeleccionados.includes('retail') && ind === 'retail') return true;
+        if (segmentosSeleccionados.includes('consumo') && ind === 'consumer goods') return true;
+        if (segmentosSeleccionados.includes('farmaceutica') && ind === 'pharmaceuticals') return true;
+        if (segmentosSeleccionados.includes('manufactura') && ind === 'manufacturing') return true;
+        return false;
+      });
+
       const response = await fetch(`${SUPABASE_URL}/functions/v1/prospeccion-api`, {
         method: 'POST',
         headers: {
@@ -326,6 +349,8 @@ export const ProspeccionIAModule = ({ onBack }: ProspeccionIAModuleProps) => {
             locations: ubicaciones,
             titles: puestosABuscar.slice(0, 10),
             company_name: buscarEmpresa.trim() || undefined,
+            keywords: keywords.slice(0, 20),
+            industries: industries,
             page: 1,
             per_page: 100
           }
