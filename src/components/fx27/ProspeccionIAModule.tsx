@@ -27,23 +27,27 @@ const CONTACTOS_POR_PAGINA = 50;
 const PUESTOS_POR_AREA = {
   direccion: {
     nombre: '👑 Dirección / C-Level',
-    puestos: ['CEO', 'President', 'Owner', 'Founder', 'Chairman', 'Director General', 'Managing Director', 'COO', 'CFO']
+    puestos: ['CEO', 'President', 'Owner', 'Founder', 'Chairman', 'Director General', 'Managing Director', 'COO', 'CFO', 'CTO', 'CMO']
   },
   operaciones: {
     nombre: '⚙️ Operaciones / Planta',
-    puestos: ['VP Operations', 'Operations Director', 'Operations Manager', 'Plant Manager', 'Plant Director', 'Production Manager', 'Manufacturing Director', 'Gerente de Operaciones', 'Gerente de Planta']
+    puestos: ['VP Operations', 'Operations Director', 'Operations Manager', 'Plant Manager', 'Plant Director', 'Production Manager', 'Production Director', 'Manufacturing Director', 'Manufacturing Manager', 'Gerente de Operaciones', 'Gerente de Planta', 'Gerente de Producción', 'Director de Operaciones', 'Director de Manufactura', 'Jefe de Producción', 'Supervisor de Producción', 'Quality Manager', 'Quality Director', 'Gerente de Calidad']
   },
   supplychain: {
     nombre: '📦 Supply Chain / Logística',
-    puestos: ['VP Supply Chain', 'Supply Chain Director', 'Supply Chain Manager', 'Logistics Director', 'Logistics Manager', 'Distribution Manager', 'Warehouse Manager', 'Director de Cadena de Suministro', 'Gerente de Logística']
+    puestos: ['VP Supply Chain', 'VP Logistics', 'Supply Chain Director', 'Supply Chain Manager', 'Logistics Director', 'Logistics Manager', 'Distribution Director', 'Distribution Manager', 'Warehouse Director', 'Warehouse Manager', 'Transportation Manager', 'Fleet Manager', 'Inventory Manager', 'Materials Manager', 'Director de Cadena de Suministro', 'Gerente de Logística', 'Gerente de Distribución', 'Gerente de Almacén', 'Gerente de Inventarios', 'Gerente de Materiales', 'Jefe de Logística', 'Jefe de Almacén', 'Coordinador de Logística', 'Planeador de Demanda', 'Demand Planner', 'S&OP Manager']
   },
   compras: {
     nombre: '🛒 Compras / Procurement',
-    puestos: ['VP Procurement', 'Procurement Director', 'Procurement Manager', 'Purchasing Director', 'Purchasing Manager', 'Sourcing Manager', 'Director de Compras', 'Gerente de Compras']
+    puestos: ['VP Procurement', 'Procurement Director', 'Procurement Manager', 'Purchasing Director', 'Purchasing Manager', 'Sourcing Director', 'Sourcing Manager', 'Strategic Sourcing Manager', 'Buyer', 'Senior Buyer', 'Category Manager', 'Director de Compras', 'Gerente de Compras', 'Gerente de Abastecimiento', 'Jefe de Compras', 'Comprador Senior']
   },
   comercial: {
     nombre: '💼 Comercial / Ventas',
-    puestos: ['VP Sales', 'Sales Director', 'Commercial Director', 'Business Development Director', 'Director Comercial', 'Gerente Comercial', 'Gerente de Ventas']
+    puestos: ['VP Sales', 'VP Commercial', 'Sales Director', 'Commercial Director', 'Business Development Director', 'Business Development Manager', 'Key Account Manager', 'Director Comercial', 'Gerente Comercial', 'Gerente de Ventas', 'Gerente de Cuentas Clave']
+  },
+  finanzas: {
+    nombre: '💰 Finanzas / Administración',
+    puestos: ['VP Finance', 'Finance Director', 'Finance Manager', 'Controller', 'Director de Finanzas', 'Gerente de Finanzas', 'Contralor', 'Director Administrativo', 'Gerente Administrativo']
   }
 };
 
@@ -140,9 +144,10 @@ export const ProspeccionIAModule = ({ onBack }: Props) => {
   const [fuenteSeleccionada, setFuenteSeleccionada] = useState<'apollo' | 'hunter' | 'ambos' | null>('apollo');
   const [estadosSeleccionados, setEstadosSeleccionados] = useState<string[]>([]);
   const [puestosSeleccionados, setPuestosSeleccionados] = useState<string[]>([
-    // Por defecto: Dirección y Operaciones
+    // Por defecto: Dirección, Operaciones y Supply Chain
     ...PUESTOS_POR_AREA.direccion.puestos,
-    ...PUESTOS_POR_AREA.operaciones.puestos
+    ...PUESTOS_POR_AREA.operaciones.puestos,
+    ...PUESTOS_POR_AREA.supplychain.puestos
   ]);
   const [industriasSeleccionadas, setIndustriasSeleccionadas] = useState<string[]>(Object.keys(INDUSTRIAS_APOLLO));
   const [buscarEmpresa, setBuscarEmpresa] = useState('');
@@ -151,7 +156,7 @@ export const ProspeccionIAModule = ({ onBack }: Props) => {
   // UI expandibles
   const [mostrarUbicacion, setMostrarUbicacion] = useState(false);
   const [mostrarIndustrias, setMostrarIndustrias] = useState(false);
-  const [areasExpandidas, setAreasExpandidas] = useState<string[]>(['direccion', 'operaciones']);
+  const [areasExpandidas, setAreasExpandidas] = useState<string[]>(['direccion', 'operaciones', 'supplychain']);
   
   // Contactos y paginación
   const [contactos, setContactos] = useState<Contacto[]>([]);
@@ -440,31 +445,62 @@ export const ProspeccionIAModule = ({ onBack }: Props) => {
 
       {/* PASO 1: Filtros */}
       {paso === 1 && (
-        <div className="space-y-4">
-          {/* Empresa específica */}
-          <div className="bg-slate-800/50 rounded-lg p-4">
-            <div className="flex items-center gap-2 mb-2">
-              <Building2 className="w-4 h-4 text-green-400" />
-              <span className="font-medium text-sm">Buscar empresa específica (opcional)</span>
+        <div className="space-y-3">
+          {/* Fila 1: Fuente + Empresa */}
+          <div className="flex gap-3">
+            {/* Selector de fuente */}
+            <div className="bg-slate-800/50 rounded-lg p-3 flex-shrink-0">
+              <div className="flex items-center gap-1 mb-2">
+                <Database className="w-4 h-4 text-blue-400" />
+                <span className="font-medium text-xs">Fuente</span>
+              </div>
+              <div className="flex gap-1">
+                {[
+                  { id: 'apollo', name: 'Apollo', icon: Target },
+                  { id: 'hunter', name: 'Hunter', icon: Mail },
+                  { id: 'ambos', name: 'Ambos', icon: Zap }
+                ].map(f => (
+                  <button
+                    key={f.id}
+                    onClick={() => setFuenteSeleccionada(f.id as any)}
+                    className={`px-3 py-1.5 rounded text-xs flex items-center gap-1 transition-all ${
+                      fuenteSeleccionada === f.id 
+                        ? 'bg-orange-500 text-white' 
+                        : 'bg-slate-700 hover:bg-slate-600'
+                    }`}
+                  >
+                    <f.icon className="w-3 h-3" />
+                    {f.name}
+                  </button>
+                ))}
+              </div>
             </div>
-            <input
-              type="text"
-              placeholder="Ej: CEMEX, Bimbo..."
-              value={buscarEmpresa}
-              onChange={e => setBuscarEmpresa(e.target.value)}
-              className="w-full p-2 bg-slate-700 rounded border border-gray-600 focus:border-orange-500 outline-none text-sm"
-            />
+
+            {/* Empresa específica */}
+            <div className="bg-slate-800/50 rounded-lg p-3 flex-1">
+              <div className="flex items-center gap-1 mb-2">
+                <Building2 className="w-4 h-4 text-green-400" />
+                <span className="font-medium text-xs">Empresa específica (opcional)</span>
+              </div>
+              <input
+                type="text"
+                placeholder="Ej: CEMEX, Bimbo..."
+                value={buscarEmpresa}
+                onChange={e => setBuscarEmpresa(e.target.value)}
+                className="w-full p-2 bg-slate-700 rounded border border-gray-600 focus:border-orange-500 outline-none text-sm"
+              />
+            </div>
           </div>
 
           {/* Puestos por área */}
-          <div className="bg-slate-800/50 rounded-lg p-4">
-            <div className="flex items-center gap-2 mb-3">
+          <div className="bg-slate-800/50 rounded-lg p-3">
+            <div className="flex items-center gap-2 mb-2">
               <Briefcase className="w-4 h-4 text-blue-400" />
-              <span className="font-medium text-sm">Puestos / Cargos</span>
+              <span className="font-medium text-xs">Puestos / Cargos</span>
               <span className="text-xs text-gray-400 ml-auto">{puestosSeleccionados.length} seleccionados</span>
             </div>
             
-            <div className="space-y-2">
+            <div className="space-y-1">
               {Object.entries(PUESTOS_POR_AREA).map(([key, area]) => {
                 const seleccionados = area.puestos.filter(p => puestosSeleccionados.includes(p));
                 const todosSeleccionados = seleccionados.length === area.puestos.length;
@@ -474,7 +510,7 @@ export const ProspeccionIAModule = ({ onBack }: Props) => {
                 return (
                   <div key={key} className="border border-gray-700 rounded overflow-hidden">
                     <div 
-                      className="flex items-center gap-2 p-2 bg-slate-700/50 cursor-pointer hover:bg-slate-700 text-sm"
+                      className="flex items-center gap-2 p-2 bg-slate-700/50 cursor-pointer hover:bg-slate-700 text-xs"
                       onClick={() => setAreasExpandidas(prev => prev.includes(key) ? prev.filter(a => a !== key) : [...prev, key])}
                     >
                       <input
@@ -483,7 +519,7 @@ export const ProspeccionIAModule = ({ onBack }: Props) => {
                         ref={input => { if (input) input.indeterminate = algunosSeleccionados; }}
                         onChange={e => { e.stopPropagation(); toggleArea(key); }}
                         onClick={e => e.stopPropagation()}
-                        className="w-4 h-4"
+                        className="w-3 h-3"
                       />
                       <span className="flex-1">{area.nombre}</span>
                       <span className="text-xs text-gray-400">{seleccionados.length}/{area.puestos.length}</span>
@@ -491,9 +527,9 @@ export const ProspeccionIAModule = ({ onBack }: Props) => {
                     </div>
                     
                     {expandida && (
-                      <div className="p-2 bg-slate-800/50 flex flex-wrap gap-1">
+                      <div className="p-2 bg-slate-800/50 flex flex-wrap gap-1 max-h-24 overflow-y-auto">
                         {area.puestos.map(puesto => (
-                          <label key={puesto} className="flex items-center gap-1 text-xs bg-slate-700/50 px-2 py-1 rounded cursor-pointer hover:bg-slate-600/50">
+                          <label key={puesto} className="flex items-center gap-1 text-xs bg-slate-700/50 px-1.5 py-0.5 rounded cursor-pointer hover:bg-slate-600/50">
                             <input
                               type="checkbox"
                               checked={puestosSeleccionados.includes(puesto)}
@@ -502,7 +538,7 @@ export const ProspeccionIAModule = ({ onBack }: Props) => {
                               )}
                               className="w-3 h-3"
                             />
-                            <span>{puesto}</span>
+                            <span className="truncate">{puesto}</span>
                           </label>
                         ))}
                       </div>
@@ -513,123 +549,121 @@ export const ProspeccionIAModule = ({ onBack }: Props) => {
             </div>
           </div>
 
-          {/* Ubicación compacta */}
-          <div className="bg-slate-800/50 rounded-lg p-4">
-            <div 
-              className="flex items-center gap-2 cursor-pointer"
-              onClick={() => setMostrarUbicacion(!mostrarUbicacion)}
-            >
-              <MapPin className="w-4 h-4 text-red-400" />
-              <span className="font-medium text-sm">Ubicación</span>
-              <span className="text-xs text-gray-400 ml-auto">
-                {estadosSeleccionados.length === 0 ? 'Todo México' : `${estadosSeleccionados.length} estados`}
-              </span>
-              {mostrarUbicacion ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-            </div>
-            
-            {mostrarUbicacion && (
-              <div className="mt-3 space-y-2">
-                <div className="flex gap-2 flex-wrap">
-                  <button
-                    onClick={() => setEstadosSeleccionados(estadosSeleccionados.length === TODOS_LOS_ESTADOS.length ? [] : [...TODOS_LOS_ESTADOS])}
-                    className="px-2 py-1 text-xs bg-blue-600 hover:bg-blue-700 rounded"
-                  >
-                    {estadosSeleccionados.length === TODOS_LOS_ESTADOS.length ? 'Limpiar' : 'Todo México'}
-                  </button>
-                  {Object.entries(ZONAS_MEXICO).map(([key, zona]) => {
-                    const seleccionados = zona.estados.filter(e => estadosSeleccionados.includes(e));
-                    return (
-                      <button
-                        key={key}
-                        onClick={() => toggleZona(key)}
-                        className={`px-2 py-1 text-xs rounded border ${
-                          seleccionados.length === zona.estados.length ? 'bg-orange-600 border-orange-500' :
-                          seleccionados.length > 0 ? 'bg-orange-600/50 border-orange-500/50' :
-                          'bg-slate-700 border-gray-600 hover:border-gray-500'
-                        }`}
-                      >
-                        {zona.nombre} ({seleccionados.length}/{zona.estados.length})
-                      </button>
-                    );
-                  })}
-                </div>
-                
-                <div className="flex flex-wrap gap-1 max-h-32 overflow-y-auto">
-                  {TODOS_LOS_ESTADOS.map(estado => (
-                    <label key={estado} className="flex items-center gap-1 text-xs bg-slate-700/50 px-2 py-1 rounded cursor-pointer hover:bg-slate-600/50">
-                      <input
-                        type="checkbox"
-                        checked={estadosSeleccionados.includes(estado)}
-                        onChange={() => setEstadosSeleccionados(prev => 
-                          prev.includes(estado) ? prev.filter(e => e !== estado) : [...prev, estado]
-                        )}
-                        className="w-3 h-3"
-                      />
-                      <span>{estado}</span>
-                    </label>
-                  ))}
-                </div>
+          {/* Fila 2: Ubicación + Industrias lado a lado */}
+          <div className="flex gap-3">
+            {/* Ubicación compacta */}
+            <div className="bg-slate-800/50 rounded-lg p-3 flex-1">
+              <div 
+                className="flex items-center gap-2 cursor-pointer"
+                onClick={() => setMostrarUbicacion(!mostrarUbicacion)}
+              >
+                <MapPin className="w-4 h-4 text-red-400" />
+                <span className="font-medium text-xs">Ubicación</span>
+                <span className="text-xs text-gray-400 ml-auto">
+                  {estadosSeleccionados.length === 0 ? 'Todo México' : `${estadosSeleccionados.length} estados`}
+                </span>
+                {mostrarUbicacion ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
               </div>
-            )}
-          </div>
-
-          {/* Industrias dropdown */}
-          <div className="bg-slate-800/50 rounded-lg p-4">
-            <div 
-              className="flex items-center gap-2 cursor-pointer"
-              onClick={() => setMostrarIndustrias(!mostrarIndustrias)}
-            >
-              <Filter className="w-4 h-4 text-purple-400" />
-              <span className="font-medium text-sm">Industrias</span>
-              <span className="text-xs text-gray-400 ml-auto">{industriasSeleccionadas.length} seleccionadas</span>
-              {mostrarIndustrias ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+              
+              {mostrarUbicacion && (
+                <div className="mt-2 space-y-2">
+                  <div className="flex gap-1 flex-wrap">
+                    <button
+                      onClick={() => setEstadosSeleccionados(estadosSeleccionados.length === TODOS_LOS_ESTADOS.length ? [] : [...TODOS_LOS_ESTADOS])}
+                      className="px-2 py-0.5 text-xs bg-blue-600 hover:bg-blue-700 rounded"
+                    >
+                      {estadosSeleccionados.length === TODOS_LOS_ESTADOS.length ? 'Limpiar' : 'Todo MX'}
+                    </button>
+                    {Object.entries(ZONAS_MEXICO).map(([key, zona]) => {
+                      const sel = zona.estados.filter(e => estadosSeleccionados.includes(e));
+                      return (
+                        <button
+                          key={key}
+                          onClick={() => toggleZona(key)}
+                          className={`px-2 py-0.5 text-xs rounded ${
+                            sel.length === zona.estados.length ? 'bg-orange-600' :
+                            sel.length > 0 ? 'bg-orange-600/50' : 'bg-slate-700 hover:bg-slate-600'
+                          }`}
+                        >
+                          {zona.nombre}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  
+                  <div className="flex flex-wrap gap-1 max-h-20 overflow-y-auto">
+                    {TODOS_LOS_ESTADOS.map(estado => (
+                      <label key={estado} className="flex items-center gap-1 text-xs bg-slate-700/50 px-1.5 py-0.5 rounded cursor-pointer hover:bg-slate-600/50">
+                        <input
+                          type="checkbox"
+                          checked={estadosSeleccionados.includes(estado)}
+                          onChange={() => setEstadosSeleccionados(prev => 
+                            prev.includes(estado) ? prev.filter(e => e !== estado) : [...prev, estado]
+                          )}
+                          className="w-3 h-3"
+                        />
+                        <span>{estado}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
-            
-            {mostrarIndustrias && (
-              <div className="mt-3">
-                <div className="flex gap-2 mb-2">
+
+            {/* Industrias dropdown */}
+            <div className="bg-slate-800/50 rounded-lg p-3 flex-1">
+              <div 
+                className="flex items-center gap-2 cursor-pointer"
+                onClick={() => setMostrarIndustrias(!mostrarIndustrias)}
+              >
+                <Filter className="w-4 h-4 text-purple-400" />
+                <span className="font-medium text-xs">Industrias</span>
+                <span className="text-xs text-gray-400 ml-auto">{industriasSeleccionadas.length} sel.</span>
+                {mostrarIndustrias ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+              </div>
+              
+              {mostrarIndustrias && (
+                <div className="mt-2">
                   <button
                     onClick={() => setIndustriasSeleccionadas(industriasSeleccionadas.length === Object.keys(INDUSTRIAS_APOLLO).length ? [] : Object.keys(INDUSTRIAS_APOLLO))}
-                    className="px-2 py-1 text-xs bg-purple-600 hover:bg-purple-700 rounded"
+                    className="px-2 py-0.5 text-xs bg-purple-600 hover:bg-purple-700 rounded mb-2"
                   >
                     {industriasSeleccionadas.length === Object.keys(INDUSTRIAS_APOLLO).length ? 'Limpiar' : 'Todas'}
                   </button>
+                  <div className="grid grid-cols-2 gap-1 max-h-28 overflow-y-auto">
+                    {Object.entries(INDUSTRIAS_APOLLO).map(([key, ind]) => (
+                      <label key={key} className={`flex items-center gap-1 text-xs p-1 rounded border cursor-pointer ${
+                        industriasSeleccionadas.includes(key) ? 'bg-purple-600/30 border-purple-500' : 'bg-slate-700/50 border-gray-700'
+                      }`}>
+                        <input
+                          type="checkbox"
+                          checked={industriasSeleccionadas.includes(key)}
+                          onChange={() => setIndustriasSeleccionadas(prev => 
+                            prev.includes(key) ? prev.filter(i => i !== key) : [...prev, key]
+                          )}
+                          className="w-3 h-3"
+                        />
+                        <span className="truncate">{ind.nombre}</span>
+                      </label>
+                    ))}
+                  </div>
                 </div>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                  {Object.entries(INDUSTRIAS_APOLLO).map(([key, ind]) => (
-                    <label key={key} className={`flex items-center gap-2 text-xs p-2 rounded border cursor-pointer ${
-                      industriasSeleccionadas.includes(key) ? 'bg-purple-600/30 border-purple-500' : 'bg-slate-700/50 border-gray-600 hover:border-gray-500'
-                    }`}>
-                      <input
-                        type="checkbox"
-                        checked={industriasSeleccionadas.includes(key)}
-                        onChange={() => setIndustriasSeleccionadas(prev => 
-                          prev.includes(key) ? prev.filter(i => i !== key) : [...prev, key]
-                        )}
-                        className="w-3 h-3"
-                      />
-                      <span>{ind.nombre}</span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-            )}
+              )}
+            </div>
           </div>
 
           {/* Excluir logísticas */}
-          <div className="bg-slate-800/50 rounded-lg p-4">
-            <label className="flex items-center gap-2 cursor-pointer text-sm">
+          <div className="bg-slate-800/50 rounded-lg p-3">
+            <label className="flex items-center gap-2 cursor-pointer text-xs">
               <input
                 type="checkbox"
                 checked={excluirLogisticas}
                 onChange={e => setExcluirLogisticas(e.target.checked)}
-                className="w-4 h-4"
+                className="w-3 h-3"
               />
               <X className="w-4 h-4 text-red-400" />
-              <div>
-                <span className="font-medium">Excluir automáticamente</span>
-                <p className="text-xs text-gray-400">Logísticas, transportes, bancos, gobierno, consultorías, etc.</p>
-              </div>
+              <span className="font-medium">Excluir automáticamente:</span>
+              <span className="text-gray-400">Logísticas, transportes, bancos, gobierno, consultorías</span>
             </label>
           </div>
 
@@ -638,10 +672,10 @@ export const ProspeccionIAModule = ({ onBack }: Props) => {
             onClick={handleBuscarContactos}
             disabled={loading || puestosSeleccionados.length === 0}
             className="w-full py-3 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 
-              disabled:opacity-50 rounded-lg font-semibold flex items-center justify-center gap-2"
+              disabled:opacity-50 rounded-lg font-semibold text-sm flex items-center justify-center gap-2"
           >
-            {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Search className="w-5 h-5" />}
-            {loading ? 'Buscando...' : 'Buscar Contactos'}
+            {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
+            {loading ? 'Buscando...' : `Buscar en ${fuenteSeleccionada === 'ambos' ? 'Apollo + Hunter' : fuenteSeleccionada?.charAt(0).toUpperCase() + fuenteSeleccionada?.slice(1)}`}
           </button>
         </div>
       )}
