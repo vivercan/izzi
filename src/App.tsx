@@ -349,7 +349,7 @@ export default function App() {
           {currentModule === 'configuracion' && <ConfiguracionModule onBack={handleBack} />}
           {currentModule === 'cotizaciones' && <CotizacionesModule onBack={handleBack} />}
           {currentModule === 'ventas' && <VentasModule onBack={handleBack} userEmail={currentUserEmail} />}
-          {currentModule === 'utilerias' && <UtileriasModule onBack={handleBack} />}
+          {currentModule === 'utilerias' && <UtileriasModule onBack={handleBack} userEmail={currentUserEmail} />}
           {currentModule === 'servicio-clientes' && <ServicioClientesModule onBack={handleBack} userEmail={currentUserEmail} userName={currentUserName} />}
           {currentModule === 'dedicados' && (
             <DedicadosHub onBack={handleBack} onNavigate={(submodule) => setCurrentModule(submodule)} />

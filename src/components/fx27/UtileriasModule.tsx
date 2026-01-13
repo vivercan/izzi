@@ -1,20 +1,28 @@
 import { useState } from 'react';
 import { ModuleTemplate } from './ModuleTemplate';
 import { MODULE_IMAGES } from '../../assets/module-images';
-import { Download, Database, FileText, FolderOpen, FileCheck, Image, Package } from 'lucide-react';
+import { Download, Database, FileText, FolderOpen, FileCheck, Image, Package, Sparkles } from 'lucide-react';
 import { projectId, publicAnonKey } from '../../utils/supabase/info';
+import { ProspeccionIAModule } from './ProspeccionIAModule';
 
 interface UtileriasModuleProps {
   onBack: () => void;
+  userEmail?: string; // Para validar acceso a Prospección IA
 }
 
-type SubModule = 'backup' | 'gestor' | null;
+type SubModule = 'backup' | 'gestor' | 'prospeccion' | null;
 type GestorSection = 'cotizaciones' | 'contratos' | 'documentos' | 'imagenes' | 'otros' | 'formatos' | null;
 
-export const UtileriasModule = ({ onBack }: UtileriasModuleProps) => {
+// Solo Juan Viveros tiene acceso a Prospección IA
+const ADMIN_PROSPECCION = 'juan.viveros@trob.com.mx';
+
+export const UtileriasModule = ({ onBack, userEmail }: UtileriasModuleProps) => {
   const [activeSubModule, setActiveSubModule] = useState<SubModule>(null);
   const [activeGestorSection, setActiveGestorSection] = useState<GestorSection>(null);
   const [downloading, setDownloading] = useState(false);
+
+  // Verificar si el usuario tiene acceso a Prospección IA
+  const tieneAccesoProspeccion = userEmail?.toLowerCase() === ADMIN_PROSPECCION.toLowerCase();
 
   const handleBackupDownload = async (type: 'deleted' | 'active' | 'download') => {
     setDownloading(true);
@@ -53,12 +61,17 @@ export const UtileriasModule = ({ onBack }: UtileriasModuleProps) => {
     }
   };
 
-  // Vista principal con las 2 opciones
+  // Si está en Prospección IA, mostrar ese módulo
+  if (activeSubModule === 'prospeccion') {
+    return <ProspeccionIAModule onBack={() => setActiveSubModule(null)} />;
+  }
+
+  // Vista principal con las opciones (2 o 3 según permisos)
   if (!activeSubModule) {
     return (
       <ModuleTemplate title="Utilerías" onBack={onBack} headerImage={MODULE_IMAGES.UTILERIAS}>
         <div className="p-8">
-          <div className="grid grid-cols-2 gap-6 max-w-4xl mx-auto">
+          <div className={`grid ${tieneAccesoProspeccion ? 'grid-cols-3' : 'grid-cols-2'} gap-6 max-w-5xl mx-auto`}>
             {/* Card BACKUP */}
             <button
               onClick={() => setActiveSubModule('backup')}
@@ -120,6 +133,43 @@ export const UtileriasModule = ({ onBack }: UtileriasModuleProps) => {
                 </p>
               </div>
             </button>
+
+            {/* Card PROSPECCIÓN IA - Solo para Admin */}
+            {tieneAccesoProspeccion && (
+              <button
+                onClick={() => setActiveSubModule('prospeccion')}
+                className="group relative bg-gradient-to-br from-[#f97316]/10 to-[#ea580c]/5 hover:from-[#f97316]/20 hover:to-[#ea580c]/10 border border-[#f97316]/30 hover:border-[#f97316] rounded-2xl p-8 transition-all duration-300 flex flex-col items-center gap-4"
+              >
+                <div className="w-20 h-20 rounded-full bg-gradient-to-br from-[#f97316]/30 to-[#ea580c]/20 flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <Sparkles className="w-10 h-10 text-[#f97316]" />
+                </div>
+                <div className="text-center">
+                  <h3 
+                    className="text-white mb-2"
+                    style={{
+                      fontFamily: "'Exo 2', sans-serif",
+                      fontSize: '20px',
+                      fontWeight: 600
+                    }}
+                  >
+                    PROSPECCIÓN IA
+                  </h3>
+                  <p 
+                    className="text-white/60"
+                    style={{
+                      fontFamily: "'Exo 2', sans-serif",
+                      fontSize: '14px'
+                    }}
+                  >
+                    Apollo + Hunter + Claude AI
+                  </p>
+                </div>
+                {/* Badge NUEVO */}
+                <div className="absolute top-3 right-3 bg-[#f97316] text-white text-[10px] font-bold px-2 py-1 rounded-full">
+                  NUEVO
+                </div>
+              </button>
+            )}
           </div>
         </div>
       </ModuleTemplate>
