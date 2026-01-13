@@ -1,6 +1,5 @@
 // supabase/functions/prospeccion-api/index.ts
-// Edge Function para hacer llamadas a Apollo y Hunter evitando CORS
-// Version 2 - Mejor manejo de errores
+// Edge Function para Apollo y Hunter - VERSIÓN CORREGIDA
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 
@@ -11,18 +10,14 @@ const corsHeaders = {
 }
 
 serve(async (req) => {
-  // Handle CORS preflight
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
   }
 
-  // Obtener API Keys desde secrets de Supabase
   const APOLLO_API_KEY = Deno.env.get('APOLLO_API_KEY')
   const HUNTER_API_KEY = Deno.env.get('HUNTER_API_KEY')
 
-  console.log('=== PROSPECCION API CALLED ===')
-  console.log('Apollo Key exists:', !!APOLLO_API_KEY)
-  console.log('Hunter Key exists:', !!HUNTER_API_KEY)
+  console.log('=== PROSPECCION API v3 ===')
 
   try {
     const body = await req.json()
@@ -36,55 +31,65 @@ serve(async (req) => {
     // ═══════════════════════════════════════════════════════════════════════
     if (action === 'apollo_search') {
       if (!APOLLO_API_KEY) {
-        console.error('APOLLO_API_KEY not configured in secrets')
         return new Response(
-          JSON.stringify({ error: 'Apollo API Key no configurada en Supabase Secrets' }),
+          JSON.stringify({ error: 'Apollo API Key no configurada' }),
           { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         )
       }
 
+      // Construir el body según documentación oficial de Apollo
+      // https://apolloio.github.io/apollo-api-docs/?shell#search-for-people
       const apolloBody: any = {
         page: params?.page || 1,
-        per_page: params?.per_page || 100,
-        person_locations: params?.locations || ['Mexico'],
-        person_titles: params?.titles || ['CEO', 'Director', 'Manager'],
-        contact_email_status: ['verified', 'likely_valid']
+        per_page: params?.per_page || 100
       }
 
-      // Agregar company_name si está definido
+      // Ubicaciones de organización (formato: ["Querétaro, Mexico", "Aguascalientes, Mexico"])
+      if (params?.locations && params.locations.length > 0) {
+        apolloBody.organization_locations = params.locations
+      }
+
+      // Títulos/puestos de personas
+      if (params?.titles && params.titles.length > 0) {
+        apolloBody.person_titles = params.titles
+      }
+
+      // Búsqueda por nombre de empresa
       if (params?.company_name) {
         apolloBody.q_organization_name = params.company_name
       }
 
-      // Agregar keywords de organización si están definidos
+      // Keywords de industria (formato: ["agroindustrial", "automotive"])
       if (params?.keywords && params.keywords.length > 0) {
         apolloBody.q_organization_keyword_tags = params.keywords
       }
 
-      // Agregar industrias si están definidas
-      if (params?.industries && params.industries.length > 0) {
-        apolloBody.organization_industry_tag_ids = params.industries
-      }
+      // Solo emails verificados
+      apolloBody.contact_email_status = ['verified', 'likely_valid']
 
-      console.log('Apollo request body:', JSON.stringify(apolloBody))
+      console.log('Apollo request body:', JSON.stringify(apolloBody, null, 2))
 
-      const response = await fetch('https://api.apollo.io/v1/mixed_people/search', {
+      const response = await fetch('https://api.apollo.io/api/v1/mixed_people/search', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Cache-Control': 'no-cache',
-          'X-Api-Key': APOLLO_API_KEY
+          'X-Api-Key': APOLLO_API_KEY,
+          'Cache-Control': 'no-cache'
         },
         body: JSON.stringify(apolloBody)
       })
 
       const responseText = await response.text()
       console.log('Apollo response status:', response.status)
-      console.log('Apollo response:', responseText.substring(0, 500))
+      console.log('Apollo response preview:', responseText.substring(0, 500))
 
       if (!response.ok) {
         return new Response(
-          JSON.stringify({ error: 'Error en Apollo API', details: responseText, status: response.status }),
+          JSON.stringify({ 
+            error: 'Error en Apollo API', 
+            status: response.status,
+            details: responseText 
+          }),
           { status: response.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         )
       }
@@ -94,12 +99,11 @@ serve(async (req) => {
         data = JSON.parse(responseText)
       } catch (e) {
         return new Response(
-          JSON.stringify({ error: 'Error parsing Apollo response', details: responseText }),
+          JSON.stringify({ error: 'Error parsing response', details: responseText }),
           { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         )
       }
       
-      // Mapear a formato estándar
       const contacts = (data.people || []).map((p: any, idx: number) => ({
         id: `apollo-${idx}-${Date.now()}`,
         nombre: p.first_name || '',
@@ -119,9 +123,16 @@ serve(async (req) => {
       }))
 
       console.log('Returning', contacts.length, 'contacts from Apollo')
+      console.log('Total available:', data.pagination?.total_entries)
 
       return new Response(
-        JSON.stringify({ success: true, contacts, total: data.pagination?.total_entries || contacts.length }),
+        JSON.stringify({ 
+          success: true, 
+          contacts, 
+          total: data.pagination?.total_entries || contacts.length,
+          page: data.pagination?.page,
+          total_pages: data.pagination?.total_pages
+        }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
@@ -131,9 +142,8 @@ serve(async (req) => {
     // ═══════════════════════════════════════════════════════════════════════
     if (action === 'hunter_domain_search') {
       if (!HUNTER_API_KEY) {
-        console.error('HUNTER_API_KEY not configured in secrets')
         return new Response(
-          JSON.stringify({ error: 'Hunter API Key no configurada en Supabase Secrets' }),
+          JSON.stringify({ error: 'Hunter API Key no configurada' }),
           { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         )
       }
@@ -143,18 +153,15 @@ serve(async (req) => {
 
       const allContacts: any[] = []
 
-      for (const domain of domains.slice(0, 5)) {
+      for (const domain of domains.slice(0, 10)) {
         try {
           console.log('Fetching domain:', domain)
           const response = await fetch(
-            `https://api.hunter.io/v2/domain-search?domain=${domain}&api_key=${HUNTER_API_KEY}&limit=10`
+            `https://api.hunter.io/v2/domain-search?domain=${domain}&api_key=${HUNTER_API_KEY}&limit=20`
           )
 
-          const responseText = await response.text()
-          console.log(`Hunter response for ${domain}:`, response.status)
-
           if (response.ok) {
-            const data = JSON.parse(responseText)
+            const data = await response.json()
             const emails = data.data?.emails || []
             
             emails.forEach((e: any, idx: number) => {
@@ -178,8 +185,7 @@ serve(async (req) => {
             })
           }
           
-          // Rate limiting
-          await new Promise(resolve => setTimeout(resolve, 300))
+          await new Promise(resolve => setTimeout(resolve, 200))
         } catch (err) {
           console.error(`Error fetching ${domain}:`, err)
         }
@@ -199,14 +205,12 @@ serve(async (req) => {
     if (action === 'hunter_verify_email') {
       if (!HUNTER_API_KEY) {
         return new Response(
-          JSON.stringify({ success: false, valid: false, score: 0, error: 'Hunter API Key no configurada' }),
+          JSON.stringify({ success: false, valid: false, score: 0 }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         )
       }
 
       const email = params?.email
-      console.log('Verifying email:', email)
-      
       const response = await fetch(
         `https://api.hunter.io/v2/email-verifier?email=${encodeURIComponent(email)}&api_key=${HUNTER_API_KEY}`
       )
@@ -230,31 +234,29 @@ serve(async (req) => {
     }
 
     // ═══════════════════════════════════════════════════════════════════════
-    // TEST - Verificar que los secrets están configurados
+    // TEST
     // ═══════════════════════════════════════════════════════════════════════
     if (action === 'test') {
       return new Response(
         JSON.stringify({ 
           success: true,
+          version: 'v3',
           apollo_configured: !!APOLLO_API_KEY,
-          hunter_configured: !!HUNTER_API_KEY,
-          apollo_key_preview: APOLLO_API_KEY ? APOLLO_API_KEY.substring(0, 5) + '...' : 'NOT SET',
-          hunter_key_preview: HUNTER_API_KEY ? HUNTER_API_KEY.substring(0, 5) + '...' : 'NOT SET'
+          hunter_configured: !!HUNTER_API_KEY
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
-    // Acción no reconocida
     return new Response(
       JSON.stringify({ error: 'Acción no válida: ' + action }),
       { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
 
   } catch (error) {
-    console.error('Error general:', error)
+    console.error('Error:', error)
     return new Response(
-      JSON.stringify({ error: error.message || 'Error interno' }),
+      JSON.stringify({ error: error.message }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   }

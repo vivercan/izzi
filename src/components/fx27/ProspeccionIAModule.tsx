@@ -314,28 +314,24 @@ export const ProspeccionIAModule = ({ onBack }: ProspeccionIAModuleProps) => {
         ? estadosSeleccionados.map(e => `${e}, Mexico`)
         : ['Mexico'];
 
-      // Obtener keywords de los segmentos seleccionados
-      const keywords = segmentosSeleccionados.flatMap(s => 
-        SEGMENTOS_MERCADO[s]?.keywords || []
-      );
+      // Keywords simples basados en segmentos seleccionados
+      const keywordsMap: { [key: string]: string[] } = {
+        automotriz: ['automotive', 'auto parts'],
+        aeroespacial: ['aerospace', 'aviation'],
+        mineria: ['mining', 'metals'],
+        agroindustrial: ['agriculture', 'agroindustrial'],
+        alimentos: ['food', 'beverages'],
+        carnicos: ['meat', 'poultry'],
+        produce: ['produce', 'fruits'],
+        retail: ['retail', 'supermarket'],
+        consumo: ['consumer goods', 'fmcg'],
+        farmaceutica: ['pharmaceutical', 'medical'],
+        manufactura: ['manufacturing', 'industrial']
+      };
 
-      // Industries para Apollo (en inglés)
-      const industries = [
-        'automotive', 'aviation & aerospace', 'mining & metals', 
-        'food production', 'food & beverages', 'retail', 
-        'consumer goods', 'pharmaceuticals', 'manufacturing'
-      ].filter(ind => {
-        // Filtrar según segmentos seleccionados
-        if (segmentosSeleccionados.includes('automotriz') && ind === 'automotive') return true;
-        if (segmentosSeleccionados.includes('aeroespacial') && ind === 'aviation & aerospace') return true;
-        if (segmentosSeleccionados.includes('mineria') && ind === 'mining & metals') return true;
-        if (segmentosSeleccionados.includes('alimentos') && (ind === 'food production' || ind === 'food & beverages')) return true;
-        if (segmentosSeleccionados.includes('retail') && ind === 'retail') return true;
-        if (segmentosSeleccionados.includes('consumo') && ind === 'consumer goods') return true;
-        if (segmentosSeleccionados.includes('farmaceutica') && ind === 'pharmaceuticals') return true;
-        if (segmentosSeleccionados.includes('manufactura') && ind === 'manufacturing') return true;
-        return false;
-      });
+      const keywords = segmentosSeleccionados.flatMap(s => keywordsMap[s] || []);
+
+      console.log('Apollo params:', { ubicaciones, puestosABuscar: puestosABuscar.slice(0, 5), keywords: keywords.slice(0, 5) });
 
       const response = await fetch(`${SUPABASE_URL}/functions/v1/prospeccion-api`, {
         method: 'POST',
@@ -349,8 +345,7 @@ export const ProspeccionIAModule = ({ onBack }: ProspeccionIAModuleProps) => {
             locations: ubicaciones,
             titles: puestosABuscar.slice(0, 10),
             company_name: buscarEmpresa.trim() || undefined,
-            keywords: keywords.slice(0, 20),
-            industries: industries,
+            keywords: keywords.slice(0, 10),
             page: 1,
             per_page: 100
           }
@@ -363,6 +358,8 @@ export const ProspeccionIAModule = ({ onBack }: ProspeccionIAModuleProps) => {
       }
 
       const data = await response.json();
+      console.log('Apollo response:', { total: data.total, contacts: data.contacts?.length });
+      
       // Agregar campos faltantes a los contactos de Apollo
       return (data.contacts || []).map((c: any) => ({
         ...c,
