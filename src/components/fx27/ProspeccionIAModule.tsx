@@ -10,7 +10,13 @@ import {
   Globe, Target, Users, AlertCircle, Check, X, Crown, Factory,
   Database, Plus, ArrowRight, Eye, Save, Zap
 } from 'lucide-react';
-import { supabase } from '../../lib/supabase';
+import { createClient } from '@supabase/supabase-js';
+
+// Cliente Supabase
+const supabase = createClient(
+  'https://fbxbsslhewchyibdoyzk.supabase.co',
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZieGJzc2xoZXdjaHlpYmRveXprIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI1MzczODEsImV4cCI6MjA3ODExMzM4MX0.Z8JPlg7hhKbA624QGHp2bKKTNtCD3WInQMO5twjl6a0'
+);
 
 // ═══════════════════════════════════════════════════════════════════════════
 // CONFIGURACIÓN
