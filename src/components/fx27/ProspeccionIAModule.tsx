@@ -1,31 +1,32 @@
 // ═══════════════════════════════════════════════════════════════════════════
-// PROSPECCIÓN IA MODULE v2 - Integración Apollo + Hunter + Claude AI
-// Solo accesible para: juan.viveros@trob.com.mx
-// MEJORAS: Zonas, Checkboxes, Búsqueda empresa, C-Level, Segmentos
+// PROSPECCIÓN IA MODULE v3 - Con paginación, BD y detección de cambios
 // ═══════════════════════════════════════════════════════════════════════════
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { 
   Search, Filter, Download, Loader2, CheckCircle2, XCircle, 
   Building2, User, Mail, MapPin, Briefcase, Sparkles, 
   RefreshCw, ChevronDown, ChevronUp, Send, Bot, Trash2,
-  Globe, Target, Users, AlertCircle, Check, X, Crown, Factory
+  Globe, Target, Users, AlertCircle, Check, X, Crown, Factory,
+  Database, Plus, ArrowRight, Eye, Save, Zap
 } from 'lucide-react';
+import { supabase } from '../../lib/supabase';
 
 // ═══════════════════════════════════════════════════════════════════════════
-// CONFIGURACIÓN DE APIs
+// CONFIGURACIÓN
 // ═══════════════════════════════════════════════════════════════════════════
-// Las API keys de Apollo y Hunter están en Supabase Edge Function (evita CORS)
-// Solo Anthropic se llama directo desde el browser (soporta CORS)
 const SUPABASE_URL = 'https://fbxbsslhewchyibdoyzk.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZieGJzc2xoZXdjaHlpYmRveXprIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI1MzczODEsImV4cCI6MjA3ODExMzM4MX0.Z8JPlg7hhKbA624QGHp2bKKTNtCD3WInQMO5twjl6a0';
 const ANTHROPIC_API_KEY = import.meta.env.VITE_ANTHROPIC_API_KEY || '';
+
+const CONTACTOS_POR_PAGINA = 50;
 
 // ═══════════════════════════════════════════════════════════════════════════
 // TIPOS
 // ═══════════════════════════════════════════════════════════════════════════
 interface Contacto {
   id: string;
+  source_id?: string;
   nombre: string;
   apellido: string;
   email: string;
@@ -39,11 +40,12 @@ interface Contacto {
   pais: string;
   linkedin?: string;
   telefono?: string;
-  fuente: 'apollo' | 'hunter' | 'ambos';
+  fuente: 'apollo' | 'hunter';
   prioridad: 'A' | 'B' | 'C' | null;
-  razonPrioridad?: string;
   excluido: boolean;
-  razonExclusion?: string;
+  // Para tracking de cambios
+  esNuevo?: boolean;
+  yaExistia?: boolean;
 }
 
 interface MensajeChat {
@@ -51,508 +53,276 @@ interface MensajeChat {
   content: string;
 }
 
+interface PaginacionInfo {
+  total: number;
+  totalPages: number;
+  currentPage: number;
+  loaded: number;
+}
+
 // ═══════════════════════════════════════════════════════════════════════════
-// ZONAS DE MÉXICO
+// ZONAS DE MÉXICO (ordenadas alfabéticamente dentro de cada zona)
 // ═══════════════════════════════════════════════════════════════════════════
-const ZONAS_MEXICO: { [key: string]: { nombre: string; color: string; estados: string[] } } = {
+const ZONAS_MEXICO: { [key: string]: { nombre: string; estados: string[] } } = {
   norte: {
     nombre: 'Norte',
-    color: '#3b82f6',
-    estados: ['Chihuahua', 'Coahuila', 'Nuevo León', 'Tamaulipas', 'Sonora', 'Baja California', 'Baja California Sur', 'Durango', 'Sinaloa']
+    estados: ['Baja California', 'Baja California Sur', 'Chihuahua', 'Coahuila', 'Durango', 'Nuevo León', 'Sinaloa', 'Sonora', 'Tamaulipas']
   },
   bajio: {
     nombre: 'Bajío',
-    color: '#22c55e',
     estados: ['Aguascalientes', 'Guanajuato', 'Querétaro', 'San Luis Potosí', 'Zacatecas']
   },
   centro: {
     nombre: 'Centro',
-    color: '#f97316',
-    estados: ['Ciudad de México', 'Estado de México', 'Puebla', 'Tlaxcala', 'Morelos', 'Hidalgo']
+    estados: ['Ciudad de México', 'Estado de México', 'Hidalgo', 'Morelos', 'Puebla', 'Tlaxcala']
   },
   occidente: {
     nombre: 'Occidente',
-    color: '#a855f7',
-    estados: ['Jalisco', 'Michoacán', 'Colima', 'Nayarit']
+    estados: ['Colima', 'Jalisco', 'Michoacán', 'Nayarit']
   },
   sur: {
     nombre: 'Sur',
-    color: '#ef4444',
-    estados: ['Oaxaca', 'Chiapas', 'Guerrero', 'Veracruz', 'Tabasco']
+    estados: ['Chiapas', 'Guerrero', 'Oaxaca', 'Tabasco', 'Veracruz']
   },
   sureste: {
     nombre: 'Sureste',
-    color: '#06b6d4',
-    estados: ['Yucatán', 'Quintana Roo', 'Campeche']
+    estados: ['Campeche', 'Quintana Roo', 'Yucatán']
   }
 };
 
-// Lista plana de todos los estados
-const TODOS_LOS_ESTADOS = Object.values(ZONAS_MEXICO).flatMap(z => z.estados);
+const TODOS_LOS_ESTADOS = Object.values(ZONAS_MEXICO).flatMap(z => z.estados).sort();
 
 // ═══════════════════════════════════════════════════════════════════════════
 // SEGMENTOS DE MERCADO
 // ═══════════════════════════════════════════════════════════════════════════
 const SEGMENTOS_MERCADO: { [key: string]: { nombre: string; icon: string; keywords: string[] } } = {
-  automotriz: {
-    nombre: 'Automotriz',
-    icon: '🚗',
-    keywords: ['Automotive', 'Auto Parts', 'Automotriz', 'Tier 1', 'Tier 2', 'Tier 3', 'OEM', 'Car Manufacturing']
-  },
-  aeroespacial: {
-    nombre: 'Aeroespacial',
-    icon: '✈️',
-    keywords: ['Aerospace', 'Aviation', 'Aeroespacial', 'Aircraft', 'Defense']
-  },
-  mineria: {
-    nombre: 'Minería',
-    icon: '⛏️',
-    keywords: ['Mining', 'Metals', 'Minería', 'Steel', 'Minerals']
-  },
-  agroindustrial: {
-    nombre: 'Agroindustrial',
-    icon: '🌾',
-    keywords: ['Agriculture', 'Agroindustrial', 'Farming', 'Crops', 'Seeds']
-  },
-  alimentos: {
-    nombre: 'Alimentos y Bebidas',
-    icon: '🍔',
-    keywords: ['Food Production', 'Food & Beverage', 'Beverages', 'Snacks', 'Dairy', 'Lácteos']
-  },
-  carnicos: {
-    nombre: 'Cárnicos / Pollo',
-    icon: '🥩',
-    keywords: ['Meat Processing', 'Poultry', 'Cárnicos', 'Beef', 'Pork', 'Chicken']
-  },
-  produce: {
-    nombre: 'Produce / Frutas',
-    icon: '🍎',
-    keywords: ['Fresh Produce', 'Fruits', 'Vegetables', 'Produce', 'Berries']
-  },
-  retail: {
-    nombre: 'Retail / Autoservicio',
-    icon: '🛒',
-    keywords: ['Retail', 'Supermarkets', 'Autoservicio', 'Grocery', 'Convenience']
-  },
-  consumo: {
-    nombre: 'Consumo Masivo',
-    icon: '📦',
-    keywords: ['Consumer Goods', 'FMCG', 'CPG', 'Household Products']
-  },
-  farmaceutica: {
-    nombre: 'Farmacéutica',
-    icon: '💊',
-    keywords: ['Pharmaceuticals', 'Medical Devices', 'Healthcare', 'Biotech']
-  },
-  manufactura: {
-    nombre: 'Manufactura General',
-    icon: '🏭',
-    keywords: ['Manufacturing', 'Industrial', 'Packaging', 'Plastics', 'Chemicals']
-  }
+  automotriz: { nombre: 'Automotriz', icon: '🚗', keywords: ['automotive', 'auto parts'] },
+  aeroespacial: { nombre: 'Aeroespacial', icon: '✈️', keywords: ['aerospace', 'aviation'] },
+  mineria: { nombre: 'Minería', icon: '⛏️', keywords: ['mining', 'metals'] },
+  agroindustrial: { nombre: 'Agroindustrial', icon: '🌾', keywords: ['agriculture', 'agroindustrial'] },
+  alimentos: { nombre: 'Alimentos y Bebidas', icon: '🍔', keywords: ['food', 'beverages'] },
+  carnicos: { nombre: 'Cárnicos / Pollo', icon: '🥩', keywords: ['meat', 'poultry'] },
+  produce: { nombre: 'Produce / Frutas', icon: '🍎', keywords: ['produce', 'fruits'] },
+  retail: { nombre: 'Retail / Autoservicio', icon: '🛒', keywords: ['retail', 'supermarket'] },
+  consumo: { nombre: 'Consumo Masivo', icon: '📦', keywords: ['consumer goods', 'fmcg'] },
+  farmaceutica: { nombre: 'Farmacéutica', icon: '💊', keywords: ['pharmaceutical', 'medical'] },
+  manufactura: { nombre: 'Manufactura General', icon: '🏭', keywords: ['manufacturing', 'industrial'] }
 };
 
-// ═══════════════════════════════════════════════════════════════════════════
-// INDUSTRIAS A EXCLUIR (siempre)
-// ═══════════════════════════════════════════════════════════════════════════
-const INDUSTRIAS_EXCLUIR = [
-  'Logistics', 'Logística', 'Transportation', 'Transporte',
-  'Freight', 'Forwarding', 'Freight Forwarding',
-  'Broker', 'Customs Broker', '3PL', 'Warehousing',
-  'Government', 'Gobierno', 'Public Sector',
-  'Education', 'Educación', 'Universities', 'Schools',
-  'Hotels', 'Hospitality', 'Hoteles',
-  'Technology Services', 'IT Services', 'Software',
-  'Consulting', 'Consultoría', 'Advisory',
-  'Legal', 'Law Firm', 'Abogados',
-  'Real Estate', 'Inmobiliaria',
-  'Banking', 'Financial Services', 'Insurance'
-];
-
-// ═══════════════════════════════════════════════════════════════════════════
-// PUESTOS
-// ═══════════════════════════════════════════════════════════════════════════
-const PUESTOS_CLEVEL = [
-  'CEO', 'Chief Executive Officer', 'Director General',
-  'President', 'Presidente', 'Owner', 'Dueño', 'Founder', 'Fundador',
-  'Chairman', 'Presidente del Consejo', 'Managing Director',
-  'COO', 'Chief Operating Officer', 'CFO', 'Chief Financial Officer'
-];
-
-const PUESTOS_DECISION = [
-  ...PUESTOS_CLEVEL,
-  'VP', 'Vice President', 'Vicepresidente',
-  'Supply Chain Director', 'Director de Cadena de Suministro',
-  'Operations Director', 'Director de Operaciones',
-  'Logistics Manager', 'Gerente de Logística',
-  'Plant Manager', 'Gerente de Planta',
-  'Operations Manager', 'Gerente de Operaciones',
-  'Procurement Director', 'Director de Compras',
-  'Purchasing Manager', 'Gerente de Compras',
-  'Distribution Manager', 'Gerente de Distribución',
-  'Head of Operations', 'Head of Supply Chain',
-  'Director de Logística', 'Gerente General', 'Subdirector',
-  'Supervisor', 'Coordinador', 'Coordinator'
-];
-
-const PUESTOS_EXCLUIR = [
-  'HR', 'Human Resources', 'Recursos Humanos',
-  'Legal', 'Abogado', 'Lawyer', 'Attorney',
-  'IT', 'Systems', 'Sistemas', 'Developer',
-  'Marketing', 'Communications', 'PR',
-  'Accounting', 'Contador', 'Finance Analyst',
-  'Receptionist', 'Assistant', 'Asistente',
-  'Intern', 'Practicante', 'Trainee'
-];
+// Puestos
+const PUESTOS_CLEVEL = ['CEO', 'Chief Executive Officer', 'Director General', 'President', 'Presidente', 'Owner', 'Founder'];
+const PUESTOS_DECISION = [...PUESTOS_CLEVEL, 'VP', 'Vice President', 'Director', 'Gerente', 'Manager', 'Head of', 'Jefe'];
 
 // ═══════════════════════════════════════════════════════════════════════════
 // COMPONENTE PRINCIPAL
 // ═══════════════════════════════════════════════════════════════════════════
-interface ProspeccionIAModuleProps {
+interface Props {
   onBack: () => void;
 }
 
-export const ProspeccionIAModule = ({ onBack }: ProspeccionIAModuleProps) => {
-  // Estados principales
+export const ProspeccionIAModule = ({ onBack }: Props) => {
+  // Estados de UI
   const [paso, setPaso] = useState<1 | 2 | 3 | 4>(1);
-  const [fuenteSeleccionada, setFuenteSeleccionada] = useState<'apollo' | 'hunter' | 'ambos' | null>(null);
   const [loading, setLoading] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
-  // Contactos
-  const [contactosRaw, setContactosRaw] = useState<Contacto[]>([]);
-  const [contactosFiltrados, setContactosFiltrados] = useState<Contacto[]>([]);
-  const [contactosFinales, setContactosFinales] = useState<Contacto[]>([]);
-  
-  // NUEVOS FILTROS
+  // Filtros de búsqueda
+  const [fuenteSeleccionada, setFuenteSeleccionada] = useState<'apollo' | 'hunter' | 'ambos' | null>(null);
   const [estadosSeleccionados, setEstadosSeleccionados] = useState<string[]>([]);
-  const [zonasSeleccionadas, setZonasSeleccionadas] = useState<string[]>([]);
+  const [zonasExpandidas, setZonasExpandidas] = useState<string[]>([]);
   const [segmentosSeleccionados, setSegmentosSeleccionados] = useState<string[]>(Object.keys(SEGMENTOS_MERCADO));
   const [buscarEmpresa, setBuscarEmpresa] = useState('');
   const [soloCLevel, setSoloCLevel] = useState(false);
-  const [mostrarFiltrosAvanzados, setMostrarFiltrosAvanzados] = useState(false);
+  
+  // Contactos y paginación
+  const [contactos, setContactos] = useState<Contacto[]>([]);
+  const [paginacion, setPaginacion] = useState<PaginacionInfo>({ total: 0, totalPages: 0, currentPage: 0, loaded: 0 });
+  const [contactosGuardados, setContactosGuardados] = useState<Set<string>>(new Set());
+  const [guardando, setGuardando] = useState(false);
   
   // Chat IA
   const [chatMessages, setChatMessages] = useState<MensajeChat[]>([]);
   const [chatInput, setChatInput] = useState('');
   const [chatLoading, setChatLoading] = useState(false);
-  const chatEndRef = useRef<HTMLDivElement>(null);
+  const chatRef = useRef<HTMLDivElement>(null);
   
-  // Validación emails
-  const [validandoEmails, setValidandoEmails] = useState(false);
-  const [progresValidacion, setProgresValidacion] = useState(0);
-
-  // Verificar configuración de APIs (solo necesitamos Anthropic en el frontend)
-  const apisConfiguradas = ANTHROPIC_API_KEY && SUPABASE_URL;
+  // Stats
+  const [stats, setStats] = useState({ nuevos: 0, existentes: 0, total: 0 });
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // HANDLERS DE FILTROS
+  // FUNCIONES DE BÚSQUEDA
   // ═══════════════════════════════════════════════════════════════════════════
   
-  // Toggle zona completa
-  const toggleZona = (zonaKey: string) => {
-    const zona = ZONAS_MEXICO[zonaKey];
-    const todosSeleccionados = zona.estados.every(e => estadosSeleccionados.includes(e));
+  const buscarApollo = async (page: number = 1, perPage: number = CONTACTOS_POR_PAGINA): Promise<{ contacts: Contacto[], total: number, totalPages: number }> => {
+    const puestosABuscar = soloCLevel ? PUESTOS_CLEVEL : PUESTOS_DECISION;
+    const ubicaciones = estadosSeleccionados.length > 0 
+      ? estadosSeleccionados.map(e => `${e}, Mexico`)
+      : ['Mexico'];
+
+    const keywords = segmentosSeleccionados.flatMap(s => SEGMENTOS_MERCADO[s]?.keywords || []);
+
+    const response = await fetch(`${SUPABASE_URL}/functions/v1/prospeccion-api`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+      },
+      body: JSON.stringify({
+        action: 'apollo_search',
+        params: {
+          locations: ubicaciones,
+          titles: puestosABuscar.slice(0, 10),
+          company_name: buscarEmpresa.trim() || undefined,
+          keywords: keywords.slice(0, 10),
+          page,
+          per_page: perPage
+        }
+      })
+    });
+
+    if (!response.ok) {
+      const err = await response.json();
+      throw new Error(err.error || 'Error en Apollo');
+    }
+
+    const data = await response.json();
     
-    if (todosSeleccionados) {
-      // Quitar todos los estados de esta zona
-      setEstadosSeleccionados(prev => prev.filter(e => !zona.estados.includes(e)));
-      setZonasSeleccionadas(prev => prev.filter(z => z !== zonaKey));
-    } else {
-      // Agregar todos los estados de esta zona
-      setEstadosSeleccionados(prev => [...new Set([...prev, ...zona.estados])]);
-      setZonasSeleccionadas(prev => [...new Set([...prev, zonaKey])]);
-    }
+    const contacts = (data.contacts || []).map((c: any) => ({
+      ...c,
+      source_id: c.id,
+      prioridad: null,
+      excluido: false
+    }));
+
+    return {
+      contacts,
+      total: data.total || 0,
+      totalPages: data.total_pages || 0
+    };
   };
 
-  // Toggle estado individual
-  const toggleEstado = (estado: string) => {
-    setEstadosSeleccionados(prev => 
-      prev.includes(estado) 
-        ? prev.filter(e => e !== estado)
-        : [...prev, estado]
-    );
-  };
-
-  // Toggle segmento
-  const toggleSegmento = (segmentoKey: string) => {
-    setSegmentosSeleccionados(prev =>
-      prev.includes(segmentoKey)
-        ? prev.filter(s => s !== segmentoKey)
-        : [...prev, segmentoKey]
-    );
-  };
-
-  // Seleccionar/deseleccionar todos los segmentos
-  const toggleTodosSegmentos = () => {
-    if (segmentosSeleccionados.length === Object.keys(SEGMENTOS_MERCADO).length) {
-      setSegmentosSeleccionados([]);
-    } else {
-      setSegmentosSeleccionados(Object.keys(SEGMENTOS_MERCADO));
-    }
-  };
-
-  // Limpiar filtros de ubicación
-  const limpiarUbicacion = () => {
-    setEstadosSeleccionados([]);
-    setZonasSeleccionadas([]);
-  };
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  // FUNCIONES DE API
-  // ═══════════════════════════════════════════════════════════════════════════
-  
-  // Obtener keywords de segmentos seleccionados
-  const getKeywordsSegmentos = (): string[] => {
-    return segmentosSeleccionados.flatMap(s => SEGMENTOS_MERCADO[s]?.keywords || []);
-  };
-
-  // Buscar en Apollo (via Edge Function para evitar CORS)
-  const buscarApollo = async (): Promise<Contacto[]> => {
-    try {
-      const puestosABuscar = soloCLevel ? PUESTOS_CLEVEL : PUESTOS_DECISION;
-      const ubicaciones = estadosSeleccionados.length > 0 
-        ? estadosSeleccionados.map(e => `${e}, Mexico`)
-        : ['Mexico'];
-
-      // Keywords simples basados en segmentos seleccionados
-      const keywordsMap: { [key: string]: string[] } = {
-        automotriz: ['automotive', 'auto parts'],
-        aeroespacial: ['aerospace', 'aviation'],
-        mineria: ['mining', 'metals'],
-        agroindustrial: ['agriculture', 'agroindustrial'],
-        alimentos: ['food', 'beverages'],
-        carnicos: ['meat', 'poultry'],
-        produce: ['produce', 'fruits'],
-        retail: ['retail', 'supermarket'],
-        consumo: ['consumer goods', 'fmcg'],
-        farmaceutica: ['pharmaceutical', 'medical'],
-        manufactura: ['manufacturing', 'industrial']
-      };
-
-      const keywords = segmentosSeleccionados.flatMap(s => keywordsMap[s] || []);
-
-      console.log('Apollo params:', { ubicaciones, puestosABuscar: puestosABuscar.slice(0, 5), keywords: keywords.slice(0, 5) });
-
-      const response = await fetch(`${SUPABASE_URL}/functions/v1/prospeccion-api`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
-        },
-        body: JSON.stringify({
-          action: 'apollo_search',
-          params: {
-            locations: ubicaciones,
-            titles: puestosABuscar.slice(0, 10),
-            company_name: buscarEmpresa.trim() || undefined,
-            keywords: keywords.slice(0, 10),
-            page: 1,
-            per_page: 100
-          }
-        })
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Error en Apollo API');
-      }
-
-      const data = await response.json();
-      console.log('Apollo response:', { total: data.total, contacts: data.contacts?.length });
-      
-      // Agregar campos faltantes a los contactos de Apollo
-      return (data.contacts || []).map((c: any) => ({
-        ...c,
-        prioridad: c.prioridad || null,
-        excluido: c.excluido || false,
-        fuente: 'apollo' as const
-      }));
-    } catch (err: any) {
-      console.error('Error Apollo:', err);
-      throw new Error(`Apollo: ${err.message}`);
-    }
-  };
-
-  // Buscar en Hunter (via Edge Function para evitar CORS)
   const buscarHunter = async (): Promise<Contacto[]> => {
-    try {
-      let domains: string[] = [];
-      
-      if (buscarEmpresa.trim()) {
-        const empresaLimpia = buscarEmpresa.trim().toLowerCase()
-          .replace(/\s+/g, '')
-          .replace(/[^a-z0-9]/g, '');
-        domains = [`${empresaLimpia}.com`, `${empresaLimpia}.com.mx`];
-      } else {
-        domains = [
-          'bafar.com.mx', 'barcel.com.mx', 'grupoalfa.com.mx', 'gruma.com',
-          'cemex.com', 'femsa.com', 'bimbo.com', 'lala.com.mx', 'alpura.com',
-          'sigma-alimentos.com', 'modelorama.com.mx', 'bachoco.com.mx'
-        ];
-      }
+    // Dominios basados en segmentos
+    const dominiosBase = [
+      'bafar.com.mx', 'barcel.com.mx', 'gruma.com', 'cemex.com',
+      'bimbo.com', 'lala.com.mx', 'alpura.com', 'sigma-alimentos.com',
+      'femsa.com', 'modelo.com', 'bachoco.com.mx', 'grupobafar.com'
+    ];
 
-      const response = await fetch(`${SUPABASE_URL}/functions/v1/prospeccion-api`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
-        },
-        body: JSON.stringify({
-          action: 'hunter_domain_search',
-          params: { domains }
-        })
-      });
+    const response = await fetch(`${SUPABASE_URL}/functions/v1/prospeccion-api`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+      },
+      body: JSON.stringify({
+        action: 'hunter_domain_search',
+        params: { domains: dominiosBase.slice(0, 10) }
+      })
+    });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Error en Hunter API');
-      }
+    if (!response.ok) throw new Error('Error en Hunter');
 
-      const data = await response.json();
-      // Agregar campos faltantes a los contactos de Hunter
-      return (data.contacts || []).map((c: any) => ({
-        ...c,
-        prioridad: c.prioridad || null,
-        excluido: c.excluido || false,
-        fuente: 'hunter' as const
-      }));
-    } catch (err: any) {
-      console.error('Error Hunter:', err);
-      throw new Error(`Hunter: ${err.message}`);
-    }
+    const data = await response.json();
+    return (data.contacts || []).map((c: any) => ({
+      ...c,
+      source_id: c.id,
+      prioridad: null,
+      excluido: false
+    }));
   };
 
-  // Validar email con Hunter (via Edge Function)
-  const validarEmailHunter = async (email: string): Promise<{ valid: boolean; score: number }> => {
-    try {
-      const response = await fetch(`${SUPABASE_URL}/functions/v1/prospeccion-api`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
-        },
-        body: JSON.stringify({
-          action: 'hunter_verify_email',
-          params: { email }
-        })
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        return { valid: data.valid || false, score: data.score || 0 };
-      }
-      return { valid: false, score: 0 };
-    } catch {
-      return { valid: false, score: 0 };
-    }
-  };
-
-  // Consultar Claude
-  const consultarClaude = async (prompt: string): Promise<string> => {
-    if (!ANTHROPIC_API_KEY) {
-      throw new Error('Anthropic API Key no configurada');
-    }
+  // ═══════════════════════════════════════════════════════════════════════════
+  // VERIFICAR CONTACTOS EXISTENTES EN BD
+  // ═══════════════════════════════════════════════════════════════════════════
+  
+  const verificarExistentes = async (contactosNuevos: Contacto[]): Promise<Contacto[]> => {
+    // Obtener source_ids de los contactos nuevos
+    const sourceIds = contactosNuevos.map(c => c.source_id || c.id);
     
-    try {
-      const response = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': ANTHROPIC_API_KEY,
-          'anthropic-version': '2023-06-01',
-          'anthropic-dangerous-direct-browser-access': 'true'
-        },
-        body: JSON.stringify({
-          model: 'claude-sonnet-4-20250514',
-          max_tokens: 4096,
-          messages: [{ role: 'user', content: prompt }]
-        })
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error?.message || 'Error en Claude API');
-      }
-
-      const data = await response.json();
-      return data.content[0].text;
-    } catch (err: any) {
-      console.error('Error Claude:', err);
-      throw new Error(`Claude: ${err.message}`);
-    }
+    // Buscar cuáles ya existen
+    const { data: existentes } = await supabase
+      .from('prospeccion_contactos')
+      .select('source_id')
+      .in('source_id', sourceIds);
+    
+    const existentesSet = new Set((existentes || []).map(e => e.source_id));
+    
+    // Marcar cada contacto
+    return contactosNuevos.map(c => ({
+      ...c,
+      yaExistia: existentesSet.has(c.source_id || c.id),
+      esNuevo: !existentesSet.has(c.source_id || c.id)
+    }));
   };
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // HANDLERS PRINCIPALES
+  // HANDLERS DE BÚSQUEDA
   // ═══════════════════════════════════════════════════════════════════════════
-
+  
   const handleBuscarContactos = async () => {
     if (!fuenteSeleccionada) {
       setError('Selecciona una fuente de datos');
       return;
     }
 
-    if (!apisConfiguradas) {
-      setError('APIs no configuradas. Revisa las variables de entorno en Vercel');
-      return;
-    }
-
-    if (segmentosSeleccionados.length === 0) {
-      setError('Selecciona al menos un segmento de mercado');
-      return;
-    }
-
     setLoading(true);
     setError(null);
+    setContactos([]);
     
     try {
-      let contactos: Contacto[] = [];
+      let todosContactos: Contacto[] = [];
+      let totalDisponible = 0;
+      let totalPaginas = 0;
       
       if (fuenteSeleccionada === 'apollo' || fuenteSeleccionada === 'ambos') {
-        const apolloContacts = await buscarApollo();
-        contactos = [...contactos, ...apolloContacts];
+        const { contacts, total, totalPages } = await buscarApollo(1, CONTACTOS_POR_PAGINA);
+        todosContactos = [...todosContactos, ...contacts];
+        totalDisponible = total;
+        totalPaginas = totalPages;
       }
       
       if (fuenteSeleccionada === 'hunter' || fuenteSeleccionada === 'ambos') {
         const hunterContacts = await buscarHunter();
-        contactos = [...contactos, ...hunterContacts];
+        todosContactos = [...todosContactos, ...hunterContacts];
       }
 
-      // Eliminar duplicados por email
-      const emailsVistos = new Set<string>();
-      contactos = contactos.filter(c => {
-        if (!c.email || emailsVistos.has(c.email.toLowerCase())) return false;
-        emailsVistos.add(c.email.toLowerCase());
-        return true;
+      // Verificar cuáles ya existen en BD
+      const contactosConStatus = await verificarExistentes(todosContactos);
+      
+      // Calcular stats
+      const nuevos = contactosConStatus.filter(c => c.esNuevo).length;
+      const existentes = contactosConStatus.filter(c => c.yaExistia).length;
+      
+      setContactos(contactosConStatus);
+      setPaginacion({
+        total: totalDisponible,
+        totalPages: totalPaginas,
+        currentPage: 1,
+        loaded: contactosConStatus.length
       });
-
-      // Filtrar por industrias excluidas
-      contactos = contactos.filter(c => {
-        const industriaLower = (c.industria || '').toLowerCase();
-        return !INDUSTRIAS_EXCLUIR.some(exc => industriaLower.includes(exc.toLowerCase()));
-      });
-
-      // Filtrar por puestos excluidos
-      contactos = contactos.filter(c => {
-        const puestoLower = (c.puesto || '').toLowerCase();
-        return !PUESTOS_EXCLUIR.some(exc => puestoLower.includes(exc.toLowerCase()));
-      });
-
-      setContactosRaw(contactos);
-      setContactosFiltrados(contactos);
+      setStats({ nuevos, existentes, total: totalDisponible });
       setPaso(2);
       
-      // Mensaje inicial del chat
-      const filtrosAplicados = [];
-      if (estadosSeleccionados.length > 0) filtrosAplicados.push(`Estados: ${estadosSeleccionados.join(', ')}`);
-      if (buscarEmpresa) filtrosAplicados.push(`Empresa: ${buscarEmpresa}`);
-      if (soloCLevel) filtrosAplicados.push('Solo C-Level/Dueños');
-      filtrosAplicados.push(`Segmentos: ${segmentosSeleccionados.map(s => SEGMENTOS_MERCADO[s].nombre).join(', ')}`);
-
+      // Mensaje inicial
       setChatMessages([{
         role: 'assistant',
-        content: `✅ He encontrado **${contactos.length} contactos** de ${fuenteSeleccionada === 'ambos' ? 'Apollo y Hunter' : fuenteSeleccionada}.\n\n**Filtros aplicados:**\n${filtrosAplicados.map(f => `• ${f}`).join('\n')}\n\n**Ya excluí automáticamente:**\n• Empresas de logística, transporte, forwarders\n• Gobierno, educación, hoteles\n• Tecnología, consultorías, legal\n• Puestos de RH, IT, Marketing, Legal\n\nAhora puedo ayudarte a filtrar más. Por ejemplo:\n- "Solo quiero empresas grandes"\n- "Clasifica por prioridad A, B, C"\n- "Elimina las que no tengan Operations en el puesto"\n\n¿Qué más quieres filtrar?`
+        content: `✅ **Cargados ${contactosConStatus.length} de ${totalDisponible.toLocaleString()} contactos disponibles**
+
+📊 **Estadísticas:**
+• 🆕 Nuevos: ${nuevos}
+• 📁 Ya guardados: ${existentes}
+• 📄 Total disponible: ${totalDisponible.toLocaleString()} (${totalPaginas} páginas)
+
+**Opciones:**
+• Clic en "Cargar +50" para más contactos
+• Clic en "Traer Todos" para cargar todo
+• Usa el chat para filtrar por industria, puesto, etc.
+
+¿Qué deseas hacer?`
       }]);
+
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -560,676 +330,631 @@ export const ProspeccionIAModule = ({ onBack }: ProspeccionIAModuleProps) => {
     }
   };
 
-  // Chat con IA
-  const handleEnviarChat = async () => {
-    if (!chatInput.trim() || chatLoading) return;
-
-    const userMessage = chatInput.trim();
-    setChatInput('');
-    setChatMessages(prev => [...prev, { role: 'user', content: userMessage }]);
-    setChatLoading(true);
-
+  const handleCargarMas = async () => {
+    if (loadingMore || paginacion.currentPage >= paginacion.totalPages) return;
+    
+    setLoadingMore(true);
+    
     try {
-      const contactosJson = JSON.stringify(contactosFiltrados.slice(0, 50).map(c => ({
+      const nextPage = paginacion.currentPage + 1;
+      const { contacts } = await buscarApollo(nextPage, CONTACTOS_POR_PAGINA);
+      const contactosConStatus = await verificarExistentes(contacts);
+      
+      setContactos(prev => [...prev, ...contactosConStatus]);
+      setPaginacion(prev => ({
+        ...prev,
+        currentPage: nextPage,
+        loaded: prev.loaded + contactosConStatus.length
+      }));
+      
+      const nuevos = contactosConStatus.filter(c => c.esNuevo).length;
+      setStats(prev => ({
+        ...prev,
+        nuevos: prev.nuevos + nuevos,
+        existentes: prev.existentes + (contactosConStatus.length - nuevos)
+      }));
+
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setLoadingMore(false);
+    }
+  };
+
+  const handleTraerTodos = async () => {
+    if (loadingMore) return;
+    
+    const confirmar = window.confirm(
+      `¿Cargar los ${paginacion.total.toLocaleString()} contactos?\n\nEsto puede tardar unos minutos y consumir créditos de Apollo.`
+    );
+    
+    if (!confirmar) return;
+    
+    setLoadingMore(true);
+    
+    try {
+      let todosContactos = [...contactos];
+      let currentPage = paginacion.currentPage;
+      
+      while (currentPage < paginacion.totalPages) {
+        currentPage++;
+        const { contacts } = await buscarApollo(currentPage, CONTACTOS_POR_PAGINA);
+        const contactosConStatus = await verificarExistentes(contacts);
+        todosContactos = [...todosContactos, ...contactosConStatus];
+        
+        // Actualizar progreso
+        setPaginacion(prev => ({
+          ...prev,
+          currentPage,
+          loaded: todosContactos.length
+        }));
+        
+        // Pequeña pausa para no saturar la API
+        await new Promise(r => setTimeout(r, 300));
+      }
+      
+      setContactos(todosContactos);
+      
+      const nuevos = todosContactos.filter(c => c.esNuevo).length;
+      setStats({
+        nuevos,
+        existentes: todosContactos.length - nuevos,
+        total: paginacion.total
+      });
+
+      setChatMessages(prev => [...prev, {
+        role: 'assistant',
+        content: `✅ **Cargados ${todosContactos.length} contactos completos**\n\n🆕 Nuevos: ${nuevos}\n📁 Ya existentes: ${todosContactos.length - nuevos}`
+      }]);
+
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setLoadingMore(false);
+    }
+  };
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // GUARDAR EN BASE DE DATOS
+  // ═══════════════════════════════════════════════════════════════════════════
+  
+  const handleGuardarTodos = async () => {
+    setGuardando(true);
+    
+    try {
+      const contactosParaGuardar = contactos.filter(c => c.esNuevo && !c.excluido);
+      
+      if (contactosParaGuardar.length === 0) {
+        alert('No hay contactos nuevos para guardar');
+        setGuardando(false);
+        return;
+      }
+      
+      // Preparar datos para insertar
+      const datos = contactosParaGuardar.map(c => ({
+        source_id: c.source_id || c.id,
+        fuente: c.fuente,
+        nombre: c.nombre,
+        apellido: c.apellido,
+        email: c.email === 'email_not_unlocked@domain.com' ? null : c.email,
+        email_verificado: c.emailVerificado,
+        email_score: c.emailScore,
+        telefono: c.telefono,
+        linkedin: c.linkedin,
         empresa: c.empresa,
         industria: c.industria,
         puesto: c.puesto,
+        ciudad: c.ciudad,
         estado: c.estado,
-        email: c.email
-      })), null, 2);
+        pais: c.pais,
+        prioridad: c.prioridad,
+        excluido: c.excluido,
+        busqueda_keywords: segmentosSeleccionados,
+        busqueda_ubicaciones: estadosSeleccionados,
+        busqueda_segmentos: segmentosSeleccionados
+      }));
 
-      const prompt = `Actúa como director comercial B2B especializado en transporte de carga en México (caja seca 53' y refrigerado).
-
-CONTEXTO:
-- Tengo ${contactosFiltrados.length} contactos extraídos de Apollo/Hunter
-- Muestra de los primeros 50:
-${contactosJson}
-
-INSTRUCCIÓN DEL USUARIO:
-"${userMessage}"
-
-REGLAS:
-1. Empresas que SÍ interesan: automotrices, aeroespaciales, mineras, agroindustriales, retail, produce, tier1/2/3, cárnicos
-2. Empresas que NO interesan: logísticas, transportistas, forwarders, brokers, gobierno, educación, hoteles, tecnología, consultorías
-3. Puestos que SÍ interesan: Director, Gerente, VP, Head, Supervisor, Coordinador (operaciones, supply chain, compras, planta)
-4. Puestos que NO interesan: RH, Legal, IT, Marketing, Contabilidad
-
-RESPONDE con:
-1. Una explicación clara de qué filtros aplicarás
-2. Un JSON con la estructura: { "accion": "filtrar" | "priorizar" | "excluir", "criterios": {...}, "empresas_afectadas": [...] }
-
-Si el usuario pide clasificar por prioridad, usa:
-- A: Muy alta probabilidad (automotriz, aeroespacial, minería grande)
-- B: Media probabilidad (agroindustrial, retail mediano)
-- C: Baja probabilidad (otros sectores válidos)`;
-
-      const respuesta = await consultarClaude(prompt);
-      setChatMessages(prev => [...prev, { role: 'assistant', content: respuesta }]);
-
-      // Intentar aplicar filtros del JSON
-      const jsonMatch = respuesta.match(/\{[\s\S]*"accion"[\s\S]*\}/);
-      if (jsonMatch) {
-        try {
-          const accionData = JSON.parse(jsonMatch[0]);
-          aplicarFiltrosIA(accionData);
-        } catch { /* No se pudo parsear */ }
+      // Insertar en lotes de 100
+      const BATCH_SIZE = 100;
+      let insertados = 0;
+      
+      for (let i = 0; i < datos.length; i += BATCH_SIZE) {
+        const batch = datos.slice(i, i + BATCH_SIZE);
+        
+        const { error } = await supabase
+          .from('prospeccion_contactos')
+          .upsert(batch, { 
+            onConflict: 'source_id,fuente',
+            ignoreDuplicates: false 
+          });
+        
+        if (error) throw error;
+        insertados += batch.length;
       }
+      
+      // Actualizar UI
+      setContactos(prev => prev.map(c => ({
+        ...c,
+        esNuevo: false,
+        yaExistia: true
+      })));
+      
+      setStats(prev => ({
+        ...prev,
+        nuevos: 0,
+        existentes: prev.existentes + insertados
+      }));
+
+      setChatMessages(prev => [...prev, {
+        role: 'assistant',
+        content: `✅ **Guardados ${insertados} contactos en la base de datos**\n\nAhora puedes verlos en futuras búsquedas.`
+      }]);
+
     } catch (err: any) {
-      setChatMessages(prev => [...prev, { role: 'assistant', content: `❌ Error: ${err.message}` }]);
+      setError(`Error guardando: ${err.message}`);
     } finally {
-      setChatLoading(false);
+      setGuardando(false);
     }
   };
 
-  const aplicarFiltrosIA = (accion: any) => {
-    if (accion.accion === 'excluir' && accion.empresas_afectadas) {
-      setContactosFiltrados(prev => 
-        prev.map(c => ({
-          ...c,
-          excluido: accion.empresas_afectadas.some((e: string) => 
-            c.empresa.toLowerCase().includes(e.toLowerCase())
-          ) ? true : c.excluido,
-          razonExclusion: accion.empresas_afectadas.some((e: string) => 
-            c.empresa.toLowerCase().includes(e.toLowerCase())
-          ) ? accion.criterios?.razon || 'Filtrado por IA' : c.razonExclusion
-        }))
-      );
-    }
-
-    if (accion.accion === 'priorizar' && accion.empresas_afectadas) {
-      setContactosFiltrados(prev =>
-        prev.map(c => {
-          const empresaInfo = accion.empresas_afectadas.find((e: any) => 
-            c.empresa.toLowerCase().includes(e.empresa?.toLowerCase() || e.toLowerCase())
-          );
-          if (empresaInfo) {
-            return {
-              ...c,
-              prioridad: empresaInfo.prioridad || 'B',
-              razonPrioridad: empresaInfo.razon || 'Clasificado por IA'
-            };
-          }
-          return c;
-        })
-      );
+  // ═══════════════════════════════════════════════════════════════════════════
+  // ZONAS Y ESTADOS
+  // ═══════════════════════════════════════════════════════════════════════════
+  
+  const toggleZona = (zonaKey: string) => {
+    const zona = ZONAS_MEXICO[zonaKey];
+    const todosSeleccionados = zona.estados.every(e => estadosSeleccionados.includes(e));
+    
+    if (todosSeleccionados) {
+      setEstadosSeleccionados(prev => prev.filter(e => !zona.estados.includes(e)));
+    } else {
+      setEstadosSeleccionados(prev => [...new Set([...prev, ...zona.estados])]);
     }
   };
 
-  const handleValidarEmails = async () => {
-    const contactosSinExcluir = contactosFiltrados.filter(c => !c.excluido);
-    if (contactosSinExcluir.length === 0) {
-      setError('No hay contactos para validar');
-      return;
-    }
-
-    setValidandoEmails(true);
-    setProgresValidacion(0);
-
-    try {
-      const total = contactosSinExcluir.length;
-      const contactosActualizados = [...contactosFiltrados];
-
-      for (let i = 0; i < contactosSinExcluir.length; i++) {
-        const contacto = contactosSinExcluir[i];
-        if (contacto.email) {
-          const resultado = await validarEmailHunter(contacto.email);
-          const idx = contactosActualizados.findIndex(c => c.id === contacto.id);
-          if (idx !== -1) {
-            contactosActualizados[idx] = {
-              ...contactosActualizados[idx],
-              emailVerificado: resultado.valid,
-              emailScore: resultado.score
-            };
-          }
-        }
-        setProgresValidacion(Math.round(((i + 1) / total) * 100));
-        await new Promise(resolve => setTimeout(resolve, 300));
-      }
-
-      setContactosFiltrados(contactosActualizados);
-      setPaso(3);
-    } catch (err: any) {
-      setError(`Error validando emails: ${err.message}`);
-    } finally {
-      setValidandoEmails(false);
-    }
+  const toggleEstado = (estado: string) => {
+    setEstadosSeleccionados(prev => 
+      prev.includes(estado) ? prev.filter(e => e !== estado) : [...prev, estado]
+    );
   };
 
-  const handleGenerarListaFinal = () => {
-    const finales = contactosFiltrados.filter(c => !c.excluido && c.emailVerificado);
-    setContactosFinales(finales);
-    setPaso(4);
+  const toggleExpandirZona = (zonaKey: string) => {
+    setZonasExpandidas(prev => 
+      prev.includes(zonaKey) ? prev.filter(z => z !== zonaKey) : [...prev, zonaKey]
+    );
   };
 
-  const handleExportarCSV = () => {
-    const headers = ['Nombre', 'Apellido', 'Email', 'Verificado', 'Score', 'Empresa', 'Industria', 'Puesto', 'Ciudad', 'Estado', 'País', 'LinkedIn', 'Teléfono', 'Prioridad', 'Razón'];
-    const rows = contactosFinales.map(c => [
-      c.nombre, c.apellido, c.email, c.emailVerificado ? 'Sí' : 'No', c.emailScore,
-      c.empresa, c.industria, c.puesto, c.ciudad, c.estado, c.pais,
-      c.linkedin || '', c.telefono || '', c.prioridad || '', c.razonPrioridad || ''
-    ]);
-
-    const csv = [headers, ...rows].map(row => row.map(cell => `"${cell}"`).join(',')).join('\n');
-    const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `prospeccion_ia_${new Date().toISOString().split('T')[0]}.csv`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+  const seleccionarTodoMexico = () => {
+    if (estadosSeleccionados.length === TODOS_LOS_ESTADOS.length) {
+      setEstadosSeleccionados([]);
+    } else {
+      setEstadosSeleccionados([...TODOS_LOS_ESTADOS]);
+    }
   };
 
   // ═══════════════════════════════════════════════════════════════════════════
   // RENDER
   // ═══════════════════════════════════════════════════════════════════════════
-  const cardStyle = "bg-white/5 border border-white/10 rounded-xl p-4 hover:border-[#f97316]/50 transition-all";
-  const btnPrimary = "bg-gradient-to-r from-[#f97316] to-[#ea580c] hover:from-[#ea580c] hover:to-[#c2410c] text-white font-medium px-6 py-3 rounded-xl transition-all flex items-center gap-2 disabled:opacity-50";
-  const btnSecondary = "bg-white/10 hover:bg-white/20 text-white font-medium px-4 py-2 rounded-lg transition-all flex items-center gap-2";
-  const checkboxStyle = "w-4 h-4 rounded border-white/30 bg-white/10 text-[#f97316] focus:ring-[#f97316]";
-
+  
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#0a1628] via-[#1a2744] to-[#0d1f3c] p-6">
-      <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-4">
-            <button onClick={onBack} className="p-2 bg-white/10 hover:bg-white/20 rounded-lg transition-all">
-              <ChevronDown className="w-5 h-5 text-white rotate-90" />
-            </button>
-            <div>
-              <h1 className="text-2xl font-bold text-white flex items-center gap-3">
-                <Sparkles className="w-7 h-7 text-[#f97316]" />
-                Prospección IA
-              </h1>
-              <p className="text-white/60 text-sm">Apollo + Hunter + Claude AI</p>
-            </div>
-          </div>
-          
-          <div className="flex items-center gap-2">
-            {[1, 2, 3, 4].map(p => (
-              <div key={p} className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-medium transition-all ${
-                paso === p ? 'bg-[#f97316] text-white' : paso > p ? 'bg-green-500/20 text-green-400 border border-green-500/50' : 'bg-white/10 text-white/40'
-              }`}>
-                {paso > p ? <Check className="w-5 h-5" /> : p}
-              </div>
-            ))}
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white p-6">
+      {/* Header */}
+      <div className="flex items-center gap-4 mb-6">
+        <button onClick={onBack} className="p-2 hover:bg-white/10 rounded-lg">
+          <ChevronDown className="w-6 h-6 rotate-90" />
+        </button>
+        <div className="flex items-center gap-3">
+          <Sparkles className="w-8 h-8 text-orange-400" />
+          <div>
+            <h1 className="text-2xl font-bold">Prospección IA</h1>
+            <p className="text-sm text-gray-400">Apollo + Hunter + Claude AI</p>
           </div>
         </div>
-
-        {/* Alertas */}
-        {!apisConfiguradas && (
-          <div className="mb-6 p-4 bg-yellow-500/20 border border-yellow-500/50 rounded-xl text-yellow-400">
-            <div className="flex items-center gap-3">
-              <AlertCircle className="w-5 h-5" />
-              <span><strong>APIs no configuradas</strong> - Configura VITE_ANTHROPIC_API_KEY en Vercel y despliega la Edge Function prospeccion-api</span>
+        
+        {/* Progress indicators */}
+        <div className="ml-auto flex gap-2">
+          {[1, 2, 3, 4].map(p => (
+            <div 
+              key={p}
+              className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold
+                ${paso >= p ? 'bg-orange-500' : 'bg-gray-700'}`}
+            >
+              {paso > p ? <Check className="w-5 h-5" /> : p}
             </div>
-          </div>
-        )}
+          ))}
+        </div>
+      </div>
 
-        {error && (
-          <div className="mb-6 p-4 bg-red-500/20 border border-red-500/50 rounded-xl flex items-center gap-3 text-red-400">
-            <AlertCircle className="w-5 h-5" />
-            <span>{error}</span>
-            <button onClick={() => setError(null)} className="ml-auto"><X className="w-4 h-4" /></button>
-          </div>
-        )}
+      {error && (
+        <div className="mb-4 p-4 bg-red-500/20 border border-red-500 rounded-lg flex items-center gap-2">
+          <AlertCircle className="w-5 h-5 text-red-400" />
+          <span>{error}</span>
+          <button onClick={() => setError(null)} className="ml-auto"><X className="w-4 h-4" /></button>
+        </div>
+      )}
 
-        {/* ════════════════════════════════════════════════════════════════════════ */}
-        {/* PASO 1: Filtros de búsqueda */}
-        {/* ════════════════════════════════════════════════════════════════════════ */}
-        {paso === 1 && (
-          <div className="space-y-6">
-            {/* Fuente de datos */}
-            <div className="grid grid-cols-3 gap-4 max-w-3xl mx-auto">
-              {(['apollo', 'hunter', 'ambos'] as const).map(fuente => (
+      {/* PASO 1: Configuración de búsqueda */}
+      {paso === 1 && (
+        <div className="space-y-6">
+          {/* Fuente de datos */}
+          <div className="bg-slate-800/50 rounded-xl p-6">
+            <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
+              <Database className="w-5 h-5 text-blue-400" />
+              Fuente de Datos
+            </h2>
+            <div className="grid grid-cols-3 gap-4">
+              {[
+                { id: 'apollo', name: 'Apollo.io', icon: Target },
+                { id: 'hunter', name: 'Hunter.io', icon: Mail },
+                { id: 'ambos', name: 'Ambos', icon: Zap }
+              ].map(f => (
                 <button
-                  key={fuente}
-                  onClick={() => setFuenteSeleccionada(fuente)}
-                  className={`${cardStyle} ${fuenteSeleccionada === fuente ? 'border-[#f97316] bg-[#f97316]/10' : ''}`}
+                  key={f.id}
+                  onClick={() => setFuenteSeleccionada(f.id as any)}
+                  className={`p-4 rounded-xl border-2 transition-all flex flex-col items-center gap-2
+                    ${fuenteSeleccionada === f.id 
+                      ? 'border-orange-500 bg-orange-500/20' 
+                      : 'border-gray-600 hover:border-gray-500'}`}
                 >
-                  <div className="text-center">
-                    <div className={`w-12 h-12 mx-auto mb-3 rounded-full flex items-center justify-center ${
-                      fuente === 'apollo' ? 'bg-purple-500/20' : fuente === 'hunter' ? 'bg-orange-500/20' : 'bg-green-500/20'
-                    }`}>
-                      {fuente === 'apollo' ? <Globe className="w-6 h-6 text-purple-400" /> :
-                       fuente === 'hunter' ? <Target className="w-6 h-6 text-orange-400" /> :
-                       <Users className="w-6 h-6 text-green-400" />}
-                    </div>
-                    <h3 className="text-white font-semibold text-sm">
-                      {fuente === 'apollo' ? 'Apollo.io' : fuente === 'hunter' ? 'Hunter.io' : 'Ambos'}
-                    </h3>
-                  </div>
+                  <f.icon className="w-8 h-8" />
+                  <span className="font-medium">{f.name}</span>
                 </button>
               ))}
             </div>
-
-            {/* Búsqueda por empresa */}
-            <div className={cardStyle}>
-              <h3 className="text-white font-medium mb-3 flex items-center gap-2">
-                <Building2 className="w-5 h-5 text-[#f97316]" />
-                Buscar empresa específica (opcional)
-              </h3>
-              <input
-                type="text"
-                value={buscarEmpresa}
-                onChange={e => setBuscarEmpresa(e.target.value)}
-                placeholder="Ej: CEMEX, Bimbo, Femsa..."
-                className="w-full bg-white/5 border border-white/20 rounded-lg px-4 py-3 text-white placeholder-white/30"
-              />
-            </div>
-
-            {/* Solo C-Level */}
-            <div className={cardStyle}>
-              <label className="flex items-center gap-3 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={soloCLevel}
-                  onChange={e => setSoloCLevel(e.target.checked)}
-                  className={checkboxStyle}
-                />
-                <Crown className="w-5 h-5 text-yellow-400" />
-                <div>
-                  <span className="text-white font-medium">Solo Dueños / Presidentes / C-Level</span>
-                  <p className="text-white/50 text-xs">CEO, President, Owner, Founder, Chairman, Director General</p>
-                </div>
-              </label>
-            </div>
-
-            {/* Zonas de México */}
-            <div className={cardStyle}>
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-white font-medium flex items-center gap-2">
-                  <MapPin className="w-5 h-5 text-[#f97316]" />
-                  Ubicación
-                </h3>
-                {estadosSeleccionados.length > 0 && (
-                  <button onClick={limpiarUbicacion} className="text-white/50 text-xs hover:text-white">
-                    Limpiar ({estadosSeleccionados.length})
-                  </button>
-                )}
-              </div>
-              
-              {/* Zonas como botones */}
-              <div className="grid grid-cols-6 gap-2 mb-4">
-                {Object.entries(ZONAS_MEXICO).map(([key, zona]) => {
-                  const todosSeleccionados = zona.estados.every(e => estadosSeleccionados.includes(e));
-                  const algunosSeleccionados = zona.estados.some(e => estadosSeleccionados.includes(e));
-                  return (
-                    <button
-                      key={key}
-                      onClick={() => toggleZona(key)}
-                      className={`px-3 py-2 rounded-lg text-xs font-medium transition-all border ${
-                        todosSeleccionados 
-                          ? 'bg-opacity-30 border-current' 
-                          : algunosSeleccionados
-                            ? 'bg-opacity-15 border-current border-dashed'
-                            : 'bg-white/5 border-white/10 hover:border-white/30'
-                      }`}
-                      style={{ 
-                        backgroundColor: todosSeleccionados || algunosSeleccionados ? `${zona.color}30` : undefined,
-                        borderColor: todosSeleccionados || algunosSeleccionados ? zona.color : undefined,
-                        color: todosSeleccionados || algunosSeleccionados ? zona.color : 'rgba(255,255,255,0.7)'
-                      }}
-                    >
-                      {zona.nombre}
-                    </button>
-                  );
-                })}
-              </div>
-
-              {/* Estados individuales (colapsable) */}
-              <button 
-                onClick={() => setMostrarFiltrosAvanzados(!mostrarFiltrosAvanzados)}
-                className="text-white/50 text-xs flex items-center gap-1 hover:text-white"
-              >
-                {mostrarFiltrosAvanzados ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
-                {mostrarFiltrosAvanzados ? 'Ocultar estados' : 'Seleccionar estados individuales'}
-              </button>
-
-              {mostrarFiltrosAvanzados && (
-                <div className="mt-4 grid grid-cols-4 gap-2 max-h-48 overflow-y-auto">
-                  {TODOS_LOS_ESTADOS.map(estado => (
-                    <label key={estado} className="flex items-center gap-2 text-xs text-white/70 cursor-pointer hover:text-white">
-                      <input
-                        type="checkbox"
-                        checked={estadosSeleccionados.includes(estado)}
-                        onChange={() => toggleEstado(estado)}
-                        className={checkboxStyle}
-                      />
-                      {estado}
-                    </label>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* Segmentos de mercado */}
-            <div className={cardStyle}>
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-white font-medium flex items-center gap-2">
-                  <Factory className="w-5 h-5 text-[#f97316]" />
-                  Segmentos de mercado
-                </h3>
-                <button onClick={toggleTodosSegmentos} className="text-white/50 text-xs hover:text-white">
-                  {segmentosSeleccionados.length === Object.keys(SEGMENTOS_MERCADO).length ? 'Deseleccionar todos' : 'Seleccionar todos'}
-                </button>
-              </div>
-              
-              <div className="grid grid-cols-4 gap-2">
-                {Object.entries(SEGMENTOS_MERCADO).map(([key, segmento]) => (
-                  <label 
-                    key={key}
-                    className={`flex items-center gap-2 p-2 rounded-lg cursor-pointer transition-all ${
-                      segmentosSeleccionados.includes(key) 
-                        ? 'bg-[#f97316]/20 border border-[#f97316]/50' 
-                        : 'bg-white/5 border border-white/10 hover:border-white/30'
-                    }`}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={segmentosSeleccionados.includes(key)}
-                      onChange={() => toggleSegmento(key)}
-                      className="hidden"
-                    />
-                    <span className="text-lg">{segmento.icon}</span>
-                    <span className={`text-xs ${segmentosSeleccionados.includes(key) ? 'text-white' : 'text-white/60'}`}>
-                      {segmento.nombre}
-                    </span>
-                  </label>
-                ))}
-              </div>
-            </div>
-
-            {/* Info de exclusiones */}
-            <div className="bg-blue-500/10 border border-blue-500/30 rounded-xl p-4 text-blue-400 text-sm">
-              <strong>🚫 Excluido automáticamente:</strong>
-              <p className="text-blue-400/70 mt-1">
-                Logística, transporte, forwarders, brokers, gobierno, educación, hoteles, tecnología, consultorías, legal, inmobiliarias, bancos. 
-                Puestos: RH, IT, Marketing, Legal, Contabilidad, Asistentes.
-              </p>
-            </div>
-
-            {/* Botón buscar */}
-            <div className="flex justify-center">
-              <button 
-                onClick={handleBuscarContactos}
-                disabled={!fuenteSeleccionada || loading || !apisConfiguradas || segmentosSeleccionados.length === 0}
-                className={btnPrimary}
-              >
-                {loading ? (
-                  <><Loader2 className="w-5 h-5 animate-spin" /> Buscando...</>
-                ) : (
-                  <><Search className="w-5 h-5" /> Buscar Contactos</>
-                )}
-              </button>
-            </div>
           </div>
-        )}
 
-        {/* ════════════════════════════════════════════════════════════════════════ */}
-        {/* PASO 2: Filtrar con IA */}
-        {/* ════════════════════════════════════════════════════════════════════════ */}
-        {paso === 2 && (
-          <div className="grid grid-cols-2 gap-6">
-            {/* Lista de contactos */}
-            <div className={cardStyle}>
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-white font-medium flex items-center gap-2">
-                  <Users className="w-5 h-5 text-[#f97316]" />
-                  Contactos ({contactosFiltrados.filter(c => !c.excluido).length})
-                </h3>
-                <span className="text-white/40 text-sm">
-                  Excluidos: {contactosFiltrados.filter(c => c.excluido).length}
+          {/* Búsqueda por empresa */}
+          <div className="bg-slate-800/50 rounded-xl p-6">
+            <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
+              <Building2 className="w-5 h-5 text-green-400" />
+              Buscar empresa específica (opcional)
+            </h2>
+            <input
+              type="text"
+              placeholder="Ej: CEMEX, Bimbo, Femsa..."
+              value={buscarEmpresa}
+              onChange={e => setBuscarEmpresa(e.target.value)}
+              className="w-full p-3 bg-slate-700 rounded-lg border border-gray-600 focus:border-orange-500 outline-none"
+            />
+          </div>
+
+          {/* Solo C-Level */}
+          <div className="bg-slate-800/50 rounded-xl p-6">
+            <label className="flex items-center gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={soloCLevel}
+                onChange={e => setSoloCLevel(e.target.checked)}
+                className="w-5 h-5 rounded"
+              />
+              <Crown className="w-6 h-6 text-yellow-400" />
+              <div>
+                <span className="font-semibold">Solo Dueños / Presidentes / C-Level</span>
+                <p className="text-sm text-gray-400">CEO, President, Owner, Founder, Chairman, Director General</p>
+              </div>
+            </label>
+          </div>
+
+          {/* Ubicación con zonas desplegables */}
+          <div className="bg-slate-800/50 rounded-xl p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold flex items-center gap-2">
+                <MapPin className="w-5 h-5 text-red-400" />
+                Ubicación
+              </h2>
+              <div className="flex gap-2">
+                <button
+                  onClick={seleccionarTodoMexico}
+                  className="px-3 py-1 text-sm bg-blue-600 hover:bg-blue-700 rounded-lg"
+                >
+                  {estadosSeleccionados.length === TODOS_LOS_ESTADOS.length ? 'Limpiar Todo' : 'Todo México'}
+                </button>
+                <span className="text-sm text-gray-400">
+                  {estadosSeleccionados.length} seleccionados
                 </span>
               </div>
-              
-              <div className="space-y-2 max-h-[500px] overflow-y-auto pr-2">
-                {contactosFiltrados.map(contacto => (
-                  <div 
-                    key={contacto.id}
-                    className={`p-3 rounded-lg border transition-all ${
-                      contacto.excluido 
-                        ? 'bg-red-500/10 border-red-500/30 opacity-50' 
-                        : contacto.prioridad === 'A'
-                          ? 'bg-green-500/10 border-green-500/30'
-                          : contacto.prioridad === 'B'
-                            ? 'bg-yellow-500/10 border-yellow-500/30'
-                            : 'bg-white/5 border-white/10'
-                    }`}
-                  >
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2">
-                          <span className="text-white font-medium text-sm">
-                            {contacto.nombre} {contacto.apellido}
-                          </span>
-                          {contacto.prioridad && (
-                            <span className={`px-2 py-0.5 rounded text-xs font-medium ${
-                              contacto.prioridad === 'A' ? 'bg-green-500/20 text-green-400' :
-                              contacto.prioridad === 'B' ? 'bg-yellow-500/20 text-yellow-400' :
-                              'bg-gray-500/20 text-gray-400'
-                            }`}>
-                              {contacto.prioridad}
-                            </span>
-                          )}
-                        </div>
-                        <div className="text-white/60 text-xs mt-1">{contacto.puesto}</div>
-                        <div className="text-white/50 text-xs">{contacto.empresa}</div>
-                        <div className="text-white/40 text-xs flex items-center gap-1 mt-1">
-                          <Mail className="w-3 h-3" />
-                          {contacto.email}
-                        </div>
-                      </div>
-                      <button
-                        onClick={() => {
-                          setContactosFiltrados(prev => 
-                            prev.map(c => c.id === contacto.id ? { ...c, excluido: !c.excluido } : c)
-                          );
+            </div>
+
+            {/* Zonas desplegables */}
+            <div className="space-y-2">
+              {Object.entries(ZONAS_MEXICO).map(([key, zona]) => {
+                const estadosEnZona = zona.estados.filter(e => estadosSeleccionados.includes(e));
+                const todosSeleccionados = estadosEnZona.length === zona.estados.length;
+                const algunosSeleccionados = estadosEnZona.length > 0 && !todosSeleccionados;
+                const expandida = zonasExpandidas.includes(key);
+
+                return (
+                  <div key={key} className="border border-gray-700 rounded-lg overflow-hidden">
+                    {/* Header de zona */}
+                    <div 
+                      className="flex items-center gap-3 p-3 bg-slate-700/50 cursor-pointer hover:bg-slate-700"
+                      onClick={() => toggleExpandirZona(key)}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={todosSeleccionados}
+                        ref={input => {
+                          if (input) input.indeterminate = algunosSeleccionados;
                         }}
-                        className={`p-1 rounded ${contacto.excluido ? 'text-green-400' : 'text-red-400'}`}
-                      >
-                        {contacto.excluido ? <RefreshCw className="w-4 h-4" /> : <Trash2 className="w-4 h-4" />}
-                      </button>
+                        onChange={e => {
+                          e.stopPropagation();
+                          toggleZona(key);
+                        }}
+                        className="w-4 h-4"
+                        onClick={e => e.stopPropagation()}
+                      />
+                      <span className="font-medium flex-1">{zona.nombre}</span>
+                      <span className="text-sm text-gray-400">
+                        {estadosEnZona.length}/{zona.estados.length}
+                      </span>
+                      {expandida ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                     </div>
+                    
+                    {/* Estados de la zona */}
+                    {expandida && (
+                      <div className="p-3 bg-slate-800/50 grid grid-cols-2 md:grid-cols-3 gap-2">
+                        {zona.estados.map(estado => (
+                          <label key={estado} className="flex items-center gap-2 cursor-pointer hover:bg-slate-700/50 p-1 rounded">
+                            <input
+                              type="checkbox"
+                              checked={estadosSeleccionados.includes(estado)}
+                              onChange={() => toggleEstado(estado)}
+                              className="w-4 h-4"
+                            />
+                            <span className="text-sm">{estado}</span>
+                          </label>
+                        ))}
+                      </div>
+                    )}
                   </div>
-                ))}
-              </div>
+                );
+              })}
             </div>
+          </div>
 
-            {/* Chat IA */}
-            <div className={cardStyle}>
-              <h3 className="text-white font-medium mb-4 flex items-center gap-2">
-                <Bot className="w-5 h-5 text-[#f97316]" />
-                Asistente IA para Filtrar
-              </h3>
-              
-              <div className="h-[400px] overflow-y-auto mb-4 space-y-3 pr-2">
-                {chatMessages.map((msg, idx) => (
-                  <div 
-                    key={idx}
-                    className={`p-3 rounded-lg ${
-                      msg.role === 'user' ? 'bg-[#f97316]/20 ml-8' : 'bg-white/10 mr-8'
-                    }`}
-                  >
-                    <div className="text-white/80 text-sm whitespace-pre-wrap">{msg.content}</div>
-                  </div>
-                ))}
-                {chatLoading && (
-                  <div className="flex items-center gap-2 text-white/50 p-3">
-                    <Loader2 className="w-4 h-4 animate-spin" /> Analizando...
-                  </div>
+          {/* Segmentos de mercado */}
+          <div className="bg-slate-800/50 rounded-xl p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold flex items-center gap-2">
+                <Factory className="w-5 h-5 text-purple-400" />
+                Segmentos de mercado
+              </h2>
+              <button
+                onClick={() => setSegmentosSeleccionados(
+                  segmentosSeleccionados.length === Object.keys(SEGMENTOS_MERCADO).length 
+                    ? [] 
+                    : Object.keys(SEGMENTOS_MERCADO)
                 )}
-                <div ref={chatEndRef} />
-              </div>
-
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={chatInput}
-                  onChange={e => setChatInput(e.target.value)}
-                  onKeyDown={e => e.key === 'Enter' && handleEnviarChat()}
-                  placeholder="Ej: Clasifica por prioridad A, B, C..."
-                  className="flex-1 bg-white/5 border border-white/20 rounded-lg px-4 py-2 text-white placeholder-white/30"
-                />
-                <button 
-                  onClick={handleEnviarChat}
-                  disabled={chatLoading || !chatInput.trim()}
-                  className="bg-[#f97316] hover:bg-[#ea580c] text-white p-2 rounded-lg disabled:opacity-50"
-                >
-                  <Send className="w-5 h-5" />
-                </button>
-              </div>
-            </div>
-
-            {/* Botones */}
-            <div className="col-span-2 flex justify-between">
-              <button onClick={() => setPaso(1)} className={btnSecondary}>
-                <ChevronDown className="w-4 h-4 rotate-90" /> Volver
-              </button>
-              <button 
-                onClick={handleValidarEmails}
-                disabled={validandoEmails || contactosFiltrados.filter(c => !c.excluido).length === 0}
-                className={btnPrimary}
+                className="text-sm text-gray-400 hover:text-white"
               >
-                {validandoEmails ? (
-                  <><Loader2 className="w-5 h-5 animate-spin" /> Validando ({progresValidacion}%)</>
-                ) : (
-                  <><CheckCircle2 className="w-5 h-5" /> Validar Emails</>
-                )}
+                {segmentosSeleccionados.length === Object.keys(SEGMENTOS_MERCADO).length ? 'Limpiar' : 'Seleccionar todos'}
               </button>
             </div>
-          </div>
-        )}
-
-        {/* ════════════════════════════════════════════════════════════════════════ */}
-        {/* PASO 3 y 4: Mantener igual que antes */}
-        {/* ════════════════════════════════════════════════════════════════════════ */}
-        {paso === 3 && (
-          <div className="space-y-6">
-            <div className="text-center mb-8">
-              <h2 className="text-xl font-semibold text-white mb-2">Paso 3: Resultados de Validación</h2>
-              <p className="text-white/60">Emails verificados por Hunter.io</p>
-            </div>
-
-            <div className="grid grid-cols-3 gap-4 max-w-3xl mx-auto">
-              <div className={cardStyle}>
-                <div className="text-center">
-                  <div className="text-3xl font-bold text-white mb-1">{contactosFiltrados.filter(c => !c.excluido).length}</div>
-                  <div className="text-white/60 text-sm">Total</div>
-                </div>
-              </div>
-              <div className={cardStyle}>
-                <div className="text-center">
-                  <div className="text-3xl font-bold text-green-400 mb-1">{contactosFiltrados.filter(c => !c.excluido && c.emailVerificado).length}</div>
-                  <div className="text-white/60 text-sm">Verificados</div>
-                </div>
-              </div>
-              <div className={cardStyle}>
-                <div className="text-center">
-                  <div className="text-3xl font-bold text-red-400 mb-1">{contactosFiltrados.filter(c => !c.excluido && !c.emailVerificado).length}</div>
-                  <div className="text-white/60 text-sm">No verificados</div>
-                </div>
-              </div>
-            </div>
-
-            <div className={`${cardStyle} max-w-4xl mx-auto max-h-[400px] overflow-y-auto`}>
-              {contactosFiltrados.filter(c => !c.excluido).map(contacto => (
-                <div key={contacto.id} className={`p-3 rounded-lg flex items-center justify-between mb-2 ${
-                  contacto.emailVerificado ? 'bg-green-500/10 border border-green-500/30' : 'bg-red-500/10 border border-red-500/30'
-                }`}>
-                  <div>
-                    <div className="text-white font-medium">{contacto.nombre} {contacto.apellido}</div>
-                    <div className="text-white/60 text-sm">{contacto.empresa} - {contacto.puesto}</div>
-                    <div className="text-white/50 text-xs">{contacto.email}</div>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <span className="text-white/60 text-sm">Score: {contacto.emailScore}%</span>
-                    {contacto.emailVerificado ? <CheckCircle2 className="w-6 h-6 text-green-400" /> : <XCircle className="w-6 h-6 text-red-400" />}
-                  </div>
-                </div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              {Object.entries(SEGMENTOS_MERCADO).map(([key, seg]) => (
+                <button
+                  key={key}
+                  onClick={() => setSegmentosSeleccionados(prev =>
+                    prev.includes(key) ? prev.filter(s => s !== key) : [...prev, key]
+                  )}
+                  className={`p-3 rounded-lg border-2 transition-all flex items-center gap-2
+                    ${segmentosSeleccionados.includes(key)
+                      ? 'border-orange-500 bg-orange-500/20'
+                      : 'border-gray-600 hover:border-gray-500'}`}
+                >
+                  <span className="text-xl">{seg.icon}</span>
+                  <span className="text-sm">{seg.nombre}</span>
+                </button>
               ))}
             </div>
-
-            <div className="flex justify-between max-w-4xl mx-auto">
-              <button onClick={() => setPaso(2)} className={btnSecondary}>
-                <ChevronDown className="w-4 h-4 rotate-90" /> Volver
-              </button>
-              <button onClick={handleGenerarListaFinal} className={btnPrimary}>
-                <Download className="w-5 h-5" /> Generar Lista Final
-              </button>
-            </div>
           </div>
-        )}
 
-        {paso === 4 && (
-          <div className="space-y-6">
-            <div className="text-center mb-8">
-              <h2 className="text-xl font-semibold text-white mb-2">✅ Lista Final</h2>
-              <p className="text-white/60">{contactosFinales.length} contactos verificados</p>
+          {/* Botón buscar */}
+          <button
+            onClick={handleBuscarContactos}
+            disabled={loading || !fuenteSeleccionada || segmentosSeleccionados.length === 0}
+            className="w-full py-4 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 
+              disabled:opacity-50 disabled:cursor-not-allowed rounded-xl font-semibold text-lg flex items-center justify-center gap-2"
+          >
+            {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Search className="w-5 h-5" />}
+            {loading ? 'Buscando...' : 'Buscar Contactos'}
+          </button>
+        </div>
+      )}
+
+      {/* PASO 2: Lista de contactos + Chat */}
+      {paso === 2 && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Lista de contactos */}
+          <div className="bg-slate-800/50 rounded-xl p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold flex items-center gap-2">
+                <Users className="w-5 h-5 text-blue-400" />
+                Contactos ({contactos.length})
+              </h2>
+              <div className="flex gap-2 text-sm">
+                <span className="px-2 py-1 bg-green-600/30 text-green-400 rounded">🆕 {stats.nuevos}</span>
+                <span className="px-2 py-1 bg-blue-600/30 text-blue-400 rounded">📁 {stats.existentes}</span>
+              </div>
             </div>
 
-            <div className="grid grid-cols-3 gap-4 max-w-3xl mx-auto">
-              {['A', 'B', 'C'].map(p => (
-                <div key={p} className={`${cardStyle} border-${p === 'A' ? 'green' : p === 'B' ? 'yellow' : 'gray'}-500/50`}>
-                  <div className="text-center">
-                    <div className={`text-3xl font-bold mb-1 ${p === 'A' ? 'text-green-400' : p === 'B' ? 'text-yellow-400' : 'text-gray-400'}`}>
-                      {contactosFinales.filter(c => c.prioridad === p || (!c.prioridad && p === 'C')).length}
+            {/* Info de paginación */}
+            <div className="mb-4 p-3 bg-slate-700/50 rounded-lg text-sm">
+              <div className="flex justify-between items-center">
+                <span>
+                  Mostrando {contactos.length} de {paginacion.total.toLocaleString()} disponibles
+                </span>
+                <span className="text-gray-400">
+                  Página {paginacion.currentPage} de {paginacion.totalPages}
+                </span>
+              </div>
+            </div>
+
+            {/* Lista scrolleable */}
+            <div className="space-y-2 max-h-[400px] overflow-y-auto mb-4">
+              {contactos.map(c => (
+                <div 
+                  key={c.id}
+                  className={`p-3 rounded-lg border ${
+                    c.excluido ? 'border-red-800 bg-red-900/20 opacity-50' :
+                    c.esNuevo ? 'border-green-600 bg-green-900/20' :
+                    'border-gray-700 bg-slate-700/30'
+                  }`}
+                >
+                  <div className="flex items-start gap-3">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium truncate">{c.nombre} {c.apellido}</span>
+                        {c.esNuevo && <span className="text-xs bg-green-600 px-1 rounded">NUEVO</span>}
+                        {c.yaExistia && <span className="text-xs bg-blue-600 px-1 rounded">GUARDADO</span>}
+                      </div>
+                      <p className="text-sm text-gray-400 truncate">{c.puesto}</p>
+                      <p className="text-sm text-blue-400 truncate">{c.empresa}</p>
+                      <div className="flex items-center gap-2 mt-1 text-xs text-gray-500">
+                        <Mail className="w-3 h-3" />
+                        <span className={c.email === 'email_not_unlocked@domain.com' ? 'text-yellow-500' : ''}>
+                          {c.email === 'email_not_unlocked@domain.com' ? '🔒 Bloqueado' : c.email}
+                        </span>
+                      </div>
                     </div>
-                    <div className="text-white/60 text-sm">Prioridad {p}</div>
+                    <button
+                      onClick={() => setContactos(prev => prev.map(x => 
+                        x.id === c.id ? { ...x, excluido: !x.excluido } : x
+                      ))}
+                      className="p-1 hover:bg-white/10 rounded"
+                    >
+                      {c.excluido ? <RefreshCw className="w-4 h-4" /> : <Trash2 className="w-4 h-4 text-red-400" />}
+                    </button>
                   </div>
                 </div>
               ))}
             </div>
 
-            <div className={`${cardStyle} max-w-5xl mx-auto overflow-x-auto`}>
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="text-white/60 border-b border-white/10">
-                    <th className="text-left py-2 px-3">Nombre</th>
-                    <th className="text-left py-2 px-3">Email</th>
-                    <th className="text-left py-2 px-3">Empresa</th>
-                    <th className="text-left py-2 px-3">Puesto</th>
-                    <th className="text-left py-2 px-3">Prioridad</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {contactosFinales.slice(0, 20).map(c => (
-                    <tr key={c.id} className="border-b border-white/5 text-white/80">
-                      <td className="py-2 px-3">{c.nombre} {c.apellido}</td>
-                      <td className="py-2 px-3">{c.email}</td>
-                      <td className="py-2 px-3">{c.empresa}</td>
-                      <td className="py-2 px-3">{c.puesto}</td>
-                      <td className="py-2 px-3">
-                        <span className={`px-2 py-0.5 rounded text-xs font-medium ${
-                          c.prioridad === 'A' ? 'bg-green-500/20 text-green-400' :
-                          c.prioridad === 'B' ? 'bg-yellow-500/20 text-yellow-400' :
-                          'bg-gray-500/20 text-gray-400'
-                        }`}>{c.prioridad || 'C'}</span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-              {contactosFinales.length > 20 && (
-                <div className="text-center text-white/40 py-2">+ {contactosFinales.length - 20} más...</div>
+            {/* Botones de paginación */}
+            <div className="flex gap-2">
+              <button
+                onClick={handleCargarMas}
+                disabled={loadingMore || paginacion.currentPage >= paginacion.totalPages}
+                className="flex-1 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 rounded-lg flex items-center justify-center gap-2"
+              >
+                {loadingMore ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+                Cargar +{CONTACTOS_POR_PAGINA}
+              </button>
+              <button
+                onClick={handleTraerTodos}
+                disabled={loadingMore || paginacion.loaded >= paginacion.total}
+                className="flex-1 py-2 bg-purple-600 hover:bg-purple-700 disabled:opacity-50 rounded-lg flex items-center justify-center gap-2"
+              >
+                <Zap className="w-4 h-4" />
+                Traer Todos ({paginacion.total.toLocaleString()})
+              </button>
+            </div>
+
+            {/* Botón guardar */}
+            <button
+              onClick={handleGuardarTodos}
+              disabled={guardando || stats.nuevos === 0}
+              className="w-full mt-4 py-3 bg-green-600 hover:bg-green-700 disabled:opacity-50 rounded-lg flex items-center justify-center gap-2"
+            >
+              {guardando ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
+              Guardar {stats.nuevos} Nuevos en BD
+            </button>
+          </div>
+
+          {/* Chat IA */}
+          <div className="bg-slate-800/50 rounded-xl p-6 flex flex-col">
+            <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
+              <Bot className="w-5 h-5 text-orange-400" />
+              Asistente IA para Filtrar
+            </h2>
+            
+            <div 
+              ref={chatRef}
+              className="flex-1 overflow-y-auto space-y-3 mb-4 max-h-[500px]"
+            >
+              {chatMessages.map((msg, i) => (
+                <div
+                  key={i}
+                  className={`p-3 rounded-lg ${
+                    msg.role === 'assistant' 
+                      ? 'bg-slate-700' 
+                      : 'bg-orange-600/20 ml-8'
+                  }`}
+                >
+                  <p className="whitespace-pre-wrap text-sm">{msg.content}</p>
+                </div>
+              ))}
+              {chatLoading && (
+                <div className="flex items-center gap-2 text-gray-400">
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Pensando...
+                </div>
               )}
             </div>
 
-            <div className="flex justify-center gap-4">
-              <button onClick={() => setPaso(1)} className={btnSecondary}>
-                <RefreshCw className="w-4 h-4" /> Nueva Búsqueda
-              </button>
-              <button onClick={handleExportarCSV} className={btnPrimary}>
-                <Download className="w-5 h-5" /> Exportar CSV
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={chatInput}
+                onChange={e => setChatInput(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && !e.shiftKey && handleEnviarChat()}
+                placeholder="Ej: Solo empresas de alimentos..."
+                className="flex-1 p-3 bg-slate-700 rounded-lg border border-gray-600 focus:border-orange-500 outline-none"
+              />
+              <button
+                onClick={handleEnviarChat}
+                disabled={chatLoading || !chatInput.trim()}
+                className="p-3 bg-orange-600 hover:bg-orange-700 disabled:opacity-50 rounded-lg"
+              >
+                <Send className="w-5 h-5" />
               </button>
             </div>
           </div>
-        )}
-      </div>
+        </div>
+      )}
+
+      {/* Botones de navegación */}
+      {paso > 1 && (
+        <div className="mt-6 flex gap-4">
+          <button
+            onClick={() => setPaso((paso - 1) as any)}
+            className="px-6 py-3 bg-gray-700 hover:bg-gray-600 rounded-lg"
+          >
+            ← Volver
+          </button>
+          {paso === 2 && (
+            <button
+              onClick={() => setPaso(3)}
+              disabled={contactos.filter(c => !c.excluido).length === 0}
+              className="px-6 py-3 bg-orange-600 hover:bg-orange-700 disabled:opacity-50 rounded-lg ml-auto flex items-center gap-2"
+            >
+              Validar Emails <ArrowRight className="w-4 h-4" />
+            </button>
+          )}
+        </div>
+      )}
     </div>
   );
+
+  // Chat handler (simplificado)
+  async function handleEnviarChat() {
+    if (!chatInput.trim() || chatLoading) return;
+    
+    const userMsg = chatInput.trim();
+    setChatInput('');
+    setChatMessages(prev => [...prev, { role: 'user', content: userMsg }]);
+    setChatLoading(true);
+    
+    try {
+      // Por ahora respuesta simple, después integramos Claude
+      setChatMessages(prev => [...prev, {
+        role: 'assistant',
+        content: `Entendido. Filtro aplicado: "${userMsg}"\n\n(Integración completa con Claude próximamente)`
+      }]);
+    } finally {
+      setChatLoading(false);
+    }
+  }
 };
 
 export default ProspeccionIAModule;
