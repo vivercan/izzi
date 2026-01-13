@@ -13,10 +13,12 @@ import {
 } from 'lucide-react';
 
 // ═══════════════════════════════════════════════════════════════════════════
-// CONFIGURACIÓN DE APIs - Usar variables de entorno de Vite
+// CONFIGURACIÓN DE APIs
 // ═══════════════════════════════════════════════════════════════════════════
-const APOLLO_API_KEY = import.meta.env.VITE_APOLLO_API_KEY || '';
-const HUNTER_API_KEY = import.meta.env.VITE_HUNTER_API_KEY || '';
+// Las API keys de Apollo y Hunter están en Supabase Edge Function (evita CORS)
+// Solo Anthropic se llama directo desde el browser (soporta CORS)
+const SUPABASE_URL = 'https://fbxbsslhewchyibdoyzk.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZieGJzc2xoZXdjaHlpYmRveXprIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI1MzczODEsImV4cCI6MjA3ODExMzM4MX0.Z8JPlg7hhKbA624QGHp2bKKTNtCD3WInQMO5twjl6a0';
 const ANTHROPIC_API_KEY = import.meta.env.VITE_ANTHROPIC_API_KEY || '';
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -239,8 +241,8 @@ export const ProspeccionIAModule = ({ onBack }: ProspeccionIAModuleProps) => {
   const [validandoEmails, setValidandoEmails] = useState(false);
   const [progresValidacion, setProgresValidacion] = useState(0);
 
-  // Verificar configuración de APIs
-  const apisConfiguradas = APOLLO_API_KEY && HUNTER_API_KEY && ANTHROPIC_API_KEY;
+  // Verificar configuración de APIs (solo necesitamos Anthropic en el frontend)
+  const apisConfiguradas = ANTHROPIC_API_KEY && SUPABASE_URL;
 
   // ═══════════════════════════════════════════════════════════════════════════
   // HANDLERS DE FILTROS
@@ -304,67 +306,44 @@ export const ProspeccionIAModule = ({ onBack }: ProspeccionIAModuleProps) => {
     return segmentosSeleccionados.flatMap(s => SEGMENTOS_MERCADO[s]?.keywords || []);
   };
 
-  // Buscar en Apollo
+  // Buscar en Apollo (via Edge Function para evitar CORS)
   const buscarApollo = async (): Promise<Contacto[]> => {
-    if (!APOLLO_API_KEY) {
-      throw new Error('Apollo API Key no configurada');
-    }
-    
     try {
       const puestosABuscar = soloCLevel ? PUESTOS_CLEVEL : PUESTOS_DECISION;
       const ubicaciones = estadosSeleccionados.length > 0 
         ? estadosSeleccionados.map(e => `${e}, Mexico`)
         : ['Mexico'];
 
-      const bodyRequest: any = {
-        api_key: APOLLO_API_KEY,
-        page: 1,
-        per_page: 100,
-        organization_locations: ubicaciones,
-        person_titles: puestosABuscar.slice(0, 10),
-        contact_email_status: ['verified', 'likely_valid']
-      };
-
-      // Si hay búsqueda por empresa específica
-      if (buscarEmpresa.trim()) {
-        bodyRequest.q_organization_name = buscarEmpresa.trim();
-      }
-
-      const response = await fetch('https://api.apollo.io/v1/mixed_people/search', {
+      const response = await fetch(`${SUPABASE_URL}/functions/v1/prospeccion-api`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Cache-Control': 'no-cache',
-          'X-Api-Key': APOLLO_API_KEY
+          'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
         },
-        body: JSON.stringify(bodyRequest)
+        body: JSON.stringify({
+          action: 'apollo_search',
+          params: {
+            locations: ubicaciones,
+            titles: puestosABuscar.slice(0, 10),
+            company_name: buscarEmpresa.trim() || undefined,
+            page: 1,
+            per_page: 100
+          }
+        })
       });
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.message || 'Error en Apollo API');
+        throw new Error(errorData.error || 'Error en Apollo API');
       }
 
       const data = await response.json();
-      
-      return (data.people || []).map((p: any, idx: number) => ({
-        id: `apollo-${idx}-${Date.now()}`,
-        nombre: p.first_name || '',
-        apellido: p.last_name || '',
-        email: p.email || '',
-        emailVerificado: p.email_status === 'verified',
-        emailScore: p.email_status === 'verified' ? 100 : p.email_status === 'likely_valid' ? 80 : 50,
-        empresa: p.organization?.name || '',
-        industria: p.organization?.industry || '',
-        puesto: p.title || '',
-        ciudad: p.city || '',
-        estado: p.state || '',
-        pais: p.country || 'Mexico',
-        linkedin: p.linkedin_url || '',
-        telefono: p.phone_numbers?.[0]?.sanitized_number || '',
-        fuente: 'apollo' as const,
-        prioridad: null,
-        excluido: false
+      // Agregar campos faltantes a los contactos de Apollo
+      return (data.contacts || []).map((c: any) => ({
+        ...c,
+        prioridad: c.prioridad || null,
+        excluido: c.excluido || false,
+        fuente: 'apollo' as const
       }));
     } catch (err: any) {
       console.error('Error Apollo:', err);
@@ -372,24 +351,17 @@ export const ProspeccionIAModule = ({ onBack }: ProspeccionIAModuleProps) => {
     }
   };
 
-  // Buscar en Hunter
+  // Buscar en Hunter (via Edge Function para evitar CORS)
   const buscarHunter = async (): Promise<Contacto[]> => {
-    if (!HUNTER_API_KEY) {
-      throw new Error('Hunter API Key no configurada');
-    }
-    
     try {
-      // Si hay empresa específica, buscar su dominio
       let domains: string[] = [];
       
       if (buscarEmpresa.trim()) {
-        // Intentar construir dominio desde nombre de empresa
         const empresaLimpia = buscarEmpresa.trim().toLowerCase()
           .replace(/\s+/g, '')
           .replace(/[^a-z0-9]/g, '');
         domains = [`${empresaLimpia}.com`, `${empresaLimpia}.com.mx`];
       } else {
-        // Dominios por defecto de empresas grandes en México
         domains = [
           'bafar.com.mx', 'barcel.com.mx', 'grupoalfa.com.mx', 'gruma.com',
           'cemex.com', 'femsa.com', 'bimbo.com', 'lala.com.mx', 'alpura.com',
@@ -397,65 +369,55 @@ export const ProspeccionIAModule = ({ onBack }: ProspeccionIAModuleProps) => {
         ];
       }
 
-      const allContacts: Contacto[] = [];
+      const response = await fetch(`${SUPABASE_URL}/functions/v1/prospeccion-api`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+        },
+        body: JSON.stringify({
+          action: 'hunter_domain_search',
+          params: { domains }
+        })
+      });
 
-      for (const domain of domains.slice(0, 5)) {
-        const response = await fetch(
-          `https://api.hunter.io/v2/domain-search?domain=${domain}&api_key=${HUNTER_API_KEY}&limit=10`
-        );
-
-        if (response.ok) {
-          const data = await response.json();
-          const emails = data.data?.emails || [];
-          
-          emails.forEach((e: any, idx: number) => {
-            allContacts.push({
-              id: `hunter-${domain}-${idx}-${Date.now()}`,
-              nombre: e.first_name || '',
-              apellido: e.last_name || '',
-              email: e.value || '',
-              emailVerificado: e.verification?.status === 'valid',
-              emailScore: e.confidence || 0,
-              empresa: data.data?.organization || domain,
-              industria: data.data?.industry || '',
-              puesto: e.position || '',
-              ciudad: '',
-              estado: '',
-              pais: 'Mexico',
-              linkedin: e.linkedin || '',
-              telefono: e.phone_number || '',
-              fuente: 'hunter' as const,
-              prioridad: null,
-              excluido: false
-            });
-          });
-        }
-        
-        await new Promise(resolve => setTimeout(resolve, 500));
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Error en Hunter API');
       }
 
-      return allContacts;
+      const data = await response.json();
+      // Agregar campos faltantes a los contactos de Hunter
+      return (data.contacts || []).map((c: any) => ({
+        ...c,
+        prioridad: c.prioridad || null,
+        excluido: c.excluido || false,
+        fuente: 'hunter' as const
+      }));
     } catch (err: any) {
       console.error('Error Hunter:', err);
       throw new Error(`Hunter: ${err.message}`);
     }
   };
 
-  // Validar email con Hunter
+  // Validar email con Hunter (via Edge Function)
   const validarEmailHunter = async (email: string): Promise<{ valid: boolean; score: number }> => {
-    if (!HUNTER_API_KEY) return { valid: false, score: 0 };
-    
     try {
-      const response = await fetch(
-        `https://api.hunter.io/v2/email-verifier?email=${encodeURIComponent(email)}&api_key=${HUNTER_API_KEY}`
-      );
-      
+      const response = await fetch(`${SUPABASE_URL}/functions/v1/prospeccion-api`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+        },
+        body: JSON.stringify({
+          action: 'hunter_verify_email',
+          params: { email }
+        })
+      });
+
       if (response.ok) {
         const data = await response.json();
-        return {
-          valid: data.data?.status === 'valid',
-          score: data.data?.score || 0
-        };
+        return { valid: data.valid || false, score: data.score || 0 };
       }
       return { valid: false, score: 0 };
     } catch {
@@ -779,7 +741,7 @@ Si el usuario pide clasificar por prioridad, usa:
           <div className="mb-6 p-4 bg-yellow-500/20 border border-yellow-500/50 rounded-xl text-yellow-400">
             <div className="flex items-center gap-3">
               <AlertCircle className="w-5 h-5" />
-              <span><strong>APIs no configuradas</strong> - Configura las variables VITE_APOLLO_API_KEY, VITE_HUNTER_API_KEY, VITE_ANTHROPIC_API_KEY en Vercel</span>
+              <span><strong>APIs no configuradas</strong> - Configura VITE_ANTHROPIC_API_KEY en Vercel y despliega la Edge Function prospeccion-api</span>
             </div>
           </div>
         )}
