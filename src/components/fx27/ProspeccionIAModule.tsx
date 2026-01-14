@@ -51,14 +51,56 @@ const FUNCIONES = [
   { id: 'finanzas', nombre: 'Finanzas Op.', keywords: ['Finance', 'Accounting', 'Controller', 'Finanzas', 'Contabilidad', 'Tesorería', 'Facturación'] }
 ];
 
-// Exclusiones automáticas (lista negra)
-const EXCLUSIONES = [
-  'logistics', 'transportation', 'trucking', 'freight', '3pl', '4pl', 'courier', 'shipping',
-  'bank', 'banking', 'insurance', 'financial services', 'fintech',
-  'government', 'ngo', 'nonprofit', 'education', 'university',
-  'hotel', 'restaurant', 'hospitality', 'tourism',
-  'consulting', 'agency', 'marketing', 'advertising',
-  'legal', 'law firm', 'accounting firm', 'real estate'
+// Exclusiones automáticas (lista negra) - NOMBRES ESPECÍFICOS + KEYWORDS
+const EXCLUSIONES_EMPRESAS = [
+  // Bancos específicos
+  'bbva', 'bancomer', 'santander', 'hsbc', 'banamex', 'citibanamex', 'banorte', 'scotiabank',
+  'inbursa', 'banco azteca', 'compartamos', 'afirme', 'banbajio', 'banco del bajio',
+  'actinver', 'multiva', 'banregio', 'mifel', 'hey banco', 'nu bank', 'nubank',
+  // Logística/Transporte específicos
+  'abc logistica', 'abc logística', 'dhl', 'fedex', 'ups', 'estafeta', 'paquetexpress', 
+  'redpack', 'j&t express', 'castores', 'fletes', 'transportes', 'freight',
+  '99 minutos', 'enviaflores', 'mercado envios',
+  // Consultoras
+  'deloitte', 'kpmg', 'pwc', 'ey ', 'ernst young', 'mckinsey', 'bain', 'bcg', 'accenture',
+  // Recursos Humanos / Reclutamiento
+  'manpower', 'adecco', 'kelly services', 'randstad', 'recursos humanos', '4work',
+  'occ mundial', 'computrabajo', 'linkedin', 'indeed', 'glassdoor', 'careeradvisor',
+  'brivé', 'brive', 'evaluar', 'talent clue', 'workable', 'greenhouse',
+  // Hoteles
+  'marriott', 'hilton', 'hyatt', 'intercontinental', 'holiday inn', 'fiesta americana',
+  'city express', 'camino real', 'posadas',
+  // Aerolíneas
+  'aeromexico', 'aeroméxico', 'volaris', 'viva aerobus', 'interjet',
+  // Otros servicios a excluir
+  'axity', 'softtek', 'infosys', 'tcs', 'wipro', 'cognizant',
+  'avocado creative', 'barroso mayorga', // Agencias de la lista
+];
+
+const EXCLUSIONES_KEYWORDS = [
+  // Logística y Transporte
+  'logistics', 'logistica', 'logística', 'transportation', 'trucking', 'freight', 
+  '3pl', '4pl', 'courier', 'shipping', 'forwarding', 'mensajeria', 'paqueteria',
+  // Banca y Finanzas
+  'bank', 'banking', 'banco', 'insurance', 'aseguradora', 'seguros', 'financial services', 
+  'fintech', 'credito', 'crédito', 'prestamos', 'préstamos', 'financiera',
+  // Gobierno y ONGs
+  'government', 'gobierno', 'ngo', 'nonprofit', 'ong', 'fundacion', 'fundación',
+  // Educación
+  'education', 'university', 'universidad', 'school', 'escuela', 'colegio', 'instituto',
+  // Hospitalidad
+  'hotel', 'resort', 'restaurant', 'restaurante', 'hospitality', 'tourism', 'turismo',
+  // Servicios profesionales
+  'consulting', 'consultoria', 'consultoría', 'agency', 'agencia', 'marketing', 
+  'advertising', 'publicidad', 'legal', 'law firm', 'abogados', 'despacho legal',
+  'accounting firm', 'contadores', 'contabilidad', 'auditoria',
+  // Inmobiliario
+  'real estate', 'inmobiliaria', 'bienes raices', 'bienes raíces',
+  // Recursos Humanos
+  'reclutamiento', 'headhunter', 'talent acquisition', 'staffing', 'career', 
+  'empleo', 'trabajo', 'job board', 'executive search', 'outplacement',
+  // Software/SaaS sin operación física
+  'software company', 'saas', 'digital agency', 'web development',
 ];
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -128,9 +170,35 @@ const detectarZona = (estado: string): string => {
   return 'Otro';
 };
 
-const esEmpresaExcluida = (empresa: string, industria: string): boolean => {
-  const texto = `${empresa} ${industria}`.toLowerCase();
-  return EXCLUSIONES.some(exc => texto.includes(exc));
+const esEmpresaExcluida = (empresa: string, industria: string, puesto?: string): boolean => {
+  const emp = empresa.toLowerCase();
+  const ind = industria.toLowerCase();
+  const pue = (puesto || '').toLowerCase();
+  const texto = `${emp} ${ind}`;
+  
+  // Verificar nombres específicos de empresas excluidas
+  if (EXCLUSIONES_EMPRESAS.some(exc => emp.includes(exc))) {
+    return true;
+  }
+  
+  // Verificar keywords en empresa o industria
+  if (EXCLUSIONES_KEYWORDS.some(exc => texto.includes(exc))) {
+    return true;
+  }
+  
+  // Excluir puestos de RH/Reclutamiento/Marketing
+  const puestosExcluidos = [
+    'talent acquisition', 'reclutador', 'recruiter', 'hr ', 'human resources',
+    'recursos humanos', 'headhunter', 'marketing', 'community manager',
+    'social media', 'content', 'seo', 'sem', 'publicista', 'diseñador',
+    'developer', 'programador', 'software engineer', 'data scientist',
+    'employee relations', 'people', 'cultura organizacional'
+  ];
+  if (puestosExcluidos.some(exc => pue.includes(exc))) {
+    return true;
+  }
+  
+  return false;
 };
 
 const normalizarPuesto = (puesto: string): string => {
@@ -266,9 +334,26 @@ export const ProspeccionIAModule = ({ onBack }: { onBack: () => void }) => {
   const construirTitulos = () => {
     const titles: string[] = [];
     
-    // Si no hay filtros seleccionados, no enviar titles (busca todos)
+    // Si no hay filtros seleccionados, usar lista AMPLIA por defecto
     if (jerarquiasActivas.length === 0 && funcionesActivas.length === 0) {
-      return undefined; // Apollo buscará todos los títulos
+      return [
+        // C-Level y Dirección
+        'CEO', 'COO', 'CFO', 'Director General', 'President', 'Owner', 'Founder',
+        'Managing Director', 'General Manager', 'Country Manager',
+        // Directores
+        'Director', 'VP', 'Vice President', 'Director de Operaciones', 
+        'Director de Logística', 'Director de Supply Chain', 'Director de Compras',
+        'Director de Planta', 'Director Comercial', 'Director de Producción',
+        // Gerentes
+        'Gerente', 'Manager', 'Gerente de Operaciones', 'Gerente de Logística',
+        'Gerente de Planta', 'Gerente de Compras', 'Gerente de Supply Chain',
+        'Gerente de Almacén', 'Gerente de Distribución', 'Gerente de Producción',
+        'Plant Manager', 'Operations Manager', 'Supply Chain Manager',
+        'Logistics Manager', 'Procurement Manager', 'Purchasing Manager',
+        'Warehouse Manager', 'Distribution Manager',
+        // Comercio Exterior
+        'Import', 'Export', 'Comercio Exterior', 'Trade', 'International'
+      ];
     }
     
     jerarquiasActivas.forEach(j => {
@@ -279,7 +364,7 @@ export const ProspeccionIAModule = ({ onBack }: { onBack: () => void }) => {
       const func = FUNCIONES.find(x => x.id === f);
       if (func) titles.push(...func.keywords);
     });
-    return [...new Set(titles)].slice(0, 20);
+    return [...new Set(titles)].slice(0, 25);
   };
 
   const buscarEnApollo = async (page = 1) => {
@@ -292,15 +377,11 @@ export const ProspeccionIAModule = ({ onBack }: { onBack: () => void }) => {
 
     const params: any = {
       locations: ubicaciones,
+      titles: titles, // Siempre enviar titles
       company_name: empresaBusqueda.trim() || undefined,
       page,
       per_page: porPagina
     };
-    
-    // Solo agregar titles si hay filtros seleccionados
-    if (titles && titles.length > 0) {
-      params.titles = titles;
-    }
 
     const response = await fetch(`${SUPABASE_URL}/functions/v1/prospeccion-api`, {
       method: 'POST',
@@ -326,7 +407,7 @@ export const ProspeccionIAModule = ({ onBack }: { onBack: () => void }) => {
         const estado = c.estado || '';
         
         // Excluir empresas de lista negra
-        if (esEmpresaExcluida(empresa, industria)) {
+        if (esEmpresaExcluida(empresa, industria, puesto)) {
           return null;
         }
 
