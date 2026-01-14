@@ -293,6 +293,11 @@ export const ProspeccionIAModule = ({ onBack }: { onBack: () => void }) => {
   const [mostrarModal, setMostrarModal] = useState(false);
   const [desbloqueando, setDesbloqueando] = useState<string | null>(null);
   const [confirmandoDesbloqueo, setConfirmandoDesbloqueo] = useState<string | null>(null);
+  
+  // Extracción masiva
+  const [extrayendoTodo, setExtrayendoTodo] = useState(false);
+  const [progresoExtraccion, setProgresoExtraccion] = useState({ pagina: 0, total: 0, guardados: 0 });
+  const [cancelarExtraccion, setCancelarExtraccion] = useState(false);
 
   const toggleFilter = (key: keyof typeof expandedFilters) => {
     setExpandedFilters(prev => ({ ...prev, [key]: !prev[key] }));
@@ -563,8 +568,112 @@ export const ProspeccionIAModule = ({ onBack }: { onBack: () => void }) => {
   };
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // EXPORTAR A EXCEL - TODO EL HISTÓRICO DE SUPABASE
+  // EXTRACCIÓN MASIVA Y EXPORTAR A EXCEL
   // ═══════════════════════════════════════════════════════════════════════════
+
+  const extraerTodoYExportar = async () => {
+    if (paginacion.total === 0) {
+      alert('Primero realiza una búsqueda');
+      return;
+    }
+
+    const totalPaginas = Math.ceil(paginacion.total / 100);
+    const confirmacion = confirm(
+      `¿Extraer ${paginacion.total.toLocaleString()} contactos?\n\n` +
+      `• ${totalPaginas.toLocaleString()} páginas a procesar\n` +
+      `• Se guardarán en base de datos\n` +
+      `• Tiempo estimado: ${Math.ceil(totalPaginas * 1.5 / 60)} minutos\n` +
+      `• Emails quedan bloqueados (se desbloquean después)\n\n` +
+      `¿Continuar?`
+    );
+
+    if (!confirmacion) return;
+
+    setExtrayendoTodo(true);
+    setCancelarExtraccion(false);
+    setProgresoExtraccion({ pagina: 0, total: totalPaginas, guardados: 0 });
+
+    let todosLosContactos: any[] = [];
+    let totalGuardados = 0;
+
+    try {
+      for (let pagina = 1; pagina <= totalPaginas; pagina++) {
+        if (cancelarExtraccion) {
+          alert(`Extracción cancelada en página ${pagina}. ${totalGuardados} contactos guardados.`);
+          break;
+        }
+
+        setProgresoExtraccion(prev => ({ ...prev, pagina }));
+
+        // Buscar página
+        const { contacts } = await buscar(pagina);
+        
+        if (contacts.length === 0) break;
+
+        // Guardar en Supabase inmediatamente
+        await guardarEnSupabase(contacts);
+        totalGuardados += contacts.length;
+        todosLosContactos = [...todosLosContactos, ...contacts];
+
+        setProgresoExtraccion(prev => ({ ...prev, guardados: totalGuardados }));
+
+        // Pequeña pausa para no saturar la API
+        await new Promise(resolve => setTimeout(resolve, 500));
+      }
+
+      // Generar Excel con todo lo guardado
+      if (todosLosContactos.length > 0) {
+        generarExcel(todosLosContactos);
+        alert(`✅ Extracción completada!\n\n${totalGuardados.toLocaleString()} contactos guardados y exportados.`);
+      }
+
+    } catch (err) {
+      console.error('Error en extracción:', err);
+      alert(`Error en extracción. ${totalGuardados} contactos guardados hasta el momento.`);
+    } finally {
+      setExtrayendoTodo(false);
+      setProgresoExtraccion({ pagina: 0, total: 0, guardados: 0 });
+    }
+  };
+
+  const generarExcel = (datos: Contacto[]) => {
+    const headers = [
+      'Empresa', 'Sector', 'Nombre', 'Apellido', 'Puesto',
+      'Jerarquía', 'Función', 'Email', 'Email Status', 'Estado', 'Zona',
+      'LinkedIn', 'Teléfono', 'Fuente', 'Fecha'
+    ];
+
+    const rows = datos.map(c => [
+      c.empresa || '',
+      c.industria || '',
+      c.nombre || '',
+      c.apellido || '',
+      c.puesto_normalizado || c.puesto_original || '',
+      c.jerarquia || '',
+      c.funcion || '',
+      c.email || '🔒 Bloqueado',
+      c.email_status || 'locked',
+      c.estado || '',
+      c.zona || '',
+      c.linkedin || '',
+      c.telefono || '',
+      c.fuente || 'apollo',
+      new Date().toISOString().split('T')[0]
+    ]);
+
+    const csvContent = [
+      headers.join(','),
+      ...rows.map(row => row.map(cell => `"${(cell || '').toString().replace(/"/g, '""')}"`).join(','))
+    ].join('\n');
+
+    const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `prospeccion_${datos.length}_contactos_${new Date().toISOString().split('T')[0]}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
 
   const exportarExcel = async () => {
     setExportando(true);
@@ -579,49 +688,13 @@ export const ProspeccionIAModule = ({ onBack }: { onBack: () => void }) => {
 
       if (error) throw error;
       
-      const datos = data || [];
-      
-      // Crear CSV
-      const headers = [
-        'Empresa', 'Nombre', 'Apellido', 'Puesto Original', 'Puesto Normalizado',
-        'Jerarquía', 'Función', 'Email', 'Email Status', 'Estado', 'Zona',
-        'Industria', 'LinkedIn', 'Teléfono', 'Fuente', 'Fecha Captura', 'Activo'
-      ];
+      if (!data || data.length === 0) {
+        alert('No hay contactos guardados en la base de datos.\n\nUsa el botón "Extraer Todo" para descargar y guardar contactos.');
+        return;
+      }
 
-      const rows = datos.map((c: any) => [
-        c.empresa || '',
-        c.nombre || '',
-        c.apellido || '',
-        c.puesto_original || c.puesto || '',
-        c.puesto_normalizado || '',
-        c.jerarquia || '',
-        c.funcion || '',
-        c.email || '🔒 Bloqueado',
-        c.email_status || 'locked',
-        c.estado || '',
-        c.zona || '',
-        c.industria || '',
-        c.linkedin || '',
-        c.telefono || '',
-        c.fuente || 'apollo',
-        c.fecha_captura || c.created_at || '',
-        c.activo ? 'Sí' : 'No'
-      ]);
-
-      const csvContent = [
-        headers.join(','),
-        ...rows.map(row => row.map(cell => `"${(cell || '').toString().replace(/"/g, '""')}"`).join(','))
-      ].join('\n');
-
-      const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `prospeccion_historico_${new Date().toISOString().split('T')[0]}.csv`;
-      link.click();
-      URL.revokeObjectURL(url);
-
-      alert(`Exportados ${datos.length} contactos del histórico`);
+      generarExcel(data as Contacto[]);
+      alert(`Exportados ${data.length.toLocaleString()} contactos del histórico`);
 
     } catch (err) {
       console.error('Error exportando:', err);
@@ -816,15 +889,54 @@ export const ProspeccionIAModule = ({ onBack }: { onBack: () => void }) => {
         )}
 
         {/* Botones */}
-        <button
-          onClick={exportarExcel}
-          disabled={exportando}
-          title="Exportar todos los contactos guardados en base de datos"
-          className="px-3 py-1.5 text-sm text-gray-300 hover:text-white bg-gray-800/50 hover:bg-gray-700/50 border border-gray-700 rounded-lg flex items-center gap-1.5 mr-2 transition-all"
-        >
-          {exportando ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileSpreadsheet className="w-4 h-4" />}
-          Excel (BD)
-        </button>
+        {extrayendoTodo ? (
+          <div className="flex items-center gap-3 mr-2">
+            <div className="flex flex-col">
+              <div className="flex items-center gap-2">
+                <Loader2 className="w-4 h-4 animate-spin text-orange-400" />
+                <span className="text-sm text-orange-400 font-medium">
+                  Extrayendo... Pág {progresoExtraccion.pagina.toLocaleString()}/{progresoExtraccion.total.toLocaleString()}
+                </span>
+              </div>
+              <span className="text-xs text-gray-500">
+                {progresoExtraccion.guardados.toLocaleString()} guardados
+              </span>
+            </div>
+            <div className="w-32 h-2 bg-gray-700 rounded-full overflow-hidden">
+              <div 
+                className="h-full bg-gradient-to-r from-orange-500 to-orange-400 transition-all duration-300"
+                style={{ width: `${(progresoExtraccion.pagina / progresoExtraccion.total) * 100}%` }}
+              />
+            </div>
+            <button
+              onClick={() => setCancelarExtraccion(true)}
+              className="px-2 py-1 text-xs bg-red-600/20 hover:bg-red-600/30 text-red-400 rounded transition-colors"
+            >
+              Cancelar
+            </button>
+          </div>
+        ) : (
+          <>
+            <button
+              onClick={extraerTodoYExportar}
+              disabled={paginacion.total === 0}
+              title={`Extraer y guardar ${paginacion.total.toLocaleString()} contactos`}
+              className="px-3 py-1.5 text-sm text-white bg-gradient-to-r from-green-600 to-green-500 hover:from-green-500 hover:to-green-400 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg flex items-center gap-1.5 mr-2 transition-all shadow-lg shadow-green-500/20"
+            >
+              <Download className="w-4 h-4" />
+              Extraer Todo
+            </button>
+            <button
+              onClick={exportarExcel}
+              disabled={exportando}
+              title="Exportar contactos guardados en base de datos"
+              className="px-3 py-1.5 text-sm text-gray-300 hover:text-white bg-gray-800/50 hover:bg-gray-700/50 border border-gray-700 rounded-lg flex items-center gap-1.5 mr-2 transition-all"
+            >
+              {exportando ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileSpreadsheet className="w-4 h-4" />}
+              Excel (BD)
+            </button>
+          </>
+        )}
 
         {tabActiva === 'buscar' && (
           <>
