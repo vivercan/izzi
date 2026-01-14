@@ -274,7 +274,7 @@ export const ProspeccionIAModule = ({ onBack }: { onBack: () => void }) => {
     jerarquia: true,
     funcion: true
   });
-  const [porPagina, setPorPagina] = useState(50);
+  const [porPagina, setPorPagina] = useState(100);
   const [paginaActual, setPaginaActual] = useState(1);
 
   // Estados de datos
@@ -332,30 +332,13 @@ export const ProspeccionIAModule = ({ onBack }: { onBack: () => void }) => {
   // ═══════════════════════════════════════════════════════════════════════════
 
   const construirTitulos = () => {
-    const titles: string[] = [];
-    
-    // Si no hay filtros seleccionados, usar lista AMPLIA por defecto
+    // Si no hay filtros de jerarquía ni función seleccionados, NO enviar titles
+    // Esto permite que Apollo devuelva TODOS los contactos de México (3.7M)
     if (jerarquiasActivas.length === 0 && funcionesActivas.length === 0) {
-      return [
-        // C-Level y Dirección
-        'CEO', 'COO', 'CFO', 'Director General', 'President', 'Owner', 'Founder',
-        'Managing Director', 'General Manager', 'Country Manager',
-        // Directores
-        'Director', 'VP', 'Vice President', 'Director de Operaciones', 
-        'Director de Logística', 'Director de Supply Chain', 'Director de Compras',
-        'Director de Planta', 'Director Comercial', 'Director de Producción',
-        // Gerentes
-        'Gerente', 'Manager', 'Gerente de Operaciones', 'Gerente de Logística',
-        'Gerente de Planta', 'Gerente de Compras', 'Gerente de Supply Chain',
-        'Gerente de Almacén', 'Gerente de Distribución', 'Gerente de Producción',
-        'Plant Manager', 'Operations Manager', 'Supply Chain Manager',
-        'Logistics Manager', 'Procurement Manager', 'Purchasing Manager',
-        'Warehouse Manager', 'Distribution Manager',
-        // Comercio Exterior
-        'Import', 'Export', 'Comercio Exterior', 'Trade', 'International'
-      ];
+      return undefined; // No enviar titles = buscar todos
     }
     
+    const titles: string[] = [];
     jerarquiasActivas.forEach(j => {
       const jer = JERARQUIAS.find(x => x.id === j);
       if (jer) titles.push(...jer.titles);
@@ -375,13 +358,20 @@ export const ProspeccionIAModule = ({ onBack }: { onBack: () => void }) => {
 
     const titles = construirTitulos();
 
+    // Construir params - solo incluir titles si hay filtros seleccionados
     const params: any = {
       locations: ubicaciones,
-      titles: titles, // Siempre enviar titles
       company_name: empresaBusqueda.trim() || undefined,
       page,
       per_page: porPagina
     };
+    
+    // Solo agregar titles si hay filtros (no undefined)
+    if (titles && titles.length > 0) {
+      params.titles = titles;
+    }
+
+    console.log('Buscando con params:', params); // Debug
 
     const response = await fetch(`${SUPABASE_URL}/functions/v1/prospeccion-api`, {
       method: 'POST',
@@ -732,7 +722,17 @@ export const ProspeccionIAModule = ({ onBack }: { onBack: () => void }) => {
         {/* Contador */}
         {contactosActivos.length > 0 && (
           <span className="text-xs text-gray-500 mr-3">
-            {contactosActivos.length.toLocaleString()} contactos
+            {contactosActivos.length.toLocaleString()} mostrados
+            {paginacion.total > 0 && (
+              <span className="text-orange-400 ml-1">
+                ({paginacion.total >= 1000000 
+                  ? `${(paginacion.total / 1000000).toFixed(1)}M` 
+                  : paginacion.total >= 1000 
+                    ? `${(paginacion.total / 1000).toFixed(0)}K`
+                    : paginacion.total
+                } disponibles)
+              </span>
+            )}
           </span>
         )}
 
@@ -962,8 +962,8 @@ export const ProspeccionIAModule = ({ onBack }: { onBack: () => void }) => {
                 onChange={e => setPorPagina(Number(e.target.value))}
                 className="ml-2 bg-gray-800 border border-gray-700 rounded text-[10px] px-1 py-0.5"
               >
-                <option value={50}>50</option>
-                <option value={100}>100</option>
+                <option value={50}>50/pág</option>
+                <option value={100}>100/pág</option>
               </select>
             </div>
           )}
