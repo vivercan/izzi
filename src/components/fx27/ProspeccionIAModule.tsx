@@ -382,7 +382,7 @@ export const ProspeccionIAModule = ({ onBack }: { onBack: () => void }) => {
       params.titles = titles;
     }
 
-    console.log('Buscando con params:', params); // Debug
+    console.log('Buscando en Apollo con params:', params);
 
     const response = await fetch(`${SUPABASE_URL}/functions/v1/prospeccion-api`, {
       method: 'POST',
@@ -397,7 +397,23 @@ export const ProspeccionIAModule = ({ onBack }: { onBack: () => void }) => {
     return await response.json();
   };
 
-  const procesarContactos = (rawContacts: any[]): Contacto[] => {
+  const buscarEnHunter = async (empresa: string) => {
+    console.log('Buscando en Hunter:', empresa);
+
+    const response = await fetch(`${SUPABASE_URL}/functions/v1/prospeccion-api`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SUPABASE_ANON_KEY}` },
+      body: JSON.stringify({
+        action: 'hunter_search',
+        params: { company: empresa }
+      })
+    });
+
+    if (!response.ok) throw new Error('Error en búsqueda Hunter');
+    return await response.json();
+  };
+
+  const procesarContactos = (rawContacts: any[], fuente: 'apollo' | 'hunter' = 'apollo'): Contacto[] => {
     const ahora = new Date().toISOString();
     
     return rawContacts
@@ -412,12 +428,12 @@ export const ProspeccionIAModule = ({ onBack }: { onBack: () => void }) => {
           return null;
         }
 
-        const emailBloqueado = c.email === 'email_not_unlocked@domain.com';
+        const emailBloqueado = c.email === 'email_not_unlocked@domain.com' || !c.email;
         
         return {
           id: c.id,
           source_id: c.id,
-          fuente: 'apollo' as const,
+          fuente: fuente,
           nombre: c.nombre || '',
           apellido: c.apellido || '',
           nombre_completo: `${c.nombre || ''} ${c.apellido || ''}`.trim(),
@@ -426,7 +442,7 @@ export const ProspeccionIAModule = ({ onBack }: { onBack: () => void }) => {
           jerarquia: detectarJerarquia(puesto),
           funcion: detectarFuncion(puesto),
           empresa: empresa,
-          dominio_empresa: '',
+          dominio_empresa: c.dominio || '',
           industria: industria,
           pais: c.pais || 'Mexico',
           estado: estado,
@@ -448,24 +464,56 @@ export const ProspeccionIAModule = ({ onBack }: { onBack: () => void }) => {
   };
 
   const handleBuscar = async () => {
-    if (!useApollo && !useHunter) return;
+    if (!useApollo && !useHunter) {
+      alert('Selecciona al menos una fuente (Apollo o Hunter)');
+      return;
+    }
+    
+    // Hunter requiere nombre de empresa
+    if (useHunter && !useApollo && !empresaBusqueda.trim()) {
+      alert('Hunter requiere un nombre de empresa para buscar.\n\nEscribe el nombre de una empresa en el campo de búsqueda.');
+      return;
+    }
+    
     setLoading(true);
     setPaginaActual(1);
     
     try {
-      const data = await buscarEnApollo(1);
-      let contacts = procesarContactos(data.contacts || []);
+      let allContacts: Contacto[] = [];
+      let totalResults = 0;
+      let totalPages = 0;
+
+      // Buscar en Apollo si está activo
+      if (useApollo) {
+        const data = await buscarEnApollo(1);
+        let contacts = procesarContactos(data.contacts || [], 'apollo');
+        allContacts = [...allContacts, ...contacts];
+        totalResults = data.total || 0;
+        totalPages = data.total_pages || 0;
+      }
+
+      // Buscar en Hunter si está activo Y hay empresa
+      if (useHunter && empresaBusqueda.trim()) {
+        const hunterData = await buscarEnHunter(empresaBusqueda.trim());
+        let hunterContacts = procesarContactos(hunterData.contacts || [], 'hunter');
+        allContacts = [...allContacts, ...hunterContacts];
+        
+        // Si solo Hunter, usar sus totales
+        if (!useApollo) {
+          totalResults = hunterData.total || hunterContacts.length;
+          totalPages = 1;
+        }
+      }
 
       // Filtrar solo verificados si está activo
       if (soloVerificados) {
-        contacts = contacts.filter(c => c.email_status === 'verified' || c.email_status === 'locked');
+        allContacts = allContacts.filter(c => c.email_status === 'verified' || c.email_status === 'locked');
       }
 
-      // FILTRAR SOLO MÉXICO - excluir otros países
-      contacts = contacts.filter(c => {
+      // FILTRAR SOLO MÉXICO
+      allContacts = allContacts.filter(c => {
         const pais = (c.pais || '').toLowerCase();
         const estado = (c.estado || '').toLowerCase();
-        // Excluir si claramente es de otro país
         const paisesExcluidos = ['united states', 'usa', 'canada', 'brazil', 'argentina', 'chile', 'peru', 'colombia', 'spain', 'portugal'];
         const estadosUSA = ['california', 'texas', 'florida', 'new york', 'massachusetts', 'illinois', 'arizona', 'georgia', 'ohio', 'michigan'];
         
@@ -477,18 +525,19 @@ export const ProspeccionIAModule = ({ onBack }: { onBack: () => void }) => {
       });
 
       // Ordenar A-Z por empresa
-      contacts.sort((a, b) => a.empresa.localeCompare(b.empresa) || a.nombre_completo.localeCompare(b.nombre_completo));
+      allContacts.sort((a, b) => a.empresa.localeCompare(b.empresa) || a.nombre_completo.localeCompare(b.nombre_completo));
 
-      setContactos(contacts);
-      setPaginacion({ total: data.total || 0, page: 1, pages: data.total_pages || 0 });
-      setStats({ nuevos: contacts.length, existentes: 0, total: contacts.length });
+      setContactos(allContacts);
+      setPaginacion({ total: totalResults, page: 1, pages: totalPages });
+      setStats({ nuevos: allContacts.length, existentes: 0, total: allContacts.length });
       setSeleccionarTodos(false);
 
       // Auto-guardar en Supabase
-      await guardarEnSupabase(contacts);
+      await guardarEnSupabase(allContacts);
 
     } catch (err) {
       console.error('Error en búsqueda:', err);
+      alert('Error al buscar. Revisa la consola.');
     } finally {
       setLoading(false);
     }
@@ -496,11 +545,13 @@ export const ProspeccionIAModule = ({ onBack }: { onBack: () => void }) => {
 
   const handleCargarMas = async () => {
     if (loading || paginacion.page >= paginacion.pages) return;
+    if (!useApollo) return; // Hunter no tiene paginación
+    
     setLoading(true);
     
     try {
       const data = await buscarEnApollo(paginacion.page + 1);
-      let newContacts = procesarContactos(data.contacts || []);
+      let newContacts = procesarContactos(data.contacts || [], 'apollo');
 
       if (soloVerificados) {
         newContacts = newContacts.filter(c => c.email_status === 'verified' || c.email_status === 'locked');
@@ -605,8 +656,9 @@ export const ProspeccionIAModule = ({ onBack }: { onBack: () => void }) => {
 
         setProgresoExtraccion(prev => ({ ...prev, pagina }));
 
-        // Buscar página
-        const { contacts } = await buscar(pagina);
+        // Buscar página en Apollo
+        const data = await buscarEnApollo(pagina);
+        const contacts = procesarContactos(data.contacts || [], 'apollo');
         
         if (contacts.length === 0) break;
 
