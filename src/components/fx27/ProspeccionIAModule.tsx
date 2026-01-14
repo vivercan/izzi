@@ -1,6 +1,6 @@
 // ═══════════════════════════════════════════════════════════════════════════
-// PROSPECCIÓN IA MODULE v6 - Estilo Apollo.io
-// 2 columnas fijas, sin scroll de página, filtros desplegables
+// PROSPECCIÓN IA MODULE v7 - Extracción masiva con tracking
+// Guarda TODOS los contactos (bloqueados o no) para desbloqueo posterior
 // ═══════════════════════════════════════════════════════════════════════════
 
 import { useState } from 'react';
@@ -8,7 +8,8 @@ import {
   Search, Loader2, Building2, Mail, MapPin, 
   ChevronDown, ChevronRight, Target, Users, X, 
   Plus, Save, Lock, Unlock, Briefcase, Factory,
-  Globe, UserCheck, Filter, Database
+  Globe, UserCheck, Filter, Database, Check,
+  ExternalLink, Linkedin, Download
 } from 'lucide-react';
 import { createClient } from '@supabase/supabase-js';
 
@@ -67,14 +68,18 @@ interface Contacto {
   apellido: string;
   email: string;
   emailVerificado: boolean;
+  emailBloqueado: boolean;
   empresa: string;
   industria: string;
   puesto: string;
   ciudad: string;
   estado: string;
+  pais: string;
+  linkedin: string;
+  telefono: string;
   fuente: 'apollo' | 'hunter';
-  esNuevo?: boolean;
-  excluido?: boolean;
+  seleccionado?: boolean;
+  yaGuardado?: boolean;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -123,13 +128,11 @@ const FilterSection = ({
 const Chip = ({ 
   label, 
   selected, 
-  onClick,
-  count
+  onClick
 }: {
   label: string;
   selected: boolean;
   onClick: () => void;
-  count?: number;
 }) => (
   <button
     onClick={onClick}
@@ -140,7 +143,6 @@ const Chip = ({
     }`}
   >
     {label}
-    {count !== undefined && <span className="ml-1 opacity-60">({count})</span>}
   </button>
 );
 
@@ -152,7 +154,7 @@ export const ProspeccionIAModule = ({ onBack }: { onBack: () => void }) => {
   // Estados de filtros
   const [useApollo, setUseApollo] = useState(true);
   const [useHunter, setUseHunter] = useState(false);
-  const [soloVerificados, setSoloVerificados] = useState(true);
+  const [soloVerificados, setSoloVerificados] = useState(false);
   const [todoMexico, setTodoMexico] = useState(true);
   const [zonasActivas, setZonasActivas] = useState<string[]>([]);
   const [estadosActivos, setEstadosActivos] = useState<string[]>([]);
@@ -165,7 +167,6 @@ export const ProspeccionIAModule = ({ onBack }: { onBack: () => void }) => {
   // Estados de UI
   const [expandedFilters, setExpandedFilters] = useState({
     fuente: true,
-    email: true,
     ubicacion: true,
     empresa: false,
     industria: true,
@@ -179,13 +180,14 @@ export const ProspeccionIAModule = ({ onBack }: { onBack: () => void }) => {
   const [contactos, setContactos] = useState<Contacto[]>([]);
   const [paginacion, setPaginacion] = useState({ total: 0, page: 0, pages: 0 });
   const [guardando, setGuardando] = useState(false);
+  const [seleccionarTodos, setSeleccionarTodos] = useState(false);
 
   const toggleFilter = (key: keyof typeof expandedFilters) => {
     setExpandedFilters(prev => ({ ...prev, [key]: !prev[key] }));
   };
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // LÓGICA DE BÚSQUEDA (sin cambios)
+  // LÓGICA DE BÚSQUEDA
   // ═══════════════════════════════════════════════════════════════════════════
 
   const construirTitulos = () => {
@@ -239,18 +241,23 @@ export const ProspeccionIAModule = ({ onBack }: { onBack: () => void }) => {
       apellido: c.apellido,
       email: c.email,
       emailVerificado: c.emailVerificado,
+      emailBloqueado: c.email === 'email_not_unlocked@domain.com',
       empresa: c.empresa,
       industria: c.industria || '',
       puesto: c.puesto,
       ciudad: c.ciudad || '',
       estado: c.estado || '',
+      pais: c.pais || 'Mexico',
+      linkedin: c.linkedin || '',
+      telefono: c.telefono || '',
       fuente: 'apollo',
-      esNuevo: true
+      seleccionado: false,
+      yaGuardado: false
     }));
 
-    // Filtrar verificados
+    // Filtrar solo verificados si está activo
     if (soloVerificados) {
-      contacts = contacts.filter(c => c.email !== 'email_not_unlocked@domain.com');
+      contacts = contacts.filter(c => c.emailVerificado === true);
     }
 
     // Excluir industrias no deseadas
@@ -270,6 +277,7 @@ export const ProspeccionIAModule = ({ onBack }: { onBack: () => void }) => {
       const { contacts, total, pages } = await buscar(1);
       setContactos(contacts);
       setPaginacion({ total, page: 1, pages });
+      setSeleccionarTodos(false);
     } catch (err) {
       console.error(err);
     } finally {
@@ -289,30 +297,65 @@ export const ProspeccionIAModule = ({ onBack }: { onBack: () => void }) => {
     }
   };
 
-  const handleGuardar = async () => {
+  // Guardar TODOS los contactos seleccionados en BD
+  const handleGuardarSeleccionados = async () => {
+    const seleccionados = contactos.filter(c => c.seleccionado && !c.yaGuardado);
+    if (seleccionados.length === 0) return;
+
     setGuardando(true);
     try {
-      const nuevos = contactos.filter(c => c.esNuevo && !c.excluido);
-      const datos = nuevos.map(c => ({
+      const datos = seleccionados.map(c => ({
         source_id: c.id,
         fuente: c.fuente,
         nombre: c.nombre,
         apellido: c.apellido,
-        email: c.email === 'email_not_unlocked@domain.com' ? null : c.email,
+        email: c.emailBloqueado ? null : c.email,
+        email_bloqueado: c.emailBloqueado,
+        email_desbloqueado: !c.emailBloqueado,
         empresa: c.empresa,
         industria: c.industria,
         puesto: c.puesto,
         ciudad: c.ciudad,
-        estado: c.estado
+        estado: c.estado,
+        pais: c.pais,
+        linkedin: c.linkedin,
+        telefono: c.telefono,
+        status: 'nuevo'
       }));
 
+      // Guardar en batches de 100
       for (let i = 0; i < datos.length; i += 100) {
-        await supabase.from('prospeccion_contactos').upsert(datos.slice(i, i + 100), { onConflict: 'source_id,fuente' });
+        const batch = datos.slice(i, i + 100);
+        const { error } = await supabase
+          .from('prospeccion_contactos')
+          .upsert(batch, { onConflict: 'source_id,fuente' });
+        
+        if (error) {
+          console.error('Error guardando batch:', error);
+        }
       }
-      setContactos(prev => prev.map(c => ({ ...c, esNuevo: false })));
+
+      // Marcar como guardados en UI
+      setContactos(prev => prev.map(c => 
+        c.seleccionado ? { ...c, yaGuardado: true, seleccionado: false } : c
+      ));
+      setSeleccionarTodos(false);
+
     } finally {
       setGuardando(false);
     }
+  };
+
+  const toggleSeleccionarTodos = () => {
+    const nuevoValor = !seleccionarTodos;
+    setSeleccionarTodos(nuevoValor);
+    setContactos(prev => prev.map(c => ({ ...c, seleccionado: c.yaGuardado ? false : nuevoValor })));
+  };
+
+  const toggleSeleccionContacto = (id: string) => {
+    setContactos(prev => prev.map(c => 
+      c.id === id ? { ...c, seleccionado: !c.seleccionado } : c
+    ));
   };
 
   const toggleZona = (zona: string) => {
@@ -323,7 +366,23 @@ export const ProspeccionIAModule = ({ onBack }: { onBack: () => void }) => {
     }
   };
 
-  const nuevos = contactos.filter(c => c.esNuevo && !c.excluido).length;
+  const limpiarFiltros = () => {
+    setUseApollo(true);
+    setUseHunter(false);
+    setSoloVerificados(false);
+    setTodoMexico(true);
+    setZonasActivas([]);
+    setEstadosActivos([]);
+    setEmpresa('');
+    setDominio('');
+    setIndustriasActivas([]);
+    setJerarquiasActivas(['owner', 'clevel', 'director', 'gerente']);
+    setFuncionesActivas(['direccion', 'operaciones', 'supplychain', 'compras']);
+  };
+
+  const seleccionadosCount = contactos.filter(c => c.seleccionado).length;
+  const guardadosCount = contactos.filter(c => c.yaGuardado).length;
+  const bloqueadosCount = contactos.filter(c => c.emailBloqueado).length;
 
   // ═══════════════════════════════════════════════════════════════════════════
   // RENDER
@@ -361,20 +420,18 @@ export const ProspeccionIAModule = ({ onBack }: { onBack: () => void }) => {
             </span>
           )}
           <button
+            onClick={limpiarFiltros}
+            className="px-3 py-1.5 text-gray-400 hover:text-white hover:bg-white/10 rounded text-sm"
+          >
+            Limpiar
+          </button>
+          <button
             onClick={handleBuscar}
             disabled={loading || (!useApollo && !useHunter)}
             className="px-4 py-1.5 bg-orange-600 hover:bg-orange-700 disabled:opacity-50 rounded text-sm font-medium flex items-center gap-2"
           >
             {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
             Buscar
-          </button>
-          <button
-            onClick={handleGuardar}
-            disabled={guardando || nuevos === 0}
-            className="px-4 py-1.5 bg-green-600 hover:bg-green-700 disabled:opacity-50 rounded text-sm font-medium flex items-center gap-2"
-          >
-            {guardando ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-            Guardar {nuevos > 0 && `(${nuevos})`}
           </button>
         </div>
       </header>
@@ -568,21 +625,45 @@ export const ProspeccionIAModule = ({ onBack }: { onBack: () => void }) => {
           
           {/* Subheader resultados */}
           {contactos.length > 0 && (
-            <div className="h-10 bg-[#15202b] border-b border-gray-800 flex items-center px-4 flex-shrink-0">
-              <span className="text-sm text-gray-400">
-                {contactos.length} contactos • Página {paginacion.page} de {paginacion.pages}
-              </span>
-              <div className="flex items-center gap-2 ml-auto">
-                <span className="text-xs px-2 py-1 bg-green-900/30 text-green-400 rounded">
-                  {nuevos} nuevos
+            <div className="h-12 bg-[#15202b] border-b border-gray-800 flex items-center px-4 flex-shrink-0">
+              <label className="flex items-center gap-2 text-sm cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={seleccionarTodos}
+                  onChange={toggleSeleccionarTodos}
+                  className="w-4 h-4 rounded"
+                />
+                Seleccionar todos
+              </label>
+              
+              <div className="flex items-center gap-3 ml-4">
+                <span className="text-xs px-2 py-1 bg-blue-900/30 text-blue-400 rounded">
+                  {seleccionadosCount} seleccionados
                 </span>
+                <span className="text-xs px-2 py-1 bg-green-900/30 text-green-400 rounded">
+                  {guardadosCount} guardados
+                </span>
+                <span className="text-xs px-2 py-1 bg-yellow-900/30 text-yellow-400 rounded">
+                  🔒 {bloqueadosCount} bloqueados
+                </span>
+              </div>
+
+              <div className="flex items-center gap-2 ml-auto">
                 <button
                   onClick={handleCargarMas}
                   disabled={loadingMore || paginacion.page >= paginacion.pages}
                   className="px-3 py-1 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 rounded text-xs flex items-center gap-1"
                 >
                   {loadingMore ? <Loader2 className="w-3 h-3 animate-spin" /> : <Plus className="w-3 h-3" />}
-                  Cargar más
+                  +100
+                </button>
+                <button
+                  onClick={handleGuardarSeleccionados}
+                  disabled={guardando || seleccionadosCount === 0}
+                  className="px-3 py-1 bg-green-600 hover:bg-green-700 disabled:opacity-50 rounded text-xs flex items-center gap-1"
+                >
+                  {guardando ? <Loader2 className="w-3 h-3 animate-spin" /> : <Save className="w-3 h-3" />}
+                  Guardar {seleccionadosCount > 0 && `(${seleccionadosCount})`}
                 </button>
               </div>
             </div>
@@ -595,6 +676,8 @@ export const ProspeccionIAModule = ({ onBack }: { onBack: () => void }) => {
                 <div className="text-center">
                   <Search className="w-12 h-12 mx-auto mb-4 opacity-30" />
                   <p>Configura los filtros y presiona Buscar</p>
+                  <p className="text-xs mt-2">Se guardarán TODOS los datos del contacto</p>
+                  <p className="text-xs text-yellow-500">Emails bloqueados se desbloquean después desde JJCRM</p>
                 </div>
               </div>
             ) : (
@@ -602,12 +685,24 @@ export const ProspeccionIAModule = ({ onBack }: { onBack: () => void }) => {
                 {contactos.map(c => (
                   <div
                     key={c.id}
-                    className={`bg-[#192734] rounded-lg p-3 border transition-all hover:border-gray-600 ${
-                      c.excluido ? 'opacity-40 border-red-900' :
-                      c.esNuevo ? 'border-green-800/50' : 'border-gray-800'
+                    onClick={() => !c.yaGuardado && toggleSeleccionContacto(c.id)}
+                    className={`bg-[#192734] rounded-lg p-3 border transition-all cursor-pointer ${
+                      c.yaGuardado 
+                        ? 'opacity-50 border-green-800 cursor-default' 
+                        : c.seleccionado 
+                          ? 'border-blue-500 bg-blue-900/20' 
+                          : 'border-gray-800 hover:border-gray-600'
                     }`}
                   >
-                    <div className="flex items-start justify-between mb-2">
+                    {/* Checkbox y nombre */}
+                    <div className="flex items-start gap-2 mb-2">
+                      <input
+                        type="checkbox"
+                        checked={c.seleccionado || c.yaGuardado}
+                        disabled={c.yaGuardado}
+                        onChange={() => {}}
+                        className="w-4 h-4 mt-0.5 rounded"
+                      />
                       <div className="min-w-0 flex-1">
                         <p className="font-medium text-sm truncate text-gray-100">
                           {c.nombre} {c.apellido}
@@ -616,46 +711,58 @@ export const ProspeccionIAModule = ({ onBack }: { onBack: () => void }) => {
                           {c.puesto}
                         </p>
                       </div>
-                      <button
-                        onClick={() => setContactos(prev => prev.map(x => 
-                          x.id === c.id ? { ...x, excluido: !x.excluido } : x
-                        ))}
-                        className="ml-2 p-1 hover:bg-white/10 rounded"
-                      >
-                        <X className="w-3 h-3 text-gray-500" />
-                      </button>
+                      {c.yaGuardado && (
+                        <Check className="w-4 h-4 text-green-400 flex-shrink-0" />
+                      )}
                     </div>
                     
+                    {/* Empresa */}
                     <p className="text-xs text-blue-400 truncate mb-1" title={c.empresa}>
                       {c.empresa}
                     </p>
                     
+                    {/* Industria */}
                     {c.industria && (
                       <p className="text-xs text-gray-500 truncate mb-1">
                         {c.industria}
                       </p>
                     )}
                     
+                    {/* Email status */}
                     <div className="flex items-center gap-1 mt-2 pt-2 border-t border-gray-700/50">
-                      {c.email === 'email_not_unlocked@domain.com' ? (
-                        <button className="flex items-center gap-1 text-xs text-orange-400 hover:text-orange-300">
+                      {c.emailBloqueado ? (
+                        <span className="flex items-center gap-1 text-xs text-yellow-500">
                           <Lock className="w-3 h-3" />
-                          <span>Desbloquear</span>
-                        </button>
+                          <span>Email bloqueado</span>
+                        </span>
                       ) : (
-                        <p className="text-xs text-green-400 truncate flex items-center gap-1">
+                        <span className="text-xs text-green-400 truncate flex items-center gap-1">
                           <Unlock className="w-3 h-3" />
                           <span className="truncate">{c.email}</span>
-                        </p>
+                        </span>
                       )}
                     </div>
 
-                    {c.estado && (
-                      <p className="text-xs text-gray-600 mt-1 flex items-center gap-1">
-                        <MapPin className="w-3 h-3" />
-                        {c.estado}
-                      </p>
-                    )}
+                    {/* Ubicación y LinkedIn */}
+                    <div className="flex items-center justify-between mt-2 text-xs text-gray-600">
+                      {c.estado && (
+                        <span className="flex items-center gap-1 truncate">
+                          <MapPin className="w-3 h-3" />
+                          {c.estado}
+                        </span>
+                      )}
+                      {c.linkedin && (
+                        <a
+                          href={c.linkedin}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={e => e.stopPropagation()}
+                          className="text-blue-400 hover:text-blue-300"
+                        >
+                          <Linkedin className="w-3 h-3" />
+                        </a>
+                      )}
+                    </div>
                   </div>
                 ))}
               </div>
