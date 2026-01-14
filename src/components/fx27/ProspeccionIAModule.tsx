@@ -287,6 +287,12 @@ export const ProspeccionIAModule = ({ onBack }: { onBack: () => void }) => {
   const [seleccionarTodos, setSeleccionarTodos] = useState(false);
   const [hoveredContacto, setHoveredContacto] = useState<string | null>(null);
   const [stats, setStats] = useState({ nuevos: 0, existentes: 0, total: 0 });
+  
+  // Modal y desbloqueo
+  const [contactoSeleccionado, setContactoSeleccionado] = useState<Contacto | null>(null);
+  const [mostrarModal, setMostrarModal] = useState(false);
+  const [desbloqueando, setDesbloqueando] = useState<string | null>(null);
+  const [confirmandoDesbloqueo, setConfirmandoDesbloqueo] = useState<string | null>(null);
 
   const toggleFilter = (key: keyof typeof expandedFilters) => {
     setExpandedFilters(prev => ({ ...prev, [key]: !prev[key] }));
@@ -643,6 +649,77 @@ export const ProspeccionIAModule = ({ onBack }: { onBack: () => void }) => {
     setter(lista.map(c => c.id === id ? { ...c, seleccionado: !c.seleccionado } : c));
   };
 
+  // Abrir modal de detalle
+  const abrirDetalleContacto = (contacto: Contacto) => {
+    setContactoSeleccionado(contacto);
+    setMostrarModal(true);
+  };
+
+  // Desbloquear email via Apollo API
+  const desbloquearEmail = async (contacto: Contacto) => {
+    setDesbloqueando(contacto.id);
+    setConfirmandoDesbloqueo(null);
+    
+    try {
+      const response = await fetch(`${SUPABASE_URL}/functions/v1/prospeccion-api`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SUPABASE_ANON_KEY}` },
+        body: JSON.stringify({
+          action: 'apollo_unlock',
+          params: { person_id: contacto.source_id }
+        })
+      });
+
+      if (!response.ok) throw new Error('Error al desbloquear');
+      
+      const data = await response.json();
+      
+      if (data.email) {
+        // Actualizar contacto en lista
+        const actualizarContacto = (c: Contacto) => 
+          c.id === contacto.id 
+            ? { ...c, email: data.email, email_status: 'verified' as const, email_unlocked: true }
+            : c;
+        
+        setContactos(prev => prev.map(actualizarContacto));
+        setContactosRespaldados(prev => prev.map(actualizarContacto));
+        
+        // Guardar en Supabase
+        await supabase
+          .from('prospeccion_contactos')
+          .upsert({
+            source_id: contacto.source_id,
+            fuente: contacto.fuente,
+            nombre: contacto.nombre,
+            apellido: contacto.apellido,
+            email: data.email,
+            email_status: 'verified',
+            email_unlocked: true,
+            fecha_desbloqueo: new Date().toISOString(),
+            empresa: contacto.empresa,
+            industria: contacto.industria,
+            puesto_original: contacto.puesto_original,
+            puesto_normalizado: contacto.puesto_normalizado,
+            jerarquia: contacto.jerarquia,
+            funcion: contacto.funcion,
+            estado: contacto.estado,
+            zona: contacto.zona,
+            linkedin: contacto.linkedin,
+            telefono: contacto.telefono
+          }, { onConflict: 'source_id,fuente' });
+
+        alert(`✅ Email desbloqueado: ${data.email}`);
+      } else {
+        alert('No se pudo obtener el email');
+      }
+    } catch (err) {
+      console.error('Error desbloqueando:', err);
+      alert('Error al desbloquear email');
+    } finally {
+      setDesbloqueando(null);
+    }
+  };
+
   const toggleZona = (zona: string) => {
     setZonasActivas(prev => prev.includes(zona) ? prev.filter(z => z !== zona) : [...prev, zona]);
   };
@@ -741,11 +818,12 @@ export const ProspeccionIAModule = ({ onBack }: { onBack: () => void }) => {
         {/* Botones */}
         <button
           onClick={exportarExcel}
-          disabled={exportando || contactosActivos.length === 0}
+          disabled={exportando}
+          title="Exportar todos los contactos guardados en base de datos"
           className="px-3 py-1.5 text-sm text-gray-300 hover:text-white bg-gray-800/50 hover:bg-gray-700/50 border border-gray-700 rounded-lg flex items-center gap-1.5 mr-2 transition-all"
         >
           {exportando ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileSpreadsheet className="w-4 h-4" />}
-          Excel
+          Excel (BD)
         </button>
 
         {tabActiva === 'buscar' && (
@@ -990,11 +1068,12 @@ export const ProspeccionIAModule = ({ onBack }: { onBack: () => void }) => {
                   <tr className="text-left text-gray-400 border-b border-gray-700/50">
                     <th className="w-10 p-3"></th>
                     <th className="p-3 font-semibold">Empresa</th>
+                    <th className="p-3 font-semibold w-36">Sector</th>
                     <th className="p-3 font-semibold">Contacto</th>
                     <th className="p-3 font-semibold">Puesto</th>
                     <th className="p-3 font-semibold w-24">Jerarquía</th>
                     <th className="p-3 font-semibold w-28">Función</th>
-                    <th className="p-3 font-semibold w-28">Email</th>
+                    <th className="p-3 font-semibold w-32">Email</th>
                     <th className="p-3 font-semibold w-28">Estado</th>
                     <th className="p-3 font-semibold w-20">Fuente</th>
                   </tr>
@@ -1003,7 +1082,6 @@ export const ProspeccionIAModule = ({ onBack }: { onBack: () => void }) => {
                   {contactosActivos.map(c => (
                     <tr
                       key={c.id}
-                      onClick={() => toggleSeleccionContacto(c.id)}
                       onMouseEnter={() => setHoveredContacto(c.id)}
                       onMouseLeave={() => setHoveredContacto(null)}
                       className={`border-b border-gray-800/30 cursor-pointer transition-all duration-150 ${
@@ -1014,24 +1092,26 @@ export const ProspeccionIAModule = ({ onBack }: { onBack: () => void }) => {
                             : 'hover:bg-white/[0.02]'
                       } ${!c.activo ? 'opacity-50' : ''}`}
                     >
-                      <td className="p-3">
+                      <td className="p-3" onClick={(e) => { e.stopPropagation(); toggleSeleccionContacto(c.id); }}>
                         <input
                           type="checkbox"
                           checked={c.seleccionado}
                           onChange={() => {}}
-                          className="w-4 h-4 rounded border-gray-600 bg-gray-800 checked:bg-blue-600"
+                          className="w-4 h-4 rounded border-gray-600 bg-gray-800 checked:bg-blue-600 cursor-pointer"
                         />
                       </td>
-                      <td className="p-3">
-                        <span className="text-blue-400 font-semibold truncate block max-w-[200px]" title={c.empresa}>
+                      <td className="p-3" onClick={() => abrirDetalleContacto(c)}>
+                        <span className="text-blue-400 font-semibold truncate block max-w-[180px] hover:text-blue-300" title={c.empresa}>
                           {c.empresa}
                         </span>
-                        {c.industria && (
-                          <span className="text-gray-500 text-xs truncate block mt-0.5">{c.industria}</span>
-                        )}
                       </td>
-                      <td className="p-3">
-                        <span className="text-gray-100 font-medium truncate block max-w-[160px]" title={c.nombre_completo}>
+                      <td className="p-3" onClick={() => abrirDetalleContacto(c)}>
+                        <span className="text-gray-400 text-xs truncate block max-w-[140px]" title={c.industria}>
+                          {c.industria || '—'}
+                        </span>
+                      </td>
+                      <td className="p-3" onClick={() => abrirDetalleContacto(c)}>
+                        <span className="text-gray-100 font-medium truncate block max-w-[150px]" title={c.nombre_completo}>
                           {c.nombre_completo}
                         </span>
                         {c.linkedin && (
@@ -1046,8 +1126,8 @@ export const ProspeccionIAModule = ({ onBack }: { onBack: () => void }) => {
                           </a>
                         )}
                       </td>
-                      <td className="p-3">
-                        <span className="text-gray-300 truncate block max-w-[160px]" title={c.puesto_original}>
+                      <td className="p-3" onClick={() => abrirDetalleContacto(c)}>
+                        <span className="text-gray-300 truncate block max-w-[150px]" title={c.puesto_original}>
                           {c.puesto_normalizado}
                         </span>
                       </td>
@@ -1074,12 +1154,33 @@ export const ProspeccionIAModule = ({ onBack }: { onBack: () => void }) => {
                           {c.funcion}
                         </span>
                       </td>
-                      <td className="p-3">
+                      <td className="p-3" onClick={(e) => e.stopPropagation()}>
                         {c.email_status === 'locked' ? (
-                          <span className="text-yellow-400 flex items-center gap-1.5 bg-yellow-500/10 px-2 py-1 rounded-md">
-                            <Lock className="w-3.5 h-3.5" />
-                            <span className="text-xs font-medium">Bloqueado</span>
-                          </span>
+                          confirmandoDesbloqueo === c.id ? (
+                            <div className="flex items-center gap-1">
+                              <button
+                                onClick={() => desbloquearEmail(c)}
+                                disabled={desbloqueando === c.id}
+                                className="text-xs bg-green-600 hover:bg-green-500 text-white px-2 py-1 rounded font-medium"
+                              >
+                                {desbloqueando === c.id ? <Loader2 className="w-3 h-3 animate-spin" /> : 'Sí'}
+                              </button>
+                              <button
+                                onClick={() => setConfirmandoDesbloqueo(null)}
+                                className="text-xs bg-gray-600 hover:bg-gray-500 text-white px-2 py-1 rounded"
+                              >
+                                No
+                              </button>
+                            </div>
+                          ) : (
+                            <button
+                              onClick={() => setConfirmandoDesbloqueo(c.id)}
+                              className="text-yellow-400 flex items-center gap-1.5 bg-yellow-500/10 hover:bg-yellow-500/20 px-2 py-1 rounded-md transition-colors cursor-pointer"
+                            >
+                              <Lock className="w-3.5 h-3.5" />
+                              <span className="text-xs font-medium">Bloqueado</span>
+                            </button>
+                          )
                         ) : c.email ? (
                           <span className="text-green-400 truncate block max-w-[130px] text-xs" title={c.email}>
                             {c.email}
@@ -1127,6 +1228,113 @@ export const ProspeccionIAModule = ({ onBack }: { onBack: () => void }) => {
               </>
             );
           })()}
+        </div>
+      )}
+
+      {/* Modal de detalle del contacto */}
+      {mostrarModal && contactoSeleccionado && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50" onClick={() => setMostrarModal(false)}>
+          <div 
+            className="bg-gradient-to-br from-[#1e2433] to-[#151921] border border-gray-600/50 rounded-2xl p-6 shadow-2xl max-w-lg w-full mx-4"
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Header del modal */}
+            <div className="flex items-start justify-between mb-6">
+              <div>
+                <h2 className="text-xl font-bold text-white">{contactoSeleccionado.nombre_completo}</h2>
+                <p className="text-blue-400 font-medium">{contactoSeleccionado.empresa}</p>
+                <p className="text-gray-400 text-sm">{contactoSeleccionado.puesto_original}</p>
+              </div>
+              <button 
+                onClick={() => setMostrarModal(false)}
+                className="p-2 hover:bg-white/10 rounded-lg transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Info del contacto */}
+            <div className="grid grid-cols-2 gap-4 mb-6">
+              <div>
+                <p className="text-gray-500 text-xs uppercase mb-1">Sector</p>
+                <p className="text-gray-200">{contactoSeleccionado.industria || '—'}</p>
+              </div>
+              <div>
+                <p className="text-gray-500 text-xs uppercase mb-1">Ubicación</p>
+                <p className="text-gray-200">{contactoSeleccionado.estado || contactoSeleccionado.zona || '—'}</p>
+              </div>
+              <div>
+                <p className="text-gray-500 text-xs uppercase mb-1">Jerarquía</p>
+                <span className={`px-2 py-1 rounded-md text-xs font-medium ${
+                  contactoSeleccionado.jerarquia === 'Owner' ? 'bg-amber-500/20 text-amber-400' :
+                  contactoSeleccionado.jerarquia === 'C-Level' ? 'bg-purple-500/20 text-purple-400' :
+                  contactoSeleccionado.jerarquia === 'Director' ? 'bg-blue-500/20 text-blue-400' :
+                  'bg-green-500/20 text-green-400'
+                }`}>
+                  {contactoSeleccionado.jerarquia}
+                </span>
+              </div>
+              <div>
+                <p className="text-gray-500 text-xs uppercase mb-1">Función</p>
+                <span className="px-2 py-1 rounded-md text-xs font-medium bg-gray-700/50 text-gray-300">
+                  {contactoSeleccionado.funcion}
+                </span>
+              </div>
+            </div>
+
+            {/* Email */}
+            <div className="bg-gray-800/50 rounded-xl p-4 mb-6">
+              <p className="text-gray-500 text-xs uppercase mb-2">Email</p>
+              {contactoSeleccionado.email_status === 'locked' ? (
+                <div className="flex items-center justify-between">
+                  <span className="text-yellow-400 flex items-center gap-2">
+                    <Lock className="w-4 h-4" />
+                    Email bloqueado
+                  </span>
+                  <button
+                    onClick={() => desbloquearEmail(contactoSeleccionado)}
+                    disabled={desbloqueando === contactoSeleccionado.id}
+                    className="px-4 py-2 bg-gradient-to-r from-orange-600 to-orange-500 hover:from-orange-500 hover:to-orange-400 rounded-lg font-medium text-sm flex items-center gap-2 transition-all disabled:opacity-50"
+                  >
+                    {desbloqueando === contactoSeleccionado.id ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Unlock className="w-4 h-4" />
+                    )}
+                    Desbloquear
+                  </button>
+                </div>
+              ) : (
+                <p className="text-green-400 text-lg">{contactoSeleccionado.email}</p>
+              )}
+            </div>
+
+            {/* Links */}
+            <div className="flex gap-3">
+              {contactoSeleccionado.linkedin && (
+                <a
+                  href={contactoSeleccionado.linkedin}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex-1 py-2 bg-blue-600/20 hover:bg-blue-600/30 text-blue-400 rounded-lg text-center text-sm font-medium transition-colors flex items-center justify-center gap-2"
+                >
+                  <Linkedin className="w-4 h-4" />
+                  Ver LinkedIn
+                </a>
+              )}
+              <button
+                onClick={() => {
+                  // Guardar contacto en Supabase
+                  guardarEnSupabase([contactoSeleccionado]);
+                  alert('Contacto guardado en base de datos');
+                }}
+                className="flex-1 py-2 bg-green-600/20 hover:bg-green-600/30 text-green-400 rounded-lg text-center text-sm font-medium transition-colors flex items-center justify-center gap-2"
+              >
+                <Save className="w-4 h-4" />
+                Guardar
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
