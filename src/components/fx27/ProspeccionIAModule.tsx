@@ -229,20 +229,20 @@ const FilterSection = ({
   onToggle: () => void;
   children: React.ReactNode;
 }) => (
-  <div className="border-b border-gray-700/50">
+  <div className="border-b border-gray-700/30">
     <button
       onClick={onToggle}
-      className="w-full flex items-center gap-2 px-3 py-2 hover:bg-white/5 transition-colors text-left"
+      className="w-full flex items-center gap-2 px-3 py-2.5 hover:bg-white/5 transition-all text-left group"
     >
-      {expanded ? <ChevronDown className="w-3 h-3 text-gray-400" /> : <ChevronRight className="w-3 h-3 text-gray-400" />}
-      <Icon className="w-3.5 h-3.5 text-gray-400" />
-      <span className="text-xs font-medium text-gray-200 flex-1">{title}</span>
+      {expanded ? <ChevronDown className="w-3.5 h-3.5 text-orange-400" /> : <ChevronRight className="w-3.5 h-3.5 text-gray-500 group-hover:text-gray-300" />}
+      <Icon className="w-4 h-4 text-blue-400" />
+      <span className="text-sm font-medium text-gray-200 flex-1">{title}</span>
       {count !== undefined && (
-        <span className="text-[10px] text-gray-500 bg-gray-800 px-1.5 rounded">{count}</span>
+        <span className="text-xs text-orange-400 bg-orange-500/10 px-2 py-0.5 rounded-full">{count}</span>
       )}
     </button>
     {expanded && (
-      <div className="px-3 pb-2 max-h-40 overflow-y-auto">
+      <div className="px-3 pb-3 max-h-44 overflow-y-auto">
         {children}
       </div>
     )}
@@ -666,41 +666,43 @@ export const ProspeccionIAModule = ({ onBack }: { onBack: () => void }) => {
   // ═══════════════════════════════════════════════════════════════════════════
 
   return (
-    <div className="h-screen bg-[#0d1117] text-gray-100 flex flex-col overflow-hidden">
+    <div className="h-screen bg-gradient-to-br from-[#0d1117] via-[#111827] to-[#0d1117] text-gray-100 flex flex-col overflow-hidden">
       
       {/* ══════════════ HEADER ══════════════ */}
-      <header className="h-11 bg-[#161b22] border-b border-gray-800 flex items-center px-3 flex-shrink-0">
-        <button onClick={onBack} className="mr-2 p-1 hover:bg-white/10 rounded">
-          <X className="w-4 h-4" />
+      <header className="h-14 bg-gradient-to-r from-[#1a1f2e] to-[#0d1117] border-b border-gray-700/50 flex items-center px-4 flex-shrink-0 shadow-lg">
+        <button onClick={onBack} className="mr-3 p-1.5 hover:bg-white/10 rounded-lg transition-colors">
+          <X className="w-5 h-5" />
         </button>
         
-        <div className="flex items-center gap-2">
-          <Target className="w-4 h-4 text-orange-500" />
-          <span className="font-semibold text-sm">Prospección IA</span>
+        <div className="flex items-center gap-2.5">
+          <div className="w-8 h-8 bg-gradient-to-br from-orange-500 to-orange-600 rounded-lg flex items-center justify-center shadow-lg shadow-orange-500/20">
+            <Target className="w-5 h-5 text-white" />
+          </div>
+          <span className="font-bold text-base">Prospección IA</span>
         </div>
 
         {/* Tabs */}
-        <div className="flex ml-6 gap-1">
+        <div className="flex ml-8 gap-2">
           <button
             onClick={() => setTabActiva('buscar')}
-            className={`px-3 py-1 text-xs rounded transition-all ${
+            className={`px-4 py-1.5 text-sm rounded-lg transition-all font-medium ${
               tabActiva === 'buscar' 
-                ? 'bg-blue-600 text-white' 
-                : 'text-gray-400 hover:bg-white/10'
+                ? 'bg-gradient-to-r from-blue-600 to-blue-500 text-white shadow-lg shadow-blue-500/20' 
+                : 'text-gray-400 hover:bg-white/10 hover:text-gray-200'
             }`}
           >
-            <Search className="w-3 h-3 inline mr-1" />
+            <Search className="w-4 h-4 inline mr-1.5" />
             Buscar
           </button>
           <button
             onClick={() => setTabActiva('respaldados')}
-            className={`px-3 py-1 text-xs rounded transition-all ${
+            className={`px-4 py-1.5 text-sm rounded-lg transition-all font-medium ${
               tabActiva === 'respaldados' 
-                ? 'bg-blue-600 text-white' 
-                : 'text-gray-400 hover:bg-white/10'
+                ? 'bg-gradient-to-r from-blue-600 to-blue-500 text-white shadow-lg shadow-blue-500/20' 
+                : 'text-gray-400 hover:bg-white/10 hover:text-gray-200'
             }`}
           >
-            <History className="w-3 h-3 inline mr-1" />
+            <History className="w-4 h-4 inline mr-1.5" />
             Respaldados
           </button>
         </div>
@@ -708,23 +710,23 @@ export const ProspeccionIAModule = ({ onBack }: { onBack: () => void }) => {
         <div className="flex-1" />
 
         {/* Checkbox emails verificados */}
-        <label className="flex items-center gap-1.5 text-xs text-gray-400 mr-4">
+        <label className="flex items-center gap-2 text-sm text-gray-400 mr-4 cursor-pointer hover:text-gray-200 transition-colors">
           <input
             type="checkbox"
             checked={soloVerificados}
             onChange={e => setSoloVerificados(e.target.checked)}
-            className="w-3 h-3 rounded"
+            className="w-4 h-4 rounded border-gray-600 bg-gray-800 checked:bg-blue-600"
           />
-          <UserCheck className="w-3 h-3" />
+          <UserCheck className="w-4 h-4" />
           Solo verificados
         </label>
 
         {/* Contador */}
         {contactosActivos.length > 0 && (
-          <span className="text-xs text-gray-500 mr-3">
+          <span className="text-sm text-gray-400 mr-4">
             {contactosActivos.length.toLocaleString()} mostrados
             {paginacion.total > 0 && (
-              <span className="text-orange-400 ml-1">
+              <span className="text-orange-400 font-semibold ml-1">
                 ({paginacion.total >= 1000000 
                   ? `${(paginacion.total / 1000000).toFixed(1)}M` 
                   : paginacion.total >= 1000 
@@ -740,9 +742,9 @@ export const ProspeccionIAModule = ({ onBack }: { onBack: () => void }) => {
         <button
           onClick={exportarExcel}
           disabled={exportando || contactosActivos.length === 0}
-          className="px-2 py-1 text-xs text-gray-400 hover:text-white hover:bg-white/10 rounded flex items-center gap-1 mr-2"
+          className="px-3 py-1.5 text-sm text-gray-300 hover:text-white bg-gray-800/50 hover:bg-gray-700/50 border border-gray-700 rounded-lg flex items-center gap-1.5 mr-2 transition-all"
         >
-          {exportando ? <Loader2 className="w-3 h-3 animate-spin" /> : <FileSpreadsheet className="w-3 h-3" />}
+          {exportando ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileSpreadsheet className="w-4 h-4" />}
           Excel
         </button>
 
@@ -750,16 +752,16 @@ export const ProspeccionIAModule = ({ onBack }: { onBack: () => void }) => {
           <>
             <button
               onClick={limpiarFiltros}
-              className="px-2 py-1 text-xs text-gray-400 hover:text-white hover:bg-white/10 rounded mr-2"
+              className="px-3 py-1.5 text-sm text-gray-400 hover:text-white hover:bg-white/10 rounded-lg mr-2 transition-all"
             >
               Limpiar
             </button>
             <button
               onClick={handleBuscar}
               disabled={loading || (!useApollo && !useHunter)}
-              className="px-3 py-1 bg-orange-600 hover:bg-orange-700 disabled:opacity-50 rounded text-xs font-medium flex items-center gap-1"
+              className="px-4 py-1.5 bg-gradient-to-r from-orange-600 to-orange-500 hover:from-orange-500 hover:to-orange-400 disabled:opacity-50 rounded-lg text-sm font-semibold flex items-center gap-2 shadow-lg shadow-orange-500/20 transition-all"
             >
-              {loading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Search className="w-3 h-3" />}
+              {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
               Buscar
             </button>
           </>
@@ -769,9 +771,9 @@ export const ProspeccionIAModule = ({ onBack }: { onBack: () => void }) => {
           <button
             onClick={cargarRespaldados}
             disabled={loading}
-            className="px-3 py-1 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 rounded text-xs font-medium flex items-center gap-1"
+            className="px-4 py-1.5 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 disabled:opacity-50 rounded-lg text-sm font-semibold flex items-center gap-2 shadow-lg shadow-blue-500/20 transition-all"
           >
-            {loading ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
+            {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
             Actualizar
           </button>
         )}
@@ -782,7 +784,7 @@ export const ProspeccionIAModule = ({ onBack }: { onBack: () => void }) => {
         
         {/* ══════════════ PANEL FILTROS ══════════════ */}
         {tabActiva === 'buscar' && (
-          <aside className="w-56 bg-[#161b22] border-r border-gray-800 flex flex-col overflow-hidden">
+          <aside className="w-60 bg-gradient-to-b from-[#1a1f2e] to-[#151921] border-r border-gray-700/50 flex flex-col overflow-hidden shadow-xl">
             <div className="flex-1 overflow-y-auto">
               
               {/* Búsqueda por empresa */}
@@ -794,7 +796,7 @@ export const ProspeccionIAModule = ({ onBack }: { onBack: () => void }) => {
                   value={empresaBusqueda}
                   onChange={e => setEmpresaBusqueda(e.target.value)}
                   onKeyDown={e => e.key === 'Enter' && handleBuscar()}
-                  className="w-full px-2 py-1.5 bg-gray-900 border border-gray-700 rounded text-xs focus:border-orange-500 outline-none"
+                  className="w-full px-3 py-2.5 bg-gray-900/80 border border-gray-600/50 rounded-lg text-sm focus:border-orange-500 focus:ring-1 focus:ring-orange-500/30 outline-none placeholder-gray-500 transition-all"
                 />
               </div>
 
@@ -805,19 +807,23 @@ export const ProspeccionIAModule = ({ onBack }: { onBack: () => void }) => {
                 expanded={expandedFilters.fuente}
                 onToggle={() => toggleFilter('fuente')}
               >
-                <div className="flex gap-1">
+                <div className="flex gap-2">
                   <button
                     onClick={() => setUseApollo(!useApollo)}
-                    className={`flex-1 py-1 rounded text-[10px] font-medium transition-all ${
-                      useApollo ? 'bg-orange-600 text-white' : 'bg-gray-800 text-gray-400'
+                    className={`flex-1 py-2 rounded-lg text-xs font-semibold transition-all ${
+                      useApollo 
+                        ? 'bg-gradient-to-r from-orange-600 to-orange-500 text-white shadow-lg shadow-orange-500/20' 
+                        : 'bg-gray-800/80 text-gray-400 hover:bg-gray-700 border border-gray-700'
                     }`}
                   >
                     Apollo
                   </button>
                   <button
                     onClick={() => setUseHunter(!useHunter)}
-                    className={`flex-1 py-1 rounded text-[10px] font-medium transition-all ${
-                      useHunter ? 'bg-orange-600 text-white' : 'bg-gray-800 text-gray-400'
+                    className={`flex-1 py-2 rounded-lg text-xs font-semibold transition-all ${
+                      useHunter 
+                        ? 'bg-gradient-to-r from-purple-600 to-purple-500 text-white shadow-lg shadow-purple-500/20' 
+                        : 'bg-gray-800/80 text-gray-400 hover:bg-gray-700 border border-gray-700'
                     }`}
                   >
                     Hunter
@@ -833,30 +839,30 @@ export const ProspeccionIAModule = ({ onBack }: { onBack: () => void }) => {
                 expanded={expandedFilters.ubicacion}
                 onToggle={() => toggleFilter('ubicacion')}
               >
-                <div className="space-y-1">
-                  <label className="flex items-center gap-1.5 text-[10px] cursor-pointer">
+                <div className="space-y-2">
+                  <label className="flex items-center gap-2 text-sm cursor-pointer hover:bg-white/5 p-1.5 rounded-lg transition-colors">
                     <input
                       type="checkbox"
                       checked={todoMexico}
                       onChange={e => setTodoMexico(e.target.checked)}
-                      className="w-3 h-3 rounded"
+                      className="w-4 h-4 rounded border-gray-600 bg-gray-800 checked:bg-blue-600"
                     />
-                    <Globe className="w-3 h-3 text-blue-400" />
+                    <Globe className="w-4 h-4 text-blue-400" />
                     Todo México
                   </label>
                   
                   {!todoMexico && (
-                    <div className="space-y-0.5 pt-1 border-t border-gray-700/50 mt-1">
+                    <div className="space-y-1 pt-2 border-t border-gray-700/30 mt-2">
                       {Object.entries(ZONAS).map(([key, zona]) => (
-                        <label key={key} className="flex items-center gap-1.5 text-[10px] cursor-pointer hover:bg-white/5 p-0.5 rounded">
+                        <label key={key} className="flex items-center gap-2 text-sm cursor-pointer hover:bg-white/5 p-1.5 rounded-lg transition-colors">
                           <input
                             type="checkbox"
                             checked={zonasActivas.includes(key)}
                             onChange={() => toggleZona(key)}
-                            className="w-3 h-3 rounded"
+                            className="w-4 h-4 rounded border-gray-600 bg-gray-800 checked:bg-blue-600"
                           />
                           <span className="flex-1">{zona.nombre}</span>
-                          <span className="text-gray-600">{zona.estados.length}</span>
+                          <span className="text-gray-500 text-xs">{zona.estados.length}</span>
                         </label>
                       ))}
                     </div>
@@ -872,16 +878,16 @@ export const ProspeccionIAModule = ({ onBack }: { onBack: () => void }) => {
                 expanded={expandedFilters.jerarquia}
                 onToggle={() => toggleFilter('jerarquia')}
               >
-                <div className="space-y-0.5">
+                <div className="space-y-1">
                   {JERARQUIAS.map(jer => (
-                    <label key={jer.id} className="flex items-center gap-1.5 text-[10px] cursor-pointer hover:bg-white/5 p-0.5 rounded">
+                    <label key={jer.id} className="flex items-center gap-2 text-sm cursor-pointer hover:bg-white/5 p-1.5 rounded-lg transition-colors">
                       <input
                         type="checkbox"
                         checked={jerarquiasActivas.includes(jer.id)}
                         onChange={() => setJerarquiasActivas(prev =>
                           prev.includes(jer.id) ? prev.filter(j => j !== jer.id) : [...prev, jer.id]
                         )}
-                        className="w-3 h-3 rounded"
+                        className="w-4 h-4 rounded border-gray-600 bg-gray-800 checked:bg-blue-600"
                       />
                       <span>{jer.nombre}</span>
                     </label>
@@ -897,16 +903,16 @@ export const ProspeccionIAModule = ({ onBack }: { onBack: () => void }) => {
                 expanded={expandedFilters.funcion}
                 onToggle={() => toggleFilter('funcion')}
               >
-                <div className="space-y-0.5">
+                <div className="space-y-1">
                   {FUNCIONES.map(func => (
-                    <label key={func.id} className="flex items-center gap-1.5 text-[10px] cursor-pointer hover:bg-white/5 p-0.5 rounded">
+                    <label key={func.id} className="flex items-center gap-2 text-sm cursor-pointer hover:bg-white/5 p-1.5 rounded-lg transition-colors">
                       <input
                         type="checkbox"
                         checked={funcionesActivas.includes(func.id)}
                         onChange={() => setFuncionesActivas(prev =>
                           prev.includes(func.id) ? prev.filter(f => f !== func.id) : [...prev, func.id]
                         )}
-                        className="w-3 h-3 rounded"
+                        className="w-4 h-4 rounded border-gray-600 bg-gray-800 checked:bg-blue-600"
                       />
                       <span>{func.nombre}</span>
                     </label>
@@ -919,19 +925,19 @@ export const ProspeccionIAModule = ({ onBack }: { onBack: () => void }) => {
         )}
 
         {/* ══════════════ PANEL RESULTADOS (LISTA) ══════════════ */}
-        <main className="flex-1 bg-[#0d1117] flex flex-col overflow-hidden">
+        <main className="flex-1 bg-gradient-to-br from-[#0d1117] to-[#111827] flex flex-col overflow-hidden">
           
           {/* Subheader */}
           {contactosActivos.length > 0 && (
-            <div className="h-9 bg-[#161b22] border-b border-gray-800 flex items-center px-3 flex-shrink-0 text-xs">
-              <label className="flex items-center gap-1.5 cursor-pointer">
+            <div className="h-12 bg-gradient-to-r from-[#1a1f2e]/80 to-transparent border-b border-gray-700/30 flex items-center px-4 flex-shrink-0 text-sm">
+              <label className="flex items-center gap-2 cursor-pointer hover:bg-white/5 px-2 py-1 rounded-lg transition-colors">
                 <input
                   type="checkbox"
                   checked={seleccionarTodos}
                   onChange={toggleSeleccionarTodos}
-                  className="w-3 h-3 rounded"
+                  className="w-4 h-4 rounded border-gray-600 bg-gray-800 checked:bg-blue-600"
                 />
-                <span className="text-gray-400">Todos</span>
+                <span className="text-gray-300">Todos</span>
               </label>
               
               {seleccionadosCount > 0 && (
@@ -979,18 +985,18 @@ export const ProspeccionIAModule = ({ onBack }: { onBack: () => void }) => {
                 </div>
               </div>
             ) : (
-              <table className="w-full text-xs">
-                <thead className="bg-[#161b22] sticky top-0 z-10">
-                  <tr className="text-left text-gray-500 border-b border-gray-800">
-                    <th className="w-8 p-2"></th>
-                    <th className="p-2 font-medium">Empresa</th>
-                    <th className="p-2 font-medium">Contacto</th>
-                    <th className="p-2 font-medium">Puesto</th>
-                    <th className="p-2 font-medium w-20">Jerarquía</th>
-                    <th className="p-2 font-medium w-24">Función</th>
-                    <th className="p-2 font-medium w-28">Email</th>
-                    <th className="p-2 font-medium w-24">Estado</th>
-                    <th className="p-2 font-medium w-16">Fuente</th>
+              <table className="w-full text-sm">
+                <thead className="bg-gradient-to-r from-[#1a1f2e] to-[#151921] sticky top-0 z-10">
+                  <tr className="text-left text-gray-400 border-b border-gray-700/50">
+                    <th className="w-10 p-3"></th>
+                    <th className="p-3 font-semibold">Empresa</th>
+                    <th className="p-3 font-semibold">Contacto</th>
+                    <th className="p-3 font-semibold">Puesto</th>
+                    <th className="p-3 font-semibold w-24">Jerarquía</th>
+                    <th className="p-3 font-semibold w-28">Función</th>
+                    <th className="p-3 font-semibold w-28">Email</th>
+                    <th className="p-3 font-semibold w-28">Estado</th>
+                    <th className="p-3 font-semibold w-20">Fuente</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -1000,32 +1006,32 @@ export const ProspeccionIAModule = ({ onBack }: { onBack: () => void }) => {
                       onClick={() => toggleSeleccionContacto(c.id)}
                       onMouseEnter={() => setHoveredContacto(c.id)}
                       onMouseLeave={() => setHoveredContacto(null)}
-                      className={`border-b border-gray-800/50 cursor-pointer transition-colors ${
+                      className={`border-b border-gray-800/30 cursor-pointer transition-all duration-150 ${
                         c.seleccionado 
-                          ? 'bg-blue-900/20' 
+                          ? 'bg-blue-900/30 border-l-2 border-l-blue-500' 
                           : hoveredContacto === c.id 
-                            ? 'bg-white/5' 
-                            : ''
+                            ? 'bg-gradient-to-r from-white/5 to-transparent' 
+                            : 'hover:bg-white/[0.02]'
                       } ${!c.activo ? 'opacity-50' : ''}`}
                     >
-                      <td className="p-2">
+                      <td className="p-3">
                         <input
                           type="checkbox"
                           checked={c.seleccionado}
                           onChange={() => {}}
-                          className="w-3 h-3 rounded"
+                          className="w-4 h-4 rounded border-gray-600 bg-gray-800 checked:bg-blue-600"
                         />
                       </td>
-                      <td className="p-2">
-                        <span className="text-blue-400 font-medium truncate block max-w-[180px]" title={c.empresa}>
+                      <td className="p-3">
+                        <span className="text-blue-400 font-semibold truncate block max-w-[200px]" title={c.empresa}>
                           {c.empresa}
                         </span>
                         {c.industria && (
-                          <span className="text-gray-600 text-[10px] truncate block">{c.industria}</span>
+                          <span className="text-gray-500 text-xs truncate block mt-0.5">{c.industria}</span>
                         )}
                       </td>
-                      <td className="p-2">
-                        <span className="text-gray-200 truncate block max-w-[150px]" title={c.nombre_completo}>
+                      <td className="p-3">
+                        <span className="text-gray-100 font-medium truncate block max-w-[160px]" title={c.nombre_completo}>
                           {c.nombre_completo}
                         </span>
                         {c.linkedin && (
@@ -1034,50 +1040,65 @@ export const ProspeccionIAModule = ({ onBack }: { onBack: () => void }) => {
                             target="_blank"
                             rel="noopener noreferrer"
                             onClick={e => e.stopPropagation()}
-                            className="text-blue-500 hover:text-blue-400"
+                            className="text-blue-500 hover:text-blue-400 inline-flex items-center gap-1 mt-0.5"
                           >
-                            <Linkedin className="w-3 h-3 inline" />
+                            <Linkedin className="w-3.5 h-3.5" />
                           </a>
                         )}
                       </td>
-                      <td className="p-2">
-                        <span className="text-gray-400 truncate block max-w-[150px]" title={c.puesto_original}>
+                      <td className="p-3">
+                        <span className="text-gray-300 truncate block max-w-[160px]" title={c.puesto_original}>
                           {c.puesto_normalizado}
                         </span>
                       </td>
-                      <td className="p-2">
-                        <span className="px-1.5 py-0.5 bg-gray-800 rounded text-[10px] text-gray-300">
+                      <td className="p-3">
+                        <span className={`px-2 py-1 rounded-md text-xs font-medium ${
+                          c.jerarquia === 'Owner' ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30' :
+                          c.jerarquia === 'C-Level' ? 'bg-purple-500/20 text-purple-400 border border-purple-500/30' :
+                          c.jerarquia === 'Director' ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30' :
+                          c.jerarquia === 'Gerente' ? 'bg-green-500/20 text-green-400 border border-green-500/30' :
+                          'bg-gray-700/50 text-gray-400 border border-gray-600/30'
+                        }`}>
                           {c.jerarquia}
                         </span>
                       </td>
-                      <td className="p-2">
-                        <span className="px-1.5 py-0.5 bg-gray-800 rounded text-[10px] text-gray-300">
+                      <td className="p-3">
+                        <span className={`px-2 py-1 rounded-md text-xs font-medium ${
+                          c.funcion === 'Dirección General' ? 'bg-indigo-500/20 text-indigo-400' :
+                          c.funcion === 'Operaciones / Planta' ? 'bg-cyan-500/20 text-cyan-400' :
+                          c.funcion === 'Supply Chain' ? 'bg-teal-500/20 text-teal-400' :
+                          c.funcion === 'Compras' ? 'bg-emerald-500/20 text-emerald-400' :
+                          c.funcion === 'Comercio Exterior' ? 'bg-sky-500/20 text-sky-400' :
+                          'bg-gray-700/50 text-gray-400'
+                        }`}>
                           {c.funcion}
                         </span>
                       </td>
-                      <td className="p-2">
+                      <td className="p-3">
                         {c.email_status === 'locked' ? (
-                          <span className="text-yellow-500 flex items-center gap-1">
-                            <Lock className="w-3 h-3" />
-                            <span className="text-[10px]">Bloqueado</span>
+                          <span className="text-yellow-400 flex items-center gap-1.5 bg-yellow-500/10 px-2 py-1 rounded-md">
+                            <Lock className="w-3.5 h-3.5" />
+                            <span className="text-xs font-medium">Bloqueado</span>
                           </span>
                         ) : c.email ? (
-                          <span className="text-green-400 truncate block max-w-[120px]" title={c.email}>
+                          <span className="text-green-400 truncate block max-w-[130px] text-xs" title={c.email}>
                             {c.email}
                           </span>
                         ) : (
                           <span className="text-gray-600">—</span>
                         )}
                       </td>
-                      <td className="p-2">
-                        <span className="text-gray-500 flex items-center gap-1">
-                          <MapPin className="w-3 h-3" />
+                      <td className="p-3">
+                        <span className="text-gray-400 flex items-center gap-1.5 text-xs">
+                          <MapPin className="w-3.5 h-3.5 text-gray-500" />
                           {c.estado || c.zona || '—'}
                         </span>
                       </td>
-                      <td className="p-2">
-                        <span className={`text-[10px] px-1.5 py-0.5 rounded ${
-                          c.fuente === 'apollo' ? 'bg-orange-900/30 text-orange-400' : 'bg-purple-900/30 text-purple-400'
+                      <td className="p-3">
+                        <span className={`text-xs px-2 py-1 rounded-md font-medium ${
+                          c.fuente === 'apollo' 
+                            ? 'bg-gradient-to-r from-orange-600/20 to-orange-500/10 text-orange-400 border border-orange-500/30' 
+                            : 'bg-gradient-to-r from-purple-600/20 to-purple-500/10 text-purple-400 border border-purple-500/30'
                         }`}>
                           {c.fuente}
                         </span>
@@ -1093,7 +1114,7 @@ export const ProspeccionIAModule = ({ onBack }: { onBack: () => void }) => {
 
       {/* Tooltip hover */}
       {hoveredContacto && (
-        <div className="fixed bottom-4 right-4 bg-[#1c2128] border border-gray-700 rounded-lg p-3 shadow-xl text-xs z-50 max-w-xs">
+        <div className="fixed bottom-4 right-4 bg-gradient-to-br from-[#1e2433] to-[#151921] border border-gray-600/50 rounded-xl p-4 shadow-2xl text-sm z-50 max-w-sm backdrop-blur-sm">
           {(() => {
             const c = contactosActivos.find(x => x.id === hoveredContacto);
             if (!c) return null;
