@@ -1,15 +1,16 @@
 // ═══════════════════════════════════════════════════════════════════════════
-// PROSPECCIÓN IA MODULE v7 - Extracción masiva con tracking
-// Guarda TODOS los contactos (bloqueados o no) para desbloqueo posterior
+// PROSPECCIÓN IA MODULE v8 - Enterprise B2B Prospecting System
+// Vista lista, respaldo automático, histórico, exportación Excel
 // ═══════════════════════════════════════════════════════════════════════════
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { 
   Search, Loader2, Building2, Mail, MapPin, 
   ChevronDown, ChevronRight, Target, Users, X, 
-  Plus, Save, Lock, Unlock, Briefcase, Factory,
-  Globe, UserCheck, Filter, Database, Check,
-  ExternalLink, Linkedin, Download
+  Save, Lock, Unlock, Briefcase, Factory,
+  Globe, UserCheck, Database, Check,
+  Linkedin, Download, History, RefreshCw,
+  ArrowUpDown, FileSpreadsheet, Eye, Filter
 } from 'lucide-react';
 import { createClient } from '@supabase/supabase-js';
 
@@ -33,30 +34,32 @@ const ZONAS = {
   sur: { nombre: 'Sur', estados: ['Chiapas', 'Guerrero', 'Oaxaca', 'Tabasco', 'Veracruz', 'Campeche', 'Quintana Roo', 'Yucatán'] }
 };
 
-const INDUSTRIAS = [
-  'Agroindustrial', 'Alimentos y Bebidas', 'Cárnicos / Pollo', 'Produce / Frutas',
-  'Manufactura', 'Automotriz', 'Aeroespacial', 'Construcción', 'Retail',
-  'Farmacéutica', 'Química', 'Minería', 'Electrónica', 'Textil', 'Empaque'
-];
-
 const JERARQUIAS = [
-  { id: 'owner', nombre: 'Dueños / Owner', titles: ['Owner', 'Founder', 'Co-Founder', 'Dueño', 'Socio'] },
-  { id: 'clevel', nombre: 'C-Level', titles: ['CEO', 'COO', 'CFO', 'CTO', 'CMO', 'President', 'Chairman'] },
-  { id: 'director', nombre: 'Directores', titles: ['Director', 'VP', 'Vice President', 'Director General'] },
-  { id: 'gerente', nombre: 'Gerentes', titles: ['Manager', 'Gerente', 'Head of', 'Jefe'] },
-  { id: 'coordinador', nombre: 'Coordinadores', titles: ['Coordinator', 'Coordinador', 'Supervisor', 'Lead'] }
+  { id: 'owner', nombre: 'Owner', titles: ['Owner', 'Founder', 'Co-Founder', 'Dueño', 'Socio', 'Propietario'] },
+  { id: 'clevel', nombre: 'C-Level', titles: ['CEO', 'COO', 'CFO', 'CTO', 'CMO', 'President', 'Chairman', 'Director General'] },
+  { id: 'director', nombre: 'Director', titles: ['Director', 'VP', 'Vice President', 'Vicepresidente'] },
+  { id: 'gerente', nombre: 'Gerente', titles: ['Manager', 'Gerente', 'Head of', 'Jefe', 'Responsable'] },
+  { id: 'coordinador', nombre: 'Coordinador', titles: ['Coordinator', 'Coordinador', 'Supervisor', 'Lead', 'Encargado'] }
 ];
 
 const FUNCIONES = [
-  { id: 'direccion', nombre: 'Dirección General', titles: ['CEO', 'Director General', 'Managing Director', 'President', 'General Manager'] },
-  { id: 'operaciones', nombre: 'Operaciones / Planta', titles: ['Operations', 'Plant', 'Production', 'Manufacturing', 'Operaciones', 'Planta', 'Producción'] },
-  { id: 'supplychain', nombre: 'Logística / Supply Chain', titles: ['Supply Chain', 'Logistics', 'Distribution', 'Warehouse', 'Logística', 'Cadena de Suministro', 'Almacén'] },
-  { id: 'comex', nombre: 'Comercio Exterior', titles: ['Import', 'Export', 'Trade', 'Customs', 'Importación', 'Exportación', 'Comercio Exterior', 'Aduanas'] },
-  { id: 'compras', nombre: 'Compras / Procurement', titles: ['Procurement', 'Purchasing', 'Sourcing', 'Buyer', 'Compras', 'Abastecimiento'] },
-  { id: 'finanzas', nombre: 'Finanzas Operativas', titles: ['Finance', 'Accounting', 'Controller', 'Finanzas', 'Contabilidad', 'Tesorería'] }
+  { id: 'direccion', nombre: 'Dirección General', keywords: ['CEO', 'Director General', 'Managing Director', 'President', 'General Manager', 'Presidente'] },
+  { id: 'operaciones', nombre: 'Operaciones / Planta', keywords: ['Operations', 'Plant', 'Production', 'Manufacturing', 'Operaciones', 'Planta', 'Producción', 'Manufactura'] },
+  { id: 'supplychain', nombre: 'Supply Chain', keywords: ['Supply Chain', 'Logistics', 'Distribution', 'Warehouse', 'Logística', 'Cadena de Suministro', 'Almacén', 'Distribución'] },
+  { id: 'comex', nombre: 'Comercio Exterior', keywords: ['Import', 'Export', 'Trade', 'Customs', 'Importación', 'Exportación', 'Comercio Exterior', 'Aduanas', 'International'] },
+  { id: 'compras', nombre: 'Compras', keywords: ['Procurement', 'Purchasing', 'Sourcing', 'Buyer', 'Compras', 'Abastecimiento', 'Adquisiciones'] },
+  { id: 'finanzas', nombre: 'Finanzas Op.', keywords: ['Finance', 'Accounting', 'Controller', 'Finanzas', 'Contabilidad', 'Tesorería', 'Facturación'] }
 ];
 
-const EXCLUSIONES_AUTO = ['logistics', 'transportation', 'trucking', 'freight', '3pl', 'courier', 'banking', 'hotel', 'government', 'ngo'];
+// Exclusiones automáticas (lista negra)
+const EXCLUSIONES = [
+  'logistics', 'transportation', 'trucking', 'freight', '3pl', '4pl', 'courier', 'shipping',
+  'bank', 'banking', 'insurance', 'financial services', 'fintech',
+  'government', 'ngo', 'nonprofit', 'education', 'university',
+  'hotel', 'restaurant', 'hospitality', 'tourism',
+  'consulting', 'agency', 'marketing', 'advertising',
+  'legal', 'law firm', 'accounting firm', 'real estate'
+];
 
 // ═══════════════════════════════════════════════════════════════════════════
 // TIPOS
@@ -64,23 +67,80 @@ const EXCLUSIONES_AUTO = ['logistics', 'transportation', 'trucking', 'freight', 
 
 interface Contacto {
   id: string;
+  source_id: string;
+  fuente: 'apollo' | 'hunter';
   nombre: string;
   apellido: string;
-  email: string;
-  emailVerificado: boolean;
-  emailBloqueado: boolean;
+  nombre_completo: string;
+  puesto_original: string;
+  puesto_normalizado: string;
+  jerarquia: string;
+  funcion: string;
   empresa: string;
+  dominio_empresa: string;
   industria: string;
-  puesto: string;
-  ciudad: string;
-  estado: string;
   pais: string;
+  estado: string;
+  zona: string;
+  email: string;
+  email_status: 'verified' | 'locked' | 'none';
+  email_unlocked: boolean;
   linkedin: string;
   telefono: string;
-  fuente: 'apollo' | 'hunter';
+  fecha_captura: string;
+  fecha_ultima_aparicion: string;
+  fecha_desaparicion: string | null;
+  es_nuevo: boolean;
+  activo: boolean;
   seleccionado?: boolean;
-  yaGuardado?: boolean;
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// UTILIDADES
+// ═══════════════════════════════════════════════════════════════════════════
+
+const detectarJerarquia = (puesto: string): string => {
+  const p = puesto.toLowerCase();
+  for (const j of JERARQUIAS) {
+    if (j.titles.some(t => p.includes(t.toLowerCase()))) {
+      return j.nombre;
+    }
+  }
+  return 'Otro';
+};
+
+const detectarFuncion = (puesto: string): string => {
+  const p = puesto.toLowerCase();
+  for (const f of FUNCIONES) {
+    if (f.keywords.some(k => p.includes(k.toLowerCase()))) {
+      return f.nombre;
+    }
+  }
+  return 'General';
+};
+
+const detectarZona = (estado: string): string => {
+  for (const [key, zona] of Object.entries(ZONAS)) {
+    if (zona.estados.some(e => estado.toLowerCase().includes(e.toLowerCase()))) {
+      return zona.nombre;
+    }
+  }
+  return 'Otro';
+};
+
+const esEmpresaExcluida = (empresa: string, industria: string): boolean => {
+  const texto = `${empresa} ${industria}`.toLowerCase();
+  return EXCLUSIONES.some(exc => texto.includes(exc));
+};
+
+const normalizarPuesto = (puesto: string): string => {
+  // Limpiar y acortar puesto
+  return puesto
+    .replace(/\s+/g, ' ')
+    .replace(/[,|\/\\-]+/g, ' ')
+    .trim()
+    .substring(0, 50);
+};
 
 // ═══════════════════════════════════════════════════════════════════════════
 // COMPONENTE FILTRO DESPLEGABLE
@@ -104,17 +164,17 @@ const FilterSection = ({
   <div className="border-b border-gray-700/50">
     <button
       onClick={onToggle}
-      className="w-full flex items-center gap-2 px-3 py-2.5 hover:bg-white/5 transition-colors text-left"
+      className="w-full flex items-center gap-2 px-3 py-2 hover:bg-white/5 transition-colors text-left"
     >
-      {expanded ? <ChevronDown className="w-3.5 h-3.5 text-gray-400" /> : <ChevronRight className="w-3.5 h-3.5 text-gray-400" />}
-      <Icon className="w-4 h-4 text-gray-400" />
-      <span className="text-sm font-medium text-gray-200 flex-1">{title}</span>
+      {expanded ? <ChevronDown className="w-3 h-3 text-gray-400" /> : <ChevronRight className="w-3 h-3 text-gray-400" />}
+      <Icon className="w-3.5 h-3.5 text-gray-400" />
+      <span className="text-xs font-medium text-gray-200 flex-1">{title}</span>
       {count !== undefined && (
-        <span className="text-xs text-gray-500">{count}</span>
+        <span className="text-[10px] text-gray-500 bg-gray-800 px-1.5 rounded">{count}</span>
       )}
     </button>
     {expanded && (
-      <div className="px-3 pb-3 max-h-48 overflow-y-auto">
+      <div className="px-3 pb-2 max-h-40 overflow-y-auto">
         {children}
       </div>
     )}
@@ -122,68 +182,81 @@ const FilterSection = ({
 );
 
 // ═══════════════════════════════════════════════════════════════════════════
-// COMPONENTE CHIP SELECCIONABLE
-// ═══════════════════════════════════════════════════════════════════════════
-
-const Chip = ({ 
-  label, 
-  selected, 
-  onClick
-}: {
-  label: string;
-  selected: boolean;
-  onClick: () => void;
-}) => (
-  <button
-    onClick={onClick}
-    className={`px-2 py-1 text-xs rounded border transition-all ${
-      selected 
-        ? 'bg-blue-600/30 border-blue-500/50 text-blue-300' 
-        : 'bg-gray-800/50 border-gray-700 text-gray-400 hover:border-gray-600'
-    }`}
-  >
-    {label}
-  </button>
-);
-
-// ═══════════════════════════════════════════════════════════════════════════
 // COMPONENTE PRINCIPAL
 // ═══════════════════════════════════════════════════════════════════════════
 
 export const ProspeccionIAModule = ({ onBack }: { onBack: () => void }) => {
+  // Tab activa
+  const [tabActiva, setTabActiva] = useState<'buscar' | 'respaldados'>('buscar');
+
   // Estados de filtros
   const [useApollo, setUseApollo] = useState(true);
   const [useHunter, setUseHunter] = useState(false);
-  const [soloVerificados, setSoloVerificados] = useState(false);
+  const [soloVerificados, setSoloVerificados] = useState(true);
   const [todoMexico, setTodoMexico] = useState(true);
   const [zonasActivas, setZonasActivas] = useState<string[]>([]);
-  const [estadosActivos, setEstadosActivos] = useState<string[]>([]);
-  const [empresa, setEmpresa] = useState('');
-  const [dominio, setDominio] = useState('');
-  const [industriasActivas, setIndustriasActivas] = useState<string[]>([]);
+  const [empresaBusqueda, setEmpresaBusqueda] = useState('');
   const [jerarquiasActivas, setJerarquiasActivas] = useState<string[]>(['owner', 'clevel', 'director', 'gerente']);
-  const [funcionesActivas, setFuncionesActivas] = useState<string[]>(['direccion', 'operaciones', 'supplychain', 'compras']);
+  const [funcionesActivas, setFuncionesActivas] = useState<string[]>(['direccion', 'operaciones', 'supplychain', 'compras', 'comex']);
 
   // Estados de UI
   const [expandedFilters, setExpandedFilters] = useState({
     fuente: true,
     ubicacion: true,
-    empresa: false,
-    industria: true,
     jerarquia: true,
     funcion: true
   });
+  const [porPagina, setPorPagina] = useState(50);
+  const [paginaActual, setPaginaActual] = useState(1);
 
   // Estados de datos
   const [loading, setLoading] = useState(false);
-  const [loadingMore, setLoadingMore] = useState(false);
-  const [contactos, setContactos] = useState<Contacto[]>([]);
-  const [paginacion, setPaginacion] = useState({ total: 0, page: 0, pages: 0 });
   const [guardando, setGuardando] = useState(false);
+  const [exportando, setExportando] = useState(false);
+  const [contactos, setContactos] = useState<Contacto[]>([]);
+  const [contactosRespaldados, setContactosRespaldados] = useState<Contacto[]>([]);
+  const [paginacion, setPaginacion] = useState({ total: 0, page: 0, pages: 0 });
   const [seleccionarTodos, setSeleccionarTodos] = useState(false);
+  const [hoveredContacto, setHoveredContacto] = useState<string | null>(null);
+  const [stats, setStats] = useState({ nuevos: 0, existentes: 0, total: 0 });
 
   const toggleFilter = (key: keyof typeof expandedFilters) => {
     setExpandedFilters(prev => ({ ...prev, [key]: !prev[key] }));
+  };
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // CARGAR RESPALDADOS AL INICIO
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  useEffect(() => {
+    if (tabActiva === 'respaldados') {
+      cargarRespaldados();
+    }
+  }, [tabActiva]);
+
+  const cargarRespaldados = async () => {
+    setLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('prospeccion_contactos')
+        .select('*')
+        .order('empresa', { ascending: true })
+        .order('nombre', { ascending: true });
+
+      if (!error && data) {
+        setContactosRespaldados(data.map((c: any) => ({
+          ...c,
+          nombre_completo: `${c.nombre} ${c.apellido}`,
+          es_nuevo: false,
+          activo: !c.fecha_desaparicion,
+          seleccionado: false
+        })));
+      }
+    } catch (err) {
+      console.error('Error cargando respaldados:', err);
+    } finally {
+      setLoading(false);
+    }
   };
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -198,23 +271,18 @@ export const ProspeccionIAModule = ({ onBack }: { onBack: () => void }) => {
     });
     funcionesActivas.forEach(f => {
       const func = FUNCIONES.find(x => x.id === f);
-      if (func) titles.push(...func.titles);
+      if (func) titles.push(...func.keywords);
     });
-    return [...new Set(titles)].slice(0, 15);
+    return [...new Set(titles)].slice(0, 20);
   };
 
-  const buscar = async (page = 1) => {
+  const buscarEnApollo = async (page = 1) => {
     let ubicaciones: string[] = ['Mexico'];
-    if (!todoMexico) {
-      if (estadosActivos.length > 0) {
-        ubicaciones = estadosActivos.map(e => `${e}, Mexico`);
-      } else if (zonasActivas.length > 0) {
-        ubicaciones = zonasActivas.flatMap(z => ZONAS[z as keyof typeof ZONAS]?.estados || []).map(e => `${e}, Mexico`);
-      }
+    if (!todoMexico && zonasActivas.length > 0) {
+      ubicaciones = zonasActivas.flatMap(z => ZONAS[z as keyof typeof ZONAS]?.estados || []).map(e => `${e}, Mexico`);
     }
 
     const titles = construirTitulos();
-    const keywords = industriasActivas.length > 0 ? industriasActivas : undefined;
 
     const response = await fetch(`${SUPABASE_URL}/functions/v1/prospeccion-api`, {
       method: 'POST',
@@ -224,552 +292,697 @@ export const ProspeccionIAModule = ({ onBack }: { onBack: () => void }) => {
         params: {
           locations: ubicaciones,
           titles: titles,
-          company_name: empresa.trim() || undefined,
-          keywords: keywords,
+          company_name: empresaBusqueda.trim() || undefined,
           page,
-          per_page: 100
+          per_page: porPagina
         }
       })
     });
 
-    if (!response.ok) throw new Error('Error en búsqueda');
-    const data = await response.json();
+    if (!response.ok) throw new Error('Error en búsqueda Apollo');
+    return await response.json();
+  };
 
-    let contacts: Contacto[] = (data.contacts || []).map((c: any) => ({
-      id: c.id,
-      nombre: c.nombre,
-      apellido: c.apellido,
-      email: c.email,
-      emailVerificado: c.emailVerificado,
-      emailBloqueado: c.email === 'email_not_unlocked@domain.com',
-      empresa: c.empresa,
-      industria: c.industria || '',
-      puesto: c.puesto,
-      ciudad: c.ciudad || '',
-      estado: c.estado || '',
-      pais: c.pais || 'Mexico',
-      linkedin: c.linkedin || '',
-      telefono: c.telefono || '',
-      fuente: 'apollo',
-      seleccionado: false,
-      yaGuardado: false
-    }));
+  const procesarContactos = (rawContacts: any[]): Contacto[] => {
+    const ahora = new Date().toISOString();
+    
+    return rawContacts
+      .map((c: any) => {
+        const puesto = c.puesto || '';
+        const empresa = c.empresa || '';
+        const industria = c.industria || '';
+        const estado = c.estado || '';
+        
+        // Excluir empresas de lista negra
+        if (esEmpresaExcluida(empresa, industria)) {
+          return null;
+        }
 
-    // Filtrar solo verificados si está activo
-    if (soloVerificados) {
-      contacts = contacts.filter(c => c.emailVerificado === true);
-    }
-
-    // Excluir industrias no deseadas
-    contacts = contacts.filter(c => {
-      const ind = (c.industria || '').toLowerCase();
-      const emp = (c.empresa || '').toLowerCase();
-      return !EXCLUSIONES_AUTO.some(exc => ind.includes(exc) || emp.includes(exc));
-    });
-
-    return { contacts, total: data.total || 0, pages: data.total_pages || 0 };
+        const emailBloqueado = c.email === 'email_not_unlocked@domain.com';
+        
+        return {
+          id: c.id,
+          source_id: c.id,
+          fuente: 'apollo' as const,
+          nombre: c.nombre || '',
+          apellido: c.apellido || '',
+          nombre_completo: `${c.nombre || ''} ${c.apellido || ''}`.trim(),
+          puesto_original: puesto,
+          puesto_normalizado: normalizarPuesto(puesto),
+          jerarquia: detectarJerarquia(puesto),
+          funcion: detectarFuncion(puesto),
+          empresa: empresa,
+          dominio_empresa: '',
+          industria: industria,
+          pais: c.pais || 'Mexico',
+          estado: estado,
+          zona: detectarZona(estado),
+          email: emailBloqueado ? '' : c.email,
+          email_status: emailBloqueado ? 'locked' as const : (c.email ? 'verified' as const : 'none' as const),
+          email_unlocked: !emailBloqueado && !!c.email,
+          linkedin: c.linkedin || '',
+          telefono: c.telefono || '',
+          fecha_captura: ahora,
+          fecha_ultima_aparicion: ahora,
+          fecha_desaparicion: null,
+          es_nuevo: true,
+          activo: true,
+          seleccionado: false
+        };
+      })
+      .filter((c): c is Contacto => c !== null);
   };
 
   const handleBuscar = async () => {
     if (!useApollo && !useHunter) return;
     setLoading(true);
+    setPaginaActual(1);
+    
     try {
-      const { contacts, total, pages } = await buscar(1);
+      const data = await buscarEnApollo(1);
+      let contacts = procesarContactos(data.contacts || []);
+
+      // Filtrar solo verificados si está activo
+      if (soloVerificados) {
+        contacts = contacts.filter(c => c.email_status === 'verified' || c.email_status === 'locked');
+      }
+
+      // Ordenar A-Z por empresa
+      contacts.sort((a, b) => a.empresa.localeCompare(b.empresa) || a.nombre_completo.localeCompare(b.nombre_completo));
+
       setContactos(contacts);
-      setPaginacion({ total, page: 1, pages });
+      setPaginacion({ total: data.total || 0, page: 1, pages: data.total_pages || 0 });
+      setStats({ nuevos: contacts.length, existentes: 0, total: contacts.length });
       setSeleccionarTodos(false);
+
+      // Auto-guardar en Supabase
+      await guardarEnSupabase(contacts);
+
     } catch (err) {
-      console.error(err);
+      console.error('Error en búsqueda:', err);
     } finally {
       setLoading(false);
     }
   };
 
   const handleCargarMas = async () => {
-    if (loadingMore || paginacion.page >= paginacion.pages) return;
-    setLoadingMore(true);
+    if (loading || paginacion.page >= paginacion.pages) return;
+    setLoading(true);
+    
     try {
-      const { contacts } = await buscar(paginacion.page + 1);
-      setContactos(prev => [...prev, ...contacts]);
+      const data = await buscarEnApollo(paginacion.page + 1);
+      let newContacts = procesarContactos(data.contacts || []);
+
+      if (soloVerificados) {
+        newContacts = newContacts.filter(c => c.email_status === 'verified' || c.email_status === 'locked');
+      }
+
+      const allContacts = [...contactos, ...newContacts];
+      allContacts.sort((a, b) => a.empresa.localeCompare(b.empresa) || a.nombre_completo.localeCompare(b.nombre_completo));
+
+      setContactos(allContacts);
       setPaginacion(prev => ({ ...prev, page: prev.page + 1 }));
+
+      // Auto-guardar nuevos
+      await guardarEnSupabase(newContacts);
+
     } finally {
-      setLoadingMore(false);
+      setLoading(false);
     }
   };
 
-  // Guardar TODOS los contactos seleccionados en BD
-  const handleGuardarSeleccionados = async () => {
-    const seleccionados = contactos.filter(c => c.seleccionado && !c.yaGuardado);
-    if (seleccionados.length === 0) return;
+  // ═══════════════════════════════════════════════════════════════════════════
+  // GUARDAR EN SUPABASE (AUTO)
+  // ═══════════════════════════════════════════════════════════════════════════
 
-    setGuardando(true);
+  const guardarEnSupabase = async (contacts: Contacto[]) => {
+    if (contacts.length === 0) return;
+
     try {
-      const datos = seleccionados.map(c => ({
-        source_id: c.id,
+      const datos = contacts.map(c => ({
+        source_id: c.source_id,
         fuente: c.fuente,
         nombre: c.nombre,
         apellido: c.apellido,
-        email: c.emailBloqueado ? null : c.email,
-        email_bloqueado: c.emailBloqueado,
-        email_desbloqueado: !c.emailBloqueado,
+        puesto_original: c.puesto_original,
+        puesto_normalizado: c.puesto_normalizado,
+        jerarquia: c.jerarquia,
+        funcion: c.funcion,
         empresa: c.empresa,
+        dominio_empresa: c.dominio_empresa,
         industria: c.industria,
-        puesto: c.puesto,
-        ciudad: c.ciudad,
-        estado: c.estado,
         pais: c.pais,
+        estado: c.estado,
+        zona: c.zona,
+        email: c.email || null,
+        email_status: c.email_status,
+        email_unlocked: c.email_unlocked,
         linkedin: c.linkedin,
         telefono: c.telefono,
-        status: 'nuevo'
+        fecha_captura: c.fecha_captura,
+        fecha_ultima_aparicion: c.fecha_ultima_aparicion
       }));
 
-      // Guardar en batches de 100
+      // Batch insert con upsert
       for (let i = 0; i < datos.length; i += 100) {
         const batch = datos.slice(i, i + 100);
-        const { error } = await supabase
+        await supabase
           .from('prospeccion_contactos')
-          .upsert(batch, { onConflict: 'source_id,fuente' });
-        
-        if (error) {
-          console.error('Error guardando batch:', error);
-        }
+          .upsert(batch, { 
+            onConflict: 'source_id,fuente',
+            ignoreDuplicates: false 
+          });
       }
-
-      // Marcar como guardados en UI
-      setContactos(prev => prev.map(c => 
-        c.seleccionado ? { ...c, yaGuardado: true, seleccionado: false } : c
-      ));
-      setSeleccionarTodos(false);
-
-    } finally {
-      setGuardando(false);
+    } catch (err) {
+      console.error('Error guardando en Supabase:', err);
     }
   };
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // EXPORTAR A EXCEL
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  const exportarExcel = async () => {
+    setExportando(true);
+    
+    try {
+      const datos = tabActiva === 'respaldados' ? contactosRespaldados : contactos;
+      
+      // Crear CSV (más simple que XLSX para este caso)
+      const headers = [
+        'Empresa', 'Nombre', 'Puesto', 'Jerarquía', 'Función',
+        'Email', 'Email Status', 'Estado', 'Zona', 'Industria',
+        'LinkedIn', 'Teléfono', 'Fuente', 'Fecha Captura'
+      ];
+
+      const rows = datos.map(c => [
+        c.empresa,
+        c.nombre_completo,
+        c.puesto_normalizado,
+        c.jerarquia,
+        c.funcion,
+        c.email || '🔒 Bloqueado',
+        c.email_status,
+        c.estado,
+        c.zona,
+        c.industria,
+        c.linkedin,
+        c.telefono,
+        c.fuente,
+        c.fecha_captura
+      ]);
+
+      const csvContent = [
+        headers.join(','),
+        ...rows.map(row => row.map(cell => `"${(cell || '').toString().replace(/"/g, '""')}"`).join(','))
+      ].join('\n');
+
+      const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `prospeccion_${new Date().toISOString().split('T')[0]}.csv`;
+      link.click();
+      URL.revokeObjectURL(url);
+
+    } finally {
+      setExportando(false);
+    }
+  };
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // SELECCIÓN
+  // ═══════════════════════════════════════════════════════════════════════════
 
   const toggleSeleccionarTodos = () => {
     const nuevoValor = !seleccionarTodos;
     setSeleccionarTodos(nuevoValor);
-    setContactos(prev => prev.map(c => ({ ...c, seleccionado: c.yaGuardado ? false : nuevoValor })));
+    const lista = tabActiva === 'respaldados' ? contactosRespaldados : contactos;
+    const setter = tabActiva === 'respaldados' ? setContactosRespaldados : setContactos;
+    setter(lista.map(c => ({ ...c, seleccionado: nuevoValor })));
   };
 
   const toggleSeleccionContacto = (id: string) => {
-    setContactos(prev => prev.map(c => 
-      c.id === id ? { ...c, seleccionado: !c.seleccionado } : c
-    ));
+    const lista = tabActiva === 'respaldados' ? contactosRespaldados : contactos;
+    const setter = tabActiva === 'respaldados' ? setContactosRespaldados : setContactos;
+    setter(lista.map(c => c.id === id ? { ...c, seleccionado: !c.seleccionado } : c));
   };
 
   const toggleZona = (zona: string) => {
-    if (zonasActivas.includes(zona)) {
-      setZonasActivas(prev => prev.filter(z => z !== zona));
-    } else {
-      setZonasActivas(prev => [...prev, zona]);
-    }
+    setZonasActivas(prev => prev.includes(zona) ? prev.filter(z => z !== zona) : [...prev, zona]);
   };
 
   const limpiarFiltros = () => {
     setUseApollo(true);
     setUseHunter(false);
-    setSoloVerificados(false);
+    setSoloVerificados(true);
     setTodoMexico(true);
     setZonasActivas([]);
-    setEstadosActivos([]);
-    setEmpresa('');
-    setDominio('');
-    setIndustriasActivas([]);
+    setEmpresaBusqueda('');
     setJerarquiasActivas(['owner', 'clevel', 'director', 'gerente']);
-    setFuncionesActivas(['direccion', 'operaciones', 'supplychain', 'compras']);
+    setFuncionesActivas(['direccion', 'operaciones', 'supplychain', 'compras', 'comex']);
   };
 
-  const seleccionadosCount = contactos.filter(c => c.seleccionado).length;
-  const guardadosCount = contactos.filter(c => c.yaGuardado).length;
-  const bloqueadosCount = contactos.filter(c => c.emailBloqueado).length;
+  const contactosActivos = tabActiva === 'respaldados' ? contactosRespaldados : contactos;
+  const seleccionadosCount = contactosActivos.filter(c => c.seleccionado).length;
 
   // ═══════════════════════════════════════════════════════════════════════════
   // RENDER
   // ═══════════════════════════════════════════════════════════════════════════
 
   return (
-    <div className="h-screen bg-[#0f1419] text-gray-100 flex flex-col overflow-hidden">
+    <div className="h-screen bg-[#0d1117] text-gray-100 flex flex-col overflow-hidden">
+      
       {/* ══════════════ HEADER ══════════════ */}
-      <header className="h-12 bg-[#15202b] border-b border-gray-800 flex items-center px-4 flex-shrink-0">
-        <button onClick={onBack} className="mr-3 p-1.5 hover:bg-white/10 rounded">
+      <header className="h-11 bg-[#161b22] border-b border-gray-800 flex items-center px-3 flex-shrink-0">
+        <button onClick={onBack} className="mr-2 p-1 hover:bg-white/10 rounded">
           <X className="w-4 h-4" />
         </button>
+        
         <div className="flex items-center gap-2">
-          <Target className="w-5 h-5 text-orange-500" />
-          <span className="font-semibold">Prospección IA</span>
+          <Target className="w-4 h-4 text-orange-500" />
+          <span className="font-semibold text-sm">Prospección IA</span>
         </div>
 
-        <div className="flex-1 flex justify-center">
-          <label className="flex items-center gap-2 text-sm text-gray-400">
-            <input
-              type="checkbox"
-              checked={soloVerificados}
-              onChange={e => setSoloVerificados(e.target.checked)}
-              className="w-4 h-4 rounded bg-gray-700 border-gray-600"
-            />
-            <UserCheck className="w-4 h-4" />
-            Solo emails verificados
-          </label>
-        </div>
-
-        <div className="flex items-center gap-2">
-          {paginacion.total > 0 && (
-            <span className="text-xs text-gray-500 mr-2">
-              {contactos.length.toLocaleString()} de {paginacion.total.toLocaleString()}
-            </span>
-          )}
+        {/* Tabs */}
+        <div className="flex ml-6 gap-1">
           <button
-            onClick={limpiarFiltros}
-            className="px-3 py-1.5 text-gray-400 hover:text-white hover:bg-white/10 rounded text-sm"
+            onClick={() => setTabActiva('buscar')}
+            className={`px-3 py-1 text-xs rounded transition-all ${
+              tabActiva === 'buscar' 
+                ? 'bg-blue-600 text-white' 
+                : 'text-gray-400 hover:bg-white/10'
+            }`}
           >
-            Limpiar
-          </button>
-          <button
-            onClick={handleBuscar}
-            disabled={loading || (!useApollo && !useHunter)}
-            className="px-4 py-1.5 bg-orange-600 hover:bg-orange-700 disabled:opacity-50 rounded text-sm font-medium flex items-center gap-2"
-          >
-            {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
+            <Search className="w-3 h-3 inline mr-1" />
             Buscar
           </button>
+          <button
+            onClick={() => setTabActiva('respaldados')}
+            className={`px-3 py-1 text-xs rounded transition-all ${
+              tabActiva === 'respaldados' 
+                ? 'bg-blue-600 text-white' 
+                : 'text-gray-400 hover:bg-white/10'
+            }`}
+          >
+            <History className="w-3 h-3 inline mr-1" />
+            Respaldados
+          </button>
         </div>
+
+        <div className="flex-1" />
+
+        {/* Checkbox emails verificados */}
+        <label className="flex items-center gap-1.5 text-xs text-gray-400 mr-4">
+          <input
+            type="checkbox"
+            checked={soloVerificados}
+            onChange={e => setSoloVerificados(e.target.checked)}
+            className="w-3 h-3 rounded"
+          />
+          <UserCheck className="w-3 h-3" />
+          Solo verificados
+        </label>
+
+        {/* Contador */}
+        {contactosActivos.length > 0 && (
+          <span className="text-xs text-gray-500 mr-3">
+            {contactosActivos.length.toLocaleString()} contactos
+          </span>
+        )}
+
+        {/* Botones */}
+        <button
+          onClick={exportarExcel}
+          disabled={exportando || contactosActivos.length === 0}
+          className="px-2 py-1 text-xs text-gray-400 hover:text-white hover:bg-white/10 rounded flex items-center gap-1 mr-2"
+        >
+          {exportando ? <Loader2 className="w-3 h-3 animate-spin" /> : <FileSpreadsheet className="w-3 h-3" />}
+          Excel
+        </button>
+
+        {tabActiva === 'buscar' && (
+          <>
+            <button
+              onClick={limpiarFiltros}
+              className="px-2 py-1 text-xs text-gray-400 hover:text-white hover:bg-white/10 rounded mr-2"
+            >
+              Limpiar
+            </button>
+            <button
+              onClick={handleBuscar}
+              disabled={loading || (!useApollo && !useHunter)}
+              className="px-3 py-1 bg-orange-600 hover:bg-orange-700 disabled:opacity-50 rounded text-xs font-medium flex items-center gap-1"
+            >
+              {loading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Search className="w-3 h-3" />}
+              Buscar
+            </button>
+          </>
+        )}
+
+        {tabActiva === 'respaldados' && (
+          <button
+            onClick={cargarRespaldados}
+            disabled={loading}
+            className="px-3 py-1 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 rounded text-xs font-medium flex items-center gap-1"
+          >
+            {loading ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
+            Actualizar
+          </button>
+        )}
       </header>
 
       {/* ══════════════ CONTENIDO PRINCIPAL ══════════════ */}
       <div className="flex-1 flex overflow-hidden">
         
-        {/* ══════════════ PANEL FILTROS (25%) ══════════════ */}
-        <aside className="w-72 bg-[#192734] border-r border-gray-800 flex flex-col overflow-hidden">
-          <div className="flex-1 overflow-y-auto">
-            
-            {/* FUENTE */}
-            <FilterSection
-              icon={Database}
-              title="Fuente"
-              expanded={expandedFilters.fuente}
-              onToggle={() => toggleFilter('fuente')}
-            >
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setUseApollo(!useApollo)}
-                  className={`flex-1 py-1.5 rounded text-xs font-medium flex items-center justify-center gap-1 transition-all ${
-                    useApollo ? 'bg-orange-600 text-white' : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
-                  }`}
-                >
-                  <Target className="w-3 h-3" /> Apollo
-                </button>
-                <button
-                  onClick={() => setUseHunter(!useHunter)}
-                  className={`flex-1 py-1.5 rounded text-xs font-medium flex items-center justify-center gap-1 transition-all ${
-                    useHunter ? 'bg-orange-600 text-white' : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
-                  }`}
-                >
-                  <Mail className="w-3 h-3" /> Hunter
-                </button>
-              </div>
-            </FilterSection>
-
-            {/* UBICACIÓN */}
-            <FilterSection
-              icon={MapPin}
-              title="Ubicación"
-              count={todoMexico ? 'Todo MX' : `${zonasActivas.length} zonas`}
-              expanded={expandedFilters.ubicacion}
-              onToggle={() => toggleFilter('ubicacion')}
-            >
-              <div className="space-y-2">
-                <label className="flex items-center gap-2 text-xs cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={todoMexico}
-                    onChange={e => setTodoMexico(e.target.checked)}
-                    className="w-3 h-3 rounded"
-                  />
-                  <Globe className="w-3 h-3 text-blue-400" />
-                  Todo México
-                </label>
-                
-                {!todoMexico && (
-                  <div className="space-y-1 pt-2 border-t border-gray-700/50">
-                    {Object.entries(ZONAS).map(([key, zona]) => (
-                      <label key={key} className="flex items-center gap-2 text-xs cursor-pointer hover:bg-white/5 p-1 rounded">
-                        <input
-                          type="checkbox"
-                          checked={zonasActivas.includes(key)}
-                          onChange={() => toggleZona(key)}
-                          className="w-3 h-3 rounded"
-                        />
-                        <span className="flex-1">{zona.nombre}</span>
-                        <span className="text-gray-500">{zona.estados.length}</span>
-                      </label>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </FilterSection>
-
-            {/* EMPRESA */}
-            <FilterSection
-              icon={Building2}
-              title="Empresa"
-              expanded={expandedFilters.empresa}
-              onToggle={() => toggleFilter('empresa')}
-            >
-              <div className="space-y-2">
+        {/* ══════════════ PANEL FILTROS ══════════════ */}
+        {tabActiva === 'buscar' && (
+          <aside className="w-56 bg-[#161b22] border-r border-gray-800 flex flex-col overflow-hidden">
+            <div className="flex-1 overflow-y-auto">
+              
+              {/* Búsqueda por empresa */}
+              <div className="p-3 border-b border-gray-700/50">
+                <label className="text-[10px] text-gray-500 uppercase mb-1 block">Buscar empresa</label>
                 <input
                   type="text"
-                  placeholder="Nombre de empresa..."
-                  value={empresa}
-                  onChange={e => setEmpresa(e.target.value)}
-                  className="w-full px-2 py-1.5 bg-gray-800 border border-gray-700 rounded text-xs focus:border-blue-500 outline-none"
+                  placeholder="Ej: Bimbo, Coca-Cola..."
+                  value={empresaBusqueda}
+                  onChange={e => setEmpresaBusqueda(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && handleBuscar()}
+                  className="w-full px-2 py-1.5 bg-gray-900 border border-gray-700 rounded text-xs focus:border-orange-500 outline-none"
                 />
-                <input
-                  type="text"
-                  placeholder="Dominio web..."
-                  value={dominio}
-                  onChange={e => setDominio(e.target.value)}
-                  className="w-full px-2 py-1.5 bg-gray-800 border border-gray-700 rounded text-xs focus:border-blue-500 outline-none"
-                />
-                <p className="text-xs text-gray-500 italic">
-                  Excluye: Logística, Transporte, Bancos, Gobierno
-                </p>
               </div>
-            </FilterSection>
 
-            {/* INDUSTRIA */}
-            <FilterSection
-              icon={Factory}
-              title="Industria"
-              count={industriasActivas.length > 0 ? industriasActivas.length : 'Todas'}
-              expanded={expandedFilters.industria}
-              onToggle={() => toggleFilter('industria')}
-            >
-              <div className="flex flex-wrap gap-1">
-                {INDUSTRIAS.map(ind => (
-                  <Chip
-                    key={ind}
-                    label={ind}
-                    selected={industriasActivas.includes(ind)}
-                    onClick={() => setIndustriasActivas(prev => 
-                      prev.includes(ind) ? prev.filter(i => i !== ind) : [...prev, ind]
-                    )}
-                  />
-                ))}
-              </div>
-              {industriasActivas.length > 0 && (
-                <button
-                  onClick={() => setIndustriasActivas([])}
-                  className="mt-2 text-xs text-gray-500 hover:text-gray-300"
-                >
-                  Limpiar filtros
-                </button>
-              )}
-            </FilterSection>
+              {/* FUENTE */}
+              <FilterSection
+                icon={Database}
+                title="Fuente"
+                expanded={expandedFilters.fuente}
+                onToggle={() => toggleFilter('fuente')}
+              >
+                <div className="flex gap-1">
+                  <button
+                    onClick={() => setUseApollo(!useApollo)}
+                    className={`flex-1 py-1 rounded text-[10px] font-medium transition-all ${
+                      useApollo ? 'bg-orange-600 text-white' : 'bg-gray-800 text-gray-400'
+                    }`}
+                  >
+                    Apollo
+                  </button>
+                  <button
+                    onClick={() => setUseHunter(!useHunter)}
+                    className={`flex-1 py-1 rounded text-[10px] font-medium transition-all ${
+                      useHunter ? 'bg-orange-600 text-white' : 'bg-gray-800 text-gray-400'
+                    }`}
+                  >
+                    Hunter
+                  </button>
+                </div>
+              </FilterSection>
 
-            {/* JERARQUÍA */}
-            <FilterSection
-              icon={Users}
-              title="Jerarquía"
-              count={jerarquiasActivas.length}
-              expanded={expandedFilters.jerarquia}
-              onToggle={() => toggleFilter('jerarquia')}
-            >
-              <div className="space-y-1">
-                {JERARQUIAS.map(jer => (
-                  <label key={jer.id} className="flex items-center gap-2 text-xs cursor-pointer hover:bg-white/5 p-1 rounded">
+              {/* UBICACIÓN */}
+              <FilterSection
+                icon={MapPin}
+                title="Ubicación"
+                count={todoMexico ? 'MX' : zonasActivas.length}
+                expanded={expandedFilters.ubicacion}
+                onToggle={() => toggleFilter('ubicacion')}
+              >
+                <div className="space-y-1">
+                  <label className="flex items-center gap-1.5 text-[10px] cursor-pointer">
                     <input
                       type="checkbox"
-                      checked={jerarquiasActivas.includes(jer.id)}
-                      onChange={() => setJerarquiasActivas(prev =>
-                        prev.includes(jer.id) ? prev.filter(j => j !== jer.id) : [...prev, jer.id]
-                      )}
+                      checked={todoMexico}
+                      onChange={e => setTodoMexico(e.target.checked)}
                       className="w-3 h-3 rounded"
                     />
-                    <span>{jer.nombre}</span>
+                    <Globe className="w-3 h-3 text-blue-400" />
+                    Todo México
                   </label>
-                ))}
-              </div>
-            </FilterSection>
+                  
+                  {!todoMexico && (
+                    <div className="space-y-0.5 pt-1 border-t border-gray-700/50 mt-1">
+                      {Object.entries(ZONAS).map(([key, zona]) => (
+                        <label key={key} className="flex items-center gap-1.5 text-[10px] cursor-pointer hover:bg-white/5 p-0.5 rounded">
+                          <input
+                            type="checkbox"
+                            checked={zonasActivas.includes(key)}
+                            onChange={() => toggleZona(key)}
+                            className="w-3 h-3 rounded"
+                          />
+                          <span className="flex-1">{zona.nombre}</span>
+                          <span className="text-gray-600">{zona.estados.length}</span>
+                        </label>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </FilterSection>
 
-            {/* FUNCIÓN */}
-            <FilterSection
-              icon={Briefcase}
-              title="Función"
-              count={funcionesActivas.length}
-              expanded={expandedFilters.funcion}
-              onToggle={() => toggleFilter('funcion')}
-            >
-              <div className="space-y-1">
-                {FUNCIONES.map(func => (
-                  <label key={func.id} className="flex items-center gap-2 text-xs cursor-pointer hover:bg-white/5 p-1 rounded">
-                    <input
-                      type="checkbox"
-                      checked={funcionesActivas.includes(func.id)}
-                      onChange={() => setFuncionesActivas(prev =>
-                        prev.includes(func.id) ? prev.filter(f => f !== func.id) : [...prev, func.id]
-                      )}
-                      className="w-3 h-3 rounded"
-                    />
-                    <span>{func.nombre}</span>
-                  </label>
-                ))}
-              </div>
-            </FilterSection>
+              {/* JERARQUÍA */}
+              <FilterSection
+                icon={Users}
+                title="Jerarquía"
+                count={jerarquiasActivas.length}
+                expanded={expandedFilters.jerarquia}
+                onToggle={() => toggleFilter('jerarquia')}
+              >
+                <div className="space-y-0.5">
+                  {JERARQUIAS.map(jer => (
+                    <label key={jer.id} className="flex items-center gap-1.5 text-[10px] cursor-pointer hover:bg-white/5 p-0.5 rounded">
+                      <input
+                        type="checkbox"
+                        checked={jerarquiasActivas.includes(jer.id)}
+                        onChange={() => setJerarquiasActivas(prev =>
+                          prev.includes(jer.id) ? prev.filter(j => j !== jer.id) : [...prev, jer.id]
+                        )}
+                        className="w-3 h-3 rounded"
+                      />
+                      <span>{jer.nombre}</span>
+                    </label>
+                  ))}
+                </div>
+              </FilterSection>
 
-          </div>
-        </aside>
+              {/* FUNCIÓN */}
+              <FilterSection
+                icon={Briefcase}
+                title="Función"
+                count={funcionesActivas.length}
+                expanded={expandedFilters.funcion}
+                onToggle={() => toggleFilter('funcion')}
+              >
+                <div className="space-y-0.5">
+                  {FUNCIONES.map(func => (
+                    <label key={func.id} className="flex items-center gap-1.5 text-[10px] cursor-pointer hover:bg-white/5 p-0.5 rounded">
+                      <input
+                        type="checkbox"
+                        checked={funcionesActivas.includes(func.id)}
+                        onChange={() => setFuncionesActivas(prev =>
+                          prev.includes(func.id) ? prev.filter(f => f !== func.id) : [...prev, func.id]
+                        )}
+                        className="w-3 h-3 rounded"
+                      />
+                      <span>{func.nombre}</span>
+                    </label>
+                  ))}
+                </div>
+              </FilterSection>
 
-        {/* ══════════════ PANEL RESULTADOS (75%) ══════════════ */}
-        <main className="flex-1 bg-[#0f1419] flex flex-col overflow-hidden">
+            </div>
+          </aside>
+        )}
+
+        {/* ══════════════ PANEL RESULTADOS (LISTA) ══════════════ */}
+        <main className="flex-1 bg-[#0d1117] flex flex-col overflow-hidden">
           
-          {/* Subheader resultados */}
-          {contactos.length > 0 && (
-            <div className="h-12 bg-[#15202b] border-b border-gray-800 flex items-center px-4 flex-shrink-0">
-              <label className="flex items-center gap-2 text-sm cursor-pointer">
+          {/* Subheader */}
+          {contactosActivos.length > 0 && (
+            <div className="h-9 bg-[#161b22] border-b border-gray-800 flex items-center px-3 flex-shrink-0 text-xs">
+              <label className="flex items-center gap-1.5 cursor-pointer">
                 <input
                   type="checkbox"
                   checked={seleccionarTodos}
                   onChange={toggleSeleccionarTodos}
-                  className="w-4 h-4 rounded"
+                  className="w-3 h-3 rounded"
                 />
-                Seleccionar todos
+                <span className="text-gray-400">Todos</span>
               </label>
               
-              <div className="flex items-center gap-3 ml-4">
-                <span className="text-xs px-2 py-1 bg-blue-900/30 text-blue-400 rounded">
-                  {seleccionadosCount} seleccionados
+              {seleccionadosCount > 0 && (
+                <span className="ml-3 px-2 py-0.5 bg-blue-900/30 text-blue-400 rounded text-[10px]">
+                  {seleccionadosCount} sel.
                 </span>
-                <span className="text-xs px-2 py-1 bg-green-900/30 text-green-400 rounded">
-                  {guardadosCount} guardados
-                </span>
-                <span className="text-xs px-2 py-1 bg-yellow-900/30 text-yellow-400 rounded">
-                  🔒 {bloqueadosCount} bloqueados
-                </span>
-              </div>
+              )}
 
-              <div className="flex items-center gap-2 ml-auto">
+              <div className="flex-1" />
+
+              {/* Paginación */}
+              <span className="text-gray-500 mr-2">
+                Pág {paginacion.page} de {paginacion.pages}
+              </span>
+              
+              {tabActiva === 'buscar' && paginacion.page < paginacion.pages && (
                 <button
                   onClick={handleCargarMas}
-                  disabled={loadingMore || paginacion.page >= paginacion.pages}
-                  className="px-3 py-1 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 rounded text-xs flex items-center gap-1"
+                  disabled={loading}
+                  className="px-2 py-0.5 bg-gray-800 hover:bg-gray-700 rounded text-[10px] flex items-center gap-1"
                 >
-                  {loadingMore ? <Loader2 className="w-3 h-3 animate-spin" /> : <Plus className="w-3 h-3" />}
-                  +100
+                  {loading ? <Loader2 className="w-3 h-3 animate-spin" /> : '+50'}
                 </button>
-                <button
-                  onClick={handleGuardarSeleccionados}
-                  disabled={guardando || seleccionadosCount === 0}
-                  className="px-3 py-1 bg-green-600 hover:bg-green-700 disabled:opacity-50 rounded text-xs flex items-center gap-1"
-                >
-                  {guardando ? <Loader2 className="w-3 h-3 animate-spin" /> : <Save className="w-3 h-3" />}
-                  Guardar {seleccionadosCount > 0 && `(${seleccionadosCount})`}
-                </button>
-              </div>
+              )}
+
+              <select
+                value={porPagina}
+                onChange={e => setPorPagina(Number(e.target.value))}
+                className="ml-2 bg-gray-800 border border-gray-700 rounded text-[10px] px-1 py-0.5"
+              >
+                <option value={50}>50</option>
+                <option value={100}>100</option>
+              </select>
             </div>
           )}
 
-          {/* Grid de contactos */}
-          <div className="flex-1 overflow-y-auto p-4">
-            {contactos.length === 0 ? (
-              <div className="h-full flex items-center justify-center text-gray-500">
+          {/* Lista de contactos */}
+          <div className="flex-1 overflow-y-auto">
+            {contactosActivos.length === 0 ? (
+              <div className="h-full flex items-center justify-center text-gray-600">
                 <div className="text-center">
-                  <Search className="w-12 h-12 mx-auto mb-4 opacity-30" />
-                  <p>Configura los filtros y presiona Buscar</p>
-                  <p className="text-xs mt-2">Se guardarán TODOS los datos del contacto</p>
-                  <p className="text-xs text-yellow-500">Emails bloqueados se desbloquean después desde JJCRM</p>
+                  <Search className="w-10 h-10 mx-auto mb-3 opacity-30" />
+                  <p className="text-sm">{tabActiva === 'buscar' ? 'Configura filtros y busca' : 'Sin contactos respaldados'}</p>
+                  <p className="text-xs mt-1 text-gray-700">Los resultados se guardan automáticamente</p>
                 </div>
               </div>
             ) : (
-              <div className="grid grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3">
-                {contactos.map(c => (
-                  <div
-                    key={c.id}
-                    onClick={() => !c.yaGuardado && toggleSeleccionContacto(c.id)}
-                    className={`bg-[#192734] rounded-lg p-3 border transition-all cursor-pointer ${
-                      c.yaGuardado 
-                        ? 'opacity-50 border-green-800 cursor-default' 
-                        : c.seleccionado 
-                          ? 'border-blue-500 bg-blue-900/20' 
-                          : 'border-gray-800 hover:border-gray-600'
-                    }`}
-                  >
-                    {/* Checkbox y nombre */}
-                    <div className="flex items-start gap-2 mb-2">
-                      <input
-                        type="checkbox"
-                        checked={c.seleccionado || c.yaGuardado}
-                        disabled={c.yaGuardado}
-                        onChange={() => {}}
-                        className="w-4 h-4 mt-0.5 rounded"
-                      />
-                      <div className="min-w-0 flex-1">
-                        <p className="font-medium text-sm truncate text-gray-100">
-                          {c.nombre} {c.apellido}
-                        </p>
-                        <p className="text-xs text-gray-400 truncate" title={c.puesto}>
-                          {c.puesto}
-                        </p>
-                      </div>
-                      {c.yaGuardado && (
-                        <Check className="w-4 h-4 text-green-400 flex-shrink-0" />
-                      )}
-                    </div>
-                    
-                    {/* Empresa */}
-                    <p className="text-xs text-blue-400 truncate mb-1" title={c.empresa}>
-                      {c.empresa}
-                    </p>
-                    
-                    {/* Industria */}
-                    {c.industria && (
-                      <p className="text-xs text-gray-500 truncate mb-1">
-                        {c.industria}
-                      </p>
-                    )}
-                    
-                    {/* Email status */}
-                    <div className="flex items-center gap-1 mt-2 pt-2 border-t border-gray-700/50">
-                      {c.emailBloqueado ? (
-                        <span className="flex items-center gap-1 text-xs text-yellow-500">
-                          <Lock className="w-3 h-3" />
-                          <span>Email bloqueado</span>
+              <table className="w-full text-xs">
+                <thead className="bg-[#161b22] sticky top-0 z-10">
+                  <tr className="text-left text-gray-500 border-b border-gray-800">
+                    <th className="w-8 p-2"></th>
+                    <th className="p-2 font-medium">Empresa</th>
+                    <th className="p-2 font-medium">Contacto</th>
+                    <th className="p-2 font-medium">Puesto</th>
+                    <th className="p-2 font-medium w-20">Jerarquía</th>
+                    <th className="p-2 font-medium w-24">Función</th>
+                    <th className="p-2 font-medium w-28">Email</th>
+                    <th className="p-2 font-medium w-24">Estado</th>
+                    <th className="p-2 font-medium w-16">Fuente</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {contactosActivos.map(c => (
+                    <tr
+                      key={c.id}
+                      onClick={() => toggleSeleccionContacto(c.id)}
+                      onMouseEnter={() => setHoveredContacto(c.id)}
+                      onMouseLeave={() => setHoveredContacto(null)}
+                      className={`border-b border-gray-800/50 cursor-pointer transition-colors ${
+                        c.seleccionado 
+                          ? 'bg-blue-900/20' 
+                          : hoveredContacto === c.id 
+                            ? 'bg-white/5' 
+                            : ''
+                      } ${!c.activo ? 'opacity-50' : ''}`}
+                    >
+                      <td className="p-2">
+                        <input
+                          type="checkbox"
+                          checked={c.seleccionado}
+                          onChange={() => {}}
+                          className="w-3 h-3 rounded"
+                        />
+                      </td>
+                      <td className="p-2">
+                        <span className="text-blue-400 font-medium truncate block max-w-[180px]" title={c.empresa}>
+                          {c.empresa}
                         </span>
-                      ) : (
-                        <span className="text-xs text-green-400 truncate flex items-center gap-1">
-                          <Unlock className="w-3 h-3" />
-                          <span className="truncate">{c.email}</span>
+                        {c.industria && (
+                          <span className="text-gray-600 text-[10px] truncate block">{c.industria}</span>
+                        )}
+                      </td>
+                      <td className="p-2">
+                        <span className="text-gray-200 truncate block max-w-[150px]" title={c.nombre_completo}>
+                          {c.nombre_completo}
                         </span>
-                      )}
-                    </div>
-
-                    {/* Ubicación y LinkedIn */}
-                    <div className="flex items-center justify-between mt-2 text-xs text-gray-600">
-                      {c.estado && (
-                        <span className="flex items-center gap-1 truncate">
+                        {c.linkedin && (
+                          <a
+                            href={c.linkedin}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={e => e.stopPropagation()}
+                            className="text-blue-500 hover:text-blue-400"
+                          >
+                            <Linkedin className="w-3 h-3 inline" />
+                          </a>
+                        )}
+                      </td>
+                      <td className="p-2">
+                        <span className="text-gray-400 truncate block max-w-[150px]" title={c.puesto_original}>
+                          {c.puesto_normalizado}
+                        </span>
+                      </td>
+                      <td className="p-2">
+                        <span className="px-1.5 py-0.5 bg-gray-800 rounded text-[10px] text-gray-300">
+                          {c.jerarquia}
+                        </span>
+                      </td>
+                      <td className="p-2">
+                        <span className="px-1.5 py-0.5 bg-gray-800 rounded text-[10px] text-gray-300">
+                          {c.funcion}
+                        </span>
+                      </td>
+                      <td className="p-2">
+                        {c.email_status === 'locked' ? (
+                          <span className="text-yellow-500 flex items-center gap-1">
+                            <Lock className="w-3 h-3" />
+                            <span className="text-[10px]">Bloqueado</span>
+                          </span>
+                        ) : c.email ? (
+                          <span className="text-green-400 truncate block max-w-[120px]" title={c.email}>
+                            {c.email}
+                          </span>
+                        ) : (
+                          <span className="text-gray-600">—</span>
+                        )}
+                      </td>
+                      <td className="p-2">
+                        <span className="text-gray-500 flex items-center gap-1">
                           <MapPin className="w-3 h-3" />
-                          {c.estado}
+                          {c.estado || c.zona || '—'}
                         </span>
-                      )}
-                      {c.linkedin && (
-                        <a
-                          href={c.linkedin}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          onClick={e => e.stopPropagation()}
-                          className="text-blue-400 hover:text-blue-300"
-                        >
-                          <Linkedin className="w-3 h-3" />
-                        </a>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
+                      </td>
+                      <td className="p-2">
+                        <span className={`text-[10px] px-1.5 py-0.5 rounded ${
+                          c.fuente === 'apollo' ? 'bg-orange-900/30 text-orange-400' : 'bg-purple-900/30 text-purple-400'
+                        }`}>
+                          {c.fuente}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             )}
           </div>
         </main>
       </div>
+
+      {/* Tooltip hover */}
+      {hoveredContacto && (
+        <div className="fixed bottom-4 right-4 bg-[#1c2128] border border-gray-700 rounded-lg p-3 shadow-xl text-xs z-50 max-w-xs">
+          {(() => {
+            const c = contactosActivos.find(x => x.id === hoveredContacto);
+            if (!c) return null;
+            return (
+              <>
+                <p className="text-gray-400 mb-1"><strong>Puesto original:</strong> {c.puesto_original}</p>
+                <p className="text-gray-400 mb-1"><strong>Jerarquía:</strong> {c.jerarquia}</p>
+                <p className="text-gray-400 mb-1"><strong>Función:</strong> {c.funcion}</p>
+                <p className="text-gray-400"><strong>Zona:</strong> {c.zona}</p>
+              </>
+            );
+          })()}
+        </div>
+      )}
     </div>
   );
 };
