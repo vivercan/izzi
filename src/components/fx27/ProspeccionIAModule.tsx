@@ -242,7 +242,7 @@ const FilterSection = ({
       )}
     </button>
     {expanded && (
-      <div className="px-3 pb-3 max-h-44 overflow-y-auto">
+      <div className="px-3 pb-3">
         {children}
       </div>
     )}
