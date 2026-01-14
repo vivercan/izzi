@@ -189,15 +189,15 @@ export const ProspeccionIAModule = ({ onBack }: { onBack: () => void }) => {
   // Tab activa
   const [tabActiva, setTabActiva] = useState<'buscar' | 'respaldados'>('buscar');
 
-  // Estados de filtros
+  // Estados de filtros - TODOS VACÍOS POR DEFECTO
   const [useApollo, setUseApollo] = useState(true);
   const [useHunter, setUseHunter] = useState(false);
-  const [soloVerificados, setSoloVerificados] = useState(true);
+  const [soloVerificados, setSoloVerificados] = useState(false); // OFF por defecto
   const [todoMexico, setTodoMexico] = useState(true);
   const [zonasActivas, setZonasActivas] = useState<string[]>([]);
   const [empresaBusqueda, setEmpresaBusqueda] = useState('');
-  const [jerarquiasActivas, setJerarquiasActivas] = useState<string[]>(['owner', 'clevel', 'director', 'gerente']);
-  const [funcionesActivas, setFuncionesActivas] = useState<string[]>(['direccion', 'operaciones', 'supplychain', 'compras', 'comex']);
+  const [jerarquiasActivas, setJerarquiasActivas] = useState<string[]>([]); // VACÍO
+  const [funcionesActivas, setFuncionesActivas] = useState<string[]>([]); // VACÍO
 
   // Estados de UI
   const [expandedFilters, setExpandedFilters] = useState({
@@ -265,6 +265,12 @@ export const ProspeccionIAModule = ({ onBack }: { onBack: () => void }) => {
 
   const construirTitulos = () => {
     const titles: string[] = [];
+    
+    // Si no hay filtros seleccionados, no enviar titles (busca todos)
+    if (jerarquiasActivas.length === 0 && funcionesActivas.length === 0) {
+      return undefined; // Apollo buscará todos los títulos
+    }
+    
     jerarquiasActivas.forEach(j => {
       const jer = JERARQUIAS.find(x => x.id === j);
       if (jer) titles.push(...jer.titles);
@@ -284,18 +290,24 @@ export const ProspeccionIAModule = ({ onBack }: { onBack: () => void }) => {
 
     const titles = construirTitulos();
 
+    const params: any = {
+      locations: ubicaciones,
+      company_name: empresaBusqueda.trim() || undefined,
+      page,
+      per_page: porPagina
+    };
+    
+    // Solo agregar titles si hay filtros seleccionados
+    if (titles && titles.length > 0) {
+      params.titles = titles;
+    }
+
     const response = await fetch(`${SUPABASE_URL}/functions/v1/prospeccion-api`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SUPABASE_ANON_KEY}` },
       body: JSON.stringify({
         action: 'apollo_search',
-        params: {
-          locations: ubicaciones,
-          titles: titles,
-          company_name: empresaBusqueda.trim() || undefined,
-          page,
-          per_page: porPagina
-        }
+        params
       })
     });
 
@@ -366,6 +378,21 @@ export const ProspeccionIAModule = ({ onBack }: { onBack: () => void }) => {
       if (soloVerificados) {
         contacts = contacts.filter(c => c.email_status === 'verified' || c.email_status === 'locked');
       }
+
+      // FILTRAR SOLO MÉXICO - excluir otros países
+      contacts = contacts.filter(c => {
+        const pais = (c.pais || '').toLowerCase();
+        const estado = (c.estado || '').toLowerCase();
+        // Excluir si claramente es de otro país
+        const paisesExcluidos = ['united states', 'usa', 'canada', 'brazil', 'argentina', 'chile', 'peru', 'colombia', 'spain', 'portugal'];
+        const estadosUSA = ['california', 'texas', 'florida', 'new york', 'massachusetts', 'illinois', 'arizona', 'georgia', 'ohio', 'michigan'];
+        
+        if (paisesExcluidos.some(p => pais.includes(p))) return false;
+        if (estadosUSA.some(e => estado.toLowerCase().includes(e))) return false;
+        if (pais && !pais.includes('mexico') && !pais.includes('méxico')) return false;
+        
+        return true;
+      });
 
       // Ordenar A-Z por empresa
       contacts.sort((a, b) => a.empresa.localeCompare(b.empresa) || a.nombre_completo.localeCompare(b.nombre_completo));
@@ -459,37 +486,49 @@ export const ProspeccionIAModule = ({ onBack }: { onBack: () => void }) => {
   };
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // EXPORTAR A EXCEL
+  // EXPORTAR A EXCEL - TODO EL HISTÓRICO DE SUPABASE
   // ═══════════════════════════════════════════════════════════════════════════
 
   const exportarExcel = async () => {
     setExportando(true);
     
     try {
-      const datos = tabActiva === 'respaldados' ? contactosRespaldados : contactos;
+      // Cargar TODO desde Supabase (histórico perpetuo)
+      const { data, error } = await supabase
+        .from('prospeccion_contactos')
+        .select('*')
+        .order('empresa', { ascending: true })
+        .order('nombre', { ascending: true });
+
+      if (error) throw error;
       
-      // Crear CSV (más simple que XLSX para este caso)
+      const datos = data || [];
+      
+      // Crear CSV
       const headers = [
-        'Empresa', 'Nombre', 'Puesto', 'Jerarquía', 'Función',
-        'Email', 'Email Status', 'Estado', 'Zona', 'Industria',
-        'LinkedIn', 'Teléfono', 'Fuente', 'Fecha Captura'
+        'Empresa', 'Nombre', 'Apellido', 'Puesto Original', 'Puesto Normalizado',
+        'Jerarquía', 'Función', 'Email', 'Email Status', 'Estado', 'Zona',
+        'Industria', 'LinkedIn', 'Teléfono', 'Fuente', 'Fecha Captura', 'Activo'
       ];
 
-      const rows = datos.map(c => [
-        c.empresa,
-        c.nombre_completo,
-        c.puesto_normalizado,
-        c.jerarquia,
-        c.funcion,
+      const rows = datos.map((c: any) => [
+        c.empresa || '',
+        c.nombre || '',
+        c.apellido || '',
+        c.puesto_original || c.puesto || '',
+        c.puesto_normalizado || '',
+        c.jerarquia || '',
+        c.funcion || '',
         c.email || '🔒 Bloqueado',
-        c.email_status,
-        c.estado,
-        c.zona,
-        c.industria,
-        c.linkedin,
-        c.telefono,
-        c.fuente,
-        c.fecha_captura
+        c.email_status || 'locked',
+        c.estado || '',
+        c.zona || '',
+        c.industria || '',
+        c.linkedin || '',
+        c.telefono || '',
+        c.fuente || 'apollo',
+        c.fecha_captura || c.created_at || '',
+        c.activo ? 'Sí' : 'No'
       ]);
 
       const csvContent = [
@@ -501,10 +540,15 @@ export const ProspeccionIAModule = ({ onBack }: { onBack: () => void }) => {
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `prospeccion_${new Date().toISOString().split('T')[0]}.csv`;
+      link.download = `prospeccion_historico_${new Date().toISOString().split('T')[0]}.csv`;
       link.click();
       URL.revokeObjectURL(url);
 
+      alert(`Exportados ${datos.length} contactos del histórico`);
+
+    } catch (err) {
+      console.error('Error exportando:', err);
+      alert('Error al exportar');
     } finally {
       setExportando(false);
     }
@@ -535,12 +579,12 @@ export const ProspeccionIAModule = ({ onBack }: { onBack: () => void }) => {
   const limpiarFiltros = () => {
     setUseApollo(true);
     setUseHunter(false);
-    setSoloVerificados(true);
+    setSoloVerificados(false);
     setTodoMexico(true);
     setZonasActivas([]);
     setEmpresaBusqueda('');
-    setJerarquiasActivas(['owner', 'clevel', 'director', 'gerente']);
-    setFuncionesActivas(['direccion', 'operaciones', 'supplychain', 'compras', 'comex']);
+    setJerarquiasActivas([]); // VACÍO
+    setFuncionesActivas([]); // VACÍO
   };
 
   const contactosActivos = tabActiva === 'respaldados' ? contactosRespaldados : contactos;
