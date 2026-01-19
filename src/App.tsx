@@ -142,21 +142,7 @@ const USUARIOS_AUTORIZADOS: Usuario[] = [
     vendedorVentas: 'PALOMA',      // Valor en ventas_maestro.ejecutivo_ventas
     vendedorLeads: 'Paloma Oliva', // Valor en leads.vendedor (nombre completo)
     ultimoAcceso: '',
-    activo: true,
-    createdAt: '2025-01-03T00:00:00.000Z'
-  },
-  // ═══════════════════════════════════════════════════════════════
-  // OPERACIONES (3) - SOLO módulo Dedicado, sin acceso a Ventas/Oportunidades
-  // ═══════════════════════════════════════════════════════════════
-  {
-    id: '2',
-    nombre: 'José Rodríguez',
-    correo: 'jose.rodriguez@trob.com.mx',
-    password: 'jrodriguez',
-    rol: 'operaciones',
-    rolDisplay: 'OPERACIONES',
-    ultimoAcceso: '',
-    activo: true,
+    activo: false,
     createdAt: '2025-01-02T00:00:00.000Z'
   },
   {
