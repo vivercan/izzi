@@ -28,7 +28,7 @@ type GestorSection = 'cotizaciones' | 'contratos' | 'documentos' | 'imagenes' | 
 const ADMIN_EMAIL = 'juan.viveros@trob.com.mx';
 
 // ═══════════════════════════════════════════════════════════════════════════
-// COMPONENTE HEADER ESTANDARIZADO
+// COMPONENTE HEADER ESTANDARIZADO - Estilo FX27
 // ═══════════════════════════════════════════════════════════════════════════
 interface StandardHeaderProps {
   title: string;
@@ -36,17 +36,17 @@ interface StandardHeaderProps {
 }
 
 const StandardHeader: React.FC<StandardHeaderProps> = ({ title, onBack }) => (
-  <div className="px-6 py-6">
+  <div className="px-6 py-4">
     <div className="flex items-center justify-between">
       <div className="flex items-center gap-4">
         <button
           onClick={onBack}
-          className="w-10 h-10 rounded-full bg-[var(--fx-primary)] hover:bg-[var(--fx-primary)]/80 flex items-center justify-center transition-all"
+          className="w-10 h-10 rounded-xl bg-[#F97316] hover:bg-[#EA580C] flex items-center justify-center transition-all"
         >
           <ArrowLeft className="w-5 h-5 text-white" />
         </button>
         <h1 
-          className="text-3xl font-bold text-white"
+          className="text-2xl font-bold text-white"
           style={{ fontFamily: "'Orbitron', sans-serif" }}
         >
           {title}
@@ -56,18 +56,14 @@ const StandardHeader: React.FC<StandardHeaderProps> = ({ title, onBack }) => (
       {/* Logo FX27 */}
       <div className="text-right">
         <div 
-          className="text-3xl font-black"
-          style={{ 
-            fontFamily: "'Orbitron', sans-serif",
-            background: 'linear-gradient(135deg, #1E66F5 0%, #3B82F6 50%, #F97316 100%)',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent'
-          }}
+          className="text-3xl font-black tracking-wider"
+          style={{ fontFamily: "'Orbitron', sans-serif" }}
         >
-          FX27
+          <span className="text-[#3B82F6]">FX</span>
+          <span className="text-[#F97316]">27</span>
         </div>
         <div 
-          className="text-[10px] text-white/40 tracking-[0.2em]"
+          className="text-[9px] text-white/40 tracking-[0.15em] uppercase"
           style={{ fontFamily: "'Exo 2', sans-serif" }}
         >
           FUTURE EXPERIENCE 27
