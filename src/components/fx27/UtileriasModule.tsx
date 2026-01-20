@@ -1,9 +1,12 @@
 import React, { useState } from 'react';
-import { 
+import {
   Database, FolderOpen, Sparkles, MessageSquare, Mail,
-  ArrowLeft, FileText, Image, File, FileCheck, Folder,
+  FileText, Image, File, FileCheck, Folder,
   Download, Trash2
 } from 'lucide-react';
+
+// Importar ModuleTemplate para header consistente
+import { ModuleTemplate } from './ModuleTemplate';
 
 // Importar submódulos
 import { ProspeccionIAModule } from './ProspeccionIAModule';
@@ -28,52 +31,6 @@ type GestorSection = 'cotizaciones' | 'contratos' | 'documentos' | 'imagenes' | 
 const ADMIN_EMAIL = 'juan.viveros@trob.com.mx';
 
 // ═══════════════════════════════════════════════════════════════════════════
-// COMPONENTE HEADER ESTANDARIZADO - Estilo FX27
-// ═══════════════════════════════════════════════════════════════════════════
-interface StandardHeaderProps {
-  title: string;
-  onBack: () => void;
-}
-
-const StandardHeader: React.FC<StandardHeaderProps> = ({ title, onBack }) => (
-  <div className="px-6 py-4">
-    <div className="flex items-center justify-between">
-      <div className="flex items-center gap-4">
-        <button
-          onClick={onBack}
-          className="w-10 h-10 rounded-xl bg-[#F97316] hover:bg-[#EA580C] flex items-center justify-center transition-all"
-        >
-          <ArrowLeft className="w-5 h-5 text-white" />
-        </button>
-        <h1 
-          className="text-2xl font-bold text-white"
-          style={{ fontFamily: "'Orbitron', sans-serif" }}
-        >
-          {title}
-        </h1>
-      </div>
-
-      {/* Logo FX27 */}
-      <div className="text-right">
-        <div 
-          className="text-3xl font-black tracking-wider"
-          style={{ fontFamily: "'Orbitron', sans-serif" }}
-        >
-          <span className="text-[#3B82F6]">FX</span>
-          <span className="text-[#F97316]">27</span>
-        </div>
-        <div 
-          className="text-[9px] text-white/40 tracking-[0.15em] uppercase"
-          style={{ fontFamily: "'Exo 2', sans-serif" }}
-        >
-          FUTURE EXPERIENCE 27
-        </div>
-      </div>
-    </div>
-  </div>
-);
-
-// ═══════════════════════════════════════════════════════════════════════════
 // COMPONENTE PRINCIPAL
 // ═══════════════════════════════════════════════════════════════════════════
 export const UtileriasModule = ({ onBack, userEmail }: UtileriasModuleProps) => {
@@ -91,7 +48,7 @@ export const UtileriasModule = ({ onBack, userEmail }: UtileriasModuleProps) => 
     setDownloading(true);
     try {
       const endpoint = `https://${projectId}.supabase.co/functions/v1/make-server-d84b50bb/leads/backup/${type}`;
-      
+
       const response = await fetch(endpoint, {
         headers: {
           'Authorization': `Bearer ${publicAnonKey}`
@@ -113,7 +70,7 @@ export const UtileriasModule = ({ onBack, userEmail }: UtileriasModuleProps) => 
       a.click();
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
-      
+
       alert('Backup descargado exitosamente');
     } catch (error) {
       console.error('Error downloading backup:', error);
@@ -126,7 +83,7 @@ export const UtileriasModule = ({ onBack, userEmail }: UtileriasModuleProps) => 
   // ═══════════════════════════════════════════════════════════════════════════
   // RENDER SUBMÓDULOS
   // ═══════════════════════════════════════════════════════════════════════════
-  
+
   // WhatsApp Monitor
   if (activeSubModule === 'whatsapp') {
     return <WhatsAppMonitorModule onBack={() => setActiveSubModule(null)} />;
@@ -140,8 +97,7 @@ export const UtileriasModule = ({ onBack, userEmail }: UtileriasModuleProps) => 
   // Correo (placeholder por ahora)
   if (activeSubModule === 'correo') {
     return (
-      <div className="min-h-screen" style={{ background: 'var(--fx-bg, #0B1220)' }}>
-        <StandardHeader title="Supervisión de Correo" onBack={() => setActiveSubModule(null)} />
+      <ModuleTemplate title="Supervisión de Correo" onBack={() => setActiveSubModule(null)}>
         <div className="p-8 flex items-center justify-center min-h-[400px]">
           <div className="text-center">
             <Mail className="w-20 h-20 text-white/20 mx-auto mb-4" />
@@ -153,7 +109,7 @@ export const UtileriasModule = ({ onBack, userEmail }: UtileriasModuleProps) => 
             </p>
           </div>
         </div>
-      </div>
+      </ModuleTemplate>
     );
   }
 
@@ -162,11 +118,10 @@ export const UtileriasModule = ({ onBack, userEmail }: UtileriasModuleProps) => 
   // ═══════════════════════════════════════════════════════════════════════════
   if (activeSubModule === 'backup') {
     return (
-      <div className="min-h-screen" style={{ background: 'var(--fx-bg, #0B1220)' }}>
-        <StandardHeader title="Backup de Leads" onBack={() => setActiveSubModule(null)} />
+      <ModuleTemplate title="Backup de Leads" onBack={() => setActiveSubModule(null)}>
         <div className="p-8">
           <div className="max-w-4xl mx-auto">
-            <p 
+            <p
               className="text-white/60 text-center mb-8"
               style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '15px' }}
             >
@@ -239,7 +194,7 @@ export const UtileriasModule = ({ onBack, userEmail }: UtileriasModuleProps) => 
             )}
           </div>
         </div>
-      </div>
+      </ModuleTemplate>
     );
   }
 
@@ -257,8 +212,7 @@ export const UtileriasModule = ({ onBack, userEmail }: UtileriasModuleProps) => 
     ];
 
     return (
-      <div className="min-h-screen" style={{ background: 'var(--fx-bg, #0B1220)' }}>
-        <StandardHeader title="Gestor de Archivos" onBack={() => setActiveSubModule(null)} />
+      <ModuleTemplate title="Gestor de Archivos" onBack={() => setActiveSubModule(null)}>
         <div className="p-8">
           <div className="max-w-5xl mx-auto">
             <div className="grid grid-cols-3 gap-6">
@@ -284,7 +238,7 @@ export const UtileriasModule = ({ onBack, userEmail }: UtileriasModuleProps) => 
             </div>
           </div>
         </div>
-      </div>
+      </ModuleTemplate>
     );
   }
 
@@ -292,12 +246,10 @@ export const UtileriasModule = ({ onBack, userEmail }: UtileriasModuleProps) => 
   // VISTA PRINCIPAL - CARDS DE UTILERÍAS
   // ═══════════════════════════════════════════════════════════════════════════
   return (
-    <div className="min-h-screen" style={{ background: 'var(--fx-bg, #0B1220)' }}>
-      <StandardHeader title="Utilerías" onBack={onBack} />
-      
+    <ModuleTemplate title="Utilerías" onBack={onBack}>
       <div className="p-8">
         <div className={`grid ${tieneAccesoExclusivo ? 'grid-cols-3 lg:grid-cols-5' : 'grid-cols-2'} gap-6 max-w-6xl mx-auto`}>
-          
+
           {/* Card BACKUP - Disponible para todos */}
           <button
             onClick={() => setActiveSubModule('backup')}
@@ -307,7 +259,7 @@ export const UtileriasModule = ({ onBack, userEmail }: UtileriasModuleProps) => 
               <Database className="w-10 h-10 text-green-400" />
             </div>
             <div className="text-center">
-              <h3 
+              <h3
                 className="text-white mb-2"
                 style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '18px', fontWeight: 600 }}
               >
@@ -328,7 +280,7 @@ export const UtileriasModule = ({ onBack, userEmail }: UtileriasModuleProps) => 
               <FolderOpen className="w-10 h-10 text-blue-400" />
             </div>
             <div className="text-center">
-              <h3 
+              <h3
                 className="text-white mb-2"
                 style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '18px', fontWeight: 600 }}
               >
@@ -354,7 +306,7 @@ export const UtileriasModule = ({ onBack, userEmail }: UtileriasModuleProps) => 
                 <Sparkles className="w-10 h-10 text-orange-400" />
               </div>
               <div className="text-center">
-                <h3 
+                <h3
                   className="text-white mb-2"
                   style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '18px', fontWeight: 600 }}
                 >
@@ -381,7 +333,7 @@ export const UtileriasModule = ({ onBack, userEmail }: UtileriasModuleProps) => 
                 <MessageSquare className="w-10 h-10 text-green-400" />
               </div>
               <div className="text-center">
-                <h3 
+                <h3
                   className="text-white mb-2"
                   style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '18px', fontWeight: 600 }}
                 >
@@ -408,7 +360,7 @@ export const UtileriasModule = ({ onBack, userEmail }: UtileriasModuleProps) => 
                 <Mail className="w-10 h-10 text-purple-400" />
               </div>
               <div className="text-center">
-                <h3 
+                <h3
                   className="text-white mb-2"
                   style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '18px', fontWeight: 600 }}
                 >
@@ -422,7 +374,7 @@ export const UtileriasModule = ({ onBack, userEmail }: UtileriasModuleProps) => 
           )}
         </div>
       </div>
-    </div>
+    </ModuleTemplate>
   );
 };
 
