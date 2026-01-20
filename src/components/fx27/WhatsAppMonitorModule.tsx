@@ -1,11 +1,10 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   Search, Users, User, Loader2, Brain, AlertTriangle, 
-  FileSpreadsheet, RefreshCw, ChevronLeft, Sparkles, 
-  MessageSquare, X
+  FileSpreadsheet, RefreshCw, Sparkles, MessageSquare, X,
+  Image as ImageIcon, FileText, Download, GripVertical
 } from 'lucide-react';
 
-// Importar ModuleTemplate para header consistente
 import { ModuleTemplate } from './ModuleTemplate';
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -40,6 +39,9 @@ interface Mensaje {
   remitente: string;
   mensaje: string;
   timestamp: string;
+  media_url?: string;
+  media_type?: string;
+  media_filename?: string;
 }
 
 interface WhatsAppMonitorModuleProps {
@@ -50,13 +52,11 @@ interface WhatsAppMonitorModuleProps {
 // COMPONENTE PRINCIPAL
 // ═══════════════════════════════════════════════════════════════════════════
 export const WhatsAppMonitorModule: React.FC<WhatsAppMonitorModuleProps> = ({ onBack }) => {
-  // Estados principales
   const [chats, setChats] = useState<ChatGroup[]>([]);
   const [mensajes, setMensajes] = useState<Mensaje[]>([]);
   const [allMensajes, setAllMensajes] = useState<Mensaje[]>([]);
   const [selectedChat, setSelectedChat] = useState<ChatGroup | null>(null);
   
-  // Estados UI
   const [loading, setLoading] = useState(true);
   const [loadingMensajes, setLoadingMensajes] = useState(false);
   const [analyzing, setAnalyzing] = useState(false);
@@ -65,15 +65,51 @@ export const WhatsAppMonitorModule: React.FC<WhatsAppMonitorModuleProps> = ({ on
   const [connected, setConnected] = useState(false);
   const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
   
-  // Modal análisis
   const [showAnalisis, setShowAnalisis] = useState(false);
   const [analisisResult, setAnalisisResult] = useState<string>('');
   const [analisisTipo, setAnalisisTipo] = useState<'chat' | 'global'>('chat');
 
+  // Panel resizable
+  const [panelWidth, setPanelWidth] = useState(320);
+  const [isResizing, setIsResizing] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  // Imagen expandida
+  const [imagenExpandida, setImagenExpandida] = useState<string | null>(null);
+
   const mensajesEndRef = useRef<HTMLDivElement>(null);
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // CARGAR TODOS LOS MENSAJES Y CONSTRUIR LISTA DE CHATS
+  // RESIZE PANEL
+  // ═══════════════════════════════════════════════════════════════════════════
+  const handleMouseDown = (e: React.MouseEvent) => {
+    e.preventDefault();
+    setIsResizing(true);
+  };
+
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!isResizing || !containerRef.current) return;
+      const containerRect = containerRef.current.getBoundingClientRect();
+      const newWidth = e.clientX - containerRect.left;
+      setPanelWidth(Math.max(250, Math.min(500, newWidth)));
+    };
+
+    const handleMouseUp = () => setIsResizing(false);
+
+    if (isResizing) {
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+    }
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [isResizing]);
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // CARGAR DATOS
   // ═══════════════════════════════════════════════════════════════════════════
   const cargarDatos = useCallback(async () => {
     try {
@@ -92,7 +128,6 @@ export const WhatsAppMonitorModule: React.FC<WhatsAppMonitorModuleProps> = ({ on
       const data: Mensaje[] = await response.json();
       setAllMensajes(data);
 
-      // Construir lista de chats
       const chatMap = new Map<string, ChatGroup>();
       const ahora = new Date();
       const hace24h = new Date(ahora.getTime() - 24 * 60 * 60 * 1000);
@@ -106,7 +141,7 @@ export const WhatsAppMonitorModule: React.FC<WhatsAppMonitorModuleProps> = ({ on
             total_mensajes: 0,
             mensajes_nuevos: 0,
             ultima_actividad: msg.timestamp,
-            ultimo_mensaje: msg.mensaje,
+            ultimo_mensaje: msg.mensaje || (msg.media_type ? `📎 ${msg.media_type}` : ''),
             ultimo_remitente: msg.remitente
           });
         }
@@ -127,7 +162,6 @@ export const WhatsAppMonitorModule: React.FC<WhatsAppMonitorModuleProps> = ({ on
       setConnected(true);
       setLoading(false);
 
-      // Si hay chat seleccionado, actualizar sus mensajes
       if (selectedChat) {
         const mensajesChat = data
           .filter(m => m.chat_id === selectedChat.chat_id)
@@ -135,21 +169,16 @@ export const WhatsAppMonitorModule: React.FC<WhatsAppMonitorModuleProps> = ({ on
         setMensajes(mensajesChat);
       }
     } catch (err: any) {
-      console.error('Error cargando datos:', err);
-      setError(err.message || 'Error al cargar datos');
+      setError(err.message);
       setConnected(false);
       setLoading(false);
     }
   }, [selectedChat]);
 
-  // ═══════════════════════════════════════════════════════════════════════════
-  // REALTIME - Polling cada 5 segundos
-  // ═══════════════════════════════════════════════════════════════════════════
+  // Polling cada 5 segundos (GRATIS - no usa Supabase Realtime de pago)
   useEffect(() => {
     cargarDatos();
-
     const interval = setInterval(cargarDatos, 5000);
-
     return () => clearInterval(interval);
   }, [cargarDatos]);
 
@@ -173,7 +202,7 @@ export const WhatsAppMonitorModule: React.FC<WhatsAppMonitorModuleProps> = ({ on
   };
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // ANÁLISIS CON CLAUDE
+  // ANÁLISIS IA
   // ═══════════════════════════════════════════════════════════════════════════
   const analizarConIA = async (tipo: 'chat' | 'global') => {
     setAnalyzing(true);
@@ -195,7 +224,7 @@ export const WhatsAppMonitorModule: React.FC<WhatsAppMonitorModuleProps> = ({ on
           mensajesParaAnalizar.push(...msgsChat);
         });
         mensajesParaAnalizar = mensajesParaAnalizar.slice(0, 500);
-        contexto = 'TODOS los chats de WhatsApp';
+        contexto = 'TODOS los chats';
       }
 
       if (mensajesParaAnalizar.length === 0) {
@@ -206,19 +235,15 @@ export const WhatsAppMonitorModule: React.FC<WhatsAppMonitorModuleProps> = ({ on
 
       const mensajesFormateados = mensajesParaAnalizar
         .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime())
-        .map(m => `[${new Date(m.timestamp).toLocaleString('es-MX')}] [${m.chat_nombre}] ${m.remitente}: ${m.mensaje}`)
+        .map(m => `[${new Date(m.timestamp).toLocaleString('es-MX')}] [${m.chat_nombre}] ${m.remitente}: ${m.mensaje || '[MEDIA]'}`)
         .join('\n');
 
-      const prompt = `Eres un asistente de gestión operativa para Grupo Loma Transportes. Analiza las conversaciones de WhatsApp de ${contexto}.
+      const prompt = `Analiza estas conversaciones de WhatsApp de ${contexto} para Grupo Loma Transportes.
 
-Proporciona:
-1. **RESUMEN EJECUTIVO** (máx 5 oraciones)
-2. **ACCIONES URGENTES**: Lista de cosas que requieren atención INMEDIATA
-3. **ALERTAS**: Problemas, quejas, demoras, urgencias
-4. **OPORTUNIDADES**: Mejoras o situaciones positivas
-5. **MÉTRICAS**: Participantes activos, temas recurrentes
-
-Usa emojis para urgencia: 🔴 Alta, 🟡 Media, 🟢 Baja
+1. **RESUMEN** (máx 5 oraciones)
+2. **ACCIONES URGENTES** 🔴
+3. **ALERTAS** ⚠️
+4. **OPORTUNIDADES** 💡
 
 CONVERSACIONES:
 ${mensajesFormateados}`;
@@ -238,10 +263,7 @@ ${mensajesFormateados}`;
         })
       });
 
-      if (!claudeResponse.ok) {
-        const errorData = await claudeResponse.json();
-        throw new Error(errorData.error?.message || 'Error en Claude API');
-      }
+      if (!claudeResponse.ok) throw new Error('Error en Claude API');
 
       const claudeData = await claudeResponse.json();
       setAnalisisResult(claudeData.content[0].text);
@@ -253,23 +275,24 @@ ${mensajesFormateados}`;
   };
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // EXPORTAR EXCEL
+  // EXPORTAR
   // ═══════════════════════════════════════════════════════════════════════════
   const exportarExcel = () => {
-    const headers = ['Fecha', 'Hora', 'Chat/Grupo', 'Remitente', 'Mensaje'];
+    const headers = ['Fecha', 'Hora', 'Chat', 'Remitente', 'Mensaje', 'Media'];
     const rows = allMensajes.map(msg => {
-      const fecha = new Date(msg.timestamp);
+      const f = new Date(msg.timestamp);
       return [
-        fecha.toLocaleDateString('es-MX'),
-        fecha.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' }),
-        msg.chat_nombre || 'Sin nombre',
-        msg.remitente || 'Desconocido',
-        `"${(msg.mensaje || '').replace(/"/g, '""').replace(/\n/g, ' ')}"`
+        f.toLocaleDateString('es-MX'),
+        f.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' }),
+        msg.chat_nombre || '',
+        msg.remitente || '',
+        `"${(msg.mensaje || '').replace(/"/g, '""').replace(/\n/g, ' ')}"`,
+        msg.media_url || ''
       ];
     });
 
-    const csvContent = [headers.join(','), ...rows.map(row => row.join(','))].join('\n');
-    const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const csv = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
     link.href = window.URL.createObjectURL(blob);
     link.download = `WhatsApp_${new Date().toISOString().split('T')[0]}.csv`;
@@ -285,11 +308,9 @@ ${mensajesFormateados}`;
     const f = new Date(fecha);
     const diffMs = Date.now() - f.getTime();
     const diffMins = Math.floor(diffMs / 60000);
-    const diffHoras = Math.floor(diffMs / 3600000);
-
     if (diffMins < 1) return 'Ahora';
     if (diffMins < 60) return `${diffMins}m`;
-    if (diffHoras < 24) return `${diffHoras}h`;
+    if (diffMins < 1440) return `${Math.floor(diffMins / 60)}h`;
     return f.toLocaleDateString('es-MX', { day: '2-digit', month: '2-digit' });
   };
 
@@ -300,24 +321,40 @@ ${mensajesFormateados}`;
     c.chat_nombre.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  // Detectar si es imagen
+  const esImagen = (url?: string, type?: string) => {
+    if (type?.startsWith('image')) return true;
+    if (url?.match(/\.(jpg|jpeg|png|gif|webp)$/i)) return true;
+    return false;
+  };
+
   // ═══════════════════════════════════════════════════════════════════════════
   // RENDER
   // ═══════════════════════════════════════════════════════════════════════════
   return (
     <ModuleTemplate title="WhatsApp Monitor" onBack={onBack}>
-      <div className="flex h-[calc(100vh-180px)]">
+      <div 
+        ref={containerRef}
+        className="flex h-[calc(100vh-180px)] overflow-hidden rounded-lg"
+        style={{ userSelect: isResizing ? 'none' : 'auto' }}
+      >
         
         {/* ══════════════════════════════════════════════════════════════════
-            PANEL IZQUIERDO - Lista de Chats
+            PANEL IZQUIERDO - Lista de Chats (Resizable)
         ══════════════════════════════════════════════════════════════════ */}
-        <div className="w-[300px] flex-shrink-0 border-r border-white/10 flex flex-col bg-white/[0.02]">
-          
+        <div 
+          className="flex-shrink-0 flex flex-col border-r border-white/10"
+          style={{ 
+            width: panelWidth,
+            background: '#111B21' // Color WhatsApp sidebar
+          }}
+        >
           {/* Header */}
-          <div className="p-2 border-b border-white/10 space-y-2">
+          <div className="p-2 space-y-2" style={{ background: '#202C33' }}>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-1.5">
                 <span className={`w-2 h-2 rounded-full ${connected ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`} />
-                <span className="text-[10px] text-white/40">
+                <span className="text-[10px] text-white/50">
                   {connected ? 'Live' : 'Off'} • {formatTiempo(lastUpdate.toISOString())}
                 </span>
               </div>
@@ -325,14 +362,14 @@ ${mensajesFormateados}`;
                 <button
                   onClick={() => analizarConIA('global')}
                   disabled={analyzing}
-                  className="p-1.5 rounded bg-purple-500/20 hover:bg-purple-500/30 text-purple-400"
+                  className="p-1.5 rounded bg-[#00A884]/20 hover:bg-[#00A884]/30 text-[#00A884]"
                   title="Analizar TODO"
                 >
                   <Sparkles className="w-3.5 h-3.5" />
                 </button>
                 <button
                   onClick={exportarExcel}
-                  className="p-1.5 rounded bg-green-500/20 hover:bg-green-500/30 text-green-400"
+                  className="p-1.5 rounded bg-[#00A884]/20 hover:bg-[#00A884]/30 text-[#00A884]"
                   title="Exportar"
                 >
                   <FileSpreadsheet className="w-3.5 h-3.5" />
@@ -349,31 +386,32 @@ ${mensajesFormateados}`;
 
             {/* Búsqueda */}
             <div className="relative">
-              <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-white/30" />
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" />
               <input
                 type="text"
-                placeholder="Buscar..."
+                placeholder="Buscar o empezar un chat"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-7 pr-2 py-1.5 text-xs rounded bg-white/5 border border-white/10 text-white placeholder-white/30 focus:border-blue-500/50 focus:outline-none"
+                className="w-full pl-9 pr-3 py-2 text-sm rounded-lg text-white placeholder-white/40 focus:outline-none"
+                style={{ background: '#2A3942' }}
               />
             </div>
 
-            {/* Stats mini */}
+            {/* Stats */}
             <div className="flex gap-1 text-[9px]">
-              <div className="flex-1 text-center py-1 rounded bg-white/5">
+              <div className="flex-1 text-center py-1 rounded" style={{ background: '#2A3942' }}>
                 <span className="text-white font-bold">{chats.length}</span>
-                <span className="text-white/30 ml-0.5">chats</span>
+                <span className="text-white/40 ml-0.5">chats</span>
               </div>
-              <div className="flex-1 text-center py-1 rounded bg-white/5">
-                <span className="text-blue-400 font-bold">{allMensajes.length}</span>
-                <span className="text-white/30 ml-0.5">msgs</span>
+              <div className="flex-1 text-center py-1 rounded" style={{ background: '#2A3942' }}>
+                <span className="text-[#00A884] font-bold">{allMensajes.length}</span>
+                <span className="text-white/40 ml-0.5">msgs</span>
               </div>
-              <div className="flex-1 text-center py-1 rounded bg-white/5">
-                <span className="text-green-400 font-bold">
+              <div className="flex-1 text-center py-1 rounded" style={{ background: '#2A3942' }}>
+                <span className="text-[#25D366] font-bold">
                   {chats.reduce((s, c) => s + c.mensajes_nuevos, 0)}
                 </span>
-                <span className="text-white/30 ml-0.5">24h</span>
+                <span className="text-white/40 ml-0.5">24h</span>
               </div>
             </div>
           </div>
@@ -382,7 +420,7 @@ ${mensajesFormateados}`;
           <div className="flex-1 overflow-y-auto">
             {loading && chats.length === 0 ? (
               <div className="flex items-center justify-center py-8">
-                <Loader2 className="w-5 h-5 text-blue-400 animate-spin" />
+                <Loader2 className="w-5 h-5 text-[#00A884] animate-spin" />
               </div>
             ) : chatsFiltrados.length === 0 ? (
               <div className="text-center py-8 text-white/30 text-xs">No hay chats</div>
@@ -391,35 +429,38 @@ ${mensajesFormateados}`;
                 <div
                   key={chat.chat_id}
                   onClick={() => seleccionarChat(chat)}
-                  className={`px-2 py-2 border-b border-white/5 cursor-pointer hover:bg-white/5 ${
-                    selectedChat?.chat_id === chat.chat_id ? 'bg-blue-500/10 border-l-2 border-l-blue-500' : ''
+                  className={`px-3 py-2.5 cursor-pointer border-b transition-colors ${
+                    selectedChat?.chat_id === chat.chat_id 
+                      ? 'bg-[#2A3942]' 
+                      : 'hover:bg-[#202C33]'
                   }`}
+                  style={{ borderColor: '#222D34' }}
                 >
-                  <div className="flex items-center gap-2">
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
-                      chat.es_grupo ? 'bg-blue-500/20' : 'bg-green-500/20'
+                  <div className="flex items-center gap-3">
+                    <div className={`w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 ${
+                      chat.es_grupo ? 'bg-[#00A884]/20' : 'bg-[#25D366]/20'
                     }`}>
                       {chat.es_grupo ? (
-                        <Users className="w-4 h-4 text-blue-400" />
+                        <Users className="w-6 h-6 text-[#00A884]" />
                       ) : (
-                        <User className="w-4 h-4 text-green-400" />
+                        <User className="w-6 h-6 text-[#25D366]" />
                       )}
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between">
-                        <h4 className="text-white text-xs font-medium truncate pr-1">
+                        <h4 className="text-white text-sm font-normal truncate pr-2">
                           {chat.chat_nombre}
                         </h4>
-                        <span className="text-[9px] text-white/30 flex-shrink-0">
+                        <span className="text-[11px] text-white/40 flex-shrink-0">
                           {formatTiempo(chat.ultima_actividad)}
                         </span>
                       </div>
-                      <div className="flex items-center justify-between">
-                        <p className="text-white/40 text-[10px] truncate pr-1">
-                          {chat.ultimo_mensaje?.substring(0, 30)}...
+                      <div className="flex items-center justify-between mt-0.5">
+                        <p className="text-white/50 text-[13px] truncate pr-2">
+                          {chat.ultimo_mensaje?.substring(0, 35)}...
                         </p>
                         {chat.mensajes_nuevos > 0 && (
-                          <span className="px-1 py-0.5 rounded-full bg-green-500 text-white text-[8px] font-bold">
+                          <span className="px-1.5 py-0.5 rounded-full bg-[#25D366] text-white text-[10px] font-medium">
                             {chat.mensajes_nuevos}
                           </span>
                         )}
@@ -433,60 +474,75 @@ ${mensajesFormateados}`;
         </div>
 
         {/* ══════════════════════════════════════════════════════════════════
-            PANEL DERECHO - Mensajes
+            RESIZE HANDLE
         ══════════════════════════════════════════════════════════════════ */}
-        <div className="flex-1 flex flex-col bg-[#0B1220]/50">
+        <div
+          onMouseDown={handleMouseDown}
+          className="w-1 cursor-col-resize hover:bg-[#00A884]/50 transition-colors flex items-center justify-center group"
+          style={{ background: isResizing ? '#00A884' : '#2A3942' }}
+        >
+          <GripVertical className="w-3 h-3 text-white/30 group-hover:text-white/60" />
+        </div>
+
+        {/* ══════════════════════════════════════════════════════════════════
+            PANEL DERECHO - Mensajes (Estilo WhatsApp)
+        ══════════════════════════════════════════════════════════════════ */}
+        <div 
+          className="flex-1 flex flex-col min-w-0"
+          style={{ 
+            background: '#0B141A',
+            backgroundImage: 'url("data:image/svg+xml,%3Csvg width=\'100\' height=\'100\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cpath d=\'M0 0h100v100H0z\' fill=\'%230B141A\'/%3E%3Cpath d=\'M10 10h2v2h-2zM30 30h2v2h-2zM50 10h2v2h-2zM70 50h2v2h-2zM90 30h2v2h-2zM20 70h2v2h-2zM60 80h2v2h-2zM80 90h2v2h-2z\' fill=\'%23182229\' opacity=\'.3\'/%3E%3C/svg%3E")'
+          }}
+        >
           {selectedChat ? (
             <>
               {/* Header del chat */}
-              <div className="px-3 py-2 border-b border-white/10 flex items-center justify-between bg-white/[0.02]">
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => setSelectedChat(null)}
-                    className="lg:hidden p-1 rounded hover:bg-white/10"
-                  >
-                    <ChevronLeft className="w-4 h-4 text-white/50" />
-                  </button>
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                    selectedChat.es_grupo ? 'bg-blue-500/20' : 'bg-green-500/20'
+              <div 
+                className="px-4 py-2.5 flex items-center justify-between flex-shrink-0"
+                style={{ background: '#202C33' }}
+              >
+                <div className="flex items-center gap-3">
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                    selectedChat.es_grupo ? 'bg-[#00A884]/20' : 'bg-[#25D366]/20'
                   }`}>
                     {selectedChat.es_grupo ? (
-                      <Users className="w-4 h-4 text-blue-400" />
+                      <Users className="w-5 h-5 text-[#00A884]" />
                     ) : (
-                      <User className="w-4 h-4 text-green-400" />
+                      <User className="w-5 h-5 text-[#25D366]" />
                     )}
                   </div>
                   <div>
-                    <h3 className="text-white font-medium text-sm">{selectedChat.chat_nombre}</h3>
-                    <p className="text-white/40 text-[10px]">{mensajes.length} mensajes</p>
+                    <h3 className="text-white font-medium text-base">{selectedChat.chat_nombre}</h3>
+                    <p className="text-white/50 text-xs">{mensajes.length} mensajes</p>
                   </div>
                 </div>
                 <button
                   onClick={() => analizarConIA('chat')}
                   disabled={analyzing}
-                  className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-purple-500/20 hover:bg-purple-500/30 text-purple-400 text-xs font-medium disabled:opacity-50"
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium disabled:opacity-50 transition-colors"
+                  style={{ background: '#00A884', color: 'white' }}
                 >
                   {analyzing && analisisTipo === 'chat' ? (
-                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <Loader2 className="w-4 h-4 animate-spin" />
                   ) : (
-                    <Brain className="w-3.5 h-3.5" />
+                    <Brain className="w-4 h-4" />
                   )}
                   <span>Analizar</span>
                 </button>
               </div>
 
               {/* Mensajes */}
-              <div className="flex-1 overflow-y-auto px-3 py-2">
+              <div className="flex-1 overflow-y-auto px-4 py-3 min-h-0">
                 {loadingMensajes ? (
                   <div className="flex items-center justify-center h-full">
-                    <Loader2 className="w-6 h-6 text-blue-400 animate-spin" />
+                    <Loader2 className="w-6 h-6 text-[#00A884] animate-spin" />
                   </div>
                 ) : mensajes.length === 0 ? (
                   <div className="flex items-center justify-center h-full text-white/30 text-sm">
                     No hay mensajes
                   </div>
                 ) : (
-                  <>
+                  <div className="space-y-1">
                     {mensajes.map((msg, idx) => {
                       const fecha = new Date(msg.timestamp);
                       const fechaAnterior = idx > 0 ? new Date(mensajes[idx - 1].timestamp) : null;
@@ -494,39 +550,106 @@ ${mensajesFormateados}`;
 
                       return (
                         <React.Fragment key={msg.id}>
+                          {/* Separador de día */}
                           {esNuevoDia && (
                             <div className="flex items-center justify-center py-2">
-                              <span className="px-2 py-0.5 rounded-full bg-white/10 text-white/40 text-[9px]">
-                                {fecha.toLocaleDateString('es-MX', { weekday: 'short', day: 'numeric', month: 'short' })}
+                              <span 
+                                className="px-3 py-1 rounded-lg text-[11px] text-white/70"
+                                style={{ background: '#182229' }}
+                              >
+                                {fecha.toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long' })}
                               </span>
                             </div>
                           )}
-                          <div className="flex items-start gap-1.5 hover:bg-white/[0.02] rounded px-1 py-0.5">
-                            <span className="text-[9px] text-white/25 w-8 flex-shrink-0 pt-0.5">
-                              {formatHora(msg.timestamp)}
-                            </span>
-                            <div className="flex-1 min-w-0">
-                              <span className="text-[11px] font-semibold text-green-400 mr-1.5">
-                                {msg.remitente || '?'}
-                              </span>
-                              <span className="text-[12px] text-white/85 break-words">
-                                {msg.mensaje}
-                              </span>
+
+                          {/* Burbuja de mensaje - Estilo WhatsApp */}
+                          <div className="flex justify-start mb-0.5">
+                            <div 
+                              className="max-w-[75%] rounded-lg px-2.5 py-1.5 relative"
+                              style={{ 
+                                background: '#202C33',
+                                borderRadius: '7.5px'
+                              }}
+                            >
+                              {/* Nombre del remitente (solo en grupos) */}
+                              {selectedChat.es_grupo && (
+                                <p 
+                                  className="text-[12.5px] font-medium mb-0.5"
+                                  style={{ color: '#00A884' }}
+                                >
+                                  {msg.remitente || 'Desconocido'}
+                                </p>
+                              )}
+
+                              {/* Imagen si existe */}
+                              {msg.media_url && esImagen(msg.media_url, msg.media_type) && (
+                                <div 
+                                  className="mb-1 cursor-pointer"
+                                  onClick={() => setImagenExpandida(msg.media_url!)}
+                                >
+                                  <img 
+                                    src={msg.media_url} 
+                                    alt="Media" 
+                                    className="max-w-full rounded-md max-h-[300px] object-cover"
+                                    onError={(e) => {
+                                      (e.target as HTMLImageElement).style.display = 'none';
+                                    }}
+                                  />
+                                </div>
+                              )}
+
+                              {/* Archivo adjunto si no es imagen */}
+                              {msg.media_url && !esImagen(msg.media_url, msg.media_type) && (
+                                <a 
+                                  href={msg.media_url} 
+                                  target="_blank" 
+                                  rel="noopener noreferrer"
+                                  className="flex items-center gap-2 p-2 rounded mb-1"
+                                  style={{ background: '#182229' }}
+                                >
+                                  <FileText className="w-8 h-8 text-[#00A884]" />
+                                  <div className="flex-1 min-w-0">
+                                    <p className="text-white text-sm truncate">
+                                      {msg.media_filename || 'Archivo'}
+                                    </p>
+                                    <p className="text-white/40 text-xs">
+                                      {msg.media_type || 'documento'}
+                                    </p>
+                                  </div>
+                                  <Download className="w-5 h-5 text-white/40" />
+                                </a>
+                              )}
+
+                              {/* Texto del mensaje */}
+                              {msg.mensaje && (
+                                <p className="text-[14.2px] text-white/90 whitespace-pre-wrap break-words">
+                                  {msg.mensaje}
+                                </p>
+                              )}
+
+                              {/* Hora */}
+                              <p className="text-[10px] text-white/40 text-right mt-0.5 -mb-0.5">
+                                {formatHora(msg.timestamp)}
+                              </p>
                             </div>
                           </div>
                         </React.Fragment>
                       );
                     })}
                     <div ref={mensajesEndRef} />
-                  </>
+                  </div>
                 )}
               </div>
             </>
           ) : (
+            /* Estado vacío */
             <div className="flex-1 flex items-center justify-center">
               <div className="text-center">
-                <MessageSquare className="w-12 h-12 text-white/10 mx-auto mb-3" />
-                <h3 className="text-white/40 text-sm">Selecciona un chat</h3>
+                <MessageSquare className="w-20 h-20 text-white/10 mx-auto mb-4" />
+                <h3 className="text-white/40 text-lg mb-1">Selecciona un chat</h3>
+                <p className="text-white/25 text-sm">
+                  Elige una conversación para ver los mensajes
+                </p>
               </div>
             </div>
           )}
@@ -536,12 +659,18 @@ ${mensajesFormateados}`;
             MODAL ANÁLISIS IA
         ══════════════════════════════════════════════════════════════════ */}
         {showAnalisis && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">
-            <div className="w-full max-w-2xl max-h-[80vh] m-4 rounded-xl bg-[#0F172A] border border-white/10 flex flex-col overflow-hidden">
-              <div className="px-4 py-3 border-b border-white/10 flex items-center justify-between bg-purple-500/10">
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80">
+            <div 
+              className="w-full max-w-2xl max-h-[80vh] m-4 rounded-xl flex flex-col overflow-hidden"
+              style={{ background: '#111B21', border: '1px solid #2A3942' }}
+            >
+              <div 
+                className="px-4 py-3 flex items-center justify-between"
+                style={{ background: '#202C33' }}
+              >
                 <div className="flex items-center gap-2">
-                  <Brain className="w-5 h-5 text-purple-400" />
-                  <h3 className="text-white font-medium text-sm">
+                  <Brain className="w-5 h-5 text-[#00A884]" />
+                  <h3 className="text-white font-medium">
                     Análisis - {analisisTipo === 'global' ? 'Todos los Chats' : selectedChat?.chat_nombre}
                   </h3>
                 </div>
@@ -555,7 +684,7 @@ ${mensajesFormateados}`;
               <div className="flex-1 overflow-y-auto p-4">
                 {analyzing ? (
                   <div className="flex flex-col items-center justify-center py-8">
-                    <Loader2 className="w-8 h-8 text-purple-400 animate-spin mb-3" />
+                    <Loader2 className="w-8 h-8 text-[#00A884] animate-spin mb-3" />
                     <p className="text-white/40 text-sm">Analizando...</p>
                   </div>
                 ) : (
@@ -564,10 +693,11 @@ ${mensajesFormateados}`;
                   </div>
                 )}
               </div>
-              <div className="px-4 py-2 border-t border-white/10 flex justify-end">
+              <div className="px-4 py-2 border-t flex justify-end" style={{ borderColor: '#2A3942' }}>
                 <button
                   onClick={() => setShowAnalisis(false)}
-                  className="px-3 py-1.5 rounded bg-white/10 hover:bg-white/20 text-white text-xs"
+                  className="px-4 py-1.5 rounded text-white text-sm"
+                  style={{ background: '#00A884' }}
                 >
                   Cerrar
                 </button>
@@ -575,11 +705,33 @@ ${mensajesFormateados}`;
             </div>
           </div>
         )}
+
+        {/* ══════════════════════════════════════════════════════════════════
+            MODAL IMAGEN EXPANDIDA
+        ══════════════════════════════════════════════════════════════════ */}
+        {imagenExpandida && (
+          <div 
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 cursor-pointer"
+            onClick={() => setImagenExpandida(null)}
+          >
+            <button
+              onClick={() => setImagenExpandida(null)}
+              className="absolute top-4 right-4 p-2 rounded-full bg-white/10 hover:bg-white/20 text-white"
+            >
+              <X className="w-6 h-6" />
+            </button>
+            <img 
+              src={imagenExpandida} 
+              alt="Imagen" 
+              className="max-w-[90vw] max-h-[90vh] object-contain"
+            />
+          </div>
+        )}
       </div>
 
       {/* Error */}
       {error && (
-        <div className="fixed bottom-4 right-4 z-50 p-3 rounded-lg bg-red-500/20 border border-red-500/30 text-red-400 flex items-center gap-2 max-w-sm">
+        <div className="fixed bottom-4 right-4 z-50 p-3 rounded-lg flex items-center gap-2 max-w-sm" style={{ background: '#F15C6D', color: 'white' }}>
           <AlertTriangle className="w-4 h-4" />
           <p className="text-xs flex-1">{error}</p>
           <button onClick={() => setError(null)}><X className="w-3 h-3" /></button>
