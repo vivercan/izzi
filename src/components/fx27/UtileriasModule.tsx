@@ -4,7 +4,9 @@ import {
   ArrowLeft, FileText, Image, File, FileCheck, Folder,
   Download, Trash2, Eye, Upload, Search
 } from 'lucide-react';
-import { projectId, publicAnonKey } from '../../info';
+// Configuración de Supabase
+const projectId = 'fbxbsslhewchyibdoyzk';
+const publicAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZieGJzc2xoZXdjaHlpYmRveXprIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI1MzczODEsImV4cCI6MjA3ODExMzM4MX0.Z8JPlg7hhKbA624QGHp2bKKTNtCD3WInQMO5twjl6a0';
 
 // Importar submódulos
 import { ProspeccionIAModule } from './ProspeccionIAModule';

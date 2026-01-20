@@ -6,9 +6,10 @@ import {
 } from 'lucide-react';
 
 // ═══════════════════════════════════════════════════════════════════════════
-// CONFIGURACIÓN - Usa las mismas variables que el resto del proyecto
+// CONFIGURACIÓN - Supabase y Anthropic
 // ═══════════════════════════════════════════════════════════════════════════
-import { projectId, publicAnonKey } from '../../info';
+const projectId = 'fbxbsslhewchyibdoyzk';
+const publicAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZieGJzc2xoZXdjaHlpYmRveXprIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI1MzczODEsImV4cCI6MjA3ODExMzM4MX0.Z8JPlg7hhKbA624QGHp2bKKTNtCD3WInQMO5twjl6a0';
 
 const SUPABASE_URL = `https://${projectId}.supabase.co`;
 const SUPABASE_ANON_KEY = publicAnonKey;
