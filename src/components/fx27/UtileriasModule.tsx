@@ -2,63 +2,16 @@ import React, { useState } from 'react';
 import { 
   Database, FolderOpen, Sparkles, MessageSquare, Mail,
   ArrowLeft, FileText, Image, File, FileCheck, Folder,
-  Download, Trash2, Eye, Upload, Search
+  Download, Trash2
 } from 'lucide-react';
-// Configuración de Supabase
-const projectId = 'fbxbsslhewchyibdoyzk';
-const publicAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZieGJzc2xoZXdjaHlpYmRveXprIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI1MzczODEsImV4cCI6MjA3ODExMzM4MX0.Z8JPlg7hhKbA624QGHp2bKKTNtCD3WInQMO5twjl6a0';
 
 // Importar submódulos
 import { ProspeccionIAModule } from './ProspeccionIAModule';
 import { WhatsAppMonitorModule } from './WhatsAppMonitorModule';
 
-// Imágenes de módulos (puedes ajustar la URL)
-const MODULE_IMAGES = {
-  UTILERIAS: 'https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=1200&h=400&fit=crop'
-};
-
-// ═══════════════════════════════════════════════════════════════════════════
-// TEMPLATE BASE
-// ═══════════════════════════════════════════════════════════════════════════
-interface ModuleTemplateProps {
-  title: string;
-  onBack: () => void;
-  headerImage?: string;
-  children: React.ReactNode;
-}
-
-const ModuleTemplate: React.FC<ModuleTemplateProps> = ({ title, onBack, headerImage, children }) => (
-  <div className="min-h-screen" style={{ background: 'var(--fx-bg, #0B1220)' }}>
-    {/* Header con imagen */}
-    {headerImage && (
-      <div className="relative h-48 overflow-hidden">
-        <img 
-          src={headerImage} 
-          alt={title}
-          className="w-full h-full object-cover opacity-30"
-        />
-        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[var(--fx-bg)]/50 to-[var(--fx-bg)]" />
-        <div className="absolute bottom-6 left-6 flex items-center gap-4">
-          <button
-            onClick={onBack}
-            className="p-2 rounded-xl bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/10 transition-all"
-          >
-            <ArrowLeft className="w-5 h-5 text-white" />
-          </button>
-          <h1 
-            className="text-3xl font-bold text-white"
-            style={{ fontFamily: "'Orbitron', sans-serif", textShadow: '0 2px 20px rgba(0,0,0,0.5)' }}
-          >
-            {title}
-          </h1>
-        </div>
-      </div>
-    )}
-    
-    {/* Contenido */}
-    {children}
-  </div>
-);
+// Configuración de Supabase
+const projectId = 'fbxbsslhewchyibdoyzk';
+const publicAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZieGJzc2xoZXdjaHlpYmRveXprIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI1MzczODEsImV4cCI6MjA3ODExMzM4MX0.Z8JPlg7hhKbA624QGHp2bKKTNtCD3WInQMO5twjl6a0';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // TIPOS
@@ -73,6 +26,56 @@ type GestorSection = 'cotizaciones' | 'contratos' | 'documentos' | 'imagenes' | 
 
 // Solo Juan Viveros tiene acceso a módulos exclusivos
 const ADMIN_EMAIL = 'juan.viveros@trob.com.mx';
+
+// ═══════════════════════════════════════════════════════════════════════════
+// COMPONENTE HEADER ESTANDARIZADO
+// ═══════════════════════════════════════════════════════════════════════════
+interface StandardHeaderProps {
+  title: string;
+  onBack: () => void;
+}
+
+const StandardHeader: React.FC<StandardHeaderProps> = ({ title, onBack }) => (
+  <div className="px-6 py-6">
+    <div className="flex items-center justify-between">
+      <div className="flex items-center gap-4">
+        <button
+          onClick={onBack}
+          className="w-10 h-10 rounded-full bg-[var(--fx-primary)] hover:bg-[var(--fx-primary)]/80 flex items-center justify-center transition-all"
+        >
+          <ArrowLeft className="w-5 h-5 text-white" />
+        </button>
+        <h1 
+          className="text-3xl font-bold text-white"
+          style={{ fontFamily: "'Orbitron', sans-serif" }}
+        >
+          {title}
+        </h1>
+      </div>
+
+      {/* Logo FX27 */}
+      <div className="text-right">
+        <div 
+          className="text-3xl font-black"
+          style={{ 
+            fontFamily: "'Orbitron', sans-serif",
+            background: 'linear-gradient(135deg, #1E66F5 0%, #3B82F6 50%, #F97316 100%)',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent'
+          }}
+        >
+          FX27
+        </div>
+        <div 
+          className="text-[10px] text-white/40 tracking-[0.2em]"
+          style={{ fontFamily: "'Exo 2', sans-serif" }}
+        >
+          FUTURE EXPERIENCE 27
+        </div>
+      </div>
+    </div>
+  </div>
+);
 
 // ═══════════════════════════════════════════════════════════════════════════
 // COMPONENTE PRINCIPAL
@@ -141,7 +144,8 @@ export const UtileriasModule = ({ onBack, userEmail }: UtileriasModuleProps) => 
   // Correo (placeholder por ahora)
   if (activeSubModule === 'correo') {
     return (
-      <ModuleTemplate title="Supervisión de Correo" onBack={() => setActiveSubModule(null)} headerImage={MODULE_IMAGES.UTILERIAS}>
+      <div className="min-h-screen" style={{ background: 'var(--fx-bg, #0B1220)' }}>
+        <StandardHeader title="Supervisión de Correo" onBack={() => setActiveSubModule(null)} />
         <div className="p-8 flex items-center justify-center min-h-[400px]">
           <div className="text-center">
             <Mail className="w-20 h-20 text-white/20 mx-auto mb-4" />
@@ -153,148 +157,7 @@ export const UtileriasModule = ({ onBack, userEmail }: UtileriasModuleProps) => 
             </p>
           </div>
         </div>
-      </ModuleTemplate>
-    );
-  }
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  // VISTA PRINCIPAL - CARDS DE UTILERÍAS
-  // ═══════════════════════════════════════════════════════════════════════════
-  if (!activeSubModule) {
-    // Calcular número de columnas basado en acceso
-    const numModulos = tieneAccesoExclusivo ? 5 : 2; // 5 si es admin, 2 si no
-    const gridCols = numModulos <= 3 ? `grid-cols-${numModulos}` : 'grid-cols-3';
-
-    return (
-      <ModuleTemplate title="Utilerías" onBack={onBack} headerImage={MODULE_IMAGES.UTILERIAS}>
-        <div className="p-8">
-          <div className={`grid ${tieneAccesoExclusivo ? 'grid-cols-3 lg:grid-cols-5' : 'grid-cols-2'} gap-6 max-w-6xl mx-auto`}>
-            
-            {/* Card BACKUP - Disponible para todos */}
-            <button
-              onClick={() => setActiveSubModule('backup')}
-              className="group relative bg-white/5 hover:bg-white/10 border border-white/10 hover:border-[var(--fx-primary)] rounded-2xl p-8 transition-all duration-300 flex flex-col items-center gap-4"
-            >
-              <div className="w-20 h-20 rounded-full bg-green-500/20 flex items-center justify-center group-hover:scale-110 transition-transform">
-                <Database className="w-10 h-10 text-green-400" />
-              </div>
-              <div className="text-center">
-                <h3 
-                  className="text-white mb-2"
-                  style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '18px', fontWeight: 600 }}
-                >
-                  BACKUP
-                </h3>
-                <p className="text-white/60" style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '13px' }}>
-                  Descargar respaldos de leads
-                </p>
-              </div>
-            </button>
-
-            {/* Card GESTOR DE ARCHIVOS - Disponible para todos */}
-            <button
-              onClick={() => setActiveSubModule('gestor')}
-              className="group relative bg-white/5 hover:bg-white/10 border border-white/10 hover:border-[var(--fx-primary)] rounded-2xl p-8 transition-all duration-300 flex flex-col items-center gap-4"
-            >
-              <div className="w-20 h-20 rounded-full bg-blue-500/20 flex items-center justify-center group-hover:scale-110 transition-transform">
-                <FolderOpen className="w-10 h-10 text-blue-400" />
-              </div>
-              <div className="text-center">
-                <h3 
-                  className="text-white mb-2"
-                  style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '18px', fontWeight: 600 }}
-                >
-                  GESTOR DE ARCHIVOS
-                </h3>
-                <p className="text-white/60" style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '13px' }}>
-                  Administrar documentos y formatos
-                </p>
-              </div>
-            </button>
-
-            {/* Card PROSPECCIÓN IA - Solo Juan Viveros */}
-            {tieneAccesoExclusivo && (
-              <button
-                onClick={() => setActiveSubModule('prospeccion')}
-                className="group relative bg-white/5 hover:bg-white/10 border border-white/10 hover:border-orange-500 rounded-2xl p-8 transition-all duration-300 flex flex-col items-center gap-4"
-              >
-                {/* Badge NUEVO */}
-                <div className="absolute top-4 right-4 px-2 py-1 rounded-full bg-orange-500 text-white text-xs font-bold">
-                  NUEVO
-                </div>
-                <div className="w-20 h-20 rounded-full bg-orange-500/20 flex items-center justify-center group-hover:scale-110 transition-transform">
-                  <Sparkles className="w-10 h-10 text-orange-400" />
-                </div>
-                <div className="text-center">
-                  <h3 
-                    className="text-white mb-2"
-                    style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '18px', fontWeight: 600 }}
-                  >
-                    PROSPECCIÓN IA
-                  </h3>
-                  <p className="text-white/60" style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '13px' }}>
-                    Apollo + Hunter + Claude AI
-                  </p>
-                </div>
-              </button>
-            )}
-
-            {/* Card WHATSAPP MONITOR - Solo Juan Viveros */}
-            {tieneAccesoExclusivo && (
-              <button
-                onClick={() => setActiveSubModule('whatsapp')}
-                className="group relative bg-white/5 hover:bg-white/10 border border-white/10 hover:border-green-500 rounded-2xl p-8 transition-all duration-300 flex flex-col items-center gap-4"
-              >
-                {/* Badge NUEVO */}
-                <div className="absolute top-4 right-4 px-2 py-1 rounded-full bg-green-500 text-white text-xs font-bold">
-                  NUEVO
-                </div>
-                <div className="w-20 h-20 rounded-full bg-green-500/20 flex items-center justify-center group-hover:scale-110 transition-transform">
-                  <MessageSquare className="w-10 h-10 text-green-400" />
-                </div>
-                <div className="text-center">
-                  <h3 
-                    className="text-white mb-2"
-                    style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '18px', fontWeight: 600 }}
-                  >
-                    WHATSAPP
-                  </h3>
-                  <p className="text-white/60" style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '13px' }}>
-                    Supervisión con IA
-                  </p>
-                </div>
-              </button>
-            )}
-
-            {/* Card CORREO - Solo Juan Viveros */}
-            {tieneAccesoExclusivo && (
-              <button
-                onClick={() => setActiveSubModule('correo')}
-                className="group relative bg-white/5 hover:bg-white/10 border border-white/10 hover:border-purple-500 rounded-2xl p-8 transition-all duration-300 flex flex-col items-center gap-4"
-              >
-                {/* Badge PRÓXIMAMENTE */}
-                <div className="absolute top-4 right-4 px-2 py-1 rounded-full bg-purple-500/50 text-white text-xs font-bold">
-                  PRONTO
-                </div>
-                <div className="w-20 h-20 rounded-full bg-purple-500/20 flex items-center justify-center group-hover:scale-110 transition-transform">
-                  <Mail className="w-10 h-10 text-purple-400" />
-                </div>
-                <div className="text-center">
-                  <h3 
-                    className="text-white mb-2"
-                    style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '18px', fontWeight: 600 }}
-                  >
-                    CORREO
-                  </h3>
-                  <p className="text-white/60" style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '13px' }}>
-                    Supervisión de emails
-                  </p>
-                </div>
-              </button>
-            )}
-          </div>
-        </div>
-      </ModuleTemplate>
+      </div>
     );
   }
 
@@ -303,7 +166,8 @@ export const UtileriasModule = ({ onBack, userEmail }: UtileriasModuleProps) => 
   // ═══════════════════════════════════════════════════════════════════════════
   if (activeSubModule === 'backup') {
     return (
-      <ModuleTemplate title="Backup de Leads" onBack={() => setActiveSubModule(null)} headerImage={MODULE_IMAGES.UTILERIAS}>
+      <div className="min-h-screen" style={{ background: 'var(--fx-bg, #0B1220)' }}>
+        <StandardHeader title="Backup de Leads" onBack={() => setActiveSubModule(null)} />
         <div className="p-8">
           <div className="max-w-4xl mx-auto">
             <p 
@@ -379,7 +243,7 @@ export const UtileriasModule = ({ onBack, userEmail }: UtileriasModuleProps) => 
             )}
           </div>
         </div>
-      </ModuleTemplate>
+      </div>
     );
   }
 
@@ -397,7 +261,8 @@ export const UtileriasModule = ({ onBack, userEmail }: UtileriasModuleProps) => 
     ];
 
     return (
-      <ModuleTemplate title="Gestor de Archivos" onBack={() => setActiveSubModule(null)} headerImage={MODULE_IMAGES.UTILERIAS}>
+      <div className="min-h-screen" style={{ background: 'var(--fx-bg, #0B1220)' }}>
+        <StandardHeader title="Gestor de Archivos" onBack={() => setActiveSubModule(null)} />
         <div className="p-8">
           <div className="max-w-5xl mx-auto">
             <div className="grid grid-cols-3 gap-6">
@@ -423,11 +288,146 @@ export const UtileriasModule = ({ onBack, userEmail }: UtileriasModuleProps) => 
             </div>
           </div>
         </div>
-      </ModuleTemplate>
+      </div>
     );
   }
 
-  return null;
+  // ═══════════════════════════════════════════════════════════════════════════
+  // VISTA PRINCIPAL - CARDS DE UTILERÍAS
+  // ═══════════════════════════════════════════════════════════════════════════
+  return (
+    <div className="min-h-screen" style={{ background: 'var(--fx-bg, #0B1220)' }}>
+      <StandardHeader title="Utilerías" onBack={onBack} />
+      
+      <div className="p-8">
+        <div className={`grid ${tieneAccesoExclusivo ? 'grid-cols-3 lg:grid-cols-5' : 'grid-cols-2'} gap-6 max-w-6xl mx-auto`}>
+          
+          {/* Card BACKUP - Disponible para todos */}
+          <button
+            onClick={() => setActiveSubModule('backup')}
+            className="group relative bg-white/5 hover:bg-white/10 border border-white/10 hover:border-[var(--fx-primary)] rounded-2xl p-8 transition-all duration-300 flex flex-col items-center gap-4"
+          >
+            <div className="w-20 h-20 rounded-full bg-green-500/20 flex items-center justify-center group-hover:scale-110 transition-transform">
+              <Database className="w-10 h-10 text-green-400" />
+            </div>
+            <div className="text-center">
+              <h3 
+                className="text-white mb-2"
+                style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '18px', fontWeight: 600 }}
+              >
+                BACKUP
+              </h3>
+              <p className="text-white/60" style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '13px' }}>
+                Descargar respaldos de leads
+              </p>
+            </div>
+          </button>
+
+          {/* Card GESTOR DE ARCHIVOS - Disponible para todos */}
+          <button
+            onClick={() => setActiveSubModule('gestor')}
+            className="group relative bg-white/5 hover:bg-white/10 border border-white/10 hover:border-[var(--fx-primary)] rounded-2xl p-8 transition-all duration-300 flex flex-col items-center gap-4"
+          >
+            <div className="w-20 h-20 rounded-full bg-blue-500/20 flex items-center justify-center group-hover:scale-110 transition-transform">
+              <FolderOpen className="w-10 h-10 text-blue-400" />
+            </div>
+            <div className="text-center">
+              <h3 
+                className="text-white mb-2"
+                style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '18px', fontWeight: 600 }}
+              >
+                GESTOR DE ARCHIVOS
+              </h3>
+              <p className="text-white/60" style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '13px' }}>
+                Administrar documentos y formatos
+              </p>
+            </div>
+          </button>
+
+          {/* Card PROSPECCIÓN IA - Solo Juan Viveros */}
+          {tieneAccesoExclusivo && (
+            <button
+              onClick={() => setActiveSubModule('prospeccion')}
+              className="group relative bg-white/5 hover:bg-white/10 border border-white/10 hover:border-orange-500 rounded-2xl p-8 transition-all duration-300 flex flex-col items-center gap-4"
+            >
+              {/* Badge NUEVO */}
+              <div className="absolute top-4 right-4 px-2 py-1 rounded-full bg-orange-500 text-white text-xs font-bold">
+                NUEVO
+              </div>
+              <div className="w-20 h-20 rounded-full bg-orange-500/20 flex items-center justify-center group-hover:scale-110 transition-transform">
+                <Sparkles className="w-10 h-10 text-orange-400" />
+              </div>
+              <div className="text-center">
+                <h3 
+                  className="text-white mb-2"
+                  style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '18px', fontWeight: 600 }}
+                >
+                  PROSPECCIÓN IA
+                </h3>
+                <p className="text-white/60" style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '13px' }}>
+                  Apollo + Hunter + Claude AI
+                </p>
+              </div>
+            </button>
+          )}
+
+          {/* Card WHATSAPP MONITOR - Solo Juan Viveros */}
+          {tieneAccesoExclusivo && (
+            <button
+              onClick={() => setActiveSubModule('whatsapp')}
+              className="group relative bg-white/5 hover:bg-white/10 border border-white/10 hover:border-green-500 rounded-2xl p-8 transition-all duration-300 flex flex-col items-center gap-4"
+            >
+              {/* Badge NUEVO */}
+              <div className="absolute top-4 right-4 px-2 py-1 rounded-full bg-green-500 text-white text-xs font-bold">
+                NUEVO
+              </div>
+              <div className="w-20 h-20 rounded-full bg-green-500/20 flex items-center justify-center group-hover:scale-110 transition-transform">
+                <MessageSquare className="w-10 h-10 text-green-400" />
+              </div>
+              <div className="text-center">
+                <h3 
+                  className="text-white mb-2"
+                  style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '18px', fontWeight: 600 }}
+                >
+                  WHATSAPP
+                </h3>
+                <p className="text-white/60" style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '13px' }}>
+                  Supervisión con IA
+                </p>
+              </div>
+            </button>
+          )}
+
+          {/* Card CORREO - Solo Juan Viveros */}
+          {tieneAccesoExclusivo && (
+            <button
+              onClick={() => setActiveSubModule('correo')}
+              className="group relative bg-white/5 hover:bg-white/10 border border-white/10 hover:border-purple-500 rounded-2xl p-8 transition-all duration-300 flex flex-col items-center gap-4"
+            >
+              {/* Badge PRÓXIMAMENTE */}
+              <div className="absolute top-4 right-4 px-2 py-1 rounded-full bg-purple-500/50 text-white text-xs font-bold">
+                PRONTO
+              </div>
+              <div className="w-20 h-20 rounded-full bg-purple-500/20 flex items-center justify-center group-hover:scale-110 transition-transform">
+                <Mail className="w-10 h-10 text-purple-400" />
+              </div>
+              <div className="text-center">
+                <h3 
+                  className="text-white mb-2"
+                  style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '18px', fontWeight: 600 }}
+                >
+                  CORREO
+                </h3>
+                <p className="text-white/60" style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '13px' }}>
+                  Supervisión de emails
+                </p>
+              </div>
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
 };
 
 export default UtileriasModule;

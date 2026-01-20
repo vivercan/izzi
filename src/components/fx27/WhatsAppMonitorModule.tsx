@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { 
   ArrowLeft, MessageSquare, RefreshCw, Search, CheckCircle2, 
   AlertCircle, Clock, Users, User, Loader2, ChevronDown, ChevronUp,
-  Brain, Filter, CheckSquare, Square, Trash2, TrendingUp, AlertTriangle
+  Brain, CheckSquare, Square, AlertTriangle, Download, FileSpreadsheet
 } from 'lucide-react';
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -13,7 +13,6 @@ const publicAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFz
 
 const SUPABASE_URL = `https://${projectId}.supabase.co`;
 const SUPABASE_ANON_KEY = publicAnonKey;
-// API Key desde variables de entorno de Vite (ya configurada en Vercel)
 const ANTHROPIC_API_KEY = import.meta.env.VITE_ANTHROPIC_API_KEY as string;
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -65,15 +64,14 @@ interface WhatsAppMonitorModuleProps {
 // COMPONENTE PRINCIPAL
 // ═══════════════════════════════════════════════════════════════════════════
 export const WhatsAppMonitorModule: React.FC<WhatsAppMonitorModuleProps> = ({ onBack }) => {
-  // Estados principales
   const [chats, setChats] = useState<ChatGroup[]>([]);
   const [selectedChats, setSelectedChats] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [analyzing, setAnalyzing] = useState(false);
+  const [exporting, setExporting] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState<'todos' | 'sin_analizar' | 'pendientes' | 'atendido'>('todos');
   
-  // Estados de análisis
   const [analisisActual, setAnalisisActual] = useState<Record<string, AnalisisResult>>({});
   const [chatExpandido, setChatExpandido] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -87,7 +85,6 @@ export const WhatsAppMonitorModule: React.FC<WhatsAppMonitorModuleProps> = ({ on
     setError(null);
     
     try {
-      // Obtener lista de chats agrupados con conteos
       const response = await fetch(
         `${SUPABASE_URL}/rest/v1/rpc/obtener_resumen_chats`,
         {
@@ -101,7 +98,6 @@ export const WhatsAppMonitorModule: React.FC<WhatsAppMonitorModuleProps> = ({ on
       );
 
       if (!response.ok) {
-        // Si la función RPC no existe, hacer query manual
         const fallbackResponse = await fetch(
           `${SUPABASE_URL}/rest/v1/whatsapp_mensajes?select=chat_id,chat_nombre,es_grupo,timestamp&order=timestamp.desc`,
           {
@@ -116,7 +112,6 @@ export const WhatsAppMonitorModule: React.FC<WhatsAppMonitorModuleProps> = ({ on
         
         const mensajes = await fallbackResponse.json();
         
-        // Agrupar manualmente
         const chatMap = new Map<string, ChatGroup>();
         const ahora = new Date();
         const hace24h = new Date(ahora.getTime() - 24 * 60 * 60 * 1000);
@@ -142,7 +137,6 @@ export const WhatsAppMonitorModule: React.FC<WhatsAppMonitorModuleProps> = ({ on
           }
         });
 
-        // Cargar estados guardados
         const estadosResponse = await fetch(
           `${SUPABASE_URL}/rest/v1/whatsapp_analisis?select=chat_id,estado,created_at&order=created_at.desc`,
           {
@@ -193,6 +187,106 @@ export const WhatsAppMonitorModule: React.FC<WhatsAppMonitorModuleProps> = ({ on
   }, [cargarChats]);
 
   // ═══════════════════════════════════════════════════════════════════════════
+  // EXPORTAR A EXCEL
+  // ═══════════════════════════════════════════════════════════════════════════
+  const exportarExcel = async () => {
+    setExporting(true);
+    setError(null);
+
+    try {
+      // Obtener TODOS los mensajes
+      const response = await fetch(
+        `${SUPABASE_URL}/rest/v1/whatsapp_mensajes?select=*&order=timestamp.desc&limit=10000`,
+        {
+          headers: {
+            'apikey': SUPABASE_ANON_KEY,
+            'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+          }
+        }
+      );
+
+      if (!response.ok) throw new Error('Error al obtener mensajes');
+
+      const mensajes: Mensaje[] = await response.json();
+
+      // Crear CSV con formato para análisis
+      const headers = [
+        'Fecha',
+        'Hora', 
+        'Día Semana',
+        'Semana del Año',
+        'Grupo/Chat',
+        'Es Grupo',
+        'Remitente',
+        'Mensaje',
+        'Caracteres',
+        'Tiempo desde anterior (min)'
+      ];
+
+      let prevTimestamp: Date | null = null;
+      let prevChatId: string | null = null;
+
+      const rows = mensajes.map((msg, index) => {
+        const fecha = new Date(msg.timestamp);
+        const diaSemana = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'][fecha.getDay()];
+        
+        // Calcular semana del año
+        const startOfYear = new Date(fecha.getFullYear(), 0, 1);
+        const days = Math.floor((fecha.getTime() - startOfYear.getTime()) / (24 * 60 * 60 * 1000));
+        const semanaAno = Math.ceil((days + startOfYear.getDay() + 1) / 7);
+
+        // Calcular tiempo desde mensaje anterior en el mismo chat
+        let tiempoDesdeAnterior = '';
+        if (prevTimestamp && prevChatId === msg.chat_id) {
+          const diffMin = Math.round((prevTimestamp.getTime() - fecha.getTime()) / 60000);
+          tiempoDesdeAnterior = diffMin.toString();
+        }
+        prevTimestamp = fecha;
+        prevChatId = msg.chat_id;
+
+        return [
+          fecha.toLocaleDateString('es-MX'),
+          fecha.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' }),
+          diaSemana,
+          `Semana ${semanaAno}`,
+          msg.chat_nombre || 'Sin nombre',
+          msg.es_grupo ? 'Sí' : 'No',
+          msg.remitente || 'Desconocido',
+          `"${(msg.mensaje || '').replace(/"/g, '""').replace(/\n/g, ' ')}"`,
+          (msg.mensaje || '').length.toString(),
+          tiempoDesdeAnterior
+        ];
+      });
+
+      // Crear contenido CSV
+      const csvContent = [
+        headers.join(','),
+        ...rows.map(row => row.join(','))
+      ].join('\n');
+
+      // Agregar BOM para Excel reconozca UTF-8
+      const BOM = '\uFEFF';
+      const blob = new Blob([BOM + csvContent], { type: 'text/csv;charset=utf-8;' });
+      
+      // Descargar archivo
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `WhatsApp_Mensajes_${new Date().toISOString().split('T')[0]}.csv`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+
+    } catch (err: any) {
+      console.error('Error exportando:', err);
+      setError(err.message || 'Error al exportar');
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  // ═══════════════════════════════════════════════════════════════════════════
   // ANALIZAR CON CLAUDE
   // ═══════════════════════════════════════════════════════════════════════════
   const analizarChats = async () => {
@@ -213,7 +307,6 @@ export const WhatsAppMonitorModule: React.FC<WhatsAppMonitorModuleProps> = ({ on
       setProgreso({ actual: i + 1, total: chatsSeleccionados.length });
 
       try {
-        // Obtener mensajes del chat (últimas 24-48 horas)
         const hace48h = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString();
         
         const mensajesResponse = await fetch(
@@ -245,13 +338,11 @@ export const WhatsAppMonitorModule: React.FC<WhatsAppMonitorModuleProps> = ({ on
           continue;
         }
 
-        // Formatear mensajes para Claude
         const chatNombre = mensajes[0]?.chat_nombre || 'Chat';
         const mensajesFormateados = mensajes.map(m => 
           `[${new Date(m.timestamp).toLocaleString('es-MX')}] ${m.remitente}: ${m.mensaje}`
         ).join('\n');
 
-        // Llamar a Claude
         const prompt = `Eres un asistente de gestión operativa para Grupo Loma Transportes. Analiza esta conversación de WhatsApp del grupo/chat "${chatNombre}" y proporciona:
 
 1. RESUMEN EJECUTIVO: Qué pasó en pocas líneas (máx 3 oraciones)
@@ -301,13 +392,11 @@ Responde SOLO en JSON con esta estructura exacta:
         const claudeData = await claudeResponse.json();
         const responseText = claudeData.content[0].text;
 
-        // Parsear JSON
         const jsonMatch = responseText.match(/\{[\s\S]*\}/);
         if (jsonMatch) {
           const analisis = JSON.parse(jsonMatch[0]);
           nuevosAnalisis[chatId] = analisis;
 
-          // Guardar análisis en Supabase
           await fetch(`${SUPABASE_URL}/rest/v1/whatsapp_analisis`, {
             method: 'POST',
             headers: {
@@ -324,7 +413,6 @@ Responde SOLO en JSON con esta estructura exacta:
             })
           });
 
-          // Actualizar estado del chat
           setChats(prev => prev.map(c => 
             c.chat_id === chatId 
               ? { ...c, estado: analisis.acciones_pendientes.length > 0 ? 'pendientes' : 'atendido', ultimo_analisis: new Date().toISOString() }
@@ -362,7 +450,6 @@ Responde SOLO en JSON con esta estructura exacta:
 
       const todasAtendidas = nuevasAcciones.every(a => a.atendido);
 
-      // Actualizar estado del chat si todas están atendidas
       if (todasAtendidas) {
         setChats(prevChats => prevChats.map(c =>
           c.chat_id === chatId ? { ...c, estado: 'atendido' } : c
@@ -438,12 +525,11 @@ Responde SOLO en JSON con esta estructura exacta:
     return fechaMsg.toLocaleDateString('es-MX');
   };
 
-  // Calcular costo estimado
   const costoEstimado = () => {
     const totalMensajes = chatsFiltrados
       .filter(c => selectedChats.has(c.chat_id))
       .reduce((sum, c) => sum + c.mensajes_nuevos, 0);
-    const costo = (totalMensajes * 0.001).toFixed(2); // Estimado muy aproximado
+    const costo = (totalMensajes * 0.001).toFixed(2);
     return { mensajes: totalMensajes, costo };
   };
 
@@ -452,53 +538,49 @@ Responde SOLO en JSON con esta estructura exacta:
   // ═══════════════════════════════════════════════════════════════════════════
   return (
     <div className="min-h-screen" style={{ background: 'var(--fx-bg, #0B1220)' }}>
-      {/* Header */}
-      <div 
-        className="sticky top-0 z-50 border-b border-white/10"
-        style={{ 
-          background: 'linear-gradient(180deg, rgba(11,18,32,0.98) 0%, rgba(11,18,32,0.95) 100%)',
-          backdropFilter: 'blur(20px)'
-        }}
-      >
-        <div className="max-w-7xl mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <button
-                onClick={onBack}
-                className="p-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 transition-all"
-              >
-                <ArrowLeft className="w-5 h-5 text-white" />
-              </button>
-              <div>
-                <h1 
-                  className="text-2xl font-bold text-white flex items-center gap-3"
-                  style={{ fontFamily: "'Orbitron', sans-serif" }}
-                >
-                  <MessageSquare className="w-7 h-7 text-green-400" />
-                  WhatsApp Monitor
-                </h1>
-                <p className="text-white/50 text-sm mt-1" style={{ fontFamily: "'Exo 2', sans-serif" }}>
-                  Análisis inteligente de conversaciones • {chats.length} chats
-                </p>
-              </div>
-            </div>
+      {/* Header Estandarizado - Opción A */}
+      <div className="px-6 py-6">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <button
+              onClick={onBack}
+              className="w-10 h-10 rounded-full bg-[var(--fx-primary)] hover:bg-[var(--fx-primary)]/80 flex items-center justify-center transition-all"
+            >
+              <ArrowLeft className="w-5 h-5 text-white" />
+            </button>
+            <h1 
+              className="text-3xl font-bold text-white"
+              style={{ fontFamily: "'Orbitron', sans-serif" }}
+            >
+              WhatsApp Monitor
+            </h1>
+          </div>
 
-            <div className="flex items-center gap-3">
-              <button
-                onClick={cargarChats}
-                disabled={loading}
-                className="px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-white/70 hover:text-white transition-all flex items-center gap-2"
-              >
-                <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-                Actualizar
-              </button>
+          {/* Logo FX27 */}
+          <div className="text-right">
+            <div 
+              className="text-3xl font-black"
+              style={{ 
+                fontFamily: "'Orbitron', sans-serif",
+                background: 'linear-gradient(135deg, #1E66F5 0%, #3B82F6 50%, #F97316 100%)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent'
+              }}
+            >
+              FX27
+            </div>
+            <div 
+              className="text-[10px] text-white/40 tracking-[0.2em]"
+              style={{ fontFamily: "'Exo 2', sans-serif" }}
+            >
+              FUTURE EXPERIENCE 27
             </div>
           </div>
         </div>
       </div>
 
       {/* Contenido principal */}
-      <div className="max-w-7xl mx-auto px-6 py-6">
+      <div className="max-w-7xl mx-auto px-6 py-4">
         {/* Barra de acciones */}
         <div className="flex flex-wrap items-center gap-4 mb-6">
           {/* Búsqueda */}
@@ -534,25 +616,52 @@ Responde SOLO en JSON con esta estructura exacta:
             ))}
           </div>
 
-          {/* Seleccionar todos */}
-          <button
-            onClick={selectAll}
-            className="px-4 py-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-white/70 hover:text-white transition-all flex items-center gap-2"
-          >
-            {selectedChats.size === chatsFiltrados.length && chatsFiltrados.length > 0 ? (
-              <CheckSquare className="w-5 h-5 text-[var(--fx-primary)]" />
-            ) : (
-              <Square className="w-5 h-5" />
-            )}
-            <span style={{ fontFamily: "'Exo 2', sans-serif" }}>
-              {selectedChats.size === chatsFiltrados.length && chatsFiltrados.length > 0 
-                ? 'Deseleccionar todos' 
-                : 'Seleccionar todos'}
-            </span>
-          </button>
+          {/* Botones de acción */}
+          <div className="flex items-center gap-2">
+            <button
+              onClick={selectAll}
+              className="px-4 py-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-white/70 hover:text-white transition-all flex items-center gap-2"
+            >
+              {selectedChats.size === chatsFiltrados.length && chatsFiltrados.length > 0 ? (
+                <CheckSquare className="w-5 h-5 text-[var(--fx-primary)]" />
+              ) : (
+                <Square className="w-5 h-5" />
+              )}
+              <span className="hidden sm:inline" style={{ fontFamily: "'Exo 2', sans-serif" }}>
+                {selectedChats.size === chatsFiltrados.length && chatsFiltrados.length > 0 
+                  ? 'Deseleccionar' 
+                  : 'Seleccionar todo'}
+              </span>
+            </button>
+
+            <button
+              onClick={cargarChats}
+              disabled={loading}
+              className="px-4 py-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-white/70 hover:text-white transition-all flex items-center gap-2"
+            >
+              <RefreshCw className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
+              <span className="hidden sm:inline" style={{ fontFamily: "'Exo 2', sans-serif" }}>Actualizar</span>
+            </button>
+
+            {/* BOTÓN EXPORTAR EXCEL */}
+            <button
+              onClick={exportarExcel}
+              disabled={exporting}
+              className="px-4 py-3 rounded-xl bg-green-600 hover:bg-green-500 text-white transition-all flex items-center gap-2"
+            >
+              {exporting ? (
+                <Loader2 className="w-5 h-5 animate-spin" />
+              ) : (
+                <FileSpreadsheet className="w-5 h-5" />
+              )}
+              <span style={{ fontFamily: "'Exo 2', sans-serif" }}>
+                {exporting ? 'Exportando...' : 'Exportar Excel'}
+              </span>
+            </button>
+          </div>
         </div>
 
-        {/* Botón de análisis y estimación */}
+        {/* Info de selección y botón analizar */}
         {selectedChats.size > 0 && (
           <div 
             className="mb-6 p-4 rounded-2xl border border-[var(--fx-primary)]/30 flex items-center justify-between"
@@ -597,6 +706,26 @@ Responde SOLO en JSON con esta estructura exacta:
             <p style={{ fontFamily: "'Exo 2', sans-serif" }}>{error}</p>
           </div>
         )}
+
+        {/* Stats header */}
+        <div className="grid grid-cols-4 gap-4 mb-6">
+          <div className="p-4 rounded-xl bg-white/5 border border-white/10 text-center">
+            <p className="text-2xl font-bold text-white">{chats.length}</p>
+            <p className="text-white/50 text-xs">Total Chats</p>
+          </div>
+          <div className="p-4 rounded-xl bg-white/5 border border-white/10 text-center">
+            <p className="text-2xl font-bold text-red-400">{chats.filter(c => c.estado === 'sin_analizar').length}</p>
+            <p className="text-white/50 text-xs">Sin Analizar</p>
+          </div>
+          <div className="p-4 rounded-xl bg-white/5 border border-white/10 text-center">
+            <p className="text-2xl font-bold text-yellow-400">{chats.filter(c => c.estado === 'pendientes').length}</p>
+            <p className="text-white/50 text-xs">Con Pendientes</p>
+          </div>
+          <div className="p-4 rounded-xl bg-white/5 border border-white/10 text-center">
+            <p className="text-2xl font-bold text-green-400">{chats.filter(c => c.estado === 'atendido').length}</p>
+            <p className="text-white/50 text-xs">Atendidos</p>
+          </div>
+        </div>
 
         {/* Lista de chats */}
         {loading ? (
@@ -819,26 +948,6 @@ Responde SOLO en JSON con esta estructura exacta:
             ))}
           </div>
         )}
-
-        {/* Stats footer */}
-        <div className="mt-8 grid grid-cols-4 gap-4">
-          <div className="p-4 rounded-xl bg-white/5 border border-white/10 text-center">
-            <p className="text-3xl font-bold text-white">{chats.length}</p>
-            <p className="text-white/50 text-sm">Total Chats</p>
-          </div>
-          <div className="p-4 rounded-xl bg-white/5 border border-white/10 text-center">
-            <p className="text-3xl font-bold text-red-400">{chats.filter(c => c.estado === 'sin_analizar').length}</p>
-            <p className="text-white/50 text-sm">Sin Analizar</p>
-          </div>
-          <div className="p-4 rounded-xl bg-white/5 border border-white/10 text-center">
-            <p className="text-3xl font-bold text-yellow-400">{chats.filter(c => c.estado === 'pendientes').length}</p>
-            <p className="text-white/50 text-sm">Con Pendientes</p>
-          </div>
-          <div className="p-4 rounded-xl bg-white/5 border border-white/10 text-center">
-            <p className="text-3xl font-bold text-green-400">{chats.filter(c => c.estado === 'atendido').length}</p>
-            <p className="text-white/50 text-sm">Atendidos</p>
-          </div>
-        </div>
       </div>
     </div>
   );
