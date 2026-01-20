@@ -1,9 +1,12 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { 
-  ArrowLeft, MessageSquare, RefreshCw, Search, CheckCircle2, 
+import {
+  MessageSquare, RefreshCw, Search, CheckCircle2,
   AlertCircle, Clock, Users, User, Loader2, ChevronDown, ChevronUp,
-  Brain, CheckSquare, Square, AlertTriangle, Download, FileSpreadsheet
+  Brain, CheckSquare, Square, AlertTriangle, FileSpreadsheet
 } from 'lucide-react';
+
+// Importar ModuleTemplate para header consistente
+import { ModuleTemplate } from './ModuleTemplate';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // CONFIGURACIÓN - Supabase y Anthropic
@@ -71,7 +74,7 @@ export const WhatsAppMonitorModule: React.FC<WhatsAppMonitorModuleProps> = ({ on
   const [exporting, setExporting] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState<'todos' | 'sin_analizar' | 'pendientes' | 'atendido'>('todos');
-  
+
   const [analisisActual, setAnalisisActual] = useState<Record<string, AnalisisResult>>({});
   const [chatExpandido, setChatExpandido] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -83,7 +86,7 @@ export const WhatsAppMonitorModule: React.FC<WhatsAppMonitorModuleProps> = ({ on
   const cargarChats = useCallback(async () => {
     setLoading(true);
     setError(null);
-    
+
     try {
       const response = await fetch(
         `${SUPABASE_URL}/rest/v1/rpc/obtener_resumen_chats`,
@@ -109,9 +112,9 @@ export const WhatsAppMonitorModule: React.FC<WhatsAppMonitorModuleProps> = ({ on
         );
 
         if (!fallbackResponse.ok) throw new Error('Error al cargar mensajes');
-        
+
         const mensajes = await fallbackResponse.json();
-        
+
         const chatMap = new Map<string, ChatGroup>();
         const ahora = new Date();
         const hace24h = new Date(ahora.getTime() - 24 * 60 * 60 * 1000);
@@ -128,10 +131,10 @@ export const WhatsAppMonitorModule: React.FC<WhatsAppMonitorModuleProps> = ({ on
               estado: 'sin_analizar'
             });
           }
-          
+
           const chat = chatMap.get(msg.chat_id)!;
           chat.total_mensajes++;
-          
+
           if (new Date(msg.timestamp) > hace24h) {
             chat.mensajes_nuevos++;
           }
@@ -150,7 +153,7 @@ export const WhatsAppMonitorModule: React.FC<WhatsAppMonitorModuleProps> = ({ on
         if (estadosResponse.ok) {
           const estados = await estadosResponse.json();
           const estadosPorChat = new Map<string, any>();
-          
+
           estados.forEach((e: any) => {
             if (!estadosPorChat.has(e.chat_id)) {
               estadosPorChat.set(e.chat_id, e);
@@ -168,7 +171,7 @@ export const WhatsAppMonitorModule: React.FC<WhatsAppMonitorModuleProps> = ({ on
 
         const chatsArray = Array.from(chatMap.values())
           .sort((a, b) => new Date(b.ultima_actividad).getTime() - new Date(a.ultima_actividad).getTime());
-        
+
         setChats(chatsArray);
       } else {
         const data = await response.json();
@@ -194,7 +197,6 @@ export const WhatsAppMonitorModule: React.FC<WhatsAppMonitorModuleProps> = ({ on
     setError(null);
 
     try {
-      // Obtener TODOS los mensajes
       const response = await fetch(
         `${SUPABASE_URL}/rest/v1/whatsapp_mensajes?select=*&order=timestamp.desc&limit=10000`,
         {
@@ -209,10 +211,9 @@ export const WhatsAppMonitorModule: React.FC<WhatsAppMonitorModuleProps> = ({ on
 
       const mensajes: Mensaje[] = await response.json();
 
-      // Crear CSV con formato para análisis
       const headers = [
         'Fecha',
-        'Hora', 
+        'Hora',
         'Día Semana',
         'Semana del Año',
         'Grupo/Chat',
@@ -229,13 +230,11 @@ export const WhatsAppMonitorModule: React.FC<WhatsAppMonitorModuleProps> = ({ on
       const rows = mensajes.map((msg, index) => {
         const fecha = new Date(msg.timestamp);
         const diaSemana = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'][fecha.getDay()];
-        
-        // Calcular semana del año
+
         const startOfYear = new Date(fecha.getFullYear(), 0, 1);
         const days = Math.floor((fecha.getTime() - startOfYear.getTime()) / (24 * 60 * 60 * 1000));
         const semanaAno = Math.ceil((days + startOfYear.getDay() + 1) / 7);
 
-        // Calcular tiempo desde mensaje anterior en el mismo chat
         let tiempoDesdeAnterior = '';
         if (prevTimestamp && prevChatId === msg.chat_id) {
           const diffMin = Math.round((prevTimestamp.getTime() - fecha.getTime()) / 60000);
@@ -258,17 +257,14 @@ export const WhatsAppMonitorModule: React.FC<WhatsAppMonitorModuleProps> = ({ on
         ];
       });
 
-      // Crear contenido CSV
       const csvContent = [
         headers.join(','),
         ...rows.map(row => row.join(','))
       ].join('\n');
 
-      // Agregar BOM para Excel reconozca UTF-8
       const BOM = '\uFEFF';
       const blob = new Blob([BOM + csvContent], { type: 'text/csv;charset=utf-8;' });
-      
-      // Descargar archivo
+
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
@@ -308,7 +304,7 @@ export const WhatsAppMonitorModule: React.FC<WhatsAppMonitorModuleProps> = ({ on
 
       try {
         const hace48h = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString();
-        
+
         const mensajesResponse = await fetch(
           `${SUPABASE_URL}/rest/v1/whatsapp_mensajes?chat_id=eq.${encodeURIComponent(chatId)}&timestamp=gte.${hace48h}&order=timestamp.asc&limit=500`,
           {
@@ -320,9 +316,9 @@ export const WhatsAppMonitorModule: React.FC<WhatsAppMonitorModuleProps> = ({ on
         );
 
         if (!mensajesResponse.ok) continue;
-        
+
         const mensajes: Mensaje[] = await mensajesResponse.json();
-        
+
         if (mensajes.length === 0) {
           nuevosAnalisis[chatId] = {
             resumen: 'No hay mensajes recientes en las últimas 48 horas.',
@@ -339,7 +335,7 @@ export const WhatsAppMonitorModule: React.FC<WhatsAppMonitorModuleProps> = ({ on
         }
 
         const chatNombre = mensajes[0]?.chat_nombre || 'Chat';
-        const mensajesFormateados = mensajes.map(m => 
+        const mensajesFormateados = mensajes.map(m =>
           `[${new Date(m.timestamp).toLocaleString('es-MX')}] ${m.remitente}: ${m.mensaje}`
         ).join('\n');
 
@@ -413,8 +409,8 @@ Responde SOLO en JSON con esta estructura exacta:
             })
           });
 
-          setChats(prev => prev.map(c => 
-            c.chat_id === chatId 
+          setChats(prev => prev.map(c =>
+            c.chat_id === chatId
               ? { ...c, estado: analisis.acciones_pendientes.length > 0 ? 'pendientes' : 'atendido', ultimo_analisis: new Date().toISOString() }
               : c
           ));
@@ -537,46 +533,8 @@ Responde SOLO en JSON con esta estructura exacta:
   // RENDER
   // ═══════════════════════════════════════════════════════════════════════════
   return (
-    <div className="min-h-screen" style={{ background: 'var(--fx-bg, #0B1220)' }}>
-      {/* Header Estandarizado - Estilo FX27 */}
-      <div className="px-6 py-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <button
-              onClick={onBack}
-              className="w-10 h-10 rounded-xl bg-[#F97316] hover:bg-[#EA580C] flex items-center justify-center transition-all"
-            >
-              <ArrowLeft className="w-5 h-5 text-white" />
-            </button>
-            <h1 
-              className="text-2xl font-bold text-white"
-              style={{ fontFamily: "'Orbitron', sans-serif" }}
-            >
-              WhatsApp Monitor
-            </h1>
-          </div>
-
-          {/* Logo FX27 */}
-          <div className="text-right">
-            <div 
-              className="text-3xl font-black tracking-wider"
-              style={{ fontFamily: "'Orbitron', sans-serif" }}
-            >
-              <span className="text-[#3B82F6]">FX</span>
-              <span className="text-[#F97316]">27</span>
-            </div>
-            <div 
-              className="text-[9px] text-white/40 tracking-[0.15em] uppercase"
-              style={{ fontFamily: "'Exo 2', sans-serif" }}
-            >
-              FUTURE EXPERIENCE 27
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Contenido principal */}
-      <div className="max-w-7xl mx-auto px-6 py-4">
+    <ModuleTemplate title="WhatsApp Monitor" onBack={onBack}>
+      <div className="p-6">
         {/* Barra de acciones */}
         <div className="flex flex-wrap items-center gap-4 mb-6">
           {/* Búsqueda */}
@@ -605,7 +563,7 @@ Responde SOLO en JSON con esta estructura exacta:
                 }`}
                 style={{ fontFamily: "'Exo 2', sans-serif" }}
               >
-                {status === 'todos' ? 'Todos' : 
+                {status === 'todos' ? 'Todos' :
                  status === 'sin_analizar' ? '🔴 Sin analizar' :
                  status === 'pendientes' ? '🟡 Pendientes' : '🟢 Atendido'}
               </button>
@@ -623,11 +581,6 @@ Responde SOLO en JSON con esta estructura exacta:
               ) : (
                 <Square className="w-5 h-5" />
               )}
-              <span className="hidden sm:inline" style={{ fontFamily: "'Exo 2', sans-serif" }}>
-                {selectedChats.size === chatsFiltrados.length && chatsFiltrados.length > 0 
-                  ? 'Deseleccionar' 
-                  : 'Seleccionar todo'}
-              </span>
             </button>
 
             <button
@@ -636,7 +589,6 @@ Responde SOLO en JSON con esta estructura exacta:
               className="px-4 py-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-white/70 hover:text-white transition-all flex items-center gap-2"
             >
               <RefreshCw className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
-              <span className="hidden sm:inline" style={{ fontFamily: "'Exo 2', sans-serif" }}>Actualizar</span>
             </button>
 
             {/* BOTÓN EXPORTAR EXCEL */}
@@ -659,7 +611,7 @@ Responde SOLO en JSON con esta estructura exacta:
 
         {/* Info de selección y botón analizar */}
         {selectedChats.size > 0 && (
-          <div 
+          <div
             className="mb-6 p-4 rounded-2xl border border-[var(--fx-primary)]/30 flex items-center justify-between"
             style={{ background: 'linear-gradient(135deg, rgba(30,102,245,0.1) 0%, rgba(30,102,245,0.05) 100%)' }}
           >
@@ -740,7 +692,7 @@ Responde SOLO en JSON con esta estructura exacta:
             {chatsFiltrados.map((chat) => (
               <div key={chat.chat_id} className="rounded-2xl overflow-hidden border border-white/10 bg-white/5">
                 {/* Fila del chat */}
-                <div 
+                <div
                   className={`p-4 flex items-center gap-4 cursor-pointer hover:bg-white/5 transition-all ${
                     selectedChats.has(chat.chat_id) ? 'bg-[var(--fx-primary)]/10' : ''
                   }`}
@@ -768,7 +720,7 @@ Responde SOLO en JSON con esta estructura exacta:
 
                   {/* Info del chat */}
                   <div className="flex-1 min-w-0">
-                    <h3 
+                    <h3
                       className="text-white font-semibold truncate"
                       style={{ fontFamily: "'Exo 2', sans-serif" }}
                     >
@@ -909,7 +861,7 @@ Responde SOLO en JSON con esta estructura exacta:
                         </h4>
                         <div className="flex flex-wrap gap-2">
                           {analisisActual[chat.chat_id].alertas.map((alerta, idx) => (
-                            <span 
+                            <span
                               key={idx}
                               className="px-3 py-1 rounded-full bg-red-500/20 text-red-400 text-sm"
                             >
@@ -928,7 +880,7 @@ Responde SOLO en JSON con esta estructura exacta:
                         </h4>
                         <div className="flex flex-wrap gap-2">
                           {analisisActual[chat.chat_id].oportunidades.map((oportunidad, idx) => (
-                            <span 
+                            <span
                               key={idx}
                               className="px-3 py-1 rounded-full bg-green-500/20 text-green-400 text-sm"
                             >
@@ -945,7 +897,7 @@ Responde SOLO en JSON con esta estructura exacta:
           </div>
         )}
       </div>
-    </div>
+    </ModuleTemplate>
   );
 };
 
