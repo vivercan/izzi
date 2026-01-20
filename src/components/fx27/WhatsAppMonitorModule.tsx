@@ -1,15 +1,15 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
-  MessageSquare, RefreshCw, Search, CheckCircle2,
-  AlertCircle, Clock, Users, User, Loader2, ChevronDown, ChevronUp,
-  Brain, CheckSquare, Square, AlertTriangle, FileSpreadsheet
+  Search, Users, User, Loader2, Brain, AlertTriangle, 
+  FileSpreadsheet, RefreshCw, ChevronLeft, Sparkles, 
+  MessageSquare, X
 } from 'lucide-react';
 
 // Importar ModuleTemplate para header consistente
 import { ModuleTemplate } from './ModuleTemplate';
 
 // ═══════════════════════════════════════════════════════════════════════════
-// CONFIGURACIÓN - Supabase y Anthropic
+// CONFIGURACIÓN
 // ═══════════════════════════════════════════════════════════════════════════
 const projectId = 'fbxbsslhewchyibdoyzk';
 const publicAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZieGJzc2xoZXdjaHlpYmRveXprIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI1MzczODEsImV4cCI6MjA3ODExMzM4MX0.Z8JPlg7hhKbA624QGHp2bKKTNtCD3WInQMO5twjl6a0';
@@ -28,8 +28,8 @@ interface ChatGroup {
   total_mensajes: number;
   mensajes_nuevos: number;
   ultima_actividad: string;
-  estado: 'sin_analizar' | 'pendientes' | 'atendido';
-  ultimo_analisis?: string;
+  ultimo_mensaje?: string;
+  ultimo_remitente?: string;
 }
 
 interface Mensaje {
@@ -42,23 +42,6 @@ interface Mensaje {
   timestamp: string;
 }
 
-interface AnalisisResult {
-  resumen: string;
-  acciones_pendientes: Array<{
-    id: string;
-    descripcion: string;
-    urgencia: 'alta' | 'media' | 'baja';
-    atendido: boolean;
-  }>;
-  metricas: {
-    tiempo_respuesta_promedio: string;
-    mensajes_sin_respuesta: number;
-    participantes_activos: number;
-  };
-  alertas: string[];
-  oportunidades: string[];
-}
-
 interface WhatsAppMonitorModuleProps {
   onBack: () => void;
 }
@@ -67,135 +50,32 @@ interface WhatsAppMonitorModuleProps {
 // COMPONENTE PRINCIPAL
 // ═══════════════════════════════════════════════════════════════════════════
 export const WhatsAppMonitorModule: React.FC<WhatsAppMonitorModuleProps> = ({ onBack }) => {
+  // Estados principales
   const [chats, setChats] = useState<ChatGroup[]>([]);
-  const [selectedChats, setSelectedChats] = useState<Set<string>>(new Set());
+  const [mensajes, setMensajes] = useState<Mensaje[]>([]);
+  const [allMensajes, setAllMensajes] = useState<Mensaje[]>([]);
+  const [selectedChat, setSelectedChat] = useState<ChatGroup | null>(null);
+  
+  // Estados UI
   const [loading, setLoading] = useState(true);
+  const [loadingMensajes, setLoadingMensajes] = useState(false);
   const [analyzing, setAnalyzing] = useState(false);
-  const [exporting, setExporting] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-  const [filterStatus, setFilterStatus] = useState<'todos' | 'sin_analizar' | 'pendientes' | 'atendido'>('todos');
-
-  const [analisisActual, setAnalisisActual] = useState<Record<string, AnalisisResult>>({});
-  const [chatExpandido, setChatExpandido] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [progreso, setProgreso] = useState({ actual: 0, total: 0 });
+  const [connected, setConnected] = useState(false);
+  const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
+  
+  // Modal análisis
+  const [showAnalisis, setShowAnalisis] = useState(false);
+  const [analisisResult, setAnalisisResult] = useState<string>('');
+  const [analisisTipo, setAnalisisTipo] = useState<'chat' | 'global'>('chat');
+
+  const mensajesEndRef = useRef<HTMLDivElement>(null);
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // CARGAR CHATS
+  // CARGAR TODOS LOS MENSAJES Y CONSTRUIR LISTA DE CHATS
   // ═══════════════════════════════════════════════════════════════════════════
-  const cargarChats = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-
-    try {
-      const response = await fetch(
-        `${SUPABASE_URL}/rest/v1/rpc/obtener_resumen_chats`,
-        {
-          method: 'POST',
-          headers: {
-            'apikey': SUPABASE_ANON_KEY,
-            'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-            'Content-Type': 'application/json'
-          }
-        }
-      );
-
-      if (!response.ok) {
-        const fallbackResponse = await fetch(
-          `${SUPABASE_URL}/rest/v1/whatsapp_mensajes?select=chat_id,chat_nombre,es_grupo,timestamp&order=timestamp.desc`,
-          {
-            headers: {
-              'apikey': SUPABASE_ANON_KEY,
-              'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
-            }
-          }
-        );
-
-        if (!fallbackResponse.ok) throw new Error('Error al cargar mensajes');
-
-        const mensajes = await fallbackResponse.json();
-
-        const chatMap = new Map<string, ChatGroup>();
-        const ahora = new Date();
-        const hace24h = new Date(ahora.getTime() - 24 * 60 * 60 * 1000);
-
-        mensajes.forEach((msg: any) => {
-          if (!chatMap.has(msg.chat_id)) {
-            chatMap.set(msg.chat_id, {
-              chat_id: msg.chat_id,
-              chat_nombre: msg.chat_nombre || 'Sin nombre',
-              es_grupo: msg.es_grupo,
-              total_mensajes: 0,
-              mensajes_nuevos: 0,
-              ultima_actividad: msg.timestamp,
-              estado: 'sin_analizar'
-            });
-          }
-
-          const chat = chatMap.get(msg.chat_id)!;
-          chat.total_mensajes++;
-
-          if (new Date(msg.timestamp) > hace24h) {
-            chat.mensajes_nuevos++;
-          }
-        });
-
-        const estadosResponse = await fetch(
-          `${SUPABASE_URL}/rest/v1/whatsapp_analisis?select=chat_id,estado,created_at&order=created_at.desc`,
-          {
-            headers: {
-              'apikey': SUPABASE_ANON_KEY,
-              'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
-            }
-          }
-        );
-
-        if (estadosResponse.ok) {
-          const estados = await estadosResponse.json();
-          const estadosPorChat = new Map<string, any>();
-
-          estados.forEach((e: any) => {
-            if (!estadosPorChat.has(e.chat_id)) {
-              estadosPorChat.set(e.chat_id, e);
-            }
-          });
-
-          chatMap.forEach((chat, chatId) => {
-            const estado = estadosPorChat.get(chatId);
-            if (estado) {
-              chat.estado = estado.estado;
-              chat.ultimo_analisis = estado.created_at;
-            }
-          });
-        }
-
-        const chatsArray = Array.from(chatMap.values())
-          .sort((a, b) => new Date(b.ultima_actividad).getTime() - new Date(a.ultima_actividad).getTime());
-
-        setChats(chatsArray);
-      } else {
-        const data = await response.json();
-        setChats(data);
-      }
-    } catch (err: any) {
-      console.error('Error cargando chats:', err);
-      setError(err.message || 'Error al cargar chats');
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    cargarChats();
-  }, [cargarChats]);
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  // EXPORTAR A EXCEL
-  // ═══════════════════════════════════════════════════════════════════════════
-  const exportarExcel = async () => {
-    setExporting(true);
-    setError(null);
-
+  const cargarDatos = useCallback(async () => {
     try {
       const response = await fetch(
         `${SUPABASE_URL}/rest/v1/whatsapp_mensajes?select=*&order=timestamp.desc&limit=10000`,
@@ -207,696 +87,504 @@ export const WhatsAppMonitorModule: React.FC<WhatsAppMonitorModuleProps> = ({ on
         }
       );
 
-      if (!response.ok) throw new Error('Error al obtener mensajes');
+      if (!response.ok) throw new Error('Error al cargar mensajes');
 
-      const mensajes: Mensaje[] = await response.json();
+      const data: Mensaje[] = await response.json();
+      setAllMensajes(data);
 
-      const headers = [
-        'Fecha',
-        'Hora',
-        'Día Semana',
-        'Semana del Año',
-        'Grupo/Chat',
-        'Es Grupo',
-        'Remitente',
-        'Mensaje',
-        'Caracteres',
-        'Tiempo desde anterior (min)'
-      ];
+      // Construir lista de chats
+      const chatMap = new Map<string, ChatGroup>();
+      const ahora = new Date();
+      const hace24h = new Date(ahora.getTime() - 24 * 60 * 60 * 1000);
 
-      let prevTimestamp: Date | null = null;
-      let prevChatId: string | null = null;
-
-      const rows = mensajes.map((msg, index) => {
-        const fecha = new Date(msg.timestamp);
-        const diaSemana = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'][fecha.getDay()];
-
-        const startOfYear = new Date(fecha.getFullYear(), 0, 1);
-        const days = Math.floor((fecha.getTime() - startOfYear.getTime()) / (24 * 60 * 60 * 1000));
-        const semanaAno = Math.ceil((days + startOfYear.getDay() + 1) / 7);
-
-        let tiempoDesdeAnterior = '';
-        if (prevTimestamp && prevChatId === msg.chat_id) {
-          const diffMin = Math.round((prevTimestamp.getTime() - fecha.getTime()) / 60000);
-          tiempoDesdeAnterior = diffMin.toString();
+      data.forEach((msg) => {
+        if (!chatMap.has(msg.chat_id)) {
+          chatMap.set(msg.chat_id, {
+            chat_id: msg.chat_id,
+            chat_nombre: msg.chat_nombre || 'Sin nombre',
+            es_grupo: msg.es_grupo,
+            total_mensajes: 0,
+            mensajes_nuevos: 0,
+            ultima_actividad: msg.timestamp,
+            ultimo_mensaje: msg.mensaje,
+            ultimo_remitente: msg.remitente
+          });
         }
-        prevTimestamp = fecha;
-        prevChatId = msg.chat_id;
 
-        return [
-          fecha.toLocaleDateString('es-MX'),
-          fecha.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' }),
-          diaSemana,
-          `Semana ${semanaAno}`,
-          msg.chat_nombre || 'Sin nombre',
-          msg.es_grupo ? 'Sí' : 'No',
-          msg.remitente || 'Desconocido',
-          `"${(msg.mensaje || '').replace(/"/g, '""').replace(/\n/g, ' ')}"`,
-          (msg.mensaje || '').length.toString(),
-          tiempoDesdeAnterior
-        ];
+        const chat = chatMap.get(msg.chat_id)!;
+        chat.total_mensajes++;
+
+        if (new Date(msg.timestamp) > hace24h) {
+          chat.mensajes_nuevos++;
+        }
       });
 
-      const csvContent = [
-        headers.join(','),
-        ...rows.map(row => row.join(','))
-      ].join('\n');
+      const chatsArray = Array.from(chatMap.values())
+        .sort((a, b) => new Date(b.ultima_actividad).getTime() - new Date(a.ultima_actividad).getTime());
 
-      const BOM = '\uFEFF';
-      const blob = new Blob([BOM + csvContent], { type: 'text/csv;charset=utf-8;' });
+      setChats(chatsArray);
+      setLastUpdate(new Date());
+      setConnected(true);
+      setLoading(false);
 
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `WhatsApp_Mensajes_${new Date().toISOString().split('T')[0]}.csv`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
-
+      // Si hay chat seleccionado, actualizar sus mensajes
+      if (selectedChat) {
+        const mensajesChat = data
+          .filter(m => m.chat_id === selectedChat.chat_id)
+          .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+        setMensajes(mensajesChat);
+      }
     } catch (err: any) {
-      console.error('Error exportando:', err);
-      setError(err.message || 'Error al exportar');
-    } finally {
-      setExporting(false);
+      console.error('Error cargando datos:', err);
+      setError(err.message || 'Error al cargar datos');
+      setConnected(false);
+      setLoading(false);
     }
+  }, [selectedChat]);
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // REALTIME - Polling cada 5 segundos
+  // ═══════════════════════════════════════════════════════════════════════════
+  useEffect(() => {
+    cargarDatos();
+
+    const interval = setInterval(cargarDatos, 5000);
+
+    return () => clearInterval(interval);
+  }, [cargarDatos]);
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // SELECCIONAR CHAT
+  // ═══════════════════════════════════════════════════════════════════════════
+  const seleccionarChat = (chat: ChatGroup) => {
+    setSelectedChat(chat);
+    setLoadingMensajes(true);
+
+    const mensajesChat = allMensajes
+      .filter(m => m.chat_id === chat.chat_id)
+      .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+
+    setMensajes(mensajesChat);
+    setLoadingMensajes(false);
+
+    setTimeout(() => {
+      mensajesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }, 100);
   };
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // ANALIZAR CON CLAUDE
+  // ANÁLISIS CON CLAUDE
   // ═══════════════════════════════════════════════════════════════════════════
-  const analizarChats = async () => {
-    if (selectedChats.size === 0) {
-      setError('Selecciona al menos un chat para analizar');
-      return;
-    }
-
+  const analizarConIA = async (tipo: 'chat' | 'global') => {
     setAnalyzing(true);
-    setError(null);
-    setProgreso({ actual: 0, total: selectedChats.size });
+    setAnalisisTipo(tipo);
+    setShowAnalisis(true);
+    setAnalisisResult('');
 
-    const chatsSeleccionados = Array.from(selectedChats);
-    const nuevosAnalisis: Record<string, AnalisisResult> = {};
+    try {
+      let mensajesParaAnalizar: Mensaje[] = [];
+      let contexto = '';
 
-    for (let i = 0; i < chatsSeleccionados.length; i++) {
-      const chatId = chatsSeleccionados[i];
-      setProgreso({ actual: i + 1, total: chatsSeleccionados.length });
-
-      try {
-        const hace48h = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString();
-
-        const mensajesResponse = await fetch(
-          `${SUPABASE_URL}/rest/v1/whatsapp_mensajes?chat_id=eq.${encodeURIComponent(chatId)}&timestamp=gte.${hace48h}&order=timestamp.asc&limit=500`,
-          {
-            headers: {
-              'apikey': SUPABASE_ANON_KEY,
-              'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
-            }
-          }
-        );
-
-        if (!mensajesResponse.ok) continue;
-
-        const mensajes: Mensaje[] = await mensajesResponse.json();
-
-        if (mensajes.length === 0) {
-          nuevosAnalisis[chatId] = {
-            resumen: 'No hay mensajes recientes en las últimas 48 horas.',
-            acciones_pendientes: [],
-            metricas: {
-              tiempo_respuesta_promedio: 'N/A',
-              mensajes_sin_respuesta: 0,
-              participantes_activos: 0
-            },
-            alertas: [],
-            oportunidades: []
-          };
-          continue;
-        }
-
-        const chatNombre = mensajes[0]?.chat_nombre || 'Chat';
-        const mensajesFormateados = mensajes.map(m =>
-          `[${new Date(m.timestamp).toLocaleString('es-MX')}] ${m.remitente}: ${m.mensaje}`
-        ).join('\n');
-
-        const prompt = `Eres un asistente de gestión operativa para Grupo Loma Transportes. Analiza esta conversación de WhatsApp del grupo/chat "${chatNombre}" y proporciona:
-
-1. RESUMEN EJECUTIVO: Qué pasó en pocas líneas (máx 3 oraciones)
-2. ACCIONES PENDIENTES: Lista de cosas que requieren acción HOY, con urgencia (alta/media/baja)
-3. MÉTRICAS: Tiempo promedio de respuesta, mensajes sin respuesta, participantes activos
-4. ALERTAS: Problemas detectados, menciones de "urgente", "problema", "demora", etc.
-5. OPORTUNIDADES: Posibles mejoras o situaciones que aprovechar
-
-CONVERSACIÓN:
-${mensajesFormateados}
-
-Responde SOLO en JSON con esta estructura exacta:
-{
-  "resumen": "string",
-  "acciones_pendientes": [
-    {"id": "1", "descripcion": "string", "urgencia": "alta|media|baja", "atendido": false}
-  ],
-  "metricas": {
-    "tiempo_respuesta_promedio": "string",
-    "mensajes_sin_respuesta": number,
-    "participantes_activos": number
-  },
-  "alertas": ["string"],
-  "oportunidades": ["string"]
-}`;
-
-        const claudeResponse = await fetch('https://api.anthropic.com/v1/messages', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'x-api-key': ANTHROPIC_API_KEY,
-            'anthropic-version': '2023-06-01',
-            'anthropic-dangerous-direct-browser-access': 'true'
-          },
-          body: JSON.stringify({
-            model: 'claude-sonnet-4-20250514',
-            max_tokens: 2000,
-            messages: [{ role: 'user', content: prompt }]
-          })
-        });
-
-        if (!claudeResponse.ok) {
-          const errorData = await claudeResponse.json();
-          throw new Error(errorData.error?.message || 'Error en Claude API');
-        }
-
-        const claudeData = await claudeResponse.json();
-        const responseText = claudeData.content[0].text;
-
-        const jsonMatch = responseText.match(/\{[\s\S]*\}/);
-        if (jsonMatch) {
-          const analisis = JSON.parse(jsonMatch[0]);
-          nuevosAnalisis[chatId] = analisis;
-
-          await fetch(`${SUPABASE_URL}/rest/v1/whatsapp_analisis`, {
-            method: 'POST',
-            headers: {
-              'apikey': SUPABASE_ANON_KEY,
-              'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-              'Content-Type': 'application/json',
-              'Prefer': 'return=minimal'
-            },
-            body: JSON.stringify({
-              chat_id: chatId,
-              chat_nombre: chatNombre,
-              analisis: analisis,
-              estado: analisis.acciones_pendientes.length > 0 ? 'pendientes' : 'atendido'
-            })
-          });
-
-          setChats(prev => prev.map(c =>
-            c.chat_id === chatId
-              ? { ...c, estado: analisis.acciones_pendientes.length > 0 ? 'pendientes' : 'atendido', ultimo_analisis: new Date().toISOString() }
-              : c
-          ));
-        }
-      } catch (err: any) {
-        console.error(`Error analizando chat ${chatId}:`, err);
-        nuevosAnalisis[chatId] = {
-          resumen: `Error al analizar: ${err.message}`,
-          acciones_pendientes: [],
-          metricas: { tiempo_respuesta_promedio: 'N/A', mensajes_sin_respuesta: 0, participantes_activos: 0 },
-          alertas: ['Error en análisis'],
-          oportunidades: []
-        };
-      }
-    }
-
-    setAnalisisActual(prev => ({ ...prev, ...nuevosAnalisis }));
-    setAnalyzing(false);
-    setSelectedChats(new Set());
-  };
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  // MARCAR ACCIÓN COMO ATENDIDA
-  // ═══════════════════════════════════════════════════════════════════════════
-  const toggleAccionAtendida = (chatId: string, accionId: string) => {
-    setAnalisisActual(prev => {
-      const analisis = prev[chatId];
-      if (!analisis) return prev;
-
-      const nuevasAcciones = analisis.acciones_pendientes.map(a =>
-        a.id === accionId ? { ...a, atendido: !a.atendido } : a
-      );
-
-      const todasAtendidas = nuevasAcciones.every(a => a.atendido);
-
-      if (todasAtendidas) {
-        setChats(prevChats => prevChats.map(c =>
-          c.chat_id === chatId ? { ...c, estado: 'atendido' } : c
-        ));
-      }
-
-      return {
-        ...prev,
-        [chatId]: {
-          ...analisis,
-          acciones_pendientes: nuevasAcciones
-        }
-      };
-    });
-  };
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  // FILTROS Y SELECCIÓN
-  // ═══════════════════════════════════════════════════════════════════════════
-  const chatsFiltrados = chats.filter(chat => {
-    const matchSearch = chat.chat_nombre.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchStatus = filterStatus === 'todos' || chat.estado === filterStatus;
-    return matchSearch && matchStatus;
-  });
-
-  const toggleSelectChat = (chatId: string) => {
-    setSelectedChats(prev => {
-      const nuevo = new Set(prev);
-      if (nuevo.has(chatId)) {
-        nuevo.delete(chatId);
+      if (tipo === 'chat' && selectedChat) {
+        mensajesParaAnalizar = mensajes.slice(-100);
+        contexto = `el chat/grupo "${selectedChat.chat_nombre}"`;
       } else {
-        nuevo.add(chatId);
+        const chatIds = [...new Set(allMensajes.map(m => m.chat_id))];
+        chatIds.forEach(chatId => {
+          const msgsChat = allMensajes.filter(m => m.chat_id === chatId).slice(0, 50);
+          mensajesParaAnalizar.push(...msgsChat);
+        });
+        mensajesParaAnalizar = mensajesParaAnalizar.slice(0, 500);
+        contexto = 'TODOS los chats de WhatsApp';
       }
-      return nuevo;
+
+      if (mensajesParaAnalizar.length === 0) {
+        setAnalisisResult('No hay mensajes para analizar.');
+        setAnalyzing(false);
+        return;
+      }
+
+      const mensajesFormateados = mensajesParaAnalizar
+        .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime())
+        .map(m => `[${new Date(m.timestamp).toLocaleString('es-MX')}] [${m.chat_nombre}] ${m.remitente}: ${m.mensaje}`)
+        .join('\n');
+
+      const prompt = `Eres un asistente de gestión operativa para Grupo Loma Transportes. Analiza las conversaciones de WhatsApp de ${contexto}.
+
+Proporciona:
+1. **RESUMEN EJECUTIVO** (máx 5 oraciones)
+2. **ACCIONES URGENTES**: Lista de cosas que requieren atención INMEDIATA
+3. **ALERTAS**: Problemas, quejas, demoras, urgencias
+4. **OPORTUNIDADES**: Mejoras o situaciones positivas
+5. **MÉTRICAS**: Participantes activos, temas recurrentes
+
+Usa emojis para urgencia: 🔴 Alta, 🟡 Media, 🟢 Baja
+
+CONVERSACIONES:
+${mensajesFormateados}`;
+
+      const claudeResponse = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': ANTHROPIC_API_KEY,
+          'anthropic-version': '2023-06-01',
+          'anthropic-dangerous-direct-browser-access': 'true'
+        },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-20250514',
+          max_tokens: 2000,
+          messages: [{ role: 'user', content: prompt }]
+        })
+      });
+
+      if (!claudeResponse.ok) {
+        const errorData = await claudeResponse.json();
+        throw new Error(errorData.error?.message || 'Error en Claude API');
+      }
+
+      const claudeData = await claudeResponse.json();
+      setAnalisisResult(claudeData.content[0].text);
+    } catch (err: any) {
+      setAnalisisResult(`Error: ${err.message}`);
+    } finally {
+      setAnalyzing(false);
+    }
+  };
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // EXPORTAR EXCEL
+  // ═══════════════════════════════════════════════════════════════════════════
+  const exportarExcel = () => {
+    const headers = ['Fecha', 'Hora', 'Chat/Grupo', 'Remitente', 'Mensaje'];
+    const rows = allMensajes.map(msg => {
+      const fecha = new Date(msg.timestamp);
+      return [
+        fecha.toLocaleDateString('es-MX'),
+        fecha.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' }),
+        msg.chat_nombre || 'Sin nombre',
+        msg.remitente || 'Desconocido',
+        `"${(msg.mensaje || '').replace(/"/g, '""').replace(/\n/g, ' ')}"`
+      ];
     });
+
+    const csvContent = [headers.join(','), ...rows.map(row => row.join(','))].join('\n');
+    const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = window.URL.createObjectURL(blob);
+    link.download = `WhatsApp_${new Date().toISOString().split('T')[0]}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
-  const selectAll = () => {
-    if (selectedChats.size === chatsFiltrados.length) {
-      setSelectedChats(new Set());
-    } else {
-      setSelectedChats(new Set(chatsFiltrados.map(c => c.chat_id)));
-    }
-  };
-
-  const getEstadoIcon = (estado: string) => {
-    switch (estado) {
-      case 'atendido': return <CheckCircle2 className="w-5 h-5 text-green-400" />;
-      case 'pendientes': return <AlertCircle className="w-5 h-5 text-yellow-400" />;
-      default: return <Clock className="w-5 h-5 text-gray-400" />;
-    }
-  };
-
-  const getEstadoLabel = (estado: string) => {
-    switch (estado) {
-      case 'atendido': return 'Atendido';
-      case 'pendientes': return 'Pendientes';
-      default: return 'Sin analizar';
-    }
-  };
-
-  const formatTiempoRelativo = (fecha: string) => {
-    const ahora = new Date();
-    const fechaMsg = new Date(fecha);
-    const diffMs = ahora.getTime() - fechaMsg.getTime();
+  // ═══════════════════════════════════════════════════════════════════════════
+  // HELPERS
+  // ═══════════════════════════════════════════════════════════════════════════
+  const formatTiempo = (fecha: string) => {
+    const f = new Date(fecha);
+    const diffMs = Date.now() - f.getTime();
     const diffMins = Math.floor(diffMs / 60000);
     const diffHoras = Math.floor(diffMs / 3600000);
-    const diffDias = Math.floor(diffMs / 86400000);
 
-    if (diffMins < 60) return `Hace ${diffMins} min`;
-    if (diffHoras < 24) return `Hace ${diffHoras} hr`;
-    if (diffDias < 7) return `Hace ${diffDias} días`;
-    return fechaMsg.toLocaleDateString('es-MX');
+    if (diffMins < 1) return 'Ahora';
+    if (diffMins < 60) return `${diffMins}m`;
+    if (diffHoras < 24) return `${diffHoras}h`;
+    return f.toLocaleDateString('es-MX', { day: '2-digit', month: '2-digit' });
   };
 
-  const costoEstimado = () => {
-    const totalMensajes = chatsFiltrados
-      .filter(c => selectedChats.has(c.chat_id))
-      .reduce((sum, c) => sum + c.mensajes_nuevos, 0);
-    const costo = (totalMensajes * 0.001).toFixed(2);
-    return { mensajes: totalMensajes, costo };
-  };
+  const formatHora = (fecha: string) => 
+    new Date(fecha).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' });
+
+  const chatsFiltrados = chats.filter(c =>
+    c.chat_nombre.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   // ═══════════════════════════════════════════════════════════════════════════
   // RENDER
   // ═══════════════════════════════════════════════════════════════════════════
   return (
     <ModuleTemplate title="WhatsApp Monitor" onBack={onBack}>
-      <div className="p-6">
-        {/* Barra de acciones */}
-        <div className="flex flex-wrap items-center gap-4 mb-6">
-          {/* Búsqueda */}
-          <div className="relative flex-1 min-w-[250px]">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-white/30" />
-            <input
-              type="text"
-              placeholder="Buscar chat o grupo..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder-white/30 focus:border-[var(--fx-primary)] focus:outline-none transition-all"
-              style={{ fontFamily: "'Exo 2', sans-serif" }}
-            />
-          </div>
-
-          {/* Filtro de estado */}
-          <div className="flex items-center gap-2 bg-white/5 rounded-xl p-1 border border-white/10">
-            {(['todos', 'sin_analizar', 'pendientes', 'atendido'] as const).map((status) => (
-              <button
-                key={status}
-                onClick={() => setFilterStatus(status)}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                  filterStatus === status
-                    ? 'bg-[var(--fx-primary)] text-white'
-                    : 'text-white/50 hover:text-white hover:bg-white/5'
-                }`}
-                style={{ fontFamily: "'Exo 2', sans-serif" }}
-              >
-                {status === 'todos' ? 'Todos' :
-                 status === 'sin_analizar' ? '🔴 Sin analizar' :
-                 status === 'pendientes' ? '🟡 Pendientes' : '🟢 Atendido'}
-              </button>
-            ))}
-          </div>
-
-          {/* Botones de acción */}
-          <div className="flex items-center gap-2">
-            <button
-              onClick={selectAll}
-              className="px-4 py-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-white/70 hover:text-white transition-all flex items-center gap-2"
-            >
-              {selectedChats.size === chatsFiltrados.length && chatsFiltrados.length > 0 ? (
-                <CheckSquare className="w-5 h-5 text-[var(--fx-primary)]" />
-              ) : (
-                <Square className="w-5 h-5" />
-              )}
-            </button>
-
-            <button
-              onClick={cargarChats}
-              disabled={loading}
-              className="px-4 py-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-white/70 hover:text-white transition-all flex items-center gap-2"
-            >
-              <RefreshCw className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
-            </button>
-
-            {/* BOTÓN EXPORTAR EXCEL */}
-            <button
-              onClick={exportarExcel}
-              disabled={exporting}
-              className="px-4 py-3 rounded-xl bg-green-600 hover:bg-green-500 text-white transition-all flex items-center gap-2"
-            >
-              {exporting ? (
-                <Loader2 className="w-5 h-5 animate-spin" />
-              ) : (
-                <FileSpreadsheet className="w-5 h-5" />
-              )}
-              <span style={{ fontFamily: "'Exo 2', sans-serif" }}>
-                {exporting ? 'Exportando...' : 'Exportar Excel'}
-              </span>
-            </button>
-          </div>
-        </div>
-
-        {/* Info de selección y botón analizar */}
-        {selectedChats.size > 0 && (
-          <div
-            className="mb-6 p-4 rounded-2xl border border-[var(--fx-primary)]/30 flex items-center justify-between"
-            style={{ background: 'linear-gradient(135deg, rgba(30,102,245,0.1) 0%, rgba(30,102,245,0.05) 100%)' }}
-          >
-            <div className="flex items-center gap-4">
-              <Brain className="w-8 h-8 text-[var(--fx-primary)]" />
-              <div>
-                <p className="text-white font-semibold" style={{ fontFamily: "'Exo 2', sans-serif" }}>
-                  {selectedChats.size} chat{selectedChats.size > 1 ? 's' : ''} seleccionado{selectedChats.size > 1 ? 's' : ''}
-                </p>
-                <p className="text-white/50 text-sm">
-                  ~{costoEstimado().mensajes} mensajes • Costo estimado: ${costoEstimado().costo} USD
-                </p>
+      <div className="flex h-[calc(100vh-180px)]">
+        
+        {/* ══════════════════════════════════════════════════════════════════
+            PANEL IZQUIERDO - Lista de Chats
+        ══════════════════════════════════════════════════════════════════ */}
+        <div className="w-[300px] flex-shrink-0 border-r border-white/10 flex flex-col bg-white/[0.02]">
+          
+          {/* Header */}
+          <div className="p-2 border-b border-white/10 space-y-2">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-1.5">
+                <span className={`w-2 h-2 rounded-full ${connected ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`} />
+                <span className="text-[10px] text-white/40">
+                  {connected ? 'Live' : 'Off'} • {formatTiempo(lastUpdate.toISOString())}
+                </span>
+              </div>
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => analizarConIA('global')}
+                  disabled={analyzing}
+                  className="p-1.5 rounded bg-purple-500/20 hover:bg-purple-500/30 text-purple-400"
+                  title="Analizar TODO"
+                >
+                  <Sparkles className="w-3.5 h-3.5" />
+                </button>
+                <button
+                  onClick={exportarExcel}
+                  className="p-1.5 rounded bg-green-500/20 hover:bg-green-500/30 text-green-400"
+                  title="Exportar"
+                >
+                  <FileSpreadsheet className="w-3.5 h-3.5" />
+                </button>
+                <button
+                  onClick={cargarDatos}
+                  disabled={loading}
+                  className="p-1.5 rounded bg-white/5 hover:bg-white/10 text-white/40"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
+                </button>
               </div>
             </div>
-            <button
-              onClick={analizarChats}
-              disabled={analyzing}
-              className="px-6 py-3 rounded-xl bg-gradient-to-r from-[var(--fx-primary)] to-blue-600 text-white font-semibold hover:shadow-lg hover:shadow-[var(--fx-primary)]/25 transition-all flex items-center gap-2 disabled:opacity-50"
-              style={{ fontFamily: "'Exo 2', sans-serif" }}
-            >
-              {analyzing ? (
-                <>
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                  Analizando {progreso.actual}/{progreso.total}...
-                </>
-              ) : (
-                <>
-                  <Brain className="w-5 h-5" />
-                  Analizar Seleccionados
-                </>
-              )}
-            </button>
-          </div>
-        )}
 
-        {/* Error */}
-        {error && (
-          <div className="mb-6 p-4 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 flex items-center gap-3">
-            <AlertTriangle className="w-5 h-5 flex-shrink-0" />
-            <p style={{ fontFamily: "'Exo 2', sans-serif" }}>{error}</p>
-          </div>
-        )}
+            {/* Búsqueda */}
+            <div className="relative">
+              <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-white/30" />
+              <input
+                type="text"
+                placeholder="Buscar..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-7 pr-2 py-1.5 text-xs rounded bg-white/5 border border-white/10 text-white placeholder-white/30 focus:border-blue-500/50 focus:outline-none"
+              />
+            </div>
 
-        {/* Stats header */}
-        <div className="grid grid-cols-4 gap-4 mb-6">
-          <div className="p-4 rounded-xl bg-white/5 border border-white/10 text-center">
-            <p className="text-2xl font-bold text-white">{chats.length}</p>
-            <p className="text-white/50 text-xs">Total Chats</p>
+            {/* Stats mini */}
+            <div className="flex gap-1 text-[9px]">
+              <div className="flex-1 text-center py-1 rounded bg-white/5">
+                <span className="text-white font-bold">{chats.length}</span>
+                <span className="text-white/30 ml-0.5">chats</span>
+              </div>
+              <div className="flex-1 text-center py-1 rounded bg-white/5">
+                <span className="text-blue-400 font-bold">{allMensajes.length}</span>
+                <span className="text-white/30 ml-0.5">msgs</span>
+              </div>
+              <div className="flex-1 text-center py-1 rounded bg-white/5">
+                <span className="text-green-400 font-bold">
+                  {chats.reduce((s, c) => s + c.mensajes_nuevos, 0)}
+                </span>
+                <span className="text-white/30 ml-0.5">24h</span>
+              </div>
+            </div>
           </div>
-          <div className="p-4 rounded-xl bg-white/5 border border-white/10 text-center">
-            <p className="text-2xl font-bold text-red-400">{chats.filter(c => c.estado === 'sin_analizar').length}</p>
-            <p className="text-white/50 text-xs">Sin Analizar</p>
-          </div>
-          <div className="p-4 rounded-xl bg-white/5 border border-white/10 text-center">
-            <p className="text-2xl font-bold text-yellow-400">{chats.filter(c => c.estado === 'pendientes').length}</p>
-            <p className="text-white/50 text-xs">Con Pendientes</p>
-          </div>
-          <div className="p-4 rounded-xl bg-white/5 border border-white/10 text-center">
-            <p className="text-2xl font-bold text-green-400">{chats.filter(c => c.estado === 'atendido').length}</p>
-            <p className="text-white/50 text-xs">Atendidos</p>
+
+          {/* Lista de chats */}
+          <div className="flex-1 overflow-y-auto">
+            {loading && chats.length === 0 ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="w-5 h-5 text-blue-400 animate-spin" />
+              </div>
+            ) : chatsFiltrados.length === 0 ? (
+              <div className="text-center py-8 text-white/30 text-xs">No hay chats</div>
+            ) : (
+              chatsFiltrados.map((chat) => (
+                <div
+                  key={chat.chat_id}
+                  onClick={() => seleccionarChat(chat)}
+                  className={`px-2 py-2 border-b border-white/5 cursor-pointer hover:bg-white/5 ${
+                    selectedChat?.chat_id === chat.chat_id ? 'bg-blue-500/10 border-l-2 border-l-blue-500' : ''
+                  }`}
+                >
+                  <div className="flex items-center gap-2">
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
+                      chat.es_grupo ? 'bg-blue-500/20' : 'bg-green-500/20'
+                    }`}>
+                      {chat.es_grupo ? (
+                        <Users className="w-4 h-4 text-blue-400" />
+                      ) : (
+                        <User className="w-4 h-4 text-green-400" />
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between">
+                        <h4 className="text-white text-xs font-medium truncate pr-1">
+                          {chat.chat_nombre}
+                        </h4>
+                        <span className="text-[9px] text-white/30 flex-shrink-0">
+                          {formatTiempo(chat.ultima_actividad)}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <p className="text-white/40 text-[10px] truncate pr-1">
+                          {chat.ultimo_mensaje?.substring(0, 30)}...
+                        </p>
+                        {chat.mensajes_nuevos > 0 && (
+                          <span className="px-1 py-0.5 rounded-full bg-green-500 text-white text-[8px] font-bold">
+                            {chat.mensajes_nuevos}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
           </div>
         </div>
 
-        {/* Lista de chats */}
-        {loading ? (
-          <div className="flex items-center justify-center py-20">
-            <Loader2 className="w-10 h-10 text-[var(--fx-primary)] animate-spin" />
-          </div>
-        ) : chatsFiltrados.length === 0 ? (
-          <div className="text-center py-20">
-            <MessageSquare className="w-16 h-16 text-white/20 mx-auto mb-4" />
-            <p className="text-white/50 text-lg" style={{ fontFamily: "'Exo 2', sans-serif" }}>
-              No se encontraron chats
-            </p>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {chatsFiltrados.map((chat) => (
-              <div key={chat.chat_id} className="rounded-2xl overflow-hidden border border-white/10 bg-white/5">
-                {/* Fila del chat */}
-                <div
-                  className={`p-4 flex items-center gap-4 cursor-pointer hover:bg-white/5 transition-all ${
-                    selectedChats.has(chat.chat_id) ? 'bg-[var(--fx-primary)]/10' : ''
-                  }`}
-                  onClick={() => toggleSelectChat(chat.chat_id)}
-                >
-                  {/* Checkbox */}
-                  <div className="flex-shrink-0">
-                    {selectedChats.has(chat.chat_id) ? (
-                      <CheckSquare className="w-6 h-6 text-[var(--fx-primary)]" />
-                    ) : (
-                      <Square className="w-6 h-6 text-white/30" />
-                    )}
-                  </div>
-
-                  {/* Icono de grupo/personal */}
-                  <div className={`w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 ${
-                    chat.es_grupo ? 'bg-blue-500/20' : 'bg-green-500/20'
+        {/* ══════════════════════════════════════════════════════════════════
+            PANEL DERECHO - Mensajes
+        ══════════════════════════════════════════════════════════════════ */}
+        <div className="flex-1 flex flex-col bg-[#0B1220]/50">
+          {selectedChat ? (
+            <>
+              {/* Header del chat */}
+              <div className="px-3 py-2 border-b border-white/10 flex items-center justify-between bg-white/[0.02]">
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setSelectedChat(null)}
+                    className="lg:hidden p-1 rounded hover:bg-white/10"
+                  >
+                    <ChevronLeft className="w-4 h-4 text-white/50" />
+                  </button>
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                    selectedChat.es_grupo ? 'bg-blue-500/20' : 'bg-green-500/20'
                   }`}>
-                    {chat.es_grupo ? (
-                      <Users className="w-6 h-6 text-blue-400" />
+                    {selectedChat.es_grupo ? (
+                      <Users className="w-4 h-4 text-blue-400" />
                     ) : (
-                      <User className="w-6 h-6 text-green-400" />
+                      <User className="w-4 h-4 text-green-400" />
                     )}
                   </div>
-
-                  {/* Info del chat */}
-                  <div className="flex-1 min-w-0">
-                    <h3
-                      className="text-white font-semibold truncate"
-                      style={{ fontFamily: "'Exo 2', sans-serif" }}
-                    >
-                      {chat.chat_nombre}
-                    </h3>
-                    <p className="text-white/50 text-sm">
-                      {chat.total_mensajes} mensajes totales
-                    </p>
+                  <div>
+                    <h3 className="text-white font-medium text-sm">{selectedChat.chat_nombre}</h3>
+                    <p className="text-white/40 text-[10px]">{mensajes.length} mensajes</p>
                   </div>
-
-                  {/* Mensajes nuevos */}
-                  {chat.mensajes_nuevos > 0 && (
-                    <div className="px-3 py-1 rounded-full bg-[var(--fx-primary)] text-white text-sm font-semibold">
-                      {chat.mensajes_nuevos} nuevos
-                    </div>
-                  )}
-
-                  {/* Última actividad */}
-                  <div className="text-right flex-shrink-0 w-24">
-                    <p className="text-white/70 text-sm" style={{ fontFamily: "'Exo 2', sans-serif" }}>
-                      {formatTiempoRelativo(chat.ultima_actividad)}
-                    </p>
-                  </div>
-
-                  {/* Estado */}
-                  <div className="flex items-center gap-2 flex-shrink-0 w-32">
-                    {getEstadoIcon(chat.estado)}
-                    <span className="text-white/70 text-sm" style={{ fontFamily: "'Exo 2', sans-serif" }}>
-                      {getEstadoLabel(chat.estado)}
-                    </span>
-                  </div>
-
-                  {/* Botón expandir análisis */}
-                  {analisisActual[chat.chat_id] && (
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setChatExpandido(chatExpandido === chat.chat_id ? null : chat.chat_id);
-                      }}
-                      className="p-2 rounded-lg bg-white/5 hover:bg-white/10 transition-all"
-                    >
-                      {chatExpandido === chat.chat_id ? (
-                        <ChevronUp className="w-5 h-5 text-white/50" />
-                      ) : (
-                        <ChevronDown className="w-5 h-5 text-white/50" />
-                      )}
-                    </button>
-                  )}
                 </div>
+                <button
+                  onClick={() => analizarConIA('chat')}
+                  disabled={analyzing}
+                  className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-purple-500/20 hover:bg-purple-500/30 text-purple-400 text-xs font-medium disabled:opacity-50"
+                >
+                  {analyzing && analisisTipo === 'chat' ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  ) : (
+                    <Brain className="w-3.5 h-3.5" />
+                  )}
+                  <span>Analizar</span>
+                </button>
+              </div>
 
-                {/* Panel de análisis expandido */}
-                {chatExpandido === chat.chat_id && analisisActual[chat.chat_id] && (
-                  <div className="border-t border-white/10 p-6 space-y-6" style={{ background: 'rgba(0,0,0,0.2)' }}>
-                    {/* Resumen */}
-                    <div>
-                      <h4 className="text-white/50 text-sm mb-2 uppercase tracking-wider" style={{ fontFamily: "'Exo 2', sans-serif" }}>
-                        📋 Resumen
-                      </h4>
-                      <p className="text-white" style={{ fontFamily: "'Exo 2', sans-serif" }}>
-                        {analisisActual[chat.chat_id].resumen}
-                      </p>
-                    </div>
+              {/* Mensajes */}
+              <div className="flex-1 overflow-y-auto px-3 py-2">
+                {loadingMensajes ? (
+                  <div className="flex items-center justify-center h-full">
+                    <Loader2 className="w-6 h-6 text-blue-400 animate-spin" />
+                  </div>
+                ) : mensajes.length === 0 ? (
+                  <div className="flex items-center justify-center h-full text-white/30 text-sm">
+                    No hay mensajes
+                  </div>
+                ) : (
+                  <>
+                    {mensajes.map((msg, idx) => {
+                      const fecha = new Date(msg.timestamp);
+                      const fechaAnterior = idx > 0 ? new Date(mensajes[idx - 1].timestamp) : null;
+                      const esNuevoDia = !fechaAnterior || fecha.toDateString() !== fechaAnterior.toDateString();
 
-                    {/* Acciones pendientes */}
-                    {analisisActual[chat.chat_id].acciones_pendientes.length > 0 && (
-                      <div>
-                        <h4 className="text-white/50 text-sm mb-3 uppercase tracking-wider" style={{ fontFamily: "'Exo 2', sans-serif" }}>
-                          ⚡ Acciones Pendientes
-                        </h4>
-                        <div className="space-y-2">
-                          {analisisActual[chat.chat_id].acciones_pendientes.map((accion) => (
-                            <div
-                              key={accion.id}
-                              onClick={() => toggleAccionAtendida(chat.chat_id, accion.id)}
-                              className={`p-3 rounded-xl border cursor-pointer transition-all ${
-                                accion.atendido
-                                  ? 'bg-green-500/10 border-green-500/30'
-                                  : accion.urgencia === 'alta'
-                                  ? 'bg-red-500/10 border-red-500/30'
-                                  : accion.urgencia === 'media'
-                                  ? 'bg-yellow-500/10 border-yellow-500/30'
-                                  : 'bg-white/5 border-white/10'
-                              }`}
-                            >
-                              <div className="flex items-center gap-3">
-                                {accion.atendido ? (
-                                  <CheckCircle2 className="w-5 h-5 text-green-400 flex-shrink-0" />
-                                ) : (
-                                  <div className={`w-5 h-5 rounded-full border-2 flex-shrink-0 ${
-                                    accion.urgencia === 'alta' ? 'border-red-400' :
-                                    accion.urgencia === 'media' ? 'border-yellow-400' : 'border-white/30'
-                                  }`} />
-                                )}
-                                <span className={`flex-1 ${accion.atendido ? 'text-white/50 line-through' : 'text-white'}`}>
-                                  {accion.descripcion}
-                                </span>
-                                <span className={`px-2 py-1 rounded text-xs font-semibold uppercase ${
-                                  accion.urgencia === 'alta' ? 'bg-red-500/20 text-red-400' :
-                                  accion.urgencia === 'media' ? 'bg-yellow-500/20 text-yellow-400' :
-                                  'bg-white/10 text-white/50'
-                                }`}>
-                                  {accion.urgencia}
-                                </span>
-                              </div>
+                      return (
+                        <React.Fragment key={msg.id}>
+                          {esNuevoDia && (
+                            <div className="flex items-center justify-center py-2">
+                              <span className="px-2 py-0.5 rounded-full bg-white/10 text-white/40 text-[9px]">
+                                {fecha.toLocaleDateString('es-MX', { weekday: 'short', day: 'numeric', month: 'short' })}
+                              </span>
                             </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Métricas */}
-                    <div className="grid grid-cols-3 gap-4">
-                      <div className="p-4 rounded-xl bg-white/5 border border-white/10">
-                        <p className="text-white/50 text-xs uppercase tracking-wider mb-1">Tiempo respuesta</p>
-                        <p className="text-xl font-bold text-white">
-                          {analisisActual[chat.chat_id].metricas.tiempo_respuesta_promedio}
-                        </p>
-                      </div>
-                      <div className="p-4 rounded-xl bg-white/5 border border-white/10">
-                        <p className="text-white/50 text-xs uppercase tracking-wider mb-1">Sin respuesta</p>
-                        <p className="text-xl font-bold text-white">
-                          {analisisActual[chat.chat_id].metricas.mensajes_sin_respuesta}
-                        </p>
-                      </div>
-                      <div className="p-4 rounded-xl bg-white/5 border border-white/10">
-                        <p className="text-white/50 text-xs uppercase tracking-wider mb-1">Participantes</p>
-                        <p className="text-xl font-bold text-white">
-                          {analisisActual[chat.chat_id].metricas.participantes_activos}
-                        </p>
-                      </div>
-                    </div>
-
-                    {/* Alertas */}
-                    {analisisActual[chat.chat_id].alertas.length > 0 && (
-                      <div>
-                        <h4 className="text-white/50 text-sm mb-2 uppercase tracking-wider" style={{ fontFamily: "'Exo 2', sans-serif" }}>
-                          🚨 Alertas
-                        </h4>
-                        <div className="flex flex-wrap gap-2">
-                          {analisisActual[chat.chat_id].alertas.map((alerta, idx) => (
-                            <span
-                              key={idx}
-                              className="px-3 py-1 rounded-full bg-red-500/20 text-red-400 text-sm"
-                            >
-                              {alerta}
+                          )}
+                          <div className="flex items-start gap-1.5 hover:bg-white/[0.02] rounded px-1 py-0.5">
+                            <span className="text-[9px] text-white/25 w-8 flex-shrink-0 pt-0.5">
+                              {formatHora(msg.timestamp)}
                             </span>
-                          ))}
-                        </div>
-                      </div>
-                    )}
+                            <div className="flex-1 min-w-0">
+                              <span className="text-[11px] font-semibold text-green-400 mr-1.5">
+                                {msg.remitente || '?'}
+                              </span>
+                              <span className="text-[12px] text-white/85 break-words">
+                                {msg.mensaje}
+                              </span>
+                            </div>
+                          </div>
+                        </React.Fragment>
+                      );
+                    })}
+                    <div ref={mensajesEndRef} />
+                  </>
+                )}
+              </div>
+            </>
+          ) : (
+            <div className="flex-1 flex items-center justify-center">
+              <div className="text-center">
+                <MessageSquare className="w-12 h-12 text-white/10 mx-auto mb-3" />
+                <h3 className="text-white/40 text-sm">Selecciona un chat</h3>
+              </div>
+            </div>
+          )}
+        </div>
 
-                    {/* Oportunidades */}
-                    {analisisActual[chat.chat_id].oportunidades.length > 0 && (
-                      <div>
-                        <h4 className="text-white/50 text-sm mb-2 uppercase tracking-wider" style={{ fontFamily: "'Exo 2', sans-serif" }}>
-                          💡 Oportunidades
-                        </h4>
-                        <div className="flex flex-wrap gap-2">
-                          {analisisActual[chat.chat_id].oportunidades.map((oportunidad, idx) => (
-                            <span
-                              key={idx}
-                              className="px-3 py-1 rounded-full bg-green-500/20 text-green-400 text-sm"
-                            >
-                              {oportunidad}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                    )}
+        {/* ══════════════════════════════════════════════════════════════════
+            MODAL ANÁLISIS IA
+        ══════════════════════════════════════════════════════════════════ */}
+        {showAnalisis && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">
+            <div className="w-full max-w-2xl max-h-[80vh] m-4 rounded-xl bg-[#0F172A] border border-white/10 flex flex-col overflow-hidden">
+              <div className="px-4 py-3 border-b border-white/10 flex items-center justify-between bg-purple-500/10">
+                <div className="flex items-center gap-2">
+                  <Brain className="w-5 h-5 text-purple-400" />
+                  <h3 className="text-white font-medium text-sm">
+                    Análisis - {analisisTipo === 'global' ? 'Todos los Chats' : selectedChat?.chat_nombre}
+                  </h3>
+                </div>
+                <button
+                  onClick={() => setShowAnalisis(false)}
+                  className="p-1 rounded hover:bg-white/10 text-white/50"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+              <div className="flex-1 overflow-y-auto p-4">
+                {analyzing ? (
+                  <div className="flex flex-col items-center justify-center py-8">
+                    <Loader2 className="w-8 h-8 text-purple-400 animate-spin mb-3" />
+                    <p className="text-white/40 text-sm">Analizando...</p>
+                  </div>
+                ) : (
+                  <div className="text-white/85 whitespace-pre-wrap text-sm leading-relaxed">
+                    {analisisResult}
                   </div>
                 )}
               </div>
-            ))}
+              <div className="px-4 py-2 border-t border-white/10 flex justify-end">
+                <button
+                  onClick={() => setShowAnalisis(false)}
+                  className="px-3 py-1.5 rounded bg-white/10 hover:bg-white/20 text-white text-xs"
+                >
+                  Cerrar
+                </button>
+              </div>
+            </div>
           </div>
         )}
       </div>
+
+      {/* Error */}
+      {error && (
+        <div className="fixed bottom-4 right-4 z-50 p-3 rounded-lg bg-red-500/20 border border-red-500/30 text-red-400 flex items-center gap-2 max-w-sm">
+          <AlertTriangle className="w-4 h-4" />
+          <p className="text-xs flex-1">{error}</p>
+          <button onClick={() => setError(null)}><X className="w-3 h-3" /></button>
+        </div>
+      )}
     </ModuleTemplate>
   );
 };
