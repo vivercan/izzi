@@ -1,0 +1,235 @@
+
+> const USUARIOS_AUTORIZADOS: Usuario[] = [
+    // ═══════════════════════════════════════════════════════════════
+    // ADMINISTRADORES (2) - Acceso TOTAL a todo
+    // ═══════════════════════════════════════════════════════════════
+    {
+      id: '1',
+      nombre: 'Juan Viveros',
+      correo: 'juan.viveros@trob.com.mx',
+      password: 'Mexico86',
+      rol: 'admin',
+      rolDisplay: 'ADMIN',
+      ultimoAcceso: '',
+      activo: true,
+      createdAt: '2025-01-01T00:00:00.000Z'
+    },
+    {
+      id: '9',
+      nombre: 'Jennifer Sánchez',
+      correo: 'jennifer.sanchez@trob.com.mx',
+      password: 'jsanchez',
+      rol: 'admin',
+      rolDisplay: 'ADMIN',
+      ultimoAcceso: '',
+      activo: true,
+      createdAt: '2025-12-17T00:00:00.000Z'
+    },
+    // ═══════════════════════════════════════════════════════════════
+    // CSR (2) - Todo menos Config, VEN TODO en módulos de datos
+    // ═══════════════════════════════════════════════════════════════
+    {
+      id: '7',
+      nombre: 'Lizeth Rodríguez',
+      correo: 'customer.service3@trob.com.mx',
+      password: 'lrodriguez',
+      rol: 'csr',
+      rolDisplay: 'CSR',
+      ultimoAcceso: '',
+      activo: true,
+      createdAt: '2025-01-05T00:00:00.000Z'
+    },
+    {
+      id: '8',
+      nombre: 'Elizabeth Rodríguez',
+      correo: 'customer.service1@trob.com.mx',
+      password: 'erodriguez',
+      rol: 'csr',
+      rolDisplay: 'CSR',
+      ultimoAcceso: '',
+      activo: true,
+      createdAt: '2025-01-05T00:00:00.000Z'
+    },
+    // ═══════════════════════════════════════════════════════════════
+    // VENTAS (2) - Todo menos Config, SOLO SUS DATOS en Ventas/Oportunidades
+    // ═══════════════════════════════════════════════════════════════
+    {
+      id: '4',
+      nombre: 'Isis Estrada',
+      correo: 'isis.estrada@wexpress.com.mx',
+      password: 'iestrada',
+      rol: 'ventas',
+      rolDisplay: 'VENTAS',
+      vendedorVentas: 'ISIS',        // Valor en ventas_maestro.ejecutivo_ventas
+      vendedorLeads: 'Isis Estrada', // Valor en leads.vendedor (nombre completo)
+      ultimoAcceso: '',
+      activo: true,
+      createdAt: '2025-01-03T00:00:00.000Z'
+    },
+    {
+      id: '5',
+      nombre: 'Paloma Oliva',
+      correo: 'paloma.oliva@speedyhaul.com.mx',
+      password: 'poliva',
+      rol: 'ventas',
+      rolDisplay: 'VENTAS',
+      vendedorVentas: 'PALOMA',      // Valor en ventas_maestro.ejecutivo_ventas
+      vendedorLeads: 'Paloma Oliva', // Valor en leads.vendedor (nombre completo)
+      ultimoAcceso: '',
+      activo: false,
+      createdAt: '2025-01-03T00:00:00.000Z'
+    },
+    // ═══════════════════════════════════════════════════════════════
+    // OPERACIONES (3) - SOLO módulo Dedicado, sin acceso a Ventas/Oportunidades
+    // ═══════════════════════════════════════════════════════════════
+    {
+      id: '2',
+      nombre: 'José Rodríguez',
+      correo: 'jose.rodriguez@trob.com.mx',
+      password: 'jrodriguez',
+      rol: 'operaciones',
+      rolDisplay: 'OPERACIONES',
+      ultimoAcceso: '',
+      activo: true,
+      createdAt: '2025-01-02T00:00:00.000Z'
+    },
+    {
+      id: '3',
+      nombre: 'Marcos Pineda',
+      correo: 'marcos.pineda@trob.com.mx',
+      password: 'mpineda',
+      rol: 'operaciones',
+      rolDisplay: 'OPERACIONES',
+>     localStorage.setItem('fx27-usuarios', JSON.stringify(USUARIOS_AUTORIZADOS));
+  
+      const savedSession = localStorage.getItem('fx27-session');
+      if (savedSession) {
+        try {
+          const session = JSON.parse(savedSession);
+>         const usuario = USUARIOS_AUTORIZADOS.find(u => u.correo === session.email && u.activo);
+          if (usuario) {
+            setIsLoggedIn(true);
+            setUserRole(usuario.rol);
+            setUserRolDisplay(usuario.rolDisplay);
+            setUserVendedorVentas(usuario.vendedorVentas || '');
+            setUserVendedorLeads(usuario.vendedorLeads || '');
+            setUserPermisosCustom(usuario.permisosCustom || []);
+            setCurrentUserEmail(session.email);
+            setCurrentUserName(usuario.nombre);
+            console.log('✅ Sesión restaurada:', usuario.nombre, '| Ventas:', usuario.vendedorVentas || 'TODO', '| Leads:', usuario.vendedorLeads || 'TODO');
+          } else {
+            localStorage.removeItem('fx27-session');
+          }
+        } catch (e) {
+          localStorage.removeItem('fx27-session');
+        }
+      }
+    }, []);
+  
+    // 🔐 LOGIN
+    const handleLogin = (email: string, password: string) => {
+      console.log('🔐 Login:', email);
+      setLoginError('');
+  
+>     const usuario = USUARIOS_AUTORIZADOS.find(u =>
+        u.correo === email && u.password === password && u.activo
+      );
+  
+      if (!usuario) {
+        setLoginError('Credenciales incorrectas. Verifica tu email y contraseña.');
+        return;
+      }
+  
+      console.log('✅ Login OK:', usuario.nombre, '| Rol:', usuario.rolDisplay);
+      console.log('   → Ventas filtro:', usuario.vendedorVentas || 'VER TODO');
+      console.log('   → Leads filtro:', usuario.vendedorLeads || 'VER TODO');
+  
+      setUserRole(usuario.rol);
+      setUserRolDisplay(usuario.rolDisplay);
+      setUserVendedorVentas(usuario.vendedorVentas || '');
+      setUserVendedorLeads(usuario.vendedorLeads || '');
+      setUserPermisosCustom(usuario.permisosCustom || []);
+      setIsLoggedIn(true);
+      setCurrentUserEmail(email);
+      setCurrentUserName(usuario.nombre);
+  
+      localStorage.setItem('fx27-session', JSON.stringify({
+        role: usuario.rol,
+        rolDisplay: usuario.rolDisplay,
+        vendedorVentas: usuario.vendedorVentas || '',
+        vendedorLeads: usuario.vendedorLeads || '',
+        permisosCustom: usuario.permisosCustom || [],
+        email: email,
+        name: usuario.nombre,
+        timestamp: new Date().toISOString()
+      }));
+  
+      // Actualizar último acceso
+      fetch(`https://${projectId}.supabase.co/functions/v1/make-server-d84b50bb/usuarios/ultimo-acceso`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${publicAnonKey}` },
+        body: JSON.stringify({ email })
+      }).catch(() => {});
+    };
+  
+    const handleLogout = () => {
+      setIsLoggedIn(false);
+      setCurrentModule(null);
+      setUserRole('admin');
+      setUserRolDisplay('ADMIN');
+      setUserVendedorVentas('');
+      setUserVendedorLeads('');
+      setUserPermisosCustom([]);
+      setCurrentUserEmail('');
+      setCurrentUserName('');
+      localStorage.removeItem('fx27-session');
+    };
+  
+    const handleNavigate = (module: string) => {
+      if (!checkModuleAccess(module, userRole, userPermisosCustom)) {
+        alert('⚠️ Acceso Restringido\n\nNo tienes permisos para este módulo.');
+        return;
+      }
+      setCurrentModule(module);
+    };
+  
+    const handleBack = () => setCurrentModule(null);
+  
+    // 🔒 PERMISOS POR ROL
+    const checkModuleAccess = (module: string, role: UserRole, permisosCustom: string[] = []): boolean => {
+      if (role === 'admin') return true;
+      if (role === 'csr') return module !== 'configuracion';
+      if (role === 'ventas') return module !== 'configuracion';
+      if (role === 'operaciones') {
+        return ['dedicados', 'admin-carroll', 'monitor-carroll', 'vista-clientes-carroll', 'mapa-climatico-carroll'].includes(module);
+      }
+      if (role === 'custom') return permisosCustom.includes(module);
+      return false;
+    };
+  
+    // Si es ruta pública, renderizar sin login
+    if (rutaPublica) {
+      if (rutaPublica.tipo === 'alta-cliente') {
+        return <AltaClientePublico solicitudId={rutaPublica.id} />;
+      }
+    }
+  
+    return (
+      <div className="w-full min-h-screen">
+        {!isLoggedIn ? (
+          <LoginScreen onLogin={handleLogin} loginError={loginError} />
+        ) : currentModule ? (
+          <>
+            {currentModule === 'agregar-lead' && <AgregarLeadModule onBack={handleBack} />}
+            {currentModule === 'panel-oportunidades' && (
+              <PanelOportunidadesModule
+                onBack={handleBack}
+                userVendedorLeads={userVendedorLeads}  // Nombre completo para filtrar leads
+              />
+            )}
+            {currentModule === 'operaciones' && <ModuleTemplate title="Operaciones" onBack={handleBack} headerImage={MODULE_IMAGES.OPERACIONES} />}
+            {currentModule === 'despacho-inteligente' && <DespachoInteligenteModule onBack={handleBack} />}
+            {currentModule === 'control-equipo' && <ControlEquipoModule onBack={handleBack} />}
+            {currentModule === 'kpis' && <KPIsModule onBack={handleBack} />}
+            {currentModule === 'configuracion' && <ConfiguracionModule onBack={handleBack} />}
+
