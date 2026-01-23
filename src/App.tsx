@@ -145,6 +145,19 @@ const USUARIOS_AUTORIZADOS: Usuario[] = [
     activo: false,
     createdAt: '2025-01-03T00:00:00.000Z'
   },
+    {
+      id: '10',
+      nombre: 'Leo Gonzalez',
+      correo: 'leonardo.gonzalez@wexpress.com.mx',
+      password: 'Aguascalientes2026',
+      rol: 'custom',
+      rolDisplay: 'VENTAS',
+      vendedorLeads: 'Leo Gonzalez',
+      permisosCustom: ['agregar-lead', 'panel-oportunidades', 'servicio-clientes'],
+      ultimoAcceso: '',
+      activo: true,
+      createdAt: '2026-01-23T00:00:00.000Z'
+    },
   // ═══════════════════════════════════════════════════════════════
   // OPERACIONES (3) - SOLO módulo Dedicado, sin acceso a Ventas/Oportunidades
   // ═══════════════════════════════════════════════════════════════
