@@ -1,5 +1,6 @@
 // ═══════════════════════════════════════════════════════════════════════════
 // SERVICIO A CLIENTES MODULE - ESTILO DASHBOARD EXACTO
+// Versión: 2.1 - 23/Ene/2026 - Filtro por usuario (ventas solo ve sus altas)
 // ═══════════════════════════════════════════════════════════════════════════
 
 import { useState, useEffect } from 'react';
@@ -52,16 +53,18 @@ export function ServicioClientesModule({ onBack, userEmail, userName }: Props) {
   const [busqueda, setBusqueda] = useState('');
   const [showCrearModal, setShowCrearModal] = useState(false);
   const [solicitudSeleccionada, setSolicitudSeleccionada] = useState<string | null>(null);
-  
+
   // Admin y modales
   const [isAdmin, setIsAdmin] = useState(false);
+  const [currentUserEmail, setCurrentUserEmail] = useState('');
+  const [currentUserName, setCurrentUserName] = useState('');
   const [showDeleteModal, setShowDeleteModal] = useState<string | null>(null);
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
   const [deleting, setDeleting] = useState(false);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [showDeleteMultipleModal, setShowDeleteMultipleModal] = useState(false);
 
-  // Verificar si es admin
+  // Verificar si es admin y obtener datos del usuario
   useEffect(() => {
     const userData = localStorage.getItem('fx27-session');
     if (userData) {
@@ -70,21 +73,35 @@ export function ServicioClientesModule({ onBack, userEmail, userName }: Props) {
         'juan.viveros@trob.com.mx',
         'jennifer.sanchez@trob.com.mx'
       ];
-      const userEmail = (user.email || '').toLowerCase();
+      const email = (user.email || userEmail || '').toLowerCase();
+      const name = user.name || userName || '';
       const userRole = (user.role || '').toLowerCase();
+      
+      setCurrentUserEmail(email);
+      setCurrentUserName(name);
       setIsAdmin(
-        adminEmails.includes(userEmail) || 
-        userRole === 'admin' || 
+        adminEmails.includes(email) ||
+        userRole === 'admin' ||
         userRole === 'administrador'
       );
     }
-  }, []);
+  }, [userEmail, userName]);
 
+  // CORREGIDO: Filtrar por usuario si no es admin
   const cargarSolicitudes = async () => {
     setLoading(true);
     try {
       let query = supabase.from('alta_clientes').select('*').order('created_at', { ascending: false });
+      
+      // Filtrar por estatus si hay filtro activo
       if (filtroEstatus) query = query.eq('estatus', filtroEstatus);
+      
+      // NUEVO: Si NO es admin, filtrar solo las que creó el usuario
+      if (!isAdmin && (currentUserEmail || currentUserName)) {
+        // Filtrar por email O por nombre del usuario creador
+        query = query.or(`enviado_por.ilike.%${currentUserEmail}%,enviado_por.ilike.%${currentUserName}%`);
+      }
+      
       const { data, error } = await query;
       if (error) throw error;
       setSolicitudes(data || []);
@@ -101,16 +118,16 @@ export function ServicioClientesModule({ onBack, userEmail, userName }: Props) {
       alert('Escriba DELETE para confirmar');
       return;
     }
-    
+
     setDeleting(true);
     try {
       const { error } = await supabase
         .from('alta_clientes')
         .delete()
         .eq('id', id);
-      
+
       if (error) throw error;
-      
+
       setShowDeleteModal(null);
       setDeleteConfirmText('');
       cargarSolicitudes();
@@ -128,16 +145,16 @@ export function ServicioClientesModule({ onBack, userEmail, userName }: Props) {
       alert('Escriba DELETE para confirmar');
       return;
     }
-    
+
     setDeleting(true);
     try {
       const { error } = await supabase
         .from('alta_clientes')
         .delete()
         .in('id', selectedIds);
-      
+
       if (error) throw error;
-      
+
       setShowDeleteMultipleModal(false);
       setDeleteConfirmText('');
       setSelectedIds([]);
@@ -152,7 +169,7 @@ export function ServicioClientesModule({ onBack, userEmail, userName }: Props) {
 
   // Toggle selección
   const toggleSeleccion = (id: string) => {
-    setSelectedIds(prev => 
+    setSelectedIds(prev =>
       prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
     );
   };
@@ -167,14 +184,14 @@ export function ServicioClientesModule({ onBack, userEmail, userName }: Props) {
 
   useEffect(() => {
     if (vista === 'lista') cargarSolicitudes();
-  }, [vista, filtroEstatus]);
+  }, [vista, filtroEstatus, isAdmin, currentUserEmail, currentUserName]);
 
   const solicitudesFiltradas = solicitudes.filter(s => {
     if (!busqueda) return true;
     const term = busqueda.toLowerCase();
-    return s.razon_social?.toLowerCase().includes(term) || 
-           s.nombre_cliente?.toLowerCase().includes(term) || 
-           s.rfc_mc?.toLowerCase().includes(term) || 
+    return s.razon_social?.toLowerCase().includes(term) ||
+           s.nombre_cliente?.toLowerCase().includes(term) ||
+           s.rfc_mc?.toLowerCase().includes(term) ||
            s.email_cliente?.toLowerCase().includes(term);
   });
 
@@ -194,14 +211,14 @@ export function ServicioClientesModule({ onBack, userEmail, userName }: Props) {
     return (
       <div className="relative w-full h-screen overflow-hidden">
         {/* Background - Gradiente AZUL ELÉCTRICO igual al Dashboard */}
-        <div 
+        <div
           className="absolute inset-0"
           style={{
             background: 'linear-gradient(135deg, #001f4d 0%, #003d7a 25%, #0066cc 50%, #1a8fff 75%, #4da6ff 100%)',
           }}
         />
         {/* Overlay oscuro */}
-        <div 
+        <div
           className="absolute inset-0"
           style={{
             background: 'linear-gradient(180deg, rgba(0, 0, 0, 0.25) 0%, rgba(0, 0, 0, 0.15) 50%, rgba(0, 0, 0, 0.25) 100%)',
@@ -209,7 +226,7 @@ export function ServicioClientesModule({ onBack, userEmail, userName }: Props) {
         />
 
         {/* Header con botón regresar y logo */}
-        <div 
+        <div
           className="absolute top-0 left-0 right-0 z-40"
           style={{
             height: '80px',
@@ -245,10 +262,10 @@ export function ServicioClientesModule({ onBack, userEmail, userName }: Props) {
             >
               <ArrowLeft className="w-5 h-5 text-white" />
             </button>
-            
+
             {/* Título */}
-            <h1 
-              style={{ 
+            <h1
+              style={{
                 fontFamily: "'Exo 2', sans-serif",
                 fontSize: '22px',
                 fontWeight: 700,
@@ -262,9 +279,9 @@ export function ServicioClientesModule({ onBack, userEmail, userName }: Props) {
 
             {/* Logo FX27 */}
             <div className="flex flex-col items-end">
-              <div 
+              <div
                 className="text-[48px] font-black leading-none tracking-tight"
-                style={{ 
+                style={{
                   fontFamily: 'Exo 2, sans-serif',
                   background: 'linear-gradient(135deg, #E8EEF4 0%, #B5C4D8 30%, #D8DFE8 55%, #9FB0C5 80%, #D0D9E4 100%)',
                   WebkitBackgroundClip: 'text',
@@ -275,9 +292,9 @@ export function ServicioClientesModule({ onBack, userEmail, userName }: Props) {
               >
                 FX27
               </div>
-              <div 
-                className="text-[9px] tracking-[0.15em] uppercase" 
-                style={{ 
+              <div
+                className="text-[9px] tracking-[0.15em] uppercase"
+                style={{
                   fontFamily: 'Exo 2, sans-serif',
                   color: 'rgba(240, 160, 80, 0.75)',
                   filter: 'blur(0.5px) drop-shadow(0 0 8px rgba(240, 160, 80, 0.6))',
@@ -292,8 +309,8 @@ export function ServicioClientesModule({ onBack, userEmail, userName }: Props) {
         {/* Grid de botones */}
         <div className="relative z-10 w-full h-full px-12" style={{ paddingTop: '120px' }}>
           {/* Título */}
-          <h2 
-            style={{ 
+          <h2
+            style={{
               fontFamily: "'Exo 2', sans-serif",
               fontSize: '24px',
               fontWeight: 600,
@@ -304,7 +321,7 @@ export function ServicioClientesModule({ onBack, userEmail, userName }: Props) {
           >
             Administración de Clientes
           </h2>
-          
+
           <div className="flex gap-5 flex-wrap" style={{ maxWidth: '1200px' }}>
             {botones.map(btn => {
               const Icon = btn.icon;
@@ -336,7 +353,7 @@ export function ServicioClientesModule({ onBack, userEmail, userName }: Props) {
                   }}
                 >
                   {/* Highlight superior */}
-                  <div 
+                  <div
                     className="absolute top-0 left-0 right-0 h-[35%] opacity-30 group-hover:opacity-50 transition-opacity duration-300 pointer-events-none"
                     style={{
                       background: 'linear-gradient(180deg, rgba(255, 255, 255, 0.12) 0%, transparent 100%)',
@@ -344,9 +361,9 @@ export function ServicioClientesModule({ onBack, userEmail, userName }: Props) {
                       borderTopRightRadius: '10px',
                     }}
                   />
-                  
+
                   {/* Línea superior naranja en hover */}
-                  <div 
+                  <div
                     className="absolute top-0 left-0 right-0 h-[3px] opacity-0 group-hover:opacity-100 transition-opacity duration-300"
                     style={{
                       background: 'linear-gradient(90deg, transparent 0%, rgba(240, 160, 80, 0.3) 15%, rgba(240, 160, 80, 0.85) 50%, rgba(240, 160, 80, 0.3) 85%, transparent 100%)',
@@ -357,7 +374,7 @@ export function ServicioClientesModule({ onBack, userEmail, userName }: Props) {
                   />
 
                   {/* Inner glow naranja */}
-                  <div 
+                  <div
                     className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
                     style={{
                       background: 'radial-gradient(ellipse at 50% 0%, rgba(240, 160, 80, 0.15) 0%, rgba(220, 140, 70, 0.08) 40%, transparent 70%)',
@@ -367,9 +384,9 @@ export function ServicioClientesModule({ onBack, userEmail, userName }: Props) {
                   />
 
                   {/* Ícono */}
-                  <Icon 
-                    className="w-20 h-20 relative z-10 transition-all duration-300 group-hover:scale-110" 
-                    style={{ 
+                  <Icon
+                    className="w-20 h-20 relative z-10 transition-all duration-300 group-hover:scale-110"
+                    style={{
                       color: 'rgba(255, 255, 255, 0.95)',
                       strokeWidth: 1.8,
                       filter: 'drop-shadow(0 4px 10px rgba(0, 0, 0, 0.6)) drop-shadow(0 0 14px rgba(255, 255, 255, 0.15))',
@@ -383,9 +400,9 @@ export function ServicioClientesModule({ onBack, userEmail, userName }: Props) {
                       e.currentTarget.style.filter = 'drop-shadow(0 4px 10px rgba(0, 0, 0, 0.6)) drop-shadow(0 0 14px rgba(255, 255, 255, 0.15))';
                     }}
                   />
-                  
+
                   {/* Texto */}
-                  <span 
+                  <span
                     className="text-center relative z-10 transition-all duration-300"
                     style={{
                       fontFamily: "'Exo 2', sans-serif",
@@ -414,7 +431,7 @@ export function ServicioClientesModule({ onBack, userEmail, userName }: Props) {
         {/* Modal Crear Solicitud */}
         {showCrearModal && (
           <CrearSolicitudAlta
-            usuarioCreador={userEmail || userName || 'Sistema'}
+            usuarioCreador={currentUserEmail || currentUserName || userEmail || userName || 'Sistema'}
             onClose={() => setShowCrearModal(false)}
             onCreated={(id) => {
               setShowCrearModal(false);
@@ -436,10 +453,10 @@ export function ServicioClientesModule({ onBack, userEmail, userName }: Props) {
         <div className="flex items-center justify-between mb-6">
           <div>
             <h2 style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '20px', fontWeight: 700, color: '#ffffff' }}>
-              Solicitudes de Alta
+              {isAdmin ? 'Todas las Solicitudes' : 'Mis Solicitudes de Alta'}
             </h2>
             <p style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '13px', color: 'rgba(255,255,255,0.5)' }}>
-              {filtroEstatus ? ESTATUS_CONFIG[filtroEstatus]?.label : 'Todas las solicitudes'}
+              {filtroEstatus ? ESTATUS_CONFIG[filtroEstatus]?.label : (isAdmin ? 'Todas las solicitudes' : 'Solo las que yo creé')}
             </p>
           </div>
 
@@ -503,7 +520,9 @@ export function ServicioClientesModule({ onBack, userEmail, userName }: Props) {
           ) : solicitudesFiltradas.length === 0 ? (
             <div className="text-center py-20">
               <FileText className="w-12 h-12 text-white/20 mx-auto mb-4" />
-              <p style={{ fontFamily: "'Exo 2', sans-serif", color: 'rgba(255,255,255,0.5)' }}>No hay solicitudes</p>
+              <p style={{ fontFamily: "'Exo 2', sans-serif", color: 'rgba(255,255,255,0.5)' }}>
+                {isAdmin ? 'No hay solicitudes' : 'No has creado solicitudes aún'}
+              </p>
             </div>
           ) : (
             <table className="w-full">
@@ -561,13 +580,13 @@ export function ServicioClientesModule({ onBack, userEmail, userName }: Props) {
                       </td>
                       <td className="px-4 py-3">
                         {empresa ? (
-                          <span 
+                          <span
                             className="px-3 py-1 rounded text-xs font-semibold"
-                            style={{ 
-                              background: empresa.bg, 
+                            style={{
+                              background: empresa.bg,
                               color: empresa.color,
                               border: `1px solid ${empresa.color}40`,
-                              fontFamily: "'Exo 2', sans-serif" 
+                              fontFamily: "'Exo 2', sans-serif"
                             }}
                           >
                             {empresa.nombre}
@@ -602,7 +621,7 @@ export function ServicioClientesModule({ onBack, userEmail, userName }: Props) {
                           >
                             <Eye className="w-4 h-4 text-white/40 group-hover:text-orange-400 transition-colors" />
                           </button>
-                          
+
                           {/* Editar - Solo Admin */}
                           {isAdmin && (
                             <button
@@ -616,7 +635,7 @@ export function ServicioClientesModule({ onBack, userEmail, userName }: Props) {
                               <Edit2 className="w-4 h-4 text-white/40 group-hover:text-blue-400 transition-colors" />
                             </button>
                           )}
-                          
+
                           {/* Borrar - Solo Admin */}
                           {isAdmin && (
                             <button
@@ -639,7 +658,7 @@ export function ServicioClientesModule({ onBack, userEmail, userName }: Props) {
 
         {showCrearModal && (
           <CrearSolicitudAlta
-            usuarioCreador={userEmail || userName || 'Sistema'}
+            usuarioCreador={currentUserEmail || currentUserName || userEmail || userName || 'Sistema'}
             onClose={() => setShowCrearModal(false)}
             onCreated={() => { setShowCrearModal(false); cargarSolicitudes(); }}
           />
@@ -658,7 +677,7 @@ export function ServicioClientesModule({ onBack, userEmail, userName }: Props) {
                   <p className="text-sm text-red-400">Esta acción no se puede deshacer</p>
                 </div>
               </div>
-              
+
               <div className="mb-6">
                 <p className="text-white/70 mb-4">
                   ¿Está seguro que desea eliminar esta solicitud? Se borrarán todos los datos y documentos asociados.
@@ -690,9 +709,9 @@ export function ServicioClientesModule({ onBack, userEmail, userName }: Props) {
                   onClick={() => eliminarSolicitud(showDeleteModal)}
                   disabled={deleteConfirmText !== 'DELETE' || deleting}
                   className="flex-1 py-3 rounded-xl font-medium flex items-center justify-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                  style={{ 
-                    background: deleteConfirmText === 'DELETE' 
-                      ? 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)' 
+                  style={{
+                    background: deleteConfirmText === 'DELETE'
+                      ? 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)'
                       : 'rgba(255,255,255,0.1)',
                     color: deleteConfirmText === 'DELETE' ? '#fff' : 'rgba(255,255,255,0.3)'
                   }}
@@ -722,7 +741,7 @@ export function ServicioClientesModule({ onBack, userEmail, userName }: Props) {
                   <p className="text-sm text-red-400">Esta acción no se puede deshacer</p>
                 </div>
               </div>
-              
+
               <div className="mb-6">
                 <p className="text-white/70 mb-4">
                   ¿Está seguro que desea eliminar <span className="text-red-400 font-bold">{selectedIds.length}</span> solicitudes? Se borrarán todos los datos y documentos asociados.
@@ -754,9 +773,9 @@ export function ServicioClientesModule({ onBack, userEmail, userName }: Props) {
                   onClick={eliminarMultiples}
                   disabled={deleteConfirmText !== 'DELETE' || deleting}
                   className="flex-1 py-3 rounded-xl font-medium flex items-center justify-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                  style={{ 
-                    background: deleteConfirmText === 'DELETE' 
-                      ? 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)' 
+                  style={{
+                    background: deleteConfirmText === 'DELETE'
+                      ? 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)'
                       : 'rgba(255,255,255,0.1)',
                     color: deleteConfirmText === 'DELETE' ? '#fff' : 'rgba(255,255,255,0.3)'
                   }}
@@ -831,5 +850,3 @@ export function ServicioClientesModule({ onBack, userEmail, userName }: Props) {
 }
 
 export default ServicioClientesModule;
-
-

@@ -2,7 +2,7 @@
 // REVISAR SOLICITUD DE ALTA - Para Juan Viveros
 // Incluye: Validar Cliente (IA), Asignar CSR, Tipo Pago
 // CORREGIDO: Usa columnas csr_* de la tabla
-// Versión: 2.0 - 10/Ene/2026
+// Versión: 2.1 - 23/Ene/2026 - Fix fetch
 // ═══════════════════════════════════════════════════════════════════════════
 
 import { useState, useEffect } from 'react';
@@ -270,9 +270,3 @@ export default function RevisarSolicitudAlta({ solicitudId, onUpdated }: Props) 
     </div>
   );
 }
-
-
-
-
-
-

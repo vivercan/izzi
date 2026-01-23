@@ -1,7 +1,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
 // ASIGNAR CXC (COBRANZA) - Para Claudia Priana / Martha Velasco
 // CORREGIDO: Usa PENDIENTE_COBRANZA y envía datos completos
-// Versión: 2.0 - 10/Ene/2026
+// Versión: 2.1 - 23/Ene/2026 - Fix fetch
 // ═══════════════════════════════════════════════════════════════════════════
 
 import { useState, useEffect } from 'react';
@@ -12,31 +12,31 @@ const supabaseUrl = 'https://fbxbsslhewchyibdoyzk.supabase.co';
 const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZieGJzc2xoZXdjaHlpYmRveXprIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI1MzczODEsImV4cCI6MjA3ODExMzM4MX0.Z8JPlg7hhKbA624QGHp2bKKTNtCD3WInQMO5twjl6a0';
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
-interface CxC { 
-  id: string; 
-  nombre: string; 
-  email: string; 
+interface CxC {
+  id: string;
+  nombre: string;
+  email: string;
   celular?: string;
-  telefono?: string; 
+  telefono?: string;
 }
 
-interface Solicitud { 
-  id: string; 
-  razon_social: string; 
+interface Solicitud {
+  id: string;
+  razon_social: string;
   rfc: string;
   rfc_mc?: string;
   nombre_cliente?: string;
   email_cliente?: string;
   empresa_facturadora?: string;
   giro?: string;
-  csr_nombre: string; 
+  csr_nombre: string;
   csr_email: string;
   csr_celular?: string;
   csr_telefono?: string;
-  tipo_pago: string; 
-  dias_credito: number; 
-  estatus: string; 
-  created_at: string; 
+  tipo_pago: string;
+  dias_credito: number;
+  estatus: string;
+  created_at: string;
 }
 
 export function AsignarCxC() {
@@ -52,19 +52,19 @@ export function AsignarCxC() {
 
   const fetchData = async () => {
     setLoading(true);
-    
+
     // CORREGIDO: Buscar PENDIENTE_COBRANZA (no PENDIENTE_CXC)
     const { data: sols } = await supabase
       .from('alta_clientes')
       .select('*')
       .eq('estatus', 'PENDIENTE_COBRANZA')
       .order('created_at', { ascending: false });
-    
+
     const { data: cxcs } = await supabase
       .from('catalogo_cxc')
       .select('*')
       .eq('activo', true);
-    
+
     setSolicitudes(sols || []);
     setCxcList(cxcs || []);
     setLoading(false);
@@ -73,25 +73,25 @@ export function AsignarCxC() {
   const handleAsignar = async () => {
     if (!selectedSolicitud || !selectedCxC) return;
     setSubmitting(true);
-    
+
     const cxcData = cxcList.find(c => c.id === selectedCxC);
-    if (!cxcData) { 
-      setSubmitting(false); 
-      return; 
+    if (!cxcData) {
+      setSubmitting(false);
+      return;
     }
 
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      const asignadoPor = user?.email?.includes('claudia') ? 'Claudia Priana' : 
-                          user?.email?.includes('martha') ? 'Martha Velasco' : 
+      const asignadoPor = user?.email?.includes('claudia') ? 'Claudia Priana' :
+                          user?.email?.includes('martha') ? 'Martha Velasco' :
                           'Gerencia CxC';
 
       await supabase
         .from('alta_clientes')
         .update({
-          cxc_id: cxcData.id, 
-          cxc_nombre: cxcData.nombre, 
-          cxc_email: cxcData.email, 
+          cxc_id: cxcData.id,
+          cxc_nombre: cxcData.nombre,
+          cxc_email: cxcData.email,
           cxc_celular: cxcData.celular || cxcData.telefono,
           cxc_telefono: cxcData.telefono || cxcData.celular,
           cxc_asignado_por: asignadoPor,
@@ -102,12 +102,12 @@ export function AsignarCxC() {
 
       // CORREGIDO: Enviar datos completos al Edge Function
       await fetch(`${supabaseUrl}/functions/v1/enviar-correo-alta`, {
-        method: 'POST', 
-        headers: { 
-          'Content-Type': 'application/json', 
-          'Authorization': `Bearer ${supabaseAnonKey}` 
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${supabaseAnonKey}`
         },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           tipo: 'pendiente_confirmacion',
           solicitudId: selectedSolicitud.id,
           razonSocial: selectedSolicitud.razon_social,
@@ -127,16 +127,16 @@ export function AsignarCxC() {
       });
 
       alert('✅ Ejecutivo CxC asignado. Se notificó a Nancy Alonso.');
-      
+
     } catch (error) {
       console.error('Error:', error);
       alert('Error al asignar');
     }
 
-    setShowConfirm(false); 
-    setSelectedSolicitud(null); 
-    setSelectedCxC(''); 
-    setSubmitting(false); 
+    setShowConfirm(false);
+    setSelectedSolicitud(null);
+    setSelectedCxC('');
+    setSubmitting(false);
     fetchData();
   };
 
@@ -174,12 +174,12 @@ export function AsignarCxC() {
           {/* Lista */}
           <div className="bg-white/5 rounded-xl border border-white/10 p-2 overflow-y-auto">
             {solicitudes.map((sol) => (
-              <div 
-                key={sol.id} 
+              <div
+                key={sol.id}
                 onClick={() => setSelectedSolicitud(sol)}
                 className={`p-2 rounded-lg cursor-pointer mb-1 transition-all ${
-                  selectedSolicitud?.id === sol.id 
-                    ? 'bg-blue-500/20 border border-blue-500' 
+                  selectedSolicitud?.id === sol.id
+                    ? 'bg-blue-500/20 border border-blue-500'
                     : 'bg-white/5 hover:bg-white/10 border border-transparent'
                 }`}
               >
@@ -231,9 +231,9 @@ export function AsignarCxC() {
                 <div className="mb-4">
                   <label className="text-[10px] text-white/60 mb-1 block">Ejecutivo Cobranza *</label>
                   <div className="relative">
-                    <select 
-                      value={selectedCxC} 
-                      onChange={(e) => setSelectedCxC(e.target.value)} 
+                    <select
+                      value={selectedCxC}
+                      onChange={(e) => setSelectedCxC(e.target.value)}
                       className="w-full px-3 py-2 bg-white/5 border border-white/20 rounded-lg text-white text-sm appearance-none focus:border-blue-500 focus:outline-none"
                     >
                       <option value="" style={{ background: '#1a2d4a' }}>Seleccionar...</option>
@@ -256,10 +256,10 @@ export function AsignarCxC() {
                   </div>
                 )}
 
-                <button 
-                  onClick={() => setShowConfirm(true)} 
-                  disabled={!selectedCxC} 
-                  className="mt-auto w-full py-2.5 rounded-lg flex items-center justify-center gap-2 disabled:opacity-40 text-white font-semibold transition-all" 
+                <button
+                  onClick={() => setShowConfirm(true)}
+                  disabled={!selectedCxC}
+                  className="mt-auto w-full py-2.5 rounded-lg flex items-center justify-center gap-2 disabled:opacity-40 text-white font-semibold transition-all"
                   style={{ background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)' }}
                 >
                   <Send className="w-4 h-4" /> Asignar y Enviar a Nancy
@@ -293,5 +293,3 @@ export function AsignarCxC() {
 }
 
 export default AsignarCxC;
-
-
