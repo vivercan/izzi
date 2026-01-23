@@ -5,11 +5,13 @@ import { AIAssistant } from './AIAssistant';
 interface DashboardScreenProps {
   onLogout: () => void;
   onNavigate: (module: string) => void;
-  userRole?: 'admin' | 'ventas' | 'operaciones';
+  userRole?: 'admin' | 'ventas' | 'operaciones' | 'custom';
+  userRolDisplay?: string;
+  permisosCustom?: string[];
   userName?: string; // ✅ NUEVO: Nombre del usuario logueado
 }
 
-export const DashboardScreen = ({ onLogout, onNavigate, userRole = 'admin', userName = 'Usuario' }: DashboardScreenProps) => {
+export const DashboardScreen = ({ onLogout, onNavigate, userRole = 'admin', userRolDisplay, permisosCustom = [], userName = 'Usuario' }: DashboardScreenProps) => {
   const [showAccessDenied, setShowAccessDenied] = useState(false);
   const [exchangeRate, setExchangeRate] = useState<number | null>(null);
   
@@ -59,6 +61,7 @@ export const DashboardScreen = ({ onLogout, onNavigate, userRole = 'admin', user
     if (userRole === 'admin') return true;
     if (userRole === 'ventas') return moduleId !== 'configuracion';
     if (userRole === 'operaciones') return moduleId === 'operaciones';
+    if (userRole === 'custom') return permisosCustom.includes(moduleId);
     return false;
   };
 
@@ -276,7 +279,7 @@ export const DashboardScreen = ({ onLogout, onNavigate, userRole = 'admin', user
                   textTransform: 'uppercase',
                 }}
               >
-                {userRole === 'admin' ? 'ADMIN' : userRole === 'ventas' ? 'VENTAS' : 'OPERACIONES'}
+                {userRolDisplay || (userRole === 'admin' ? 'ADMIN' : userRole === 'ventas' ? 'VENTAS' : 'OPERACIONES')}
               </div>
             </div>
 

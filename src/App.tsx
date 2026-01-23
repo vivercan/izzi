@@ -384,6 +384,7 @@ export default function App() {
           onNavigate={handleNavigate}
           userRole={userRole}
           userRolDisplay={userRolDisplay}
+          permisosCustom={userPermisosCustom}
           userName={currentUserName}
         />
       )}
