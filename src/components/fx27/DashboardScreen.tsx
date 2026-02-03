@@ -102,10 +102,10 @@ export const DashboardScreen = ({ onLogout, onNavigate, userRole = 'admin', user
     { id: 'cotizaciones', name: 'Cotizaciones', icon: FileText },
     { id: 'ventas', name: 'Ventas', icon: TrendingUp },
     { id: 'utilerias', name: 'Utilerías', icon: Package },
-    { id: 'servicio-clientes', name: 'Servicio a Clientes', icon: MessageCircle },
+    { id: 'servicio-clientes', name: 'Clientes', icon: Users },
     { id: 'dedicados', name: 'Dedicados', icon: Route },
     { id: 'sales-horizon', name: 'Sales Horizon', icon: Target },
-    { id: 'atencion-clientes', name: 'Servicio a Clientes', icon: HeadsetUserIcon },
+    { id: 'atencion-clientes', name: 'Servicio a Clientes', icon: MessageCircle },
     ];
 
   const topModules = modules.slice(0, 7);
@@ -779,6 +779,7 @@ export const DashboardScreen = ({ onLogout, onNavigate, userRole = 'admin', user
     </div>
   );
 };
+
 
 
 
