@@ -343,23 +343,44 @@ export function AtencionClientesModule({ onBack, userEmail, userName, userRole }
 
   // ============ COMMON HEADER ============
   const Header = ({ title, subtitle }: { title: string; subtitle: string }) => (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+    <div style={{
+      background: 'linear-gradient(180deg, rgba(15,25,45,0.95) 0%, rgba(12,20,38,0.92) 50%, rgba(10,18,32,0.85) 100%)',
+      backdropFilter: 'blur(20px) saturate(140%)', WebkitBackdropFilter: 'blur(20px) saturate(140%)',
+      borderBottom: '1px solid rgba(80,120,180,0.15)',
+      boxShadow: '0 8px 32px rgba(0,0,0,0.4), 0 2px 8px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.05)',
+      padding: '0 48px', height: '80px', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+      position: 'relative', marginBottom: '32px',
+    }}>
+      {/* Top accent line */}
+      <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '2px',
+        background: 'linear-gradient(90deg, transparent 0%, rgba(240,160,80,0.3) 20%, rgba(240,160,80,0.6) 50%, rgba(240,160,80,0.3) 80%, transparent 100%)',
+        boxShadow: '0 1px 6px rgba(240,160,80,0.3)' }} />
+      <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
         <button onClick={view === 'home' ? onBack : () => setView('home')}
-          style={{ ...S.btnSecondary, display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 16px' }}>
-          <ArrowLeft style={{ width: '18px', height: '18px' }} /> Volver
+          style={{ ...S.btnSecondary, display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 18px', borderRadius: '0px',
+            background: 'linear-gradient(135deg, rgba(20,30,50,0.85) 0%, rgba(15,22,40,0.9) 100%)',
+            border: '1px solid rgba(80,120,180,0.25)', boxShadow: '0 2px 8px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.06)' }}>
+          <ArrowLeft style={{ width: '16px', height: '16px' }} /> {view === 'home' ? 'Dashboard' : 'Volver'}
         </button>
         <div>
-          <h1 style={{ ...S.text, fontSize: '22px', fontWeight: 800, margin: 0, letterSpacing: '-0.01em' }}>{title}</h1>
-          <p style={{ ...S.textMuted, fontSize: '12px', margin: '2px 0 0 0' }}>{subtitle}</p>
+          <h1 style={{ ...S.text, fontSize: '24px', fontWeight: 800, margin: 0, letterSpacing: '-0.01em' }}>{title}</h1>
+          <p style={{ ...S.textMuted, fontSize: '11px', margin: '2px 0 0 0', letterSpacing: '0.08em', textTransform: 'uppercase' }}>{subtitle}</p>
         </div>
       </div>
-      <div style={{ display: 'flex', gap: '8px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
         <button onClick={() => setShowAI(!showAI)}
-          style={{ ...S.btnSecondary, display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 14px',
-            ...(showAI ? { border: '1px solid rgba(240,160,80,0.5)', color: 'rgba(240,160,80,1)' } : {}) }}>
+          style={{ ...S.btnSecondary, display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 16px', borderRadius: '0px',
+            background: showAI ? 'linear-gradient(135deg, rgba(240,160,80,0.15) 0%, rgba(220,140,60,0.1) 100%)' : 'linear-gradient(135deg, rgba(20,30,50,0.85) 0%, rgba(15,22,40,0.9) 100%)',
+            border: showAI ? '1px solid rgba(240,160,80,0.5)' : '1px solid rgba(80,120,180,0.25)',
+            color: showAI ? 'rgba(240,160,80,1)' : 'rgba(255,255,255,0.85)',
+            boxShadow: showAI ? '0 0 16px rgba(240,160,80,0.2), 0 2px 8px rgba(0,0,0,0.25)' : '0 2px 8px rgba(0,0,0,0.25)' }}>
           <Brain style={{ width: '16px', height: '16px' }} /> Buscar con IA
         </button>
+        {/* FX27 branding */}
+        <div style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '20px', fontWeight: 900, letterSpacing: '-0.02em',
+          background: 'linear-gradient(135deg, #E8EEF4 0%, #B5C4D8 30%, #D8DFE8 55%, #9FB0C5 80%)',
+          WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text',
+          filter: 'drop-shadow(1px 0 2px rgba(160,180,210,0.15))', marginLeft: '8px' }}>FX27</div>
       </div>
     </div>
   );
@@ -403,54 +424,151 @@ export function AtencionClientesModule({ onBack, userEmail, userName, userRole }
 
   // ============ HOME VIEW ============
   if (view === 'home') return (
-    <div style={{ ...S.bg, width: '100vw', height: '100vh', overflow: 'auto' }}>
+    <div style={{ ...S.bg, width: '100vw', height: '100vh', overflow: 'auto', position: 'relative' }}>
       <div style={{ ...S.overlay, position: 'fixed', inset: 0, pointerEvents: 'none' }} />
-      <div style={{ position: 'relative', padding: '32px 48px', maxWidth: '1400px', margin: '0 auto' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '48px' }}>
-          <button onClick={onBack}
-            style={{ ...S.btnSecondary, display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 20px' }}>
-            <ArrowLeft style={{ width: '18px', height: '18px' }} /> Dashboard
-          </button>
-          <div>
-            <h1 style={{ ...S.text, fontSize: '28px', fontWeight: 800, margin: 0 }}>Servicio a Clientes</h1>
-            <p style={{ ...S.textMuted, fontSize: '13px', margin: '4px 0 0 0' }}>Gestión de clientes, exportaciones e importaciones</p>
+      <div style={{ position: 'relative', zIndex: 1 }}>
+        {/* HEADER BAR — FX27 STYLE */}
+        <div style={{
+          background: 'linear-gradient(180deg, rgba(15,25,45,0.95) 0%, rgba(12,20,38,0.92) 50%, rgba(10,18,32,0.85) 100%)',
+          backdropFilter: 'blur(20px) saturate(140%)', WebkitBackdropFilter: 'blur(20px) saturate(140%)',
+          borderBottom: '1px solid rgba(80,120,180,0.15)',
+          boxShadow: '0 8px 32px rgba(0,0,0,0.4), 0 2px 8px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.05), inset 0 -1px 0 rgba(0,0,0,0.2)',
+          padding: '0 48px', height: '100px', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          position: 'relative',
+        }}>
+          {/* Top orange accent line */}
+          <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '2px',
+            background: 'linear-gradient(90deg, transparent 0%, rgba(240,160,80,0.3) 15%, rgba(240,160,80,0.6) 50%, rgba(240,160,80,0.3) 85%, transparent 100%)',
+            boxShadow: '0 1px 8px rgba(240,160,80,0.3)' }} />
+          {/* Bottom glow */}
+          <div style={{ position: 'absolute', bottom: '-4px', left: '48px', right: '48px', height: '4px',
+            background: 'linear-gradient(90deg, transparent, rgba(25,40,65,0.7) 10%, rgba(35,55,85,0.9) 50%, rgba(25,40,65,0.7) 90%, transparent)',
+            boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.4), 0 2px 8px rgba(10,40,90,0.2)', borderRadius: '2px' }} />
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+            <button onClick={onBack}
+              style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 20px',
+                fontFamily: "'Exo 2', sans-serif", fontSize: '13px', fontWeight: 600,
+                background: 'linear-gradient(135deg, rgba(20,30,50,0.85) 0%, rgba(15,22,40,0.9) 100%)',
+                backdropFilter: 'blur(8px)', border: '1px solid rgba(80,120,180,0.25)',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.06)',
+                borderRadius: '0px', color: 'rgba(255,255,255,0.9)', cursor: 'pointer', transition: 'all 0.3s' }}>
+              <ArrowLeft style={{ width: '16px', height: '16px' }} /> Dashboard
+            </button>
+            <div>
+              <h1 style={{ ...S.text, fontSize: '26px', fontWeight: 800, margin: 0, letterSpacing: '-0.01em' }}>Servicio a Clientes</h1>
+              <p style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '11px', margin: '4px 0 0 0', letterSpacing: '0.15em', textTransform: 'uppercase',
+                color: 'rgba(240,160,80,0.7)', fontWeight: 500 }}>Gestión de clientes, exportaciones e importaciones</p>
+            </div>
+          </div>
+          {/* FX27 Logo */}
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
+            <div style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '36px', fontWeight: 900, lineHeight: 1,
+              background: 'linear-gradient(135deg, #E8EEF4 0%, #B5C4D8 30%, #D8DFE8 55%, #9FB0C5 80%, #D0D9E4 100%)',
+              WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text',
+              filter: 'drop-shadow(2px 0 4px rgba(160,180,210,0.2))' }}>FX27</div>
+            <div style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '8px', fontWeight: 500, letterSpacing: '0.2em',
+              textTransform: 'uppercase', color: 'rgba(240,160,80,0.6)', marginTop: '2px',
+              filter: 'blur(0.3px) drop-shadow(0 0 6px rgba(240,160,80,0.5))' }}>Future Experience 27</div>
           </div>
         </div>
 
-        {/* KPIs Summary */}
-        <div style={{ display: 'flex', gap: '16px', marginBottom: '40px', flexWrap: 'wrap' }}>
-          <KPICard label="Clientes Activos" value={asigKPIs.total} icon={Users} />
-          <KPICard label="Asignados ELI" value={asigKPIs.eli} icon={UserCheck} color="#4caf50" />
-          <KPICard label="Asignados LIZ" value={asigKPIs.liz} icon={UserCheck} color="#2196f3" />
-          <KPICard label="Pendientes" value={asigKPIs.pendientes} icon={AlertTriangle} color="#ff9800" />
-        </div>
+        {/* CONTENT AREA */}
+        <div style={{ padding: '40px 48px', maxWidth: '1400px', margin: '0 auto' }}>
+          {/* KPI CARDS */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px', marginBottom: '48px' }}>
+            {[
+              { label: 'CLIENTES ACTIVOS', value: asigKPIs.total, icon: Users, color: 'rgba(240,160,80,1)' },
+              { label: 'ASIGNADOS ELI', value: asigKPIs.eli, icon: UserCheck, color: '#4caf50' },
+              { label: 'ASIGNADOS LIZ', value: asigKPIs.liz, icon: UserCheck, color: '#2196f3' },
+              { label: 'PENDIENTES', value: asigKPIs.pendientes, icon: AlertTriangle, color: '#ff9800' },
+            ].map((kpi, i) => {
+              const Icon = kpi.icon;
+              return (
+                <div key={i} style={{
+                  background: 'linear-gradient(155deg, rgba(18,32,58,0.96) 0%, rgba(12,22,42,0.98) 35%, rgba(8,16,32,1) 70%, rgba(6,12,24,1) 100%)',
+                  border: '1px solid rgba(80,120,180,0.2)', borderRadius: '10px',
+                  boxShadow: '0 4px 16px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.05), inset 0 -1px 0 rgba(0,0,0,0.3)',
+                  padding: '20px 24px', display: 'flex', alignItems: 'center', gap: '16px', position: 'relative', overflow: 'hidden',
+                }}>
+                  {/* Top accent */}
+                  <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '2px',
+                    background: `linear-gradient(90deg, transparent, ${kpi.color}66 50%, transparent)` }} />
+                  <div style={{ width: '44px', height: '44px', borderRadius: '10px', background: `${kpi.color}18`,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <Icon style={{ width: '22px', height: '22px', color: kpi.color }} />
+                  </div>
+                  <div>
+                    <div style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '28px', fontWeight: 800, color: 'rgba(255,255,255,0.95)', lineHeight: 1 }}>{kpi.value}</div>
+                    <div style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '10px', fontWeight: 700, color: kpi.color,
+                      letterSpacing: '0.1em', marginTop: '4px', textTransform: 'uppercase' }}>{kpi.label}</div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
 
-        {/* 3 Main Buttons */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '24px' }}>
-          {[
-            { id: 'asignacion' as const, title: 'Asignación de Clientes', desc: `${asigKPIs.total} clientes · ${asigKPIs.pendientes} pendientes`, icon: ClipboardList, color: '#4caf50' },
-            { id: 'expo' as const, title: 'Exportaciones', desc: `${expoData.length} registros · 25 estados · THERMO/SECO`, icon: Upload, color: '#ff9800' },
-            { id: 'impo' as const, title: 'Importación', desc: `${impoData.length} clientes · USA → México`, icon: Download, color: '#2196f3' },
-          ].map(item => {
-            const Icon = item.icon;
-            return (
-              <button key={item.id} onClick={() => setView(item.id)}
-                style={{ ...S.card, padding: '40px 32px', cursor: 'pointer', textAlign: 'center', transition: 'all 0.3s ease', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}
-                onMouseEnter={e => { Object.assign(e.currentTarget.style, S.cardHover); }}
-                onMouseLeave={e => { e.currentTarget.style.border = S.card.border!; e.currentTarget.style.boxShadow = S.card.boxShadow!; e.currentTarget.style.transform = 'translateY(0)'; }}>
-                <div style={{ width: '72px', height: '72px', borderRadius: '16px', background: `${item.color}22`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <Icon style={{ width: '36px', height: '36px', color: item.color }} />
-                </div>
-                <div>
-                  <div style={{ ...S.text, fontSize: '18px', fontWeight: 700 }}>{item.title}</div>
-                  <div style={{ ...S.textMuted, fontSize: '13px', marginTop: '6px' }}>{item.desc}</div>
-                </div>
-              </button>
-            );
-          })}
+          {/* 3 MAIN SECTION BUTTONS — DASHBOARD STYLE */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '24px' }}>
+            {[
+              { id: 'asignacion' as const, title: 'Asignación de Clientes', desc: `${asigKPIs.total} clientes · ${asigKPIs.pendientes} pendientes`, icon: ClipboardList, color: '#4caf50' },
+              { id: 'expo' as const, title: 'Exportaciones', desc: `${expoData.length} registros · 25 estados · THERMO/SECO`, icon: Upload, color: '#ff9800' },
+              { id: 'impo' as const, title: 'Importación', desc: `${impoData.length} clientes · USA → México`, icon: Download, color: '#2196f3' },
+            ].map(item => {
+              const Icon = item.icon;
+              return (
+                <button key={item.id} onClick={() => setView(item.id)}
+                  className="sc-section-btn"
+                  style={{
+                    background: 'linear-gradient(155deg, rgba(18,32,58,0.96) 0%, rgba(12,22,42,0.98) 35%, rgba(8,16,32,1) 70%, rgba(6,12,24,1) 100%)',
+                    border: '2px solid transparent',
+                    backgroundImage: 'linear-gradient(155deg, rgba(18,32,58,0.96) 0%, rgba(12,22,42,0.98) 35%, rgba(8,16,32,1) 70%, rgba(6,12,24,1) 100%), linear-gradient(135deg, rgba(180,100,50,0.28) 0%, rgba(60,90,140,0.25) 50%, rgba(180,100,50,0.28) 100%)',
+                    backgroundOrigin: 'border-box', backgroundClip: 'padding-box, border-box',
+                    borderRadius: '10px', cursor: 'pointer', textAlign: 'center' as const,
+                    boxShadow: '0 2px 4px rgba(0,0,0,0.25), 0 4px 12px rgba(0,0,0,0.45), 0 8px 24px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.05), inset 0 -1px 0 rgba(0,0,0,0.35)',
+                    padding: '48px 32px', display: 'flex', flexDirection: 'column' as const, alignItems: 'center', gap: '20px',
+                    transition: 'all 0.3s ease', position: 'relative' as const, overflow: 'hidden',
+                  }}
+                  onMouseEnter={e => {
+                    e.currentTarget.style.transform = 'translateY(-6px)';
+                    e.currentTarget.style.backgroundImage = 'linear-gradient(155deg, rgba(28,48,82,1) 0%, rgba(20,35,62,1) 35%, rgba(14,24,45,1) 70%, rgba(10,18,35,1) 100%), linear-gradient(135deg, rgba(240,160,80,0.65) 0%, rgba(220,140,70,0.6) 25%, rgba(70,110,170,0.4) 50%, rgba(220,140,70,0.6) 75%, rgba(240,160,80,0.65) 100%)';
+                    e.currentTarget.style.boxShadow = '0 4px 8px rgba(0,0,0,0.4), 0 10px 24px rgba(0,0,0,0.6), 0 18px 48px rgba(220,140,70,0.3), inset 0 2px 0 rgba(255,255,255,0.12), inset 0 -2px 0 rgba(0,0,0,0.5), 0 0 40px rgba(240,160,80,0.25)';
+                  }}
+                  onMouseLeave={e => {
+                    e.currentTarget.style.transform = 'translateY(0)';
+                    e.currentTarget.style.backgroundImage = 'linear-gradient(155deg, rgba(18,32,58,0.96) 0%, rgba(12,22,42,0.98) 35%, rgba(8,16,32,1) 70%, rgba(6,12,24,1) 100%), linear-gradient(135deg, rgba(180,100,50,0.28) 0%, rgba(60,90,140,0.25) 50%, rgba(180,100,50,0.28) 100%)';
+                    e.currentTarget.style.boxShadow = '0 2px 4px rgba(0,0,0,0.25), 0 4px 12px rgba(0,0,0,0.45), 0 8px 24px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.05), inset 0 -1px 0 rgba(0,0,0,0.35)';
+                  }}>
+                  {/* Top orange accent line on hover */}
+                  <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '3px', opacity: 0, transition: 'opacity 0.3s',
+                    background: 'linear-gradient(90deg, transparent 0%, rgba(240,160,80,0.3) 15%, rgba(240,160,80,0.85) 50%, rgba(240,160,80,0.3) 85%, transparent 100%)',
+                    boxShadow: '0 2px 12px rgba(240,160,80,0.5)', borderTopLeftRadius: '10px', borderTopRightRadius: '10px' }}
+                    className="sc-accent-line" />
+                  {/* Highlight superior 3D bisel */}
+                  <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '35%', opacity: 0.3, pointerEvents: 'none',
+                    background: 'linear-gradient(180deg, rgba(255,255,255,0.1) 0%, transparent 100%)', borderTopLeftRadius: '10px', borderTopRightRadius: '10px' }} />
+                  {/* Icon */}
+                  <div style={{ width: '80px', height: '80px', borderRadius: '50%', background: `${item.color}15`,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.3s',
+                    boxShadow: `0 0 0 1px ${item.color}30, 0 4px 16px ${item.color}10` }}>
+                    <Icon style={{ width: '40px', height: '40px', color: item.color, transition: 'all 0.3s',
+                      filter: `drop-shadow(0 2px 8px ${item.color}40)` }} />
+                  </div>
+                  <div>
+                    <div style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '18px', fontWeight: 700, color: 'rgba(255,255,255,0.95)',
+                      textShadow: '0 2px 8px rgba(0,0,0,0.6)' }}>{item.title}</div>
+                    <div style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '13px', color: 'rgba(255,255,255,0.5)', marginTop: '8px' }}>{item.desc}</div>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
         </div>
       </div>
-      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+      <style>{`
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .sc-section-btn:hover .sc-accent-line { opacity: 1 !important; }
+      `}</style>
     </div>
   );
 
@@ -458,8 +576,9 @@ export function AtencionClientesModule({ onBack, userEmail, userName, userRole }
   if (view === 'asignacion') return (
     <div style={{ ...S.bg, width: '100vw', height: '100vh', overflow: 'auto' }}>
       <div style={{ ...S.overlay, position: 'fixed', inset: 0, pointerEvents: 'none' }} />
-      <div style={{ position: 'relative', padding: '24px 40px' }}>
+      <div style={{ position: 'relative' }}>
         <Header title="Asignación de Clientes" subtitle={`${asigKPIs.total} clientes · Asigna ejecutivo de servicio a cada cliente`} />
+        <div style={{ padding: '24px 40px' }}>
         <AIPanel />
 
         {/* KPIs */}
@@ -567,7 +686,7 @@ export function AtencionClientesModule({ onBack, userEmail, userName, userRole }
         <div style={{ ...S.textMuted, fontSize: '11px', marginTop: '8px', textAlign: 'right' }}>
           Mostrando {filteredAsignacion.length} de {asignacion.length} clientes
         </div>
-      </div>
+      </div></div>
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   );
@@ -578,8 +697,9 @@ export function AtencionClientesModule({ onBack, userEmail, userName, userRole }
     return (
       <div style={{ ...S.bg, width: '100vw', height: '100vh', overflow: 'auto' }}>
         <div style={{ ...S.overlay, position: 'fixed', inset: 0, pointerEvents: 'none' }} />
-        <div style={{ position: 'relative', padding: '24px 40px' }}>
+        <div style={{ position: 'relative' }}>
           <Header title="Buscador de Exportaciones" subtitle="Encuentra clientes por tipo de equipo y estado de origen" />
+          <div style={{ padding: '24px 40px' }}>
           <AIPanel />
 
           {/* Filters */}
@@ -757,7 +877,7 @@ export function AtencionClientesModule({ onBack, userEmail, userName, userRole }
           <div style={{ ...S.textMuted, fontSize: '11px', marginTop: '8px', textAlign: 'right' }}>
             {filteredExpo.length} resultados · {expoTipo} · {expoExpanded ? `${expoEstado} + vecinos` : expoEstado || 'Sin filtro'}
           </div>
-        </div>
+        </div></div>
         <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
       </div>
     );
@@ -767,8 +887,9 @@ export function AtencionClientesModule({ onBack, userEmail, userName, userRole }
   return (
     <div style={{ ...S.bg, width: '100vw', height: '100vh', overflow: 'auto' }}>
       <div style={{ ...S.overlay, position: 'fixed', inset: 0, pointerEvents: 'none' }} />
-      <div style={{ position: 'relative', padding: '24px 40px' }}>
+      <div style={{ position: 'relative' }}>
         <Header title="Clientes de Importación" subtitle={`${impoData.length} clientes · Entregas USA → México`} />
+        <div style={{ padding: '24px 40px' }}>
         <AIPanel />
 
         {/* KPIs */}
@@ -850,7 +971,7 @@ export function AtencionClientesModule({ onBack, userEmail, userName, userRole }
         <div style={{ ...S.textMuted, fontSize: '11px', marginTop: '8px', textAlign: 'right' }}>
           Mostrando {filteredImpo.length} de {impoData.length} clientes
         </div>
-      </div>
+      </div></div>
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   );
