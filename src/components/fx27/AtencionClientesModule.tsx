@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { ArrowLeft, Users, Upload, Download, Search, UserCheck, X, FileSpreadsheet, Brain, MapPin, ChevronDown, RefreshCw, ClipboardList, MessageSquare, Loader2, Check, AlertTriangle, Truck } from 'lucide-react';
+import { ArrowLeft, Users, Upload, Download, Search, UserCheck, X, FileSpreadsheet, Brain, MapPin, ChevronDown, ChevronUp, RefreshCw, ClipboardList, MessageSquare, Loader2, Check, AlertTriangle, Truck } from 'lucide-react';
 import { createClient } from '@supabase/supabase-js';
 import { projectId, publicAnonKey } from '../../utils/supabase/info';
 
@@ -53,6 +53,68 @@ const NEIGHBOR_STATES: Record<string, string[]> = {
 
 const EJECUTIVOS_SC = ['ELI', 'LIZ'];
 
+// ============ IMPORTACIÓN: EXCLUSION & MAPPING ============
+const CLIENTES_EXCLUIDOS_IMPO = [
+  'NATURESWEET', 'NATURE SWEET', 'NS BRANDS', 'NSBRAND',
+  'NEXTEER', 'STEERINGMEX', 'STEERING',
+  'CLARIOS', 'CLARIOSMTY',
+  'BAFAR', 'BARCEL', 'GRANJAS CARROLL', 'CARROLL',
+  'LALA', 'LACTEOS LALA', 'TERNIUM', 'ALPURA',
+  'TROB TRANSPORTES', 'TROB', 'WEXPRESS', 'SPEEDYHAUL', 'TROB USA',
+  'WE ', 'SHI', 'PILGRIM',
+];
+const EJECUTIVO_ISIS = [
+  'ARCH MEAT', 'SUN CHEMICAL', 'TITAN MEATS', 'HERCON',
+  'BAKERY MACHINERY', 'MARTICO', 'ARGOS FREIGHT',
+  'BERRIES PARADISE', 'RED ROAD', 'ZEBRA',
+];
+const EJECUTIVO_PALOMA = [
+  'PAC INTERNATIONAL', 'P.A.C.', 'SHORELINE', 'ATLAS EXPEDIT',
+  'LOGISTEED', 'SCHENKER', 'COMERCIALIZADORA KEES',
+  'FP GRUPO', 'JA FREIGHT', 'JA CARRIER', 'CLG',
+  'COURIER NETWORK', 'PXGL', 'SUN BERRIES', 'AGRICOLA SUN',
+];
+const getEjecutivoImpo = (cliente: string): string => {
+  const c = cliente.toUpperCase();
+  if (EJECUTIVO_ISIS.some(e => c.includes(e))) return 'ISIS';
+  if (EJECUTIVO_PALOMA.some(e => c.includes(e))) return 'PALOMA';
+  return '—';
+};
+const isExcludedImpo = (cliente: string): boolean => {
+  const c = cliente.toUpperCase();
+  return CLIENTES_EXCLUIDOS_IMPO.some(e => c.includes(e));
+};
+// Extract Mexican state from full address
+const ESTADOS_MX = [
+  'AGUASCALIENTES', 'BAJA CALIFORNIA SUR', 'BAJA CALIFORNIA',
+  'CAMPECHE', 'CHIAPAS', 'CHIHUAHUA', 'CIUDAD DE MEXICO', 'COAHUILA',
+  'COLIMA', 'DURANGO', 'ESTADO DE MEXICO', 'GUANAJUATO', 'GUERRERO',
+  'HIDALGO', 'JALISCO', 'MICHOACAN', 'MORELOS', 'NAYARIT', 'NUEVO LEON',
+  'OAXACA', 'PUEBLA', 'QUERETARO', 'QUINTANA ROO', 'SAN LUIS POTOSI',
+  'SINALOA', 'SONORA', 'TABASCO', 'TAMAULIPAS', 'TLAXCALA', 'VERACRUZ',
+  'YUCATAN', 'ZACATECAS',
+];
+const extractEstado = (zona: string): string => {
+  if (!zona) return '—';
+  const z = zona.toUpperCase();
+  // Try to find state in the address string
+  for (const edo of ESTADOS_MX) {
+    if (z.includes(edo)) return edo.split(' ').map(w => w.charAt(0) + w.slice(1).toLowerCase()).join(' ');
+  }
+  // Common abbreviations
+  if (z.includes('CDMX') || z.includes('CD. DE MEXICO') || z.includes('D.F.')) return 'Ciudad de México';
+  if (z.includes('EDO. MEX') || z.includes('EDO MEX') || z.includes('EDOMEX')) return 'Estado de México';
+  if (z.includes('NVO LEON') || z.includes('N.L.') || z.includes('MONTERREY')) return 'Nuevo León';
+  if (z.includes('QRO') || z.includes('QUERETARO')) return 'Querétaro';
+  if (z.includes('GDL') || z.includes('GUADALAJARA')) return 'Jalisco';
+  if (z.includes('MTY') || z.includes('MONTERR')) return 'Nuevo León';
+  if (z.includes('SLP')) return 'San Luis Potosí';
+  if (z.includes('AGS')) return 'Aguascalientes';
+  if (z.includes('TEXAS') || z.includes('EL PASO') || z.includes('LAREDO')) return 'USA';
+  if (z.includes('CAROLINA') || z.includes('MINNESOTA') || z.includes('CHICAGO') || z.includes('MINNESOTA')) return 'USA';
+  return zona.length > 30 ? zona.substring(0, 28) + '…' : zona;
+};
+
 // ============ STYLES ============
 const S = {
   bg: { background: 'linear-gradient(135deg, #001f4d 0%, #003d7a 25%, #0066cc 50%, #1a8fff 75%, #4da6ff 100%)' },
@@ -94,12 +156,12 @@ const S = {
   },
   tableHeader: {
     background: 'rgba(15,25,45,0.95)', borderBottom: '2px solid rgba(240,160,80,0.3)',
-    fontFamily: "'Exo 2', sans-serif", fontSize: '12px', fontWeight: 700, color: 'rgba(240,160,80,0.9)',
-    textTransform: 'uppercase' as const, letterSpacing: '0.06em', padding: '12px 14px', textAlign: 'left' as const,
+    fontFamily: "'Exo 2', sans-serif", fontSize: '11px', fontWeight: 700, color: 'rgba(240,160,80,0.9)',
+    textTransform: 'uppercase' as const, letterSpacing: '0.06em', padding: '8px 10px', textAlign: 'left' as const,
   },
   tableCell: {
-    fontFamily: "'Exo 2', sans-serif", fontSize: '13px', color: 'rgba(255,255,255,0.85)',
-    padding: '10px 14px', borderBottom: '1px solid rgba(80,120,180,0.1)',
+    fontFamily: "'Exo 2', sans-serif", fontSize: '12px', color: 'rgba(255,255,255,0.85)',
+    padding: '6px 10px', borderBottom: '1px solid rgba(80,120,180,0.1)',
   },
 };
 
@@ -197,6 +259,8 @@ export function AtencionClientesModule({ onBack, userEmail, userName, userRole }
   // Impo state
   const [searchImpo, setSearchImpo] = useState('');
   const [filterTipoImpo, setFilterTipoImpo] = useState('TODOS');
+  const [impoSortCol, setImpoSortCol] = useState<string>('viajes');
+  const [impoSortDir, setImpoSortDir] = useState<'asc' | 'desc'>('desc');
 
   // AI state
   const [aiQuery, setAiQuery] = useState('');
@@ -290,18 +354,49 @@ export function AtencionClientesModule({ onBack, userEmail, userName, userRole }
   }), [filteredExpo]);
 
   // ============ IMPO LOGIC ============
+  const handleImpoSort = (col: string) => {
+    if (impoSortCol === col) setImpoSortDir(d => d === 'asc' ? 'desc' : 'asc');
+    else { setImpoSortCol(col); setImpoSortDir(col === 'cliente' ? 'asc' : 'desc'); }
+  };
+  const SortIcon = ({ col }: { col: string }) => {
+    if (impoSortCol !== col) return <ChevronDown style={{ width: '12px', height: '12px', opacity: 0.3, marginLeft: '2px' }} />;
+    return impoSortDir === 'asc'
+      ? <ChevronUp style={{ width: '12px', height: '12px', opacity: 0.9, marginLeft: '2px', color: 'rgba(240,160,80,1)' }} />
+      : <ChevronDown style={{ width: '12px', height: '12px', opacity: 0.9, marginLeft: '2px', color: 'rgba(240,160,80,1)' }} />;
+  };
+
   const filteredImpo = useMemo(() => {
-    let data = impoData;
+    // 1. Filter out excluded clients
+    let data = impoData.filter(d => !isExcludedImpo(d.cliente));
+    // 2. Filter by tipo
     if (filterTipoImpo !== 'TODOS') {
       if (filterTipoImpo === 'THERMO') data = data.filter(d => d.thermo > 0);
       else if (filterTipoImpo === 'SECO') data = data.filter(d => d.seco > 0);
     }
+    // 3. Search
     if (searchImpo) {
       const q = searchImpo.toLowerCase();
-      data = data.filter(d => d.cliente.toLowerCase().includes(q) || (d.zona_entrega || '').toLowerCase().includes(q) || (d.empresa || '').toLowerCase().includes(q));
+      data = data.filter(d => d.cliente.toLowerCase().includes(q) || extractEstado(d.zona_entrega).toLowerCase().includes(q) || getEjecutivoImpo(d.cliente).toLowerCase().includes(q));
     }
+    // 4. Sort
+    data = [...data].sort((a, b) => {
+      let va: any, vb: any;
+      switch (impoSortCol) {
+        case 'cliente': va = a.cliente.toUpperCase(); vb = b.cliente.toUpperCase(); break;
+        case 'viajes': va = a.viajes; vb = b.viajes; break;
+        case 'thermo': va = a.thermo; vb = b.thermo; break;
+        case 'seco': va = a.seco; vb = b.seco; break;
+        case 'formatos': va = a.formatos; vb = b.formatos; break;
+        case 'tipo_equipo': va = a.tipo_equipo; vb = b.tipo_equipo; break;
+        case 'zona': va = extractEstado(a.zona_entrega); vb = extractEstado(b.zona_entrega); break;
+        case 'ejecutivo': va = getEjecutivoImpo(a.cliente); vb = getEjecutivoImpo(b.cliente); break;
+        default: va = a.viajes; vb = b.viajes;
+      }
+      if (typeof va === 'string') return impoSortDir === 'asc' ? va.localeCompare(vb) : vb.localeCompare(va);
+      return impoSortDir === 'asc' ? va - vb : vb - va;
+    });
     return data;
-  }, [impoData, filterTipoImpo, searchImpo]);
+  }, [impoData, filterTipoImpo, searchImpo, impoSortCol, impoSortDir]);
 
   const impoKPIs = useMemo(() => ({
     clientes: filteredImpo.length,
@@ -364,8 +459,8 @@ export function AtencionClientesModule({ onBack, userEmail, userName, userRole }
           color: 'rgba(240,160,80,0.75)', marginTop: '4px', marginRight: '-3px',
           filter: 'blur(0.5px) drop-shadow(0 0 8px rgba(240,160,80,0.6)) drop-shadow(0 0 16px rgba(240,160,80,0.4))' }}>Future Experience 27</div>
       </div>
-      {/* Back + Title + AI Button */}
-      <div style={{ position: 'relative', zIndex: 20, display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: '25px', paddingLeft: '24px', paddingRight: '200px' }}>
+      {/* Back + Title */}
+      <div style={{ position: 'relative', zIndex: 20, display: 'flex', alignItems: 'center', paddingTop: '25px', paddingLeft: '24px', paddingRight: '200px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
           <button onClick={() => setView('home')}
             style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '48px', height: '48px', borderRadius: '12px',
@@ -377,15 +472,6 @@ export function AtencionClientesModule({ onBack, userEmail, userName, userRole }
           </button>
           <h1 style={{ fontFamily: "'Exo 2', sans-serif", fontWeight: 600, fontSize: '32px', lineHeight: 1, color: 'white', margin: 0 }}>{title}</h1>
         </div>
-        <button onClick={() => setShowAI(!showAI)}
-          style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 16px', borderRadius: '8px',
-            background: showAI ? 'linear-gradient(135deg, rgba(240,160,80,0.15) 0%, rgba(220,140,60,0.1) 100%)' : 'rgba(255,255,255,0.05)',
-            border: showAI ? '1px solid rgba(240,160,80,0.5)' : '1px solid rgba(255,255,255,0.1)',
-            color: showAI ? 'rgba(240,160,80,1)' : 'rgba(255,255,255,0.85)',
-            fontFamily: "'Exo 2', sans-serif", fontSize: '13px', fontWeight: 600, cursor: 'pointer',
-            boxShadow: showAI ? '0 0 16px rgba(240,160,80,0.2)' : 'none', transition: 'all 0.2s' }}>
-          <Brain style={{ width: '16px', height: '16px' }} /> Buscar con IA
-        </button>
       </div>
     </div>
   );
@@ -579,11 +665,10 @@ export function AtencionClientesModule({ onBack, userEmail, userName, userRole }
       <div style={{ ...S.overlay, position: 'fixed', inset: 0, pointerEvents: 'none' }} />
       <div style={{ position: 'relative' }}>
         <Header title="Asignación de Clientes" subtitle={`${asigKPIs.total} clientes · Asigna ejecutivo de servicio a cada cliente`} />
-        <div style={{ padding: '24px 40px' }}>
-        <AIPanel />
+        <div style={{ padding: '12px 40px' }}>
 
         {/* KPIs */}
-        <div style={{ display: 'flex', gap: '14px', marginBottom: '20px', flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', gap: '14px', marginBottom: '12px', flexWrap: 'wrap' }}>
           <KPICard label="Total Clientes" value={asigKPIs.total} icon={Users} />
           <KPICard label="Eli Pasillas" value={asigKPIs.eli} icon={UserCheck} color="#4caf50" />
           <KPICard label="Liz Garcia" value={asigKPIs.liz} icon={UserCheck} color="#2196f3" />
@@ -591,7 +676,7 @@ export function AtencionClientesModule({ onBack, userEmail, userName, userRole }
         </div>
 
         {/* Filters & Actions */}
-        <div style={{ display: 'flex', gap: '12px', marginBottom: '16px', alignItems: 'center', flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', gap: '12px', marginBottom: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
           <div style={{ position: 'relative', flex: 1, minWidth: '250px' }}>
             <Search style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', width: '16px', height: '16px', color: 'rgba(255,255,255,0.4)' }} />
             <input value={searchAsig} onChange={e => setSearchAsig(e.target.value)} placeholder="Buscar cliente..."
@@ -617,7 +702,7 @@ export function AtencionClientesModule({ onBack, userEmail, userName, userRole }
 
         {/* Table */}
         <div style={{ ...S.card, overflow: 'hidden' }}>
-          <div style={{ maxHeight: 'calc(100vh - 380px)', overflowY: 'auto' }}>
+          <div style={{ maxHeight: 'calc(100vh - 290px)', overflowY: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead style={{ position: 'sticky', top: 0, zIndex: 5 }}>
                 <tr>
@@ -700,11 +785,10 @@ export function AtencionClientesModule({ onBack, userEmail, userName, userRole }
         <div style={{ ...S.overlay, position: 'fixed', inset: 0, pointerEvents: 'none' }} />
         <div style={{ position: 'relative' }}>
           <Header title="Buscador de Exportaciones" subtitle="Encuentra clientes por tipo de equipo y estado de origen" />
-          <div style={{ padding: '24px 40px' }}>
-          <AIPanel />
+          <div style={{ padding: '12px 40px' }}>
 
           {/* Filters */}
-          <div style={{ ...S.card, padding: '20px', marginBottom: '20px' }}>
+          <div style={{ ...S.card, padding: '16px', marginBottom: '12px' }}>
             <div style={{ display: 'flex', gap: '16px', alignItems: 'flex-end', flexWrap: 'wrap' }}>
               <div style={{ flex: '0 0 200px' }}>
                 <label style={{ ...S.textMuted, fontSize: '11px', display: 'block', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
@@ -818,7 +902,7 @@ export function AtencionClientesModule({ onBack, userEmail, userName, userRole }
             </div>
           ) : (
             <div style={{ ...S.card, overflow: 'hidden' }}>
-              <div style={{ maxHeight: 'calc(100vh - 460px)', overflowY: 'auto' }}>
+              <div style={{ maxHeight: 'calc(100vh - 380px)', overflowY: 'auto' }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                   <thead style={{ position: 'sticky', top: 0, zIndex: 5 }}>
                     <tr>
@@ -890,11 +974,10 @@ export function AtencionClientesModule({ onBack, userEmail, userName, userRole }
       <div style={{ ...S.overlay, position: 'fixed', inset: 0, pointerEvents: 'none' }} />
       <div style={{ position: 'relative' }}>
         <Header title="Clientes de Importación" subtitle={`${impoData.length} clientes · Entregas USA → México`} />
-        <div style={{ padding: '24px 40px' }}>
-        <AIPanel />
+        <div style={{ padding: '12px 40px' }}>
 
         {/* KPIs */}
-        <div style={{ display: 'flex', gap: '14px', marginBottom: '20px', flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', gap: '14px', marginBottom: '12px', flexWrap: 'wrap' }}>
           <KPICard label="Clientes" value={impoKPIs.clientes} icon={Users} />
           <KPICard label="Viajes Totales" value={impoKPIs.viajes.toLocaleString()} icon={Truck} color="#2196f3" />
           <KPICard label="Viajes Thermo" value={impoKPIs.thermo.toLocaleString()} icon={Download} color="#29b6f6" />
@@ -902,10 +985,10 @@ export function AtencionClientesModule({ onBack, userEmail, userName, userRole }
         </div>
 
         {/* Filters */}
-        <div style={{ display: 'flex', gap: '12px', marginBottom: '16px', alignItems: 'center', flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', gap: '12px', marginBottom: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
           <div style={{ position: 'relative', flex: 1, minWidth: '250px' }}>
             <Search style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', width: '16px', height: '16px', color: 'rgba(255,255,255,0.4)' }} />
-            <input value={searchImpo} onChange={e => setSearchImpo(e.target.value)} placeholder="Buscar cliente, zona o empresa..."
+            <input value={searchImpo} onChange={e => setSearchImpo(e.target.value)} placeholder="Buscar cliente, estado o ejecutivo..."
               style={{ ...S.input, paddingLeft: '38px' }} />
           </div>
           <select value={filterTipoImpo} onChange={e => setFilterTipoImpo(e.target.value)} style={{ ...S.select, width: '180px' }}>
@@ -914,8 +997,8 @@ export function AtencionClientesModule({ onBack, userEmail, userName, userRole }
             <option value="SECO">Solo Seco</option>
           </select>
           <button onClick={() => {
-            const headers = ['#', 'CLIENTE', 'VIAJES', 'THERMO', 'SECO', 'FORMATOS', 'TIPO EQUIPO', 'ZONA ENTREGA', 'EMPRESA'];
-            const rows = filteredImpo.map(d => [String(d.numero), d.cliente, String(d.viajes), String(d.thermo), String(d.seco), String(d.formatos), d.tipo_equipo, d.zona_entrega, d.empresa || '']);
+            const headers = ['#', 'CLIENTE', 'VIAJES', 'THERMO', 'SECO', 'FMTS', 'TIPO EQUIPO', 'ESTADO', 'EJECUTIVO'];
+            const rows = filteredImpo.map((d, i) => [String(i + 1), d.cliente, String(d.viajes), String(d.thermo), String(d.seco), String(d.formatos), d.tipo_equipo, extractEstado(d.zona_entrega), getEjecutivoImpo(d.cliente)]);
             const ctx = `${impoKPIs.clientes} clientes IMPO, ${impoKPIs.viajes} viajes totales, ${impoKPIs.thermo} thermo, ${impoKPIs.seco} seco`;
             handleExportWithAI(headers, rows, 'Importacion_Clientes', ctx);
           }} disabled={exporting}
@@ -927,27 +1010,46 @@ export function AtencionClientesModule({ onBack, userEmail, userName, userRole }
 
         {/* Table */}
         <div style={{ ...S.card, overflow: 'hidden' }}>
-          <div style={{ maxHeight: 'calc(100vh - 380px)', overflowY: 'auto' }}>
+          <div style={{ maxHeight: 'calc(100vh - 290px)', overflowY: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead style={{ position: 'sticky', top: 0, zIndex: 5 }}>
                 <tr>
                   <th style={{ ...S.tableHeader, width: '40px' }}>#</th>
-                  <th style={S.tableHeader}>Cliente</th>
-                  <th style={{ ...S.tableHeader, width: '70px', textAlign: 'center' }}>Viajes</th>
-                  <th style={{ ...S.tableHeader, width: '70px', textAlign: 'center' }}>Thermo</th>
-                  <th style={{ ...S.tableHeader, width: '70px', textAlign: 'center' }}>Seco</th>
-                  <th style={{ ...S.tableHeader, width: '70px', textAlign: 'center' }}>Fmts</th>
-                  <th style={{ ...S.tableHeader, width: '120px' }}>Tipo Equipo</th>
-                  <th style={S.tableHeader}>Zona de Entrega</th>
-                  <th style={{ ...S.tableHeader, width: '140px' }}>Empresa</th>
+                  <th style={{ ...S.tableHeader, cursor: 'pointer', userSelect: 'none' }} onClick={() => handleImpoSort('cliente')}>
+                    <span style={{ display: 'inline-flex', alignItems: 'center' }}>Cliente <SortIcon col="cliente" /></span>
+                  </th>
+                  <th style={{ ...S.tableHeader, width: '70px', textAlign: 'center', cursor: 'pointer', userSelect: 'none' }} onClick={() => handleImpoSort('viajes')}>
+                    <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>Viajes <SortIcon col="viajes" /></span>
+                  </th>
+                  <th style={{ ...S.tableHeader, width: '70px', textAlign: 'center', cursor: 'pointer', userSelect: 'none' }} onClick={() => handleImpoSort('thermo')}>
+                    <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>Thermo <SortIcon col="thermo" /></span>
+                  </th>
+                  <th style={{ ...S.tableHeader, width: '70px', textAlign: 'center', cursor: 'pointer', userSelect: 'none' }} onClick={() => handleImpoSort('seco')}>
+                    <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>Seco <SortIcon col="seco" /></span>
+                  </th>
+                  <th style={{ ...S.tableHeader, width: '60px', textAlign: 'center', cursor: 'pointer', userSelect: 'none' }} onClick={() => handleImpoSort('formatos')}>
+                    <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>Fmts <SortIcon col="formatos" /></span>
+                  </th>
+                  <th style={{ ...S.tableHeader, width: '110px', cursor: 'pointer', userSelect: 'none' }} onClick={() => handleImpoSort('tipo_equipo')}>
+                    <span style={{ display: 'inline-flex', alignItems: 'center' }}>Tipo Equipo <SortIcon col="tipo_equipo" /></span>
+                  </th>
+                  <th style={{ ...S.tableHeader, width: '160px', cursor: 'pointer', userSelect: 'none' }} onClick={() => handleImpoSort('zona')}>
+                    <span style={{ display: 'inline-flex', alignItems: 'center' }}>Estado <SortIcon col="zona" /></span>
+                  </th>
+                  <th style={{ ...S.tableHeader, width: '100px', cursor: 'pointer', userSelect: 'none' }} onClick={() => handleImpoSort('ejecutivo')}>
+                    <span style={{ display: 'inline-flex', alignItems: 'center' }}>Ejecutivo <SortIcon col="ejecutivo" /></span>
+                  </th>
                 </tr>
               </thead>
               <tbody>
-                {filteredImpo.map(d => (
+                {filteredImpo.map((d, i) => {
+                  const ejec = getEjecutivoImpo(d.cliente);
+                  const estado = extractEstado(d.zona_entrega);
+                  return (
                   <tr key={d.id} style={{ transition: 'background 0.2s' }}
                     onMouseEnter={e => (e.currentTarget.style.background = 'rgba(240,160,80,0.05)')}
                     onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
-                    <td style={{ ...S.tableCell, color: 'rgba(255,255,255,0.4)' }}>{d.numero}</td>
+                    <td style={{ ...S.tableCell, color: 'rgba(255,255,255,0.4)' }}>{i + 1}</td>
                     <td style={{ ...S.tableCell, fontWeight: 600 }}>{d.cliente}</td>
                     <td style={{ ...S.tableCell, textAlign: 'center', fontWeight: 700, color: 'rgba(240,160,80,1)' }}>{d.viajes}</td>
                     <td style={{ ...S.tableCell, textAlign: 'center', color: d.thermo > 0 ? '#29b6f6' : 'rgba(255,255,255,0.25)' }}>{d.thermo}</td>
@@ -960,17 +1062,24 @@ export function AtencionClientesModule({ onBack, userEmail, userName, userRole }
                         color: d.tipo_equipo.includes('THERMO') && d.tipo_equipo.includes('SECO') ? '#ba68c8' : d.tipo_equipo.includes('THERMO') ? '#42a5f5' : '#ffa726',
                       }}>{d.tipo_equipo}</span>
                     </td>
-                    <td style={{ ...S.tableCell, fontSize: '11px', color: 'rgba(255,255,255,0.6)', maxWidth: '280px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
-                      title={d.zona_entrega}>{d.zona_entrega}</td>
-                    <td style={{ ...S.tableCell, fontSize: '11px' }}>{d.empresa || '—'}</td>
+                    <td style={{ ...S.tableCell, fontSize: '11px', color: estado === 'USA' ? '#ff7043' : 'rgba(255,255,255,0.7)' }}
+                      title={d.zona_entrega}>{estado}</td>
+                    <td style={S.tableCell}>
+                      <span style={{
+                        padding: '3px 8px', borderRadius: '4px', fontSize: '10px', fontWeight: 700, fontFamily: "'Exo 2', sans-serif",
+                        background: ejec === 'ISIS' ? 'rgba(76,175,80,0.15)' : ejec === 'PALOMA' ? 'rgba(33,150,243,0.15)' : 'rgba(120,120,120,0.1)',
+                        color: ejec === 'ISIS' ? '#66bb6a' : ejec === 'PALOMA' ? '#42a5f5' : 'rgba(255,255,255,0.35)',
+                      }}>{ejec}</span>
+                    </td>
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
           </div>
         </div>
         <div style={{ ...S.textMuted, fontSize: '11px', marginTop: '8px', textAlign: 'right' }}>
-          Mostrando {filteredImpo.length} de {impoData.length} clientes
+          Mostrando {filteredImpo.length} de {impoData.filter(d => !isExcludedImpo(d.cliente)).length} clientes (excluidos dedicados e internos)
         </div>
       </div></div>
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
