@@ -357,10 +357,11 @@ export function AtencionClientesModule({ onBack, userEmail, userName, userRole }
         boxShadow: '0 1px 6px rgba(240,160,80,0.3)' }} />
       <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
         <button onClick={view === 'home' ? onBack : () => setView('home')}
-          style={{ ...S.btnSecondary, display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 18px', borderRadius: '0px',
-            background: 'linear-gradient(135deg, rgba(20,30,50,0.85) 0%, rgba(15,22,40,0.9) 100%)',
-            border: '1px solid rgba(80,120,180,0.25)', boxShadow: '0 2px 8px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.06)' }}>
-          <ArrowLeft style={{ width: '16px', height: '16px' }} /> {view === 'home' ? 'Dashboard' : 'Volver'}
+          style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '44px', height: '44px',
+            background: 'linear-gradient(135deg, #f0a050 0%, #e8922a 100%)',
+            border: 'none', borderRadius: '10px', color: '#fff', cursor: 'pointer', transition: 'all 0.3s',
+            boxShadow: '0 2px 8px rgba(240,160,80,0.35), inset 0 1px 0 rgba(255,255,255,0.2)' }}>
+          <ArrowLeft style={{ width: '22px', height: '22px', strokeWidth: 2.5 }} />
         </button>
         <div>
           <h1 style={{ ...S.text, fontSize: '24px', fontWeight: 800, margin: 0, letterSpacing: '-0.01em' }}>{title}</h1>
@@ -377,10 +378,10 @@ export function AtencionClientesModule({ onBack, userEmail, userName, userRole }
           <Brain style={{ width: '16px', height: '16px' }} /> Buscar con IA
         </button>
         {/* FX27 branding */}
-        <div style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '20px', fontWeight: 900, letterSpacing: '-0.02em',
-          background: 'linear-gradient(135deg, #E8EEF4 0%, #B5C4D8 30%, #D8DFE8 55%, #9FB0C5 80%)',
+        <div style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '28px', fontWeight: 900, letterSpacing: '-0.02em',
+          background: 'linear-gradient(135deg, #FFFFFF 0%, #F5F5F5 30%, #E0E0E0 60%, #FFFFFF 100%)',
           WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text',
-          filter: 'drop-shadow(1px 0 2px rgba(160,180,210,0.15))', marginLeft: '8px' }}>FX27</div>
+          filter: 'drop-shadow(2px 2px 4px rgba(0,0,0,0.4))', marginLeft: '8px' }}>FX27</div>
       </div>
     </div>
   );
@@ -447,29 +448,26 @@ export function AtencionClientesModule({ onBack, userEmail, userName, userRole }
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
             <button onClick={onBack}
-              style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 20px',
-                fontFamily: "'Exo 2', sans-serif", fontSize: '13px', fontWeight: 600,
-                background: 'linear-gradient(135deg, rgba(20,30,50,0.85) 0%, rgba(15,22,40,0.9) 100%)',
-                backdropFilter: 'blur(8px)', border: '1px solid rgba(80,120,180,0.25)',
-                boxShadow: '0 2px 8px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.06)',
-                borderRadius: '0px', color: 'rgba(255,255,255,0.9)', cursor: 'pointer', transition: 'all 0.3s' }}>
-              <ArrowLeft style={{ width: '16px', height: '16px' }} /> Dashboard
+              style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '44px', height: '44px',
+                background: 'linear-gradient(135deg, #f0a050 0%, #e8922a 100%)',
+                border: 'none', borderRadius: '10px', color: '#fff', cursor: 'pointer', transition: 'all 0.3s',
+                boxShadow: '0 2px 8px rgba(240,160,80,0.35), inset 0 1px 0 rgba(255,255,255,0.2)' }}>
+              <ArrowLeft style={{ width: '22px', height: '22px', strokeWidth: 2.5 }} />
             </button>
             <div>
-              <h1 style={{ ...S.text, fontSize: '26px', fontWeight: 800, margin: 0, letterSpacing: '-0.01em' }}>Servicio a Clientes</h1>
+              <h1 style={{ ...S.text, fontSize: '28px', fontWeight: 800, margin: 0, letterSpacing: '-0.01em' }}>Servicio a Clientes</h1>
               <p style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '11px', margin: '4px 0 0 0', letterSpacing: '0.15em', textTransform: 'uppercase',
                 color: 'rgba(240,160,80,0.7)', fontWeight: 500 }}>Gestión de clientes, exportaciones e importaciones</p>
             </div>
           </div>
           {/* FX27 Logo */}
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
-            <div style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '36px', fontWeight: 900, lineHeight: 1,
-              background: 'linear-gradient(135deg, #E8EEF4 0%, #B5C4D8 30%, #D8DFE8 55%, #9FB0C5 80%, #D0D9E4 100%)',
+            <div style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '42px', fontWeight: 900, lineHeight: 1,
+              background: 'linear-gradient(135deg, #FFFFFF 0%, #F5F5F5 30%, #E0E0E0 60%, #FFFFFF 100%)',
               WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text',
-              filter: 'drop-shadow(2px 0 4px rgba(160,180,210,0.2))' }}>FX27</div>
-            <div style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '8px', fontWeight: 500, letterSpacing: '0.2em',
-              textTransform: 'uppercase', color: 'rgba(240,160,80,0.6)', marginTop: '2px',
-              filter: 'blur(0.3px) drop-shadow(0 0 6px rgba(240,160,80,0.5))' }}>Future Experience 27</div>
+              filter: 'drop-shadow(2px 2px 4px rgba(0,0,0,0.4))' }}>FX27</div>
+            <div style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '8px', fontWeight: 600, letterSpacing: '0.22em',
+              textTransform: 'uppercase', color: 'rgba(240,160,80,0.8)', marginTop: '2px' }}>Future Experience 27</div>
           </div>
         </div>
 
@@ -508,12 +506,12 @@ export function AtencionClientesModule({ onBack, userEmail, userName, userRole }
             })}
           </div>
 
-          {/* 3 MAIN SECTION BUTTONS — DASHBOARD STYLE */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '24px' }}>
+          {/* 3 MAIN SECTION BUTTONS — DASHBOARD GRID STYLE */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '20px' }}>
             {[
-              { id: 'asignacion' as const, title: 'Asignación de Clientes', desc: `${asigKPIs.total} clientes · ${asigKPIs.pendientes} pendientes`, icon: ClipboardList, color: '#4caf50' },
-              { id: 'expo' as const, title: 'Exportaciones', desc: `${expoData.length} registros · 25 estados · THERMO/SECO`, icon: Upload, color: '#ff9800' },
-              { id: 'impo' as const, title: 'Importación', desc: `${impoData.length} clientes · USA → México`, icon: Download, color: '#2196f3' },
+              { id: 'asignacion' as const, title: 'Asignación de Clientes', desc: `${asigKPIs.total} clientes · ${asigKPIs.pendientes} pendientes`, icon: ClipboardList },
+              { id: 'expo' as const, title: 'Exportaciones', desc: `${expoData.length} registros · 25 estados · THERMO/SECO`, icon: Upload },
+              { id: 'impo' as const, title: 'Importación', desc: `${impoData.length} clientes · USA → México`, icon: Download },
             ].map(item => {
               const Icon = item.icon;
               return (
@@ -521,43 +519,28 @@ export function AtencionClientesModule({ onBack, userEmail, userName, userRole }
                   className="sc-section-btn"
                   style={{
                     background: 'linear-gradient(155deg, rgba(18,32,58,0.96) 0%, rgba(12,22,42,0.98) 35%, rgba(8,16,32,1) 70%, rgba(6,12,24,1) 100%)',
-                    border: '2px solid transparent',
-                    backgroundImage: 'linear-gradient(155deg, rgba(18,32,58,0.96) 0%, rgba(12,22,42,0.98) 35%, rgba(8,16,32,1) 70%, rgba(6,12,24,1) 100%), linear-gradient(135deg, rgba(180,100,50,0.28) 0%, rgba(60,90,140,0.25) 50%, rgba(180,100,50,0.28) 100%)',
-                    backgroundOrigin: 'border-box', backgroundClip: 'padding-box, border-box',
+                    border: '1px solid rgba(80,120,180,0.2)',
                     borderRadius: '10px', cursor: 'pointer', textAlign: 'center' as const,
-                    boxShadow: '0 2px 4px rgba(0,0,0,0.25), 0 4px 12px rgba(0,0,0,0.45), 0 8px 24px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.05), inset 0 -1px 0 rgba(0,0,0,0.35)',
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.04)',
                     padding: '48px 32px', display: 'flex', flexDirection: 'column' as const, alignItems: 'center', gap: '20px',
                     transition: 'all 0.3s ease', position: 'relative' as const, overflow: 'hidden',
                   }}
                   onMouseEnter={e => {
-                    e.currentTarget.style.transform = 'translateY(-6px)';
-                    e.currentTarget.style.backgroundImage = 'linear-gradient(155deg, rgba(28,48,82,1) 0%, rgba(20,35,62,1) 35%, rgba(14,24,45,1) 70%, rgba(10,18,35,1) 100%), linear-gradient(135deg, rgba(240,160,80,0.65) 0%, rgba(220,140,70,0.6) 25%, rgba(70,110,170,0.4) 50%, rgba(220,140,70,0.6) 75%, rgba(240,160,80,0.65) 100%)';
-                    e.currentTarget.style.boxShadow = '0 4px 8px rgba(0,0,0,0.4), 0 10px 24px rgba(0,0,0,0.6), 0 18px 48px rgba(220,140,70,0.3), inset 0 2px 0 rgba(255,255,255,0.12), inset 0 -2px 0 rgba(0,0,0,0.5), 0 0 40px rgba(240,160,80,0.25)';
+                    e.currentTarget.style.transform = 'translateY(-4px)';
+                    e.currentTarget.style.border = '1px solid rgba(240,160,80,0.4)';
+                    e.currentTarget.style.boxShadow = '0 8px 32px rgba(240,160,80,0.12), 0 4px 16px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.06)';
                   }}
                   onMouseLeave={e => {
                     e.currentTarget.style.transform = 'translateY(0)';
-                    e.currentTarget.style.backgroundImage = 'linear-gradient(155deg, rgba(18,32,58,0.96) 0%, rgba(12,22,42,0.98) 35%, rgba(8,16,32,1) 70%, rgba(6,12,24,1) 100%), linear-gradient(135deg, rgba(180,100,50,0.28) 0%, rgba(60,90,140,0.25) 50%, rgba(180,100,50,0.28) 100%)';
-                    e.currentTarget.style.boxShadow = '0 2px 4px rgba(0,0,0,0.25), 0 4px 12px rgba(0,0,0,0.45), 0 8px 24px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.05), inset 0 -1px 0 rgba(0,0,0,0.35)';
+                    e.currentTarget.style.border = '1px solid rgba(80,120,180,0.2)';
+                    e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.04)';
                   }}>
-                  {/* Top orange accent line on hover */}
-                  <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '3px', opacity: 0, transition: 'opacity 0.3s',
-                    background: 'linear-gradient(90deg, transparent 0%, rgba(240,160,80,0.3) 15%, rgba(240,160,80,0.85) 50%, rgba(240,160,80,0.3) 85%, transparent 100%)',
-                    boxShadow: '0 2px 12px rgba(240,160,80,0.5)', borderTopLeftRadius: '10px', borderTopRightRadius: '10px' }}
-                    className="sc-accent-line" />
-                  {/* Highlight superior 3D bisel */}
-                  <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '35%', opacity: 0.3, pointerEvents: 'none',
-                    background: 'linear-gradient(180deg, rgba(255,255,255,0.1) 0%, transparent 100%)', borderTopLeftRadius: '10px', borderTopRightRadius: '10px' }} />
-                  {/* Icon */}
-                  <div style={{ width: '80px', height: '80px', borderRadius: '50%', background: `${item.color}15`,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.3s',
-                    boxShadow: `0 0 0 1px ${item.color}30, 0 4px 16px ${item.color}10` }}>
-                    <Icon style={{ width: '40px', height: '40px', color: item.color, transition: 'all 0.3s',
-                      filter: `drop-shadow(0 2px 8px ${item.color}40)` }} />
-                  </div>
+                  {/* Icon — white, no background circle */}
+                  <Icon style={{ width: '56px', height: '56px', color: 'rgba(255,255,255,0.85)', strokeWidth: 1.4,
+                    transition: 'all 0.3s', filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))' }} />
                   <div>
-                    <div style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '18px', fontWeight: 700, color: 'rgba(255,255,255,0.95)',
-                      textShadow: '0 2px 8px rgba(0,0,0,0.6)' }}>{item.title}</div>
-                    <div style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '13px', color: 'rgba(255,255,255,0.5)', marginTop: '8px' }}>{item.desc}</div>
+                    <div style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '16px', fontWeight: 700, color: 'rgba(255,255,255,0.9)' }}>{item.title}</div>
+                    <div style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '12px', color: 'rgba(255,255,255,0.45)', marginTop: '6px' }}>{item.desc}</div>
                   </div>
                 </button>
               );
@@ -567,7 +550,6 @@ export function AtencionClientesModule({ onBack, userEmail, userName, userRole }
       </div>
       <style>{`
         @keyframes spin { to { transform: rotate(360deg); } }
-        .sc-section-btn:hover .sc-accent-line { opacity: 1 !important; }
       `}</style>
     </div>
   );
