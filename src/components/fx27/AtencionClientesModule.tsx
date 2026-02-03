@@ -1,10 +1,9 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { ArrowLeft, Users, Upload, Download, Search, UserCheck, X, FileSpreadsheet, Brain, MapPin, ChevronDown, RefreshCw, ClipboardList, MessageSquare, Loader2, Check, AlertTriangle, Truck } from 'lucide-react';
 import { createClient } from '@supabase/supabase-js';
+import { projectId, publicAnonKey } from '../../utils/supabase/info';
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
-const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
-const supabase = createClient(supabaseUrl, supabaseKey);
+const supabase = createClient(`https://${projectId}.supabase.co`, publicAnonKey);
 const ANTHROPIC_KEY = import.meta.env.VITE_ANTHROPIC_API_KEY || '';
 
 // ============ TYPES ============
