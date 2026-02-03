@@ -13,6 +13,7 @@ import { VentasModule } from './components/fx27/VentasModule';
 import { UtileriasModule } from './components/fx27/UtileriasModule';
 import { ClientesModule } from './components/fx27/ClientesModule';
 import { ServicioClientesModule } from './components/fx27/ServicioClientesModule';
+import { AtencionClientesModule } from './components/fx27/AtencionClientesModule';
 import { DedicadosModuleWideTech } from './components/fx27/DedicadosModuleWideTech';
 import { DedicadosModuleV2 } from './components/fx27/CarrollModuleFinalV2';
 import { CarrollModuleFinalV2Compact } from './components/fx27/CarrollModuleFinalV2Compact';
@@ -329,7 +330,7 @@ export default function App() {
   const checkModuleAccess = (module: string, role: UserRole, permisosCustom: string[] = []): boolean => {
     if (role === 'admin') return true;
     if (role === 'csr') return module !== 'configuracion';
-    if (role === 'ventas') return module !== 'configuracion';
+    if (role === 'ventas') return !['configuracion', 'atencion-clientes'].includes(module);
     if (role === 'operaciones') {
       return ['dedicados', 'admin-carroll', 'monitor-carroll', 'vista-clientes-carroll', 'mapa-climatico-carroll'].includes(module);
     }
@@ -374,6 +375,7 @@ export default function App() {
           {currentModule === 'vista-clientes-carroll' && <VistaClientesCarroll onBack={() => setCurrentModule('dedicados')} />}
           {currentModule === 'mapa-climatico-carroll' && <MapaClimaticoCarroll onBack={() => setCurrentModule('dedicados')} />}
           {currentModule === 'sales-horizon' && <SalesHorizonModule onBack={handleBack} />}
+          {currentModule === 'atencion-clientes' && <AtencionClientesModule onBack={handleBack} userEmail={currentUserEmail} userName={currentUserName} />}
           {currentModule === 'asignar-csr' && <AsignarCSR />}
           {currentModule === 'asignar-cxc' && <AsignarCxC />}
           {currentModule === 'confirmar-alta' && <ConfirmarAlta />}
