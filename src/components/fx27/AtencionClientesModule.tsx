@@ -61,7 +61,7 @@ const CLIENTES_EXCLUIDOS_IMPO = [
   'BAFAR', 'BARCEL', 'GRANJAS CARROLL', 'CARROLL',
   'LALA', 'LACTEOS LALA', 'TERNIUM', 'ALPURA',
   'TROB TRANSPORTES', 'TROB', 'WEXPRESS', 'SPEEDYHAUL', 'TROB USA',
-  'WE ', 'SHI', 'PILGRIM',
+  'WE ', 'SHI', 'PILGRIM', 'WERNER',
 ];
 const EJECUTIVO_ISIS = [
   'ARCH MEAT', 'SUN CHEMICAL', 'TITAN MEATS', 'HERCON',
@@ -365,20 +365,57 @@ export function AtencionClientesModule({ onBack, userEmail, userName, userRole }
       : <ChevronDown style={{ width: '12px', height: '12px', opacity: 0.9, marginLeft: '2px', color: 'rgba(240,160,80,1)' }} />;
   };
 
+  // SC ejecutivo lookup from asignacion data
+  const getEjecutivoSC = (cliente: string): string => {
+    const c = cliente.toUpperCase().trim();
+    const match = asignacion.find(a => {
+      const ac = a.cliente.toUpperCase().trim();
+      return ac === c || c.includes(ac) || ac.includes(c);
+    });
+    return match ? match.ejecutivo_sc : '—';
+  };
+
+  // Consolidate duplicate clients
+  const consolidatedImpo = useMemo(() => {
+    const filtered = impoData.filter(d => !isExcludedImpo(d.cliente));
+    const map = new Map<string, { id: number; cliente: string; viajes: number; thermo: number; seco: number; formatos: number; tipo_equipo: string; estados: Set<string>; zona_entrega: string }>();
+    filtered.forEach(d => {
+      const key = d.cliente.toUpperCase().trim();
+      const estado = extractEstado(d.zona_entrega);
+      if (map.has(key)) {
+        const ex = map.get(key)!;
+        ex.viajes += d.viajes;
+        ex.thermo += d.thermo;
+        ex.seco += d.seco;
+        ex.formatos += d.formatos;
+        ex.estados.add(estado);
+        // Update tipo_equipo if needed
+        if (ex.thermo > 0 && ex.seco > 0) ex.tipo_equipo = 'THERMO / SECO';
+        else if (ex.thermo > 0) ex.tipo_equipo = 'THERMO';
+        else ex.tipo_equipo = 'SECO';
+      } else {
+        map.set(key, { id: d.id, cliente: d.cliente, viajes: d.viajes, thermo: d.thermo, seco: d.seco, formatos: d.formatos, tipo_equipo: d.tipo_equipo, estados: new Set([estado]), zona_entrega: d.zona_entrega });
+      }
+    });
+    return Array.from(map.values()).map(d => ({
+      ...d,
+      estadosStr: Array.from(d.estados).filter(e => e !== '—').sort().join(', ') || '—',
+    }));
+  }, [impoData, asignacion]);
+
   const filteredImpo = useMemo(() => {
-    // 1. Filter out excluded clients
-    let data = impoData.filter(d => !isExcludedImpo(d.cliente));
-    // 2. Filter by tipo
+    let data = consolidatedImpo;
+    // Filter by tipo
     if (filterTipoImpo !== 'TODOS') {
       if (filterTipoImpo === 'THERMO') data = data.filter(d => d.thermo > 0);
       else if (filterTipoImpo === 'SECO') data = data.filter(d => d.seco > 0);
     }
-    // 3. Search
+    // Search
     if (searchImpo) {
       const q = searchImpo.toLowerCase();
-      data = data.filter(d => d.cliente.toLowerCase().includes(q) || extractEstado(d.zona_entrega).toLowerCase().includes(q) || getEjecutivoImpo(d.cliente).toLowerCase().includes(q));
+      data = data.filter(d => d.cliente.toLowerCase().includes(q) || d.estadosStr.toLowerCase().includes(q) || getEjecutivoImpo(d.cliente).toLowerCase().includes(q) || getEjecutivoSC(d.cliente).toLowerCase().includes(q));
     }
-    // 4. Sort
+    // Sort
     data = [...data].sort((a, b) => {
       let va: any, vb: any;
       switch (impoSortCol) {
@@ -388,15 +425,16 @@ export function AtencionClientesModule({ onBack, userEmail, userName, userRole }
         case 'seco': va = a.seco; vb = b.seco; break;
         case 'formatos': va = a.formatos; vb = b.formatos; break;
         case 'tipo_equipo': va = a.tipo_equipo; vb = b.tipo_equipo; break;
-        case 'zona': va = extractEstado(a.zona_entrega); vb = extractEstado(b.zona_entrega); break;
+        case 'zona': va = a.estadosStr; vb = b.estadosStr; break;
         case 'ejecutivo': va = getEjecutivoImpo(a.cliente); vb = getEjecutivoImpo(b.cliente); break;
+        case 'ejecutivoSC': va = getEjecutivoSC(a.cliente); vb = getEjecutivoSC(b.cliente); break;
         default: va = a.viajes; vb = b.viajes;
       }
       if (typeof va === 'string') return impoSortDir === 'asc' ? va.localeCompare(vb) : vb.localeCompare(va);
       return impoSortDir === 'asc' ? va - vb : vb - va;
     });
     return data;
-  }, [impoData, filterTipoImpo, searchImpo, impoSortCol, impoSortDir]);
+  }, [consolidatedImpo, filterTipoImpo, searchImpo, impoSortCol, impoSortDir, asignacion]);
 
   const impoKPIs = useMemo(() => ({
     clientes: filteredImpo.length,
@@ -997,9 +1035,9 @@ export function AtencionClientesModule({ onBack, userEmail, userName, userRole }
             <option value="SECO">Solo Seco</option>
           </select>
           <button onClick={() => {
-            const headers = ['#', 'CLIENTE', 'VIAJES', 'THERMO', 'SECO', 'FMTS', 'TIPO EQUIPO', 'ESTADO', 'EJECUTIVO'];
-            const rows = filteredImpo.map((d, i) => [String(i + 1), d.cliente, String(d.viajes), String(d.thermo), String(d.seco), String(d.formatos), d.tipo_equipo, extractEstado(d.zona_entrega), getEjecutivoImpo(d.cliente)]);
-            const ctx = `${impoKPIs.clientes} clientes IMPO, ${impoKPIs.viajes} viajes totales, ${impoKPIs.thermo} thermo, ${impoKPIs.seco} seco`;
+            const headers = ['#', 'CLIENTE', 'VIAJES', 'THERMO', 'SECO', 'FMTS', 'TIPO EQUIPO', 'DESTINOS', 'EJEC. VTA', 'EJEC. SC'];
+            const rows = filteredImpo.map((d, i) => [String(i + 1), d.cliente, String(d.viajes), String(d.thermo), String(d.seco), String(d.formatos), d.tipo_equipo, d.estadosStr, getEjecutivoImpo(d.cliente), getEjecutivoSC(d.cliente)]);
+            const ctx = `${impoKPIs.clientes} clientes IMPO consolidados, ${impoKPIs.viajes} viajes totales, ${impoKPIs.thermo} thermo, ${impoKPIs.seco} seco`;
             handleExportWithAI(headers, rows, 'Importacion_Clientes', ctx);
           }} disabled={exporting}
             style={{ ...S.btn, display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -1011,65 +1049,76 @@ export function AtencionClientesModule({ onBack, userEmail, userName, userRole }
         {/* Table */}
         <div style={{ ...S.card, overflow: 'hidden' }}>
           <div style={{ maxHeight: 'calc(100vh - 290px)', overflowY: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' }}>
               <thead style={{ position: 'sticky', top: 0, zIndex: 5 }}>
                 <tr>
-                  <th style={{ ...S.tableHeader, width: '40px' }}>#</th>
-                  <th style={{ ...S.tableHeader, cursor: 'pointer', userSelect: 'none' }} onClick={() => handleImpoSort('cliente')}>
+                  <th style={{ ...S.tableHeader, width: '34px' }}>#</th>
+                  <th style={{ ...S.tableHeader, width: '22%', cursor: 'pointer', userSelect: 'none' }} onClick={() => handleImpoSort('cliente')}>
                     <span style={{ display: 'inline-flex', alignItems: 'center' }}>Cliente <SortIcon col="cliente" /></span>
                   </th>
-                  <th style={{ ...S.tableHeader, width: '70px', textAlign: 'center', cursor: 'pointer', userSelect: 'none' }} onClick={() => handleImpoSort('viajes')}>
+                  <th style={{ ...S.tableHeader, width: '52px', textAlign: 'center', cursor: 'pointer', userSelect: 'none' }} onClick={() => handleImpoSort('viajes')}>
                     <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>Viajes <SortIcon col="viajes" /></span>
                   </th>
-                  <th style={{ ...S.tableHeader, width: '70px', textAlign: 'center', cursor: 'pointer', userSelect: 'none' }} onClick={() => handleImpoSort('thermo')}>
+                  <th style={{ ...S.tableHeader, width: '55px', textAlign: 'center', cursor: 'pointer', userSelect: 'none' }} onClick={() => handleImpoSort('thermo')}>
                     <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>Thermo <SortIcon col="thermo" /></span>
                   </th>
-                  <th style={{ ...S.tableHeader, width: '70px', textAlign: 'center', cursor: 'pointer', userSelect: 'none' }} onClick={() => handleImpoSort('seco')}>
+                  <th style={{ ...S.tableHeader, width: '48px', textAlign: 'center', cursor: 'pointer', userSelect: 'none' }} onClick={() => handleImpoSort('seco')}>
                     <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>Seco <SortIcon col="seco" /></span>
                   </th>
-                  <th style={{ ...S.tableHeader, width: '60px', textAlign: 'center', cursor: 'pointer', userSelect: 'none' }} onClick={() => handleImpoSort('formatos')}>
+                  <th style={{ ...S.tableHeader, width: '44px', textAlign: 'center', cursor: 'pointer', userSelect: 'none' }} onClick={() => handleImpoSort('formatos')}>
                     <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>Fmts <SortIcon col="formatos" /></span>
                   </th>
-                  <th style={{ ...S.tableHeader, width: '110px', cursor: 'pointer', userSelect: 'none' }} onClick={() => handleImpoSort('tipo_equipo')}>
-                    <span style={{ display: 'inline-flex', alignItems: 'center' }}>Tipo Equipo <SortIcon col="tipo_equipo" /></span>
+                  <th style={{ ...S.tableHeader, width: '90px', cursor: 'pointer', userSelect: 'none' }} onClick={() => handleImpoSort('tipo_equipo')}>
+                    <span style={{ display: 'inline-flex', alignItems: 'center' }}>Tipo Eq. <SortIcon col="tipo_equipo" /></span>
                   </th>
-                  <th style={{ ...S.tableHeader, width: '160px', cursor: 'pointer', userSelect: 'none' }} onClick={() => handleImpoSort('zona')}>
-                    <span style={{ display: 'inline-flex', alignItems: 'center' }}>Estado <SortIcon col="zona" /></span>
+                  <th style={{ ...S.tableHeader, cursor: 'pointer', userSelect: 'none' }} onClick={() => handleImpoSort('zona')}>
+                    <span style={{ display: 'inline-flex', alignItems: 'center' }}>Destinos <SortIcon col="zona" /></span>
                   </th>
-                  <th style={{ ...S.tableHeader, width: '100px', cursor: 'pointer', userSelect: 'none' }} onClick={() => handleImpoSort('ejecutivo')}>
-                    <span style={{ display: 'inline-flex', alignItems: 'center' }}>Ejecutivo <SortIcon col="ejecutivo" /></span>
+                  <th style={{ ...S.tableHeader, width: '72px', textAlign: 'center', cursor: 'pointer', userSelect: 'none' }} onClick={() => handleImpoSort('ejecutivo')}>
+                    <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>Ejec. Vta <SortIcon col="ejecutivo" /></span>
+                  </th>
+                  <th style={{ ...S.tableHeader, width: '64px', textAlign: 'center', cursor: 'pointer', userSelect: 'none' }} onClick={() => handleImpoSort('ejecutivoSC')}>
+                    <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>Ejec. SC <SortIcon col="ejecutivoSC" /></span>
                   </th>
                 </tr>
               </thead>
               <tbody>
                 {filteredImpo.map((d, i) => {
-                  const ejec = getEjecutivoImpo(d.cliente);
-                  const estado = extractEstado(d.zona_entrega);
+                  const ejecVta = getEjecutivoImpo(d.cliente);
+                  const ejecSC = getEjecutivoSC(d.cliente);
                   return (
                   <tr key={d.id} style={{ transition: 'background 0.2s' }}
                     onMouseEnter={e => (e.currentTarget.style.background = 'rgba(240,160,80,0.05)')}
                     onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
                     <td style={{ ...S.tableCell, color: 'rgba(255,255,255,0.4)' }}>{i + 1}</td>
-                    <td style={{ ...S.tableCell, fontWeight: 600 }}>{d.cliente}</td>
+                    <td style={{ ...S.tableCell, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={d.cliente}>{d.cliente}</td>
                     <td style={{ ...S.tableCell, textAlign: 'center', fontWeight: 700, color: 'rgba(240,160,80,1)' }}>{d.viajes}</td>
                     <td style={{ ...S.tableCell, textAlign: 'center', color: d.thermo > 0 ? '#29b6f6' : 'rgba(255,255,255,0.25)' }}>{d.thermo}</td>
                     <td style={{ ...S.tableCell, textAlign: 'center', color: d.seco > 0 ? '#ffa726' : 'rgba(255,255,255,0.25)' }}>{d.seco}</td>
                     <td style={{ ...S.tableCell, textAlign: 'center' }}>{d.formatos}</td>
                     <td style={S.tableCell}>
                       <span style={{
-                        padding: '3px 8px', borderRadius: '4px', fontSize: '10px', fontWeight: 700, fontFamily: "'Exo 2', sans-serif",
+                        padding: '2px 6px', borderRadius: '4px', fontSize: '9px', fontWeight: 700, fontFamily: "'Exo 2', sans-serif",
                         background: d.tipo_equipo.includes('THERMO') && d.tipo_equipo.includes('SECO') ? 'rgba(156,39,176,0.15)' : d.tipo_equipo.includes('THERMO') ? 'rgba(33,150,243,0.15)' : 'rgba(255,152,0,0.15)',
                         color: d.tipo_equipo.includes('THERMO') && d.tipo_equipo.includes('SECO') ? '#ba68c8' : d.tipo_equipo.includes('THERMO') ? '#42a5f5' : '#ffa726',
                       }}>{d.tipo_equipo}</span>
                     </td>
-                    <td style={{ ...S.tableCell, fontSize: '11px', color: estado === 'USA' ? '#ff7043' : 'rgba(255,255,255,0.7)' }}
-                      title={d.zona_entrega}>{estado}</td>
-                    <td style={S.tableCell}>
+                    <td style={{ ...S.tableCell, fontSize: '11px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                      color: d.estadosStr.includes('USA') ? '#ff7043' : 'rgba(255,255,255,0.7)' }}
+                      title={d.estadosStr}>{d.estadosStr}</td>
+                    <td style={{ ...S.tableCell, textAlign: 'center' }}>
                       <span style={{
-                        padding: '3px 8px', borderRadius: '4px', fontSize: '10px', fontWeight: 700, fontFamily: "'Exo 2', sans-serif",
-                        background: ejec === 'ISIS' ? 'rgba(76,175,80,0.15)' : ejec === 'PALOMA' ? 'rgba(33,150,243,0.15)' : 'rgba(120,120,120,0.1)',
-                        color: ejec === 'ISIS' ? '#66bb6a' : ejec === 'PALOMA' ? '#42a5f5' : 'rgba(255,255,255,0.35)',
-                      }}>{ejec}</span>
+                        padding: '2px 6px', borderRadius: '4px', fontSize: '9px', fontWeight: 700, fontFamily: "'Exo 2', sans-serif",
+                        background: ejecVta === 'ISIS' ? 'rgba(76,175,80,0.15)' : ejecVta === 'PALOMA' ? 'rgba(33,150,243,0.15)' : 'rgba(120,120,120,0.1)',
+                        color: ejecVta === 'ISIS' ? '#66bb6a' : ejecVta === 'PALOMA' ? '#42a5f5' : 'rgba(255,255,255,0.3)',
+                      }}>{ejecVta}</span>
+                    </td>
+                    <td style={{ ...S.tableCell, textAlign: 'center' }}>
+                      <span style={{
+                        padding: '2px 6px', borderRadius: '4px', fontSize: '9px', fontWeight: 700, fontFamily: "'Exo 2', sans-serif",
+                        background: ejecSC === 'ELI' ? 'rgba(255,152,0,0.15)' : ejecSC === 'LIZ' ? 'rgba(156,39,176,0.15)' : 'rgba(120,120,120,0.1)',
+                        color: ejecSC === 'ELI' ? '#ffa726' : ejecSC === 'LIZ' ? '#ba68c8' : 'rgba(255,255,255,0.3)',
+                      }}>{ejecSC}</span>
                     </td>
                   </tr>
                   );
@@ -1079,7 +1128,7 @@ export function AtencionClientesModule({ onBack, userEmail, userName, userRole }
           </div>
         </div>
         <div style={{ ...S.textMuted, fontSize: '11px', marginTop: '8px', textAlign: 'right' }}>
-          Mostrando {filteredImpo.length} de {impoData.filter(d => !isExcludedImpo(d.cliente)).length} clientes (excluidos dedicados e internos)
+          Mostrando {filteredImpo.length} de {consolidatedImpo.length} clientes (excluidos dedicados e internos)
         </div>
       </div></div>
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
