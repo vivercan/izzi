@@ -96,9 +96,9 @@ const USUARIOS_AUTORIZADOS: Usuario[] = [
   // ═══════════════════════════════════════════════════════════════
   {
     id: '7',
-    nombre: 'Lizeth Rodríguez',
+    nombre: 'Liz Garcia',
     correo: 'customer.service3@trob.com.mx',
-    password: 'lrodriguez',
+    password: 'Lgarcia',
     rol: 'csr',
     rolDisplay: 'CSR',
     ultimoAcceso: '',
@@ -107,9 +107,9 @@ const USUARIOS_AUTORIZADOS: Usuario[] = [
   },
   {
     id: '8',
-    nombre: 'Elizabeth Rodríguez',
+    nombre: 'Eli Pasillas',
     correo: 'customer.service1@trob.com.mx',
-    password: 'erodriguez',
+    password: 'Epasillas',
     rol: 'csr',
     rolDisplay: 'CSR',
     ultimoAcceso: '',
