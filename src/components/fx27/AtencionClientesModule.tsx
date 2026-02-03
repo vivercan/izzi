@@ -55,8 +55,8 @@ const EJECUTIVOS_SC = ['ELI', 'LIZ'];
 
 // ============ STYLES ============
 const S = {
-  bg: { background: 'linear-gradient(135deg, #0B1220 0%, #0F172A 50%, rgba(30,102,245,0.1) 100%)' },
-  overlay: { background: 'radial-gradient(900px circle at 20% 0%, rgba(59,130,246,0.15), transparent 55%)' },
+  bg: { background: 'linear-gradient(135deg, #001f4d 0%, #003d7a 25%, #0066cc 50%, #1a8fff 75%, #4da6ff 100%)' },
+  overlay: { background: 'linear-gradient(180deg, rgba(0,0,0,0.25) 0%, rgba(0,0,0,0.15) 50%, rgba(0,0,0,0.25) 100%)' },
   card: {
     background: 'linear-gradient(155deg, rgba(18,32,58,0.96) 0%, rgba(12,22,42,0.98) 35%, rgba(8,16,32,1) 70%, rgba(6,12,24,1) 100%)',
     border: '1px solid rgba(80,120,180,0.2)',
@@ -341,42 +341,51 @@ export function AtencionClientesModule({ onBack, userEmail, userName, userRole }
     setExporting(false);
   };
 
-  // ============ COMMON HEADER ============
+  // ============ COMMON HEADER — EXACT MODULETEMPLATE ============
   const Header = ({ title, subtitle }: { title: string; subtitle?: string }) => (
-    <div style={{
-      height: '80px',
-      background: 'linear-gradient(180deg, rgba(9,16,30,0.92) 0%, rgba(9,16,30,0.75) 100%)',
-      backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)',
-      borderBottom: '1px solid rgba(255,255,255,0.08)',
-      boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.10), 0 20px 70px rgba(0,0,0,0.45)',
-      padding: '0 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-      position: 'relative', marginBottom: '32px',
-    }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
-        <button onClick={view === 'home' ? onBack : () => setView('home')}
-          style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '48px', height: '48px',
-            background: 'linear-gradient(180deg, #FF7A1A 0%, #FF5500 100%)',
-            border: '1px solid rgba(255,255,255,0.15)', borderRadius: '14px', color: '#fff', cursor: 'pointer',
-            boxShadow: '0 10px 26px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.20)',
-            transition: 'all 0.15s' }}>
-          <ArrowLeft style={{ width: '24px', height: '24px' }} />
-        </button>
-        <h1 style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '28px', fontWeight: 600, color: 'white', margin: 0 }}>{title}</h1>
+    <div style={{ position: 'relative', height: '119px', overflow: 'hidden', marginBottom: '0px' }}>
+      {/* Layer 1: Base navy → petroleo */}
+      <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(135deg, #0a1628 0%, #0d1f35 25%, #0f2847 50%, #0a1e38 75%, #081420 100%)' }} />
+      {/* Layer 2: Horizontal depth */}
+      <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(90deg, rgba(15,30,56,0.9) 0%, rgba(20,45,75,0.6) 30%, rgba(15,35,60,0.7) 70%, rgba(10,20,40,0.9) 100%)' }} />
+      {/* Layer 3: Blue accent bottom */}
+      <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse 80% 100% at 50% 100%, rgba(59,130,246,0.08) 0%, transparent 60%)' }} />
+      {/* Layer 4: Dark overlay */}
+      <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(8,15,28,0.4) 0%, rgba(8,15,28,0.2) 50%, rgba(8,15,28,0.5) 100%)' }} />
+      {/* Bottom accent line */}
+      <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '1px', background: 'linear-gradient(90deg, transparent 0%, rgba(59,130,246,0.2) 20%, rgba(59,130,246,0.3) 50%, rgba(59,130,246,0.2) 80%, transparent 100%)' }} />
+      {/* FX27 Logo — metal brushed */}
+      <div style={{ position: 'absolute', zIndex: 50, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', top: '13px', right: '32px' }}>
+        <div style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '72px', fontWeight: 900, lineHeight: 1, letterSpacing: '-2px',
+          background: 'linear-gradient(135deg, #E8EEF4 0%, #B5C4D8 30%, #D8DFE8 55%, #9FB0C5 80%, #D0D9E4 100%)',
+          WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text',
+          filter: 'drop-shadow(2px 0 4px rgba(160,180,210,0.2)) drop-shadow(-1px 0 2px rgba(255,255,255,0.1))' }}>FX27</div>
+        <div style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '11px', fontWeight: 500, letterSpacing: '0.25em', textTransform: 'uppercase' as const,
+          color: 'rgba(240,160,80,0.75)', marginTop: '4px', marginRight: '-3px',
+          filter: 'blur(0.5px) drop-shadow(0 0 8px rgba(240,160,80,0.6)) drop-shadow(0 0 16px rgba(240,160,80,0.4))' }}>Future Experience 27</div>
       </div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+      {/* Back + Title + AI Button */}
+      <div style={{ position: 'relative', zIndex: 20, display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: '25px', paddingLeft: '24px', paddingRight: '200px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
+          <button onClick={() => setView('home')}
+            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '48px', height: '48px', borderRadius: '12px',
+              background: '#fe5000', border: '1px solid rgba(255,255,255,0.2)', color: '#fff', cursor: 'pointer',
+              boxShadow: '0 4px 12px rgba(254,80,0,0.4), inset 0 1px 0 rgba(255,255,255,0.2)', transition: 'all 0.2s' }}
+            onMouseEnter={e => { e.currentTarget.style.background = '#cc4000'; e.currentTarget.style.boxShadow = '0 6px 16px rgba(254,80,0,0.5), inset 0 1px 0 rgba(255,255,255,0.15)'; }}
+            onMouseLeave={e => { e.currentTarget.style.background = '#fe5000'; e.currentTarget.style.boxShadow = '0 4px 12px rgba(254,80,0,0.4), inset 0 1px 0 rgba(255,255,255,0.2)'; }}>
+            <ArrowLeft style={{ width: '24px', height: '24px', strokeWidth: 2.5 }} />
+          </button>
+          <h1 style={{ fontFamily: "'Exo 2', sans-serif", fontWeight: 600, fontSize: '32px', lineHeight: 1, color: 'white', margin: 0 }}>{title}</h1>
+        </div>
         <button onClick={() => setShowAI(!showAI)}
-          style={{ ...S.btnSecondary, display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 16px', borderRadius: '8px',
+          style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 16px', borderRadius: '8px',
             background: showAI ? 'linear-gradient(135deg, rgba(240,160,80,0.15) 0%, rgba(220,140,60,0.1) 100%)' : 'rgba(255,255,255,0.05)',
             border: showAI ? '1px solid rgba(240,160,80,0.5)' : '1px solid rgba(255,255,255,0.1)',
             color: showAI ? 'rgba(240,160,80,1)' : 'rgba(255,255,255,0.85)',
-            boxShadow: showAI ? '0 0 16px rgba(240,160,80,0.2)' : 'none' }}>
+            fontFamily: "'Exo 2', sans-serif", fontSize: '13px', fontWeight: 600, cursor: 'pointer',
+            boxShadow: showAI ? '0 0 16px rgba(240,160,80,0.2)' : 'none', transition: 'all 0.2s' }}>
           <Brain style={{ width: '16px', height: '16px' }} /> Buscar con IA
         </button>
-        {/* FX27 branding */}
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-          <div style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '28px', fontWeight: 900, color: 'white', lineHeight: 1, letterSpacing: '-1px' }}>FX27</div>
-          <div style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '8px', color: 'rgba(255,255,255,0.7)', letterSpacing: '0.2em' }}>FUTURE EXPERIENCE 27</div>
-        </div>
       </div>
     </div>
   );
@@ -422,32 +431,45 @@ export function AtencionClientesModule({ onBack, userEmail, userName, userRole }
   if (view === 'home') return (
     <div style={{ ...S.bg, width: '100vw', height: '100vh', overflow: 'auto', position: 'relative' }}>
       <div style={{ ...S.overlay, position: 'fixed', inset: 0, pointerEvents: 'none' }} />
+      {/* Halo volumétrico — exact Dashboard */}
+      <div style={{ position: 'fixed', pointerEvents: 'none', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
+        width: '80%', height: '68%',
+        background: 'radial-gradient(ellipse at center, rgba(30,80,160,0.08) 0%, rgba(40,90,170,0.04) 35%, transparent 70%)',
+        filter: 'blur(90px)' }} />
       <div style={{ position: 'relative', zIndex: 1 }}>
-        {/* HEADER BAR — EXACT MODULETEMPLATE STYLE */}
-        <div style={{
-          height: '80px',
-          background: 'linear-gradient(180deg, rgba(9,16,30,0.92) 0%, rgba(9,16,30,0.75) 100%)',
-          backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)',
-          borderBottom: '1px solid rgba(255,255,255,0.08)',
-          boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.10), 0 20px 70px rgba(0,0,0,0.45)',
-          padding: '0 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          position: 'relative',
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
-            <button onClick={onBack}
-              style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '48px', height: '48px',
-                background: 'linear-gradient(180deg, #FF7A1A 0%, #FF5500 100%)',
-                border: '1px solid rgba(255,255,255,0.15)', borderRadius: '14px', color: '#fff', cursor: 'pointer',
-                boxShadow: '0 10px 26px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.20)',
-                transition: 'all 0.15s' }}>
-              <ArrowLeft style={{ width: '24px', height: '24px' }} />
-            </button>
-            <h1 style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '28px', fontWeight: 600, color: 'white', margin: 0 }}>Servicio a Clientes</h1>
+        {/* ═══ HEADER BAR 119px — EXACT MODULETEMPLATE ═══ */}
+        <div style={{ position: 'relative', height: '119px', overflow: 'hidden' }}>
+          {/* Base: navy → petroleo gradient */}
+          <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(135deg, #0a1628 0%, #0d1f35 25%, #0f2847 50%, #0a1e38 75%, #081420 100%)' }} />
+          {/* Horizontal depth */}
+          <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(90deg, rgba(15,30,56,0.9) 0%, rgba(20,45,75,0.6) 30%, rgba(15,35,60,0.7) 70%, rgba(10,20,40,0.9) 100%)' }} />
+          {/* Blue accent at bottom */}
+          <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse 80% 100% at 50% 100%, rgba(59,130,246,0.08) 0%, transparent 60%)' }} />
+          {/* Dark overlay */}
+          <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(8,15,28,0.4) 0%, rgba(8,15,28,0.2) 50%, rgba(8,15,28,0.5) 100%)' }} />
+          {/* Bottom line */}
+          <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '1px', background: 'linear-gradient(90deg, transparent 0%, rgba(59,130,246,0.2) 20%, rgba(59,130,246,0.3) 50%, rgba(59,130,246,0.2) 80%, transparent 100%)' }} />
+          {/* FX27 Logo — EXACT from ModuleTemplate */}
+          <div style={{ position: 'absolute', zIndex: 50, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', top: '13px', right: '32px' }}>
+            <div style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '72px', fontWeight: 900, lineHeight: 1, letterSpacing: '-2px',
+              background: 'linear-gradient(135deg, #E8EEF4 0%, #B5C4D8 30%, #D8DFE8 55%, #9FB0C5 80%, #D0D9E4 100%)',
+              WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text',
+              filter: 'drop-shadow(2px 0 4px rgba(160,180,210,0.2)) drop-shadow(-1px 0 2px rgba(255,255,255,0.1))' }}>FX27</div>
+            <div style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '11px', fontWeight: 500, letterSpacing: '0.25em', textTransform: 'uppercase',
+              color: 'rgba(240,160,80,0.75)', marginTop: '4px', marginRight: '-3px',
+              filter: 'blur(0.5px) drop-shadow(0 0 8px rgba(240,160,80,0.6)) drop-shadow(0 0 16px rgba(240,160,80,0.4))' }}>Future Experience 27</div>
           </div>
-          {/* FX27 Logo — exact ModuleTemplate position */}
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-            <div style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '42px', fontWeight: 900, color: 'white', lineHeight: 1, letterSpacing: '-2px' }}>FX27</div>
-            <div style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '10px', color: 'rgba(255,255,255,0.7)', letterSpacing: '0.2em', marginTop: '2px' }}>FUTURE EXPERIENCE 27</div>
+          {/* Back button + Title — relative z-20 */}
+          <div style={{ position: 'relative', zIndex: 20, display: 'flex', alignItems: 'center', gap: '24px', paddingTop: '25px', paddingLeft: '24px' }}>
+            <button onClick={onBack}
+              style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '48px', height: '48px', borderRadius: '12px',
+                background: '#fe5000', border: '1px solid rgba(255,255,255,0.2)', color: '#fff', cursor: 'pointer',
+                boxShadow: '0 4px 12px rgba(254,80,0,0.4), inset 0 1px 0 rgba(255,255,255,0.2)', transition: 'all 0.2s' }}
+              onMouseEnter={e => { e.currentTarget.style.background = '#cc4000'; e.currentTarget.style.boxShadow = '0 6px 16px rgba(254,80,0,0.5), inset 0 1px 0 rgba(255,255,255,0.15)'; }}
+              onMouseLeave={e => { e.currentTarget.style.background = '#fe5000'; e.currentTarget.style.boxShadow = '0 4px 12px rgba(254,80,0,0.4), inset 0 1px 0 rgba(255,255,255,0.2)'; }}>
+              <ArrowLeft style={{ width: '24px', height: '24px', strokeWidth: 2.5 }} />
+            </button>
+            <h1 style={{ fontFamily: "'Exo 2', sans-serif", fontWeight: 600, fontSize: '32px', lineHeight: 1, color: 'white', margin: 0 }}>Servicio a Clientes</h1>
           </div>
         </div>
 
@@ -486,7 +508,7 @@ export function AtencionClientesModule({ onBack, userEmail, userName, userRole }
             })}
           </div>
 
-          {/* 3 MAIN SECTION BUTTONS — DASHBOARD GRID STYLE */}
+          {/* 3 MAIN SECTION BUTTONS — EXACT DASHBOARD CARD STYLE */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '20px' }}>
             {[
               { id: 'asignacion' as const, title: 'Asignación de Clientes', desc: `${asigKPIs.total} clientes · ${asigKPIs.pendientes} pendientes`, icon: ClipboardList },
@@ -496,30 +518,47 @@ export function AtencionClientesModule({ onBack, userEmail, userName, userRole }
               const Icon = item.icon;
               return (
                 <button key={item.id} onClick={() => setView(item.id)}
-                  className="sc-section-btn"
+                  className="group"
                   style={{
                     background: 'linear-gradient(155deg, rgba(18,32,58,0.96) 0%, rgba(12,22,42,0.98) 35%, rgba(8,16,32,1) 70%, rgba(6,12,24,1) 100%)',
-                    border: '1px solid rgba(80,120,180,0.2)',
+                    border: '2px solid transparent',
+                    backgroundImage: 'linear-gradient(155deg, rgba(18,32,58,0.96) 0%, rgba(12,22,42,0.98) 35%, rgba(8,16,32,1) 70%, rgba(6,12,24,1) 100%), linear-gradient(135deg, rgba(180,100,50,0.28) 0%, rgba(60,90,140,0.25) 50%, rgba(180,100,50,0.28) 100%)',
+                    backgroundOrigin: 'border-box',
+                    backgroundClip: 'padding-box, border-box',
                     borderRadius: '10px', cursor: 'pointer', textAlign: 'center' as const,
-                    boxShadow: '0 2px 8px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.04)',
+                    boxShadow: '0 2px 4px rgba(0,0,0,0.3), 0 6px 16px rgba(0,0,0,0.5), inset -2px -2px 4px rgba(0,0,0,0.2)',
                     padding: '48px 32px', display: 'flex', flexDirection: 'column' as const, alignItems: 'center', gap: '20px',
                     transition: 'all 0.3s ease', position: 'relative' as const, overflow: 'hidden',
+                    transform: 'translateY(0)',
                   }}
                   onMouseEnter={e => {
-                    e.currentTarget.style.transform = 'translateY(-4px)';
-                    e.currentTarget.style.border = '1px solid rgba(240,160,80,0.4)';
-                    e.currentTarget.style.boxShadow = '0 8px 32px rgba(240,160,80,0.12), 0 4px 16px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.06)';
+                    e.currentTarget.style.transform = 'translateY(-6px)';
+                    e.currentTarget.style.backgroundImage = 'linear-gradient(155deg, rgba(28,48,82,1) 0%, rgba(20,35,62,1) 35%, rgba(14,24,45,1) 70%, rgba(10,18,35,1) 100%), linear-gradient(135deg, rgba(240,160,80,0.65) 0%, rgba(220,140,70,0.6) 25%, rgba(70,110,170,0.4) 50%, rgba(220,140,70,0.6) 75%, rgba(240,160,80,0.65) 100%)';
+                    e.currentTarget.style.boxShadow = '0 4px 8px rgba(0,0,0,0.4), 0 10px 24px rgba(0,0,0,0.6), 0 0 30px rgba(240,160,80,0.15), inset 0 1px 0 rgba(255,255,255,0.05)';
                   }}
                   onMouseLeave={e => {
                     e.currentTarget.style.transform = 'translateY(0)';
-                    e.currentTarget.style.border = '1px solid rgba(80,120,180,0.2)';
-                    e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.04)';
+                    e.currentTarget.style.backgroundImage = 'linear-gradient(155deg, rgba(18,32,58,0.96) 0%, rgba(12,22,42,0.98) 35%, rgba(8,16,32,1) 70%, rgba(6,12,24,1) 100%), linear-gradient(135deg, rgba(180,100,50,0.28) 0%, rgba(60,90,140,0.25) 50%, rgba(180,100,50,0.28) 100%)';
+                    e.currentTarget.style.boxShadow = '0 2px 4px rgba(0,0,0,0.3), 0 6px 16px rgba(0,0,0,0.5), inset -2px -2px 4px rgba(0,0,0,0.2)';
                   }}>
-                  {/* Icon — white, no background circle */}
-                  <Icon style={{ width: '56px', height: '56px', color: 'rgba(255,255,255,0.85)', strokeWidth: 1.4,
-                    transition: 'all 0.3s', filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))' }} />
-                  <div>
-                    <div style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '16px', fontWeight: 700, color: 'rgba(255,255,255,0.9)' }}>{item.title}</div>
+                  {/* Top highlight - 35% height */}
+                  <div className="absolute top-0 left-0 right-0 h-[35%] opacity-30 group-hover:opacity-50 transition-opacity duration-300 pointer-events-none"
+                    style={{ background: 'linear-gradient(180deg, rgba(255,255,255,0.12) 0%, transparent 100%)', borderTopLeftRadius: '10px', borderTopRightRadius: '10px' }} />
+                  {/* Orange accent line top - hidden → visible */}
+                  <div className="absolute top-0 left-0 right-0 h-[3px] opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+                    style={{ background: 'linear-gradient(90deg, transparent 0%, rgba(240,160,80,0.3) 15%, rgba(240,160,80,0.85) 50%, rgba(240,160,80,0.3) 85%, transparent 100%)',
+                      boxShadow: '0 2px 12px rgba(240,160,80,0.5), 0 0 20px rgba(240,160,80,0.3)', borderTopLeftRadius: '10px', borderTopRightRadius: '10px' }} />
+                  {/* Inner glow from top on hover */}
+                  <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"
+                    style={{ background: 'radial-gradient(ellipse at 50% 0%, rgba(240,160,80,0.15) 0%, rgba(220,140,70,0.08) 40%, transparent 70%)', borderRadius: '10px' }} />
+                  {/* Icon — white, hover orange with glow */}
+                  <Icon className="relative z-10 transition-all duration-300 group-hover:text-[rgba(240,160,80,1)]"
+                    style={{ width: '56px', height: '56px', color: 'rgba(255,255,255,0.95)', strokeWidth: 1.4,
+                      filter: 'drop-shadow(0 4px 10px rgba(0,0,0,0.6)) drop-shadow(0 0 14px rgba(255,255,255,0.15))' }} />
+                  <div className="relative z-10">
+                    <div className="transition-all duration-300 group-hover:text-[rgba(240,160,80,1)]"
+                      style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '16px', fontWeight: 700, color: 'rgba(255,255,255,0.9)',
+                        textShadow: '0 2px 8px rgba(0,0,0,0.6), 0 1px 3px rgba(0,0,0,0.8)' }}>{item.title}</div>
                     <div style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '12px', color: 'rgba(255,255,255,0.45)', marginTop: '6px' }}>{item.desc}</div>
                   </div>
                 </button>
