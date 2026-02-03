@@ -55,8 +55,8 @@ const EJECUTIVOS_SC = ['ELI', 'LIZ'];
 
 // ============ STYLES ============
 const S = {
-  bg: { background: 'linear-gradient(135deg, #001f4d 0%, #003d7a 25%, #0066cc 50%, #1a8fff 75%, #4da6ff 100%)' },
-  overlay: { background: 'linear-gradient(180deg, rgba(0,0,0,0.3) 0%, rgba(0,0,0,0.15) 50%, rgba(0,0,0,0.3) 100%)' },
+  bg: { background: 'linear-gradient(135deg, #0B1220 0%, #0F172A 50%, rgba(30,102,245,0.1) 100%)' },
+  overlay: { background: 'radial-gradient(900px circle at 20% 0%, rgba(59,130,246,0.15), transparent 55%)' },
   card: {
     background: 'linear-gradient(155deg, rgba(18,32,58,0.96) 0%, rgba(12,22,42,0.98) 35%, rgba(8,16,32,1) 70%, rgba(6,12,24,1) 100%)',
     border: '1px solid rgba(80,120,180,0.2)',
@@ -342,46 +342,41 @@ export function AtencionClientesModule({ onBack, userEmail, userName, userRole }
   };
 
   // ============ COMMON HEADER ============
-  const Header = ({ title, subtitle }: { title: string; subtitle: string }) => (
+  const Header = ({ title, subtitle }: { title: string; subtitle?: string }) => (
     <div style={{
-      background: 'linear-gradient(180deg, rgba(15,25,45,0.95) 0%, rgba(12,20,38,0.92) 50%, rgba(10,18,32,0.85) 100%)',
-      backdropFilter: 'blur(20px) saturate(140%)', WebkitBackdropFilter: 'blur(20px) saturate(140%)',
-      borderBottom: '1px solid rgba(80,120,180,0.15)',
-      boxShadow: '0 8px 32px rgba(0,0,0,0.4), 0 2px 8px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.05)',
-      padding: '0 48px', height: '80px', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+      height: '80px',
+      background: 'linear-gradient(180deg, rgba(9,16,30,0.92) 0%, rgba(9,16,30,0.75) 100%)',
+      backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)',
+      borderBottom: '1px solid rgba(255,255,255,0.08)',
+      boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.10), 0 20px 70px rgba(0,0,0,0.45)',
+      padding: '0 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
       position: 'relative', marginBottom: '32px',
     }}>
-      {/* Top accent line */}
-      <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '2px',
-        background: 'linear-gradient(90deg, transparent 0%, rgba(240,160,80,0.3) 20%, rgba(240,160,80,0.6) 50%, rgba(240,160,80,0.3) 80%, transparent 100%)',
-        boxShadow: '0 1px 6px rgba(240,160,80,0.3)' }} />
       <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
         <button onClick={view === 'home' ? onBack : () => setView('home')}
-          style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '44px', height: '44px',
-            background: 'linear-gradient(135deg, #f0a050 0%, #e8922a 100%)',
-            border: 'none', borderRadius: '10px', color: '#fff', cursor: 'pointer', transition: 'all 0.3s',
-            boxShadow: '0 2px 8px rgba(240,160,80,0.35), inset 0 1px 0 rgba(255,255,255,0.2)' }}>
-          <ArrowLeft style={{ width: '22px', height: '22px', strokeWidth: 2.5 }} />
+          style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '48px', height: '48px',
+            background: 'linear-gradient(180deg, #FF7A1A 0%, #FF5500 100%)',
+            border: '1px solid rgba(255,255,255,0.15)', borderRadius: '14px', color: '#fff', cursor: 'pointer',
+            boxShadow: '0 10px 26px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.20)',
+            transition: 'all 0.15s' }}>
+          <ArrowLeft style={{ width: '24px', height: '24px' }} />
         </button>
-        <div>
-          <h1 style={{ ...S.text, fontSize: '24px', fontWeight: 800, margin: 0, letterSpacing: '-0.01em' }}>{title}</h1>
-          <p style={{ ...S.textMuted, fontSize: '11px', margin: '2px 0 0 0', letterSpacing: '0.08em', textTransform: 'uppercase' }}>{subtitle}</p>
-        </div>
+        <h1 style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '28px', fontWeight: 600, color: 'white', margin: 0 }}>{title}</h1>
       </div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
         <button onClick={() => setShowAI(!showAI)}
-          style={{ ...S.btnSecondary, display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 16px', borderRadius: '0px',
-            background: showAI ? 'linear-gradient(135deg, rgba(240,160,80,0.15) 0%, rgba(220,140,60,0.1) 100%)' : 'linear-gradient(135deg, rgba(20,30,50,0.85) 0%, rgba(15,22,40,0.9) 100%)',
-            border: showAI ? '1px solid rgba(240,160,80,0.5)' : '1px solid rgba(80,120,180,0.25)',
+          style={{ ...S.btnSecondary, display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 16px', borderRadius: '8px',
+            background: showAI ? 'linear-gradient(135deg, rgba(240,160,80,0.15) 0%, rgba(220,140,60,0.1) 100%)' : 'rgba(255,255,255,0.05)',
+            border: showAI ? '1px solid rgba(240,160,80,0.5)' : '1px solid rgba(255,255,255,0.1)',
             color: showAI ? 'rgba(240,160,80,1)' : 'rgba(255,255,255,0.85)',
-            boxShadow: showAI ? '0 0 16px rgba(240,160,80,0.2), 0 2px 8px rgba(0,0,0,0.25)' : '0 2px 8px rgba(0,0,0,0.25)' }}>
+            boxShadow: showAI ? '0 0 16px rgba(240,160,80,0.2)' : 'none' }}>
           <Brain style={{ width: '16px', height: '16px' }} /> Buscar con IA
         </button>
         {/* FX27 branding */}
-        <div style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '28px', fontWeight: 900, letterSpacing: '-0.02em',
-          background: 'linear-gradient(135deg, #FFFFFF 0%, #F5F5F5 30%, #E0E0E0 60%, #FFFFFF 100%)',
-          WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text',
-          filter: 'drop-shadow(2px 2px 4px rgba(0,0,0,0.4))', marginLeft: '8px' }}>FX27</div>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+          <div style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '28px', fontWeight: 900, color: 'white', lineHeight: 1, letterSpacing: '-1px' }}>FX27</div>
+          <div style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '8px', color: 'rgba(255,255,255,0.7)', letterSpacing: '0.2em' }}>FUTURE EXPERIENCE 27</div>
+        </div>
       </div>
     </div>
   );
@@ -428,46 +423,31 @@ export function AtencionClientesModule({ onBack, userEmail, userName, userRole }
     <div style={{ ...S.bg, width: '100vw', height: '100vh', overflow: 'auto', position: 'relative' }}>
       <div style={{ ...S.overlay, position: 'fixed', inset: 0, pointerEvents: 'none' }} />
       <div style={{ position: 'relative', zIndex: 1 }}>
-        {/* HEADER BAR — FX27 STYLE */}
+        {/* HEADER BAR — EXACT MODULETEMPLATE STYLE */}
         <div style={{
-          background: 'linear-gradient(180deg, rgba(15,25,45,0.95) 0%, rgba(12,20,38,0.92) 50%, rgba(10,18,32,0.85) 100%)',
-          backdropFilter: 'blur(20px) saturate(140%)', WebkitBackdropFilter: 'blur(20px) saturate(140%)',
-          borderBottom: '1px solid rgba(80,120,180,0.15)',
-          boxShadow: '0 8px 32px rgba(0,0,0,0.4), 0 2px 8px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.05), inset 0 -1px 0 rgba(0,0,0,0.2)',
-          padding: '0 48px', height: '100px', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          height: '80px',
+          background: 'linear-gradient(180deg, rgba(9,16,30,0.92) 0%, rgba(9,16,30,0.75) 100%)',
+          backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)',
+          borderBottom: '1px solid rgba(255,255,255,0.08)',
+          boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.10), 0 20px 70px rgba(0,0,0,0.45)',
+          padding: '0 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
           position: 'relative',
         }}>
-          {/* Top orange accent line */}
-          <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '2px',
-            background: 'linear-gradient(90deg, transparent 0%, rgba(240,160,80,0.3) 15%, rgba(240,160,80,0.6) 50%, rgba(240,160,80,0.3) 85%, transparent 100%)',
-            boxShadow: '0 1px 8px rgba(240,160,80,0.3)' }} />
-          {/* Bottom glow */}
-          <div style={{ position: 'absolute', bottom: '-4px', left: '48px', right: '48px', height: '4px',
-            background: 'linear-gradient(90deg, transparent, rgba(25,40,65,0.7) 10%, rgba(35,55,85,0.9) 50%, rgba(25,40,65,0.7) 90%, transparent)',
-            boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.4), 0 2px 8px rgba(10,40,90,0.2)', borderRadius: '2px' }} />
-
           <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
             <button onClick={onBack}
-              style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '44px', height: '44px',
-                background: 'linear-gradient(135deg, #f0a050 0%, #e8922a 100%)',
-                border: 'none', borderRadius: '10px', color: '#fff', cursor: 'pointer', transition: 'all 0.3s',
-                boxShadow: '0 2px 8px rgba(240,160,80,0.35), inset 0 1px 0 rgba(255,255,255,0.2)' }}>
-              <ArrowLeft style={{ width: '22px', height: '22px', strokeWidth: 2.5 }} />
+              style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '48px', height: '48px',
+                background: 'linear-gradient(180deg, #FF7A1A 0%, #FF5500 100%)',
+                border: '1px solid rgba(255,255,255,0.15)', borderRadius: '14px', color: '#fff', cursor: 'pointer',
+                boxShadow: '0 10px 26px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.20)',
+                transition: 'all 0.15s' }}>
+              <ArrowLeft style={{ width: '24px', height: '24px' }} />
             </button>
-            <div>
-              <h1 style={{ ...S.text, fontSize: '28px', fontWeight: 800, margin: 0, letterSpacing: '-0.01em' }}>Servicio a Clientes</h1>
-              <p style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '11px', margin: '4px 0 0 0', letterSpacing: '0.15em', textTransform: 'uppercase',
-                color: 'rgba(240,160,80,0.7)', fontWeight: 500 }}>Gestión de clientes, exportaciones e importaciones</p>
-            </div>
+            <h1 style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '28px', fontWeight: 600, color: 'white', margin: 0 }}>Servicio a Clientes</h1>
           </div>
-          {/* FX27 Logo */}
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
-            <div style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '42px', fontWeight: 900, lineHeight: 1,
-              background: 'linear-gradient(135deg, #FFFFFF 0%, #F5F5F5 30%, #E0E0E0 60%, #FFFFFF 100%)',
-              WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text',
-              filter: 'drop-shadow(2px 2px 4px rgba(0,0,0,0.4))' }}>FX27</div>
-            <div style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '8px', fontWeight: 600, letterSpacing: '0.22em',
-              textTransform: 'uppercase', color: 'rgba(240,160,80,0.8)', marginTop: '2px' }}>Future Experience 27</div>
+          {/* FX27 Logo — exact ModuleTemplate position */}
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+            <div style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '42px', fontWeight: 900, color: 'white', lineHeight: 1, letterSpacing: '-2px' }}>FX27</div>
+            <div style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '10px', color: 'rgba(255,255,255,0.7)', letterSpacing: '0.2em', marginTop: '2px' }}>FUTURE EXPERIENCE 27</div>
           </div>
         </div>
 
