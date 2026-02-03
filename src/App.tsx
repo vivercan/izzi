@@ -25,6 +25,7 @@ import { AsignarCSR } from './components/fx27/AsignarCSR';
 import { AsignarCxC } from './components/fx27/AsignarCxC';
 import { ConfirmarAlta } from './components/fx27/ConfirmarAlta';
 import SalesHorizonModule from './components/fx27/SalesHorizonModule';
+import { AtencionClientesModule } from './components/fx27/AtencionClientesModule';
 import { MODULE_IMAGES } from './assets/module-images';
 import { projectId, publicAnonKey } from './utils/supabase/info';
 import './styles/globals.css';
@@ -329,7 +330,7 @@ export default function App() {
   const checkModuleAccess = (module: string, role: UserRole, permisosCustom: string[] = []): boolean => {
     if (role === 'admin') return true;
     if (role === 'csr') return module !== 'configuracion';
-    if (role === 'ventas') return module !== 'configuracion';
+    if (role === 'ventas') return !['configuracion', 'atencion-clientes'].includes(module);
     if (role === 'operaciones') {
       return ['dedicados', 'admin-carroll', 'monitor-carroll', 'vista-clientes-carroll', 'mapa-climatico-carroll'].includes(module);
     }
@@ -374,6 +375,7 @@ export default function App() {
           {currentModule === 'vista-clientes-carroll' && <VistaClientesCarroll onBack={() => setCurrentModule('dedicados')} />}
           {currentModule === 'mapa-climatico-carroll' && <MapaClimaticoCarroll onBack={() => setCurrentModule('dedicados')} />}
           {currentModule === 'sales-horizon' && <SalesHorizonModule onBack={handleBack} />}
+          {currentModule === 'atencion-clientes' && <AtencionClientesModule onBack={handleBack} userEmail={currentUserEmail} userName={currentUserName} />}
           {currentModule === 'asignar-csr' && <AsignarCSR />}
           {currentModule === 'asignar-cxc' && <AsignarCxC />}
           {currentModule === 'confirmar-alta' && <ConfirmarAlta />}
@@ -391,4 +393,3 @@ export default function App() {
     </div>
   );
 }
-

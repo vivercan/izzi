@@ -2,13 +2,25 @@ import { Truck, UserPlus, BarChart3, Route, Wrench, Activity, Settings, FileText
 import React, { useState, useEffect } from 'react';
 import { AIAssistant } from './AIAssistant';
 
+// Ícono custom: Usuario con diadema/headset
+const HeadsetUserIcon = ({ className, style, onMouseEnter, onMouseLeave }: { className?: string; style?: React.CSSProperties; onMouseEnter?: (e: React.MouseEvent<SVGSVGElement>) => void; onMouseLeave?: (e: React.MouseEvent<SVGSVGElement>) => void }) => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className={className} style={style} onMouseEnter={onMouseEnter} onMouseLeave={onMouseLeave}>
+    <circle cx="12" cy="10" r="3.5" />
+    <path d="M6.5 21c0-3 2.5-5.5 5.5-5.5s5.5 2.5 5.5 5.5" />
+    <path d="M5 12V9.5a7 7 0 0 1 14 0V12" />
+    <rect x="3" y="12" width="2.5" height="3.5" rx="1.25" />
+    <rect x="18.5" y="12" width="2.5" height="3.5" rx="1.25" />
+    <path d="M18.5 15.5v1a2 2 0 0 1-2 2H15" />
+  </svg>
+);
+
 interface DashboardScreenProps {
   onLogout: () => void;
   onNavigate: (module: string) => void;
-  userRole?: 'admin' | 'ventas' | 'operaciones' | 'custom';
+  userRole?: 'admin' | 'ventas' | 'operaciones' | 'custom' | 'csr';
   userRolDisplay?: string;
   permisosCustom?: string[];
-  userName?: string; // ✅ NUEVO: Nombre del usuario logueado
+  userName?: string;
 }
 
 export const DashboardScreen = ({ onLogout, onNavigate, userRole = 'admin', userRolDisplay, permisosCustom = [], userName = 'Usuario' }: DashboardScreenProps) => {
@@ -40,7 +52,7 @@ export const DashboardScreen = ({ onLogout, onNavigate, userRole = 'admin', user
     fetchExchangeRate();
     const interval = setInterval(() => {
       fetchExchangeRate();
-    }, 8 * 60 * 60 * 1000); // 8 horas en milisegundos
+    }, 8 * 60 * 60 * 1000);
 
     return () => clearInterval(interval);
   }, []);
@@ -59,7 +71,8 @@ export const DashboardScreen = ({ onLogout, onNavigate, userRole = 'admin', user
 
   const hasAccess = (moduleId: string): boolean => {
     if (userRole === 'admin') return true;
-    if (userRole === 'ventas') return moduleId !== 'configuracion';
+    if (userRole === 'csr') return moduleId !== 'configuracion';
+    if (userRole === 'ventas') return !['configuracion', 'atencion-clientes'].includes(moduleId);
     if (userRole === 'operaciones') return moduleId === 'operaciones';
     if (userRole === 'custom') return permisosCustom.includes(moduleId);
     return false;
@@ -561,7 +574,7 @@ export const DashboardScreen = ({ onLogout, onNavigate, userRole = 'admin', user
           })}
         </div>
 
-        {/* Bottom 5 Modules */}
+        {/* Bottom Modules */}
         <div className="flex gap-5">
           {bottomModules.map((module) => {
             const Icon = module.icon;
@@ -766,5 +779,3 @@ export const DashboardScreen = ({ onLogout, onNavigate, userRole = 'admin', user
     </div>
   );
 };
-
-
