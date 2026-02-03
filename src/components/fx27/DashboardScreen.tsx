@@ -1,4 +1,4 @@
-import { Truck, UserPlus, BarChart3, Route, Wrench, Activity, Settings, FileText, TrendingUp, Package, LogOut, Sparkles, Users, Lock, Target } MessageCircle, from 'lucide-react';
+import { Truck, UserPlus, BarChart3, Route, Wrench, Activity, Settings, FileText, TrendingUp, Package, LogOut, Sparkles, Users, Lock, Target, MessageCircle } from 'lucide-react';
 import React, { useState, useEffect } from 'react';
 import { AIAssistant } from './AIAssistant';
 
@@ -779,4 +779,5 @@ export const DashboardScreen = ({ onLogout, onNavigate, userRole = 'admin', user
     </div>
   );
 };
+
 
