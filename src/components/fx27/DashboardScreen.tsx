@@ -92,7 +92,6 @@ export const DashboardScreen = ({ onLogout, onNavigate, userRole = 'admin', user
     { id: 'servicio-clientes', name: 'Clientes', icon: Users },
     { id: 'dedicados', name: 'Dedicados', icon: Route },
     { id: 'sales-horizon', name: 'Sales Horizon', icon: Target },
-    { id: 'atencion-clientes', name: 'Servicio a Clientes', icon: HeadsetUserIcon },
     ];
 
   const topModules = modules.slice(0, 7);
