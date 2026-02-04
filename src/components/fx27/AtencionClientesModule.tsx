@@ -83,17 +83,7 @@ const CLIENTES_EXCLUIDOS_IMPO = [
   'TROB TRANSPORTES', 'TROB', 'WEXPRESS', 'SPEEDYHAUL', 'TROB USA',
   'WE ', 'SHI', 'PILGRIM', 'WERNER',
 ];
-const EJECUTIVO_ISIS = [
-  'ARCH MEAT', 'SUN CHEMICAL', 'TITAN MEATS', 'HERCON',
-  'BAKERY MACHINERY', 'MARTICO', 'ARGOS FREIGHT',
-  'BERRIES PARADISE', 'RED ROAD', 'ZEBRA',
-];
-// LEO es nuevo, aún sin clientes asignados
-const getEjecutivoImpo = (cliente: string): string => {
-  const c = cliente.toUpperCase();
-  if (EJECUTIVO_ISIS.some(e => c.includes(e))) return 'ISIS';
-  return '—';
-};
+// Ventas ejecutivo is now looked up dynamically from asignacion data (inside component)
 const isExcludedImpo = (cliente: string): boolean => {
   const c = cliente.toUpperCase();
   return CLIENTES_EXCLUIDOS_IMPO.some(e => c.includes(e));
@@ -746,6 +736,16 @@ FX27 Future Experience 27 — Grupo Loma Transportes © ${new Date().getFullYear
     return match ? match.ejecutivo_sc : '—';
   };
 
+  // Ventas ejecutivo lookup from asignacion data
+  const getEjecutivoImpo = (cliente: string): string => {
+    const c = cliente.toUpperCase().trim();
+    const match = asignacion.find(a => {
+      const ac = a.cliente.toUpperCase().trim();
+      return ac === c || c.includes(ac) || ac.includes(c);
+    });
+    return match?.vendedor || '—';
+  };
+
   // Consolidate duplicate clients with smart normalization
   const consolidatedImpo = useMemo(() => {
     const filtered = impoData.filter(d => !isExcludedImpo(d.cliente));
@@ -773,8 +773,10 @@ FX27 Future Experience 27 — Grupo Loma Transportes © ${new Date().getFullYear
     return Array.from(map.values()).map(d => {
       const edos = Array.from(d.estados).sort();
       const abrevs = edos.map(e => ESTADO_DISPLAY[e] || e);
-      // If no states were recognized, use raw zona_entrega as fallback
-      const fallback = abrevs.length === 0 ? Array.from(d.rawZonas).slice(0, 3).join(', ') : '';
+      // If no states were recognized, use raw zona_entrega as fallback (skip USA addresses)
+      const USA_KEYWORDS = ['TEXAS', 'TX ', 'CAROLINA', 'MINNESOTA', 'CHICAGO', 'KENTUCKY', 'NASHVILLE', 'TENNESSEE', 'INDIANA', 'OHIO', 'MICHIGAN', 'WISCONSIN', 'ILLINOIS', 'IOWA', 'ARKANSAS', 'OKLAHOMA', 'GEORGIA', 'FLORIDA', 'VIRGINIA', 'MARYLAND', 'PENNSYLVANIA', 'NEW YORK', 'NEW JERSEY', 'CONNECTICUT', 'MASSACHUSETTS', 'CALIFORNIA', 'ARIZONA', 'NEVADA', 'COLORADO', 'UTAH', 'OREGON', 'WASHINGTON', 'SPARTANBURG', 'EL PASO', 'LAREDO TX', 'STATE HWY', 'USA'];
+      const rawArr = Array.from(d.rawZonas).filter(r => !USA_KEYWORDS.some(kw => r.toUpperCase().includes(kw)));
+      const fallback = abrevs.length === 0 ? rawArr.slice(0, 3).join(', ') : '';
       return { ...d, estadosStr: abrevs.join(', ') || fallback || '—' };
     });
   }, [impoData]);
@@ -1737,8 +1739,8 @@ FX27 Future Experience 27 — Grupo Loma Transportes © ${new Date().getFullYear
                     <td style={{ ...S.tableCell, textAlign: 'center', padding: '5px 2px' }}>
                       <span style={{
                         padding: '2px 5px', borderRadius: '4px', fontSize: '9px', fontWeight: 700, fontFamily: "'Exo 2', sans-serif",
-                        background: ejecVta === 'ISIS' ? 'rgba(76,175,80,0.15)' : 'rgba(120,120,120,0.08)',
-                        color: ejecVta === 'ISIS' ? '#66bb6a' : 'rgba(255,255,255,0.25)',
+                        background: ejecVta !== '—' ? 'rgba(76,175,80,0.15)' : 'rgba(120,120,120,0.08)',
+                        color: ejecVta !== '—' ? '#66bb6a' : 'rgba(255,255,255,0.25)',
                       }}>{ejecVta}</span>
                     </td>
                     <td style={{ ...S.tableCell, textAlign: 'center', padding: '5px 2px' }}>
