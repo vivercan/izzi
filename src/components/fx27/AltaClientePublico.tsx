@@ -271,7 +271,7 @@ export function AltaClientePublico({ solicitudId }: Props) {
         idioma: lang, 
         estatus: 'EN_REVISION', 
         firma_fecha: new Date().toISOString(), 
-        firma_navegador: navigator.userAgent,
+        firma_user_agent: navigator.userAgent,
         confirmacion_pago: true,
         confirmacion_pago_fecha: new Date().toISOString(),
         confirmacion_pago_ip: 'captured'

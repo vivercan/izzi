@@ -156,10 +156,10 @@ export default function ConfirmarAltaNancy({ solicitudId, onConfirmed }: Props) 
       // 4. AUTO-SYNC: Insertar contactos del formulario
       // Columnas reales: cliente_nombre, contacto_nombre, email, whatsapp, cargo, empresa
       const contactos = [
-        { cargo: 'ADMIN_PAGOS', nombre: solicitud.contacto_admin_nombre, email: solicitud.contacto_admin_email, whatsapp: solicitud.contacto_admin_cel || solicitud.contacto_admin_tel },
-        { cargo: 'FACTURAS', nombre: solicitud.contacto_fact_nombre, email: solicitud.contacto_fact_email, whatsapp: solicitud.contacto_fact_cel || solicitud.contacto_fact_tel },
-        { cargo: 'OPERATIVO_1', nombre: solicitud.contacto_op1_nombre, email: solicitud.contacto_op1_email, whatsapp: solicitud.contacto_op1_cel || solicitud.contacto_op1_tel },
-        { cargo: 'OPERATIVO_2', nombre: solicitud.contacto_op2_nombre, email: solicitud.contacto_op2_email, whatsapp: solicitud.contacto_op2_cel || solicitud.contacto_op2_tel },
+        { cargo: 'ADMIN_PAGOS', nombre: solicitud.contacto_admin_nombre, email: solicitud.contacto_admin_email, whatsapp: solicitud.contacto_admin_tel },
+        { cargo: 'FACTURAS', nombre: solicitud.contacto_facturas_nombre, email: solicitud.contacto_facturas_email, whatsapp: solicitud.contacto_facturas_tel },
+        { cargo: 'COMPRAS', nombre: solicitud.contacto_op1_nombre, email: solicitud.contacto_op1_email, whatsapp: solicitud.contacto_op1_tel },
+        { cargo: 'OPERATIVO', nombre: solicitud.contacto_op2_nombre, email: solicitud.contacto_op2_email, whatsapp: solicitud.contacto_op2_tel },
       ];
 
       for (const c of contactos) {
