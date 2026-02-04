@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { ArrowLeft, Users, Upload, Download, Search, UserCheck, X, FileSpreadsheet, Brain, MapPin, ChevronDown, ChevronUp, RefreshCw, ClipboardList, MessageSquare, Loader2, Check, AlertTriangle, Truck, Mail, Send, Phone, CheckSquare, Square } from 'lucide-react';
+import { ArrowLeft, Users, Upload, Download, Search, UserCheck, X, FileSpreadsheet, Brain, MapPin, ChevronDown, ChevronUp, RefreshCw, ClipboardList, MessageSquare, Loader2, Check, AlertTriangle, Truck, Mail, Send, Phone, CheckSquare, Square, Edit2, Trash2, Plus, Save } from 'lucide-react';
 import { createClient } from '@supabase/supabase-js';
 import { projectId, publicAnonKey } from '../../utils/supabase/info';
 
@@ -336,6 +336,16 @@ export function AtencionClientesModule({ onBack, userEmail, userName, userRole, 
   const [gmailName, setGmailName] = useState('');
   const [gsiLoaded, setGsiLoaded] = useState(false);
 
+  // Contactos modal state
+  interface Contacto { id?: number; cliente_nombre: string; contacto_nombre: string; email: string; whatsapp: string; cargo: string; notas: string; }
+  const [showContactsModal, setShowContactsModal] = useState(false);
+  const [contactsCliente, setContactsCliente] = useState('');
+  const [contactsList, setContactsList] = useState<Contacto[]>([]);
+  const [contactsLoading, setContactsLoading] = useState(false);
+  const [contactsSaving, setContactsSaving] = useState(false);
+  const [newContact, setNewContact] = useState<Contacto>({ cliente_nombre: '', contacto_nombre: '', email: '', whatsapp: '', cargo: '', notas: '' });
+  const [clientesConContactos, setClientesConContactos] = useState<Set<string>>(new Set());
+
   // ============ FETCH DATA ============
   useEffect(() => {
     const fetchAll = async () => {
@@ -349,6 +359,9 @@ export function AtencionClientesModule({ onBack, userEmail, userName, userRole, 
         if (asigRes.data) setAsignacion(asigRes.data);
         if (expoRes.data) setExpoData(expoRes.data);
         if (impoRes.data) setImpoData(impoRes.data);
+        // Load which clients have contacts
+        const { data: contactosIdx } = await supabase.from('sc_contactos_clientes').select('cliente_nombre');
+        if (contactosIdx) setClientesConContactos(new Set(contactosIdx.map(c => c.cliente_nombre)));
       } catch (err) { console.error('Error fetching data:', err); }
       setLoading(false);
     };
@@ -376,6 +389,45 @@ export function AtencionClientesModule({ onBack, userEmail, userName, userRole, 
   }, [loginGmailToken]);
 
   // ============ GMAIL OAUTH CONNECT ============
+  // ============ CONTACTOS MANAGEMENT ============
+  const openContactsModal = async (clienteNombre: string) => {
+    setContactsCliente(clienteNombre);
+    setShowContactsModal(true);
+    setContactsLoading(true);
+    setNewContact({ cliente_nombre: clienteNombre, contacto_nombre: '', email: '', whatsapp: '', cargo: '', notas: '' });
+    try {
+      const { data } = await supabase.from('sc_contactos_clientes').select('*').eq('cliente_nombre', clienteNombre).order('id');
+      setContactsList(data || []);
+    } catch { setContactsList([]); }
+    setContactsLoading(false);
+  };
+
+  const saveNewContact = async () => {
+    if (!newContact.contacto_nombre && !newContact.email && !newContact.whatsapp) return;
+    setContactsSaving(true);
+    try {
+      const payload = { ...newContact, cliente_nombre: contactsCliente };
+      const { data, error } = await supabase.from('sc_contactos_clientes').insert(payload).select();
+      if (!error && data) {
+        setContactsList(prev => [...prev, data[0]]);
+        setNewContact({ cliente_nombre: contactsCliente, contacto_nombre: '', email: '', whatsapp: '', cargo: '', notas: '' });
+        setClientesConContactos(prev => new Set(prev).add(contactsCliente));
+      }
+    } catch {}
+    setContactsSaving(false);
+  };
+
+  const deleteContact = async (id: number) => {
+    const { error } = await supabase.from('sc_contactos_clientes').delete().eq('id', id);
+    if (!error) {
+      const newList = contactsList.filter(c => c.id !== id);
+      setContactsList(newList);
+      if (newList.length === 0) {
+        setClientesConContactos(prev => { const s = new Set(prev); s.delete(contactsCliente); return s; });
+      }
+    }
+  };
+
   const handleGmailConnect = () => {
     if (!gsiLoaded || !(window as any).google?.accounts?.oauth2) {
       alert('Google Sign-In no cargó. Recarga la página e intenta de nuevo.');
@@ -994,7 +1046,7 @@ FX27 Future Experience 27 — Grupo Loma Transportes © ${new Date().getFullYear
                   <th style={{ ...S.tableHeader, width: '120px' }}>Ejecutivo SC</th>
                   <th style={{ ...S.tableHeader, width: '100px' }}>Status</th>
                   <th style={{ ...S.tableHeader }}>Notas</th>
-                  <th style={{ ...S.tableHeader, width: '100px' }}>Acción</th>
+                  <th style={{ ...S.tableHeader, width: '200px', textAlign: 'center' }}>Acción</th>
                 </tr>
               </thead>
               <tbody>
@@ -1045,8 +1097,9 @@ FX27 Future Experience 27 — Grupo Loma Transportes © ${new Date().getFullYear
                     </td>
                     <td style={{ ...S.tableCell, fontSize: '12px', color: 'rgba(255,255,255,0.5)' }}>{c.notas || '—'}</td>
                     <td style={S.tableCell}>
+                      <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
                       {editingId === c.id ? (
-                        <div style={{ display: 'flex', gap: '4px' }}>
+                        <>
                           <button onClick={() => handleAssign(c.id, editEjecutivo, editVendedor)}
                             style={{ background: 'rgba(76,175,80,0.2)', border: '1px solid rgba(76,175,80,0.4)', borderRadius: '6px', padding: '4px 8px', cursor: 'pointer' }}>
                             <Check style={{ width: '14px', height: '14px', color: '#66bb6a' }} />
@@ -1055,13 +1108,23 @@ FX27 Future Experience 27 — Grupo Loma Transportes © ${new Date().getFullYear
                             style={{ background: 'rgba(255,80,80,0.15)', border: '1px solid rgba(255,80,80,0.3)', borderRadius: '6px', padding: '4px 8px', cursor: 'pointer' }}>
                             <X style={{ width: '14px', height: '14px', color: '#ff6b6b' }} />
                           </button>
-                        </div>
+                        </>
                       ) : (
                         <button onClick={() => { setEditingId(c.id); setEditEjecutivo(c.ejecutivo_sc); setEditVendedor(c.vendedor || ''); }}
                           style={{ ...S.btnSecondary, padding: '5px 12px', fontSize: '11px', display: 'flex', alignItems: 'center', gap: '4px' }}>
                           <UserCheck style={{ width: '13px', height: '13px' }} /> Asignar
                         </button>
                       )}
+                      <button onClick={() => openContactsModal(c.cliente)}
+                        style={{
+                          ...S.btnSecondary, padding: '5px 12px', fontSize: '11px', display: 'flex', alignItems: 'center', gap: '4px',
+                          background: clientesConContactos.has(c.cliente) ? 'rgba(76,175,80,0.15)' : 'rgba(255,255,255,0.04)',
+                          borderColor: clientesConContactos.has(c.cliente) ? 'rgba(76,175,80,0.4)' : undefined,
+                          color: clientesConContactos.has(c.cliente) ? '#66bb6a' : undefined,
+                        }}>
+                        <Mail style={{ width: '13px', height: '13px' }} /> Contactos
+                      </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -1073,6 +1136,106 @@ FX27 Future Experience 27 — Grupo Loma Transportes © ${new Date().getFullYear
           Mostrando {filteredAsignacion.length} de {asignacion.length} clientes
         </div>
       </div></div>
+      {/* CONTACTOS MODAL */}
+      {showContactsModal && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)' }} onClick={() => setShowContactsModal(false)} />
+          <div style={{ ...S.card, position: 'relative', width: '720px', maxHeight: '85vh', overflow: 'auto', padding: '0', border: '1px solid rgba(59,130,246,0.3)' }}>
+            {/* Modal Header */}
+            <div style={{ padding: '20px 24px 16px', borderBottom: '1px solid rgba(255,255,255,0.08)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <h3 style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '18px', fontWeight: 700, color: 'white', margin: 0 }}>
+                  <Mail style={{ width: '18px', height: '18px', display: 'inline', marginRight: '8px', color: '#60a5fa' }} />
+                  Contactos — {contactsCliente}
+                </h3>
+                <p style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '12px', color: 'rgba(255,255,255,0.4)', margin: '4px 0 0' }}>
+                  Emails y WhatsApp para envío de ofertas
+                </p>
+              </div>
+              <button onClick={() => setShowContactsModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}>
+                <X style={{ width: '20px', height: '20px', color: 'rgba(255,255,255,0.5)' }} />
+              </button>
+            </div>
+            {/* Existing contacts */}
+            <div style={{ padding: '16px 24px' }}>
+              {contactsLoading ? (
+                <div style={{ textAlign: 'center', padding: '24px', color: 'rgba(255,255,255,0.4)', fontFamily: "'Exo 2', sans-serif" }}>
+                  <Loader2 style={{ width: '24px', height: '24px', animation: 'spin 1s linear infinite', margin: '0 auto 8px' }} />
+                  Cargando contactos...
+                </div>
+              ) : contactsList.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '16px', color: 'rgba(255,255,255,0.3)', fontFamily: "'Exo 2', sans-serif", fontSize: '13px' }}>
+                  Sin contactos registrados. Agrega el primer contacto abajo.
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '16px' }}>
+                  {contactsList.map((ct, i) => (
+                    <div key={ct.id || i} style={{
+                      background: 'rgba(255,255,255,0.04)', borderRadius: '8px', padding: '12px 16px',
+                      border: '1px solid rgba(255,255,255,0.08)', display: 'flex', justifyContent: 'space-between', alignItems: 'center'
+                    }}>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '14px', fontWeight: 600, color: 'white' }}>
+                          {ct.contacto_nombre || 'Sin nombre'}
+                          {ct.cargo && <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)', marginLeft: '8px' }}>— {ct.cargo}</span>}
+                        </div>
+                        <div style={{ display: 'flex', gap: '16px', marginTop: '4px' }}>
+                          {ct.email && (
+                            <span style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '12px', color: '#60a5fa', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                              <Mail style={{ width: '12px', height: '12px' }} /> {ct.email}
+                            </span>
+                          )}
+                          {ct.whatsapp && (
+                            <span style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '12px', color: '#4ade80', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                              <Phone style={{ width: '12px', height: '12px' }} /> {ct.whatsapp}
+                            </span>
+                          )}
+                        </div>
+                        {ct.notas && <div style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '11px', color: 'rgba(255,255,255,0.3)', marginTop: '4px' }}>{ct.notas}</div>}
+                      </div>
+                      <button onClick={() => ct.id && deleteContact(ct.id)}
+                        style={{ background: 'rgba(255,80,80,0.1)', border: '1px solid rgba(255,80,80,0.25)', borderRadius: '6px', padding: '6px', cursor: 'pointer' }}>
+                        <Trash2 style={{ width: '14px', height: '14px', color: '#ff6b6b' }} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {/* Add new contact form */}
+              <div style={{
+                background: 'rgba(59,130,246,0.06)', borderRadius: '8px', padding: '16px',
+                border: '1px solid rgba(59,130,246,0.2)',
+              }}>
+                <div style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '13px', fontWeight: 600, color: '#60a5fa', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <Plus style={{ width: '14px', height: '14px' }} /> Agregar Contacto
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                  <input value={newContact.contacto_nombre} onChange={e => setNewContact(p => ({ ...p, contacto_nombre: e.target.value }))}
+                    placeholder="Nombre del contacto" style={{ ...S.input, fontSize: '13px', padding: '8px 12px' }} />
+                  <input value={newContact.cargo} onChange={e => setNewContact(p => ({ ...p, cargo: e.target.value }))}
+                    placeholder="Cargo (ej: Logística, Compras)" style={{ ...S.input, fontSize: '13px', padding: '8px 12px' }} />
+                  <input value={newContact.email} onChange={e => setNewContact(p => ({ ...p, email: e.target.value }))}
+                    placeholder="correo@empresa.com" style={{ ...S.input, fontSize: '13px', padding: '8px 12px' }} />
+                  <input value={newContact.whatsapp} onChange={e => setNewContact(p => ({ ...p, whatsapp: e.target.value }))}
+                    placeholder="WhatsApp (ej: 52 81 1234 5678)" style={{ ...S.input, fontSize: '13px', padding: '8px 12px' }} />
+                  <input value={newContact.notas} onChange={e => setNewContact(p => ({ ...p, notas: e.target.value }))}
+                    placeholder="Notas (opcional)" style={{ ...S.input, fontSize: '13px', padding: '8px 12px', gridColumn: '1 / -1' }} />
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '10px' }}>
+                  <button onClick={saveNewContact} disabled={contactsSaving || (!newContact.contacto_nombre && !newContact.email && !newContact.whatsapp)}
+                    style={{
+                      ...S.btn, padding: '8px 20px', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px',
+                      opacity: (!newContact.contacto_nombre && !newContact.email && !newContact.whatsapp) ? 0.4 : 1,
+                    }}>
+                    {contactsSaving ? <Loader2 style={{ width: '14px', height: '14px', animation: 'spin 1s linear infinite' }} /> : <Save style={{ width: '14px', height: '14px' }} />}
+                    Guardar Contacto
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   );
