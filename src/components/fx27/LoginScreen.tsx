@@ -86,16 +86,6 @@ export const LoginScreen = ({
             >
               Bienvenido
             </h2>
-            <p
-              style={{
-                fontFamily: "'Exo 2', sans-serif",
-                fontSize: "13px",
-                color: 'rgba(255, 255, 255, 0.5)',
-                margin: 0,
-              }}
-            >
-              Inicia sesión con tu cuenta corporativa de Google
-            </p>
           </div>
 
           {/* Error Message */}
