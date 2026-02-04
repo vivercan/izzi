@@ -1,10 +1,19 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { ArrowLeft, Users, Upload, Download, Search, UserCheck, X, FileSpreadsheet, Brain, MapPin, ChevronDown, ChevronUp, RefreshCw, ClipboardList, MessageSquare, Loader2, Check, AlertTriangle, Truck } from 'lucide-react';
+import { ArrowLeft, Users, Upload, Download, Search, UserCheck, X, FileSpreadsheet, Brain, MapPin, ChevronDown, ChevronUp, RefreshCw, ClipboardList, MessageSquare, Loader2, Check, AlertTriangle, Truck, Mail, Send, Phone, CheckSquare, Square } from 'lucide-react';
 import { createClient } from '@supabase/supabase-js';
 import { projectId, publicAnonKey } from '../../utils/supabase/info';
 
 const supabase = createClient(`https://${projectId}.supabase.co`, publicAnonKey);
 const ANTHROPIC_KEY = import.meta.env.VITE_ANTHROPIC_API_KEY || '';
+
+// ============ GOOGLE OAUTH CONFIG ============
+const GOOGLE_CLIENT_ID = '26773356182-sb6d8l7krsltmjfh2rto7nutd4eu73qr.apps.googleusercontent.com';
+const GOOGLE_SCOPES = 'https://www.googleapis.com/auth/gmail.send https://www.googleapis.com/auth/userinfo.email';
+const ALLOWED_DOMAINS = ['trob.com.mx', 'wexpress.com.mx', 'speedyhaul.com.mx'];
+
+// ============ WHATSAPP API CONFIG ============
+const WA_PHONE_ID = '963627606824867';
+const WA_ACCESS_TOKEN = 'EAAVapl2JRGMBQLlCz03w6TsgRFog5PnO91xxLecN56cnqMyh5DHbbUcYHqHrHJJzHvZAlag710qZBzuuVDUwlhU55mbwweEY45Kfl5SYDPZAV22haOl7j1uEEmG4pe8qhTvwnpmfXbauthZB84BlJ7oXdK398zuZBXr9bSzLAxk2U5L4XnezLBFyyjSZAZC0A5s1AZDZD';
 
 // ============ TYPES ============
 interface ClienteAsignacion {
@@ -314,6 +323,19 @@ export function AtencionClientesModule({ onBack, userEmail, userName, userRole }
   // Export state
   const [exporting, setExporting] = useState(false);
 
+  // Ofertar state
+  const [selectedExpo, setSelectedExpo] = useState<Set<number>>(new Set());
+  const [showOfertarModal, setShowOfertarModal] = useState(false);
+  const [ofertarDisp, setOfertarDisp] = useState('hoy');
+  const [ofertarCustomDate, setOfertarCustomDate] = useState('');
+  const [ofertarCanal, setOfertarCanal] = useState<'email' | 'whatsapp' | 'ambos'>('email');
+  const [ofertarSending, setOfertarSending] = useState(false);
+  const [ofertarResult, setOfertarResult] = useState<{ success: number; failed: number; details: string[] } | null>(null);
+  const [gmailToken, setGmailToken] = useState('');
+  const [gmailEmail, setGmailEmail] = useState('');
+  const [gmailName, setGmailName] = useState('');
+  const [gsiLoaded, setGsiLoaded] = useState(false);
+
   // ============ FETCH DATA ============
   useEffect(() => {
     const fetchAll = async () => {
@@ -332,6 +354,190 @@ export function AtencionClientesModule({ onBack, userEmail, userName, userRole }
     };
     fetchAll();
   }, []);
+
+  // ============ LOAD GOOGLE IDENTITY SERVICES ============
+  useEffect(() => {
+    if (document.getElementById('gsi-script')) { setGsiLoaded(true); return; }
+    const script = document.createElement('script');
+    script.id = 'gsi-script';
+    script.src = 'https://accounts.google.com/gsi/client';
+    script.async = true;
+    script.onload = () => setGsiLoaded(true);
+    document.head.appendChild(script);
+  }, []);
+
+  // ============ GMAIL OAUTH CONNECT ============
+  const handleGmailConnect = () => {
+    if (!gsiLoaded || !(window as any).google?.accounts?.oauth2) {
+      alert('Google Sign-In no cargó. Recarga la página e intenta de nuevo.');
+      return;
+    }
+    const tokenClient = (window as any).google.accounts.oauth2.initTokenClient({
+      client_id: GOOGLE_CLIENT_ID,
+      scope: GOOGLE_SCOPES,
+      callback: async (resp: any) => {
+        if (resp.error) { alert('Error de autenticación: ' + resp.error); return; }
+        setGmailToken(resp.access_token);
+        try {
+          const info = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
+            headers: { Authorization: `Bearer ${resp.access_token}` },
+          });
+          const data = await info.json();
+          const domain = data.email?.split('@')[1];
+          if (!ALLOWED_DOMAINS.includes(domain)) {
+            alert(`El dominio @${domain} no está autorizado. Solo se permiten: ${ALLOWED_DOMAINS.join(', ')}`);
+            setGmailToken('');
+            return;
+          }
+          setGmailEmail(data.email);
+          setGmailName(data.name || data.email.split('@')[0]);
+        } catch { setGmailEmail('Conectado'); }
+      },
+    });
+    tokenClient.requestAccessToken();
+  };
+
+  // ============ SEND EMAIL VIA GMAIL API ============
+  const sendGmailEmail = async (to: string, subject: string, htmlBody: string): Promise<boolean> => {
+    if (!gmailToken) return false;
+    const boundary = 'fx27boundary';
+    const raw = [
+      `From: ${gmailName} <${gmailEmail}>`,
+      `To: ${to}`,
+      `Subject: =?UTF-8?B?${btoa(unescape(encodeURIComponent(subject)))}?=`,
+      `MIME-Version: 1.0`,
+      `Content-Type: multipart/alternative; boundary="${boundary}"`,
+      ``,
+      `--${boundary}`,
+      `Content-Type: text/html; charset=UTF-8`,
+      `Content-Transfer-Encoding: base64`,
+      ``,
+      btoa(unescape(encodeURIComponent(htmlBody))),
+      `--${boundary}--`,
+    ].join('\r\n');
+    const encoded = btoa(unescape(encodeURIComponent(raw))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+    try {
+      const res = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/send', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${gmailToken}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ raw: encoded }),
+      });
+      return res.ok;
+    } catch { return false; }
+  };
+
+  // ============ SEND WHATSAPP VIA META API ============
+  const sendWhatsApp = async (phone: string, message: string): Promise<boolean> => {
+    try {
+      const res = await fetch(`https://graph.facebook.com/v22.0/${WA_PHONE_ID}/messages`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${WA_ACCESS_TOKEN}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          messaging_product: 'whatsapp',
+          to: phone.replace(/\D/g, ''),
+          type: 'text',
+          text: { body: message },
+        }),
+      });
+      return res.ok;
+    } catch { return false; }
+  };
+
+  // ============ BUILD OFFER MESSAGE ============
+  const buildOfferMessage = (cliente: string, tipo: string, zona: string, disponibilidad: string, ejecutiva: string): string => {
+    const dispText = disponibilidad === 'hoy' ? 'hoy' : disponibilidad === 'manana' ? 'mañana' : disponibilidad === 'finde' ? 'este fin de semana' : disponibilidad;
+    return `Estimado equipo de ${cliente},\n\nLe informamos que tenemos equipo ${tipo} disponible en la zona de ${zona} para ${dispText}.\n\nQuedamos a sus órdenes para cualquier requerimiento de transporte.\n\nSaludos cordiales,\n${ejecutiva}\nGrupo Loma Transportes`;
+  };
+
+  const buildOfferHTML = (cliente: string, tipo: string, zona: string, disponibilidad: string, ejecutiva: string, ejecutivaEmail: string): string => {
+    const dispText = disponibilidad === 'hoy' ? 'HOY' : disponibilidad === 'manana' ? 'MAÑANA' : disponibilidad === 'finde' ? 'ESTE FIN DE SEMANA' : disponibilidad.toUpperCase();
+    const iconEquipo = tipo === 'THERMO' ? '❄️' : '📦';
+    return `<!DOCTYPE html><html><body style="margin:0;padding:0;font-family:Arial,sans-serif;background:#f4f4f4;">
+<div style="max-width:600px;margin:20px auto;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 4px 16px rgba(0,0,0,0.1);">
+<div style="background:linear-gradient(135deg,#001f4d,#0066cc);padding:24px 32px;text-align:center;">
+<h1 style="color:#fff;margin:0;font-size:24px;">🚛 Equipo Disponible</h1>
+<p style="color:rgba(255,255,255,0.8);margin:8px 0 0;font-size:14px;">Grupo Loma Transportes — FX27</p>
+</div>
+<div style="padding:32px;">
+<p style="font-size:16px;color:#333;margin:0 0 16px;">Estimado equipo de <strong>${cliente}</strong>,</p>
+<div style="background:linear-gradient(135deg,#e8f0fe,#f0f4ff);border-left:4px solid #0066cc;border-radius:8px;padding:20px;margin:20px 0;">
+<p style="margin:0 0 8px;font-size:18px;font-weight:700;color:#001f4d;">${iconEquipo} Equipo ${tipo} disponible</p>
+<p style="margin:0 0 4px;color:#333;"><strong>📍 Zona:</strong> ${zona}</p>
+<p style="margin:0;color:#333;"><strong>📅 Disponibilidad:</strong> ${dispText}</p>
+</div>
+<p style="font-size:15px;color:#555;line-height:1.6;">Quedamos a sus órdenes para cualquier requerimiento de transporte. No dude en contactarnos.</p>
+<div style="margin-top:24px;padding-top:20px;border-top:1px solid #eee;">
+<p style="margin:0;font-weight:600;color:#333;">${ejecutiva}</p>
+<p style="margin:4px 0 0;color:#666;font-size:14px;">${ejecutivaEmail}</p>
+<p style="margin:4px 0 0;color:#666;font-size:14px;">Grupo Loma Transportes</p>
+</div>
+</div>
+<div style="background:#f8f8f8;padding:16px;text-align:center;font-size:12px;color:#999;">
+FX27 Future Experience 27 — Grupo Loma Transportes © ${new Date().getFullYear()}
+</div>
+</div></body></html>`;
+  };
+
+  // ============ HANDLE SEND OFERTAS ============
+  const handleSendOfertas = async () => {
+    const selectedClients = filteredExpo.filter(d => selectedExpo.has(d.id));
+    if (selectedClients.length === 0) return;
+    setOfertarSending(true);
+    setOfertarResult(null);
+    let success = 0, failed = 0;
+    const details: string[] = [];
+    const zona = expoExpanded ? `${expoEstado} y estados vecinos` : expoEstado;
+    const disp = ofertarDisp === 'custom' ? ofertarCustomDate : ofertarDisp;
+    const ejecutiva = gmailName || userName || 'Ejecutivo Comercial';
+    const ejecutivaEmail = gmailEmail || userEmail || '';
+
+    for (const client of selectedClients) {
+      // For now: demo mode - log the offer. In production, this would look up contact info.
+      // We'll store the offer in Supabase for tracking
+      try {
+        if (ofertarCanal === 'email' || ofertarCanal === 'ambos') {
+          if (!gmailToken) {
+            details.push(`⚠️ ${client.cliente}: Gmail no conectado`);
+            failed++;
+            continue;
+          }
+          // TODO: Replace with actual client email from sc_contactos_clientes table
+          // For now, log as pending contact
+          details.push(`📧 ${client.cliente}: Pendiente — agregar email de contacto`);
+        }
+        if (ofertarCanal === 'whatsapp' || ofertarCanal === 'ambos') {
+          details.push(`📱 ${client.cliente}: Pendiente — agregar WhatsApp de contacto`);
+        }
+        // Log offer to Supabase
+        await supabase.from('sc_ofertas_log').insert({
+          cliente: client.cliente,
+          canal: ofertarCanal,
+          tipo_equipo: expoTipo,
+          zona: zona,
+          disponibilidad: disp,
+          estado_origen: client.estado,
+          viajes_historicos: client.viajes,
+          enviado_por: gmailEmail || userEmail || 'unknown',
+          status: 'pendiente_contacto',
+        }).then(() => { success++; }).catch(() => { failed++; });
+      } catch { failed++; details.push(`❌ ${client.cliente}: Error`); }
+    }
+    setOfertarResult({ success, failed, details });
+    setOfertarSending(false);
+  };
+
+  // ============ EXPO SELECTION HELPERS ============
+  const toggleSelectExpo = (id: number) => {
+    setSelectedExpo(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+  const toggleSelectAllExpo = () => {
+    if (selectedExpo.size === filteredExpo.length) setSelectedExpo(new Set());
+    else setSelectedExpo(new Set(filteredExpo.map(d => d.id)));
+  };
 
   // ============ ASIGNACION LOGIC ============
   const handleAssign = async (id: number, ejecutivo: string, vendedor: string) => {
@@ -862,6 +1068,180 @@ export function AtencionClientesModule({ onBack, userEmail, userName, userRole }
     </div>
   );
 
+  // ============ OFERTAR MODAL ============
+  const OfertarModal = () => {
+    if (!showOfertarModal) return null;
+    const selectedClients = filteredExpo.filter(d => selectedExpo.has(d.id));
+    const zona = expoExpanded ? `${expoEstado} y estados vecinos` : expoEstado;
+    const dispLabel = ofertarDisp === 'hoy' ? 'HOY' : ofertarDisp === 'manana' ? 'MAÑANA' : ofertarDisp === 'finde' ? 'FIN DE SEMANA' : ofertarCustomDate || 'FECHA';
+    return (
+      <div style={{ position: 'fixed', inset: 0, zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)' }} onClick={() => { setShowOfertarModal(false); setOfertarResult(null); }} />
+        <div style={{ ...S.card, position: 'relative', width: '680px', maxHeight: '85vh', overflow: 'auto', padding: '0', border: '1px solid rgba(240,160,80,0.3)' }}>
+          {/* Header */}
+          <div style={{ padding: '20px 24px', borderBottom: '1px solid rgba(80,120,180,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky', top: 0, zIndex: 2, background: 'rgba(12,22,42,0.98)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <Send style={{ width: '22px', height: '22px', color: 'rgba(240,160,80,1)' }} />
+              <div>
+                <div style={{ ...S.text, fontSize: '18px', fontWeight: 700 }}>Ofertar Equipo</div>
+                <div style={{ ...S.textMuted, fontSize: '12px' }}>{selectedClients.length} clientes seleccionados · {expoTipo} · {zona}</div>
+              </div>
+            </div>
+            <button onClick={() => { setShowOfertarModal(false); setOfertarResult(null); }} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}>
+              <X style={{ width: '20px', height: '20px', color: 'rgba(255,255,255,0.5)' }} />
+            </button>
+          </div>
+
+          <div style={{ padding: '20px 24px' }}>
+            {/* Gmail Connection */}
+            <div style={{ ...S.card, padding: '14px 18px', marginBottom: '16px', border: gmailToken ? '1px solid rgba(76,175,80,0.3)' : '1px solid rgba(255,152,0,0.3)' }}>
+              {gmailToken ? (
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <Mail style={{ width: '18px', height: '18px', color: '#66bb6a' }} />
+                    <div>
+                      <div style={{ ...S.text, fontSize: '13px', fontWeight: 600 }}>Gmail Conectado</div>
+                      <div style={{ ...S.textMuted, fontSize: '11px' }}>Enviando como: {gmailEmail}</div>
+                    </div>
+                  </div>
+                  <button onClick={() => { setGmailToken(''); setGmailEmail(''); setGmailName(''); }}
+                    style={{ ...S.btnSecondary, padding: '5px 12px', fontSize: '11px' }}>Desconectar</button>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <Mail style={{ width: '18px', height: '18px', color: '#ffa726' }} />
+                    <div>
+                      <div style={{ ...S.text, fontSize: '13px', fontWeight: 600 }}>Gmail no conectado</div>
+                      <div style={{ ...S.textMuted, fontSize: '11px' }}>Conecta tu cuenta para enviar correos</div>
+                    </div>
+                  </div>
+                  <button onClick={handleGmailConnect}
+                    style={{ ...S.btn, padding: '8px 16px', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <Mail style={{ width: '14px', height: '14px' }} /> Conectar Gmail
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* Disponibilidad */}
+            <div style={{ marginBottom: '16px' }}>
+              <label style={{ ...S.textMuted, fontSize: '11px', display: 'block', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Disponibilidad del equipo</label>
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                {[
+                  { val: 'hoy', label: '📅 Hoy' },
+                  { val: 'manana', label: '📅 Mañana' },
+                  { val: 'finde', label: '📅 Fin de semana' },
+                  { val: 'custom', label: '🗓️ Fecha específica' },
+                ].map(opt => (
+                  <button key={opt.val} onClick={() => setOfertarDisp(opt.val)}
+                    style={{
+                      padding: '8px 16px', borderRadius: '8px', fontSize: '13px', fontWeight: 600, fontFamily: "'Exo 2', sans-serif",
+                      cursor: 'pointer', transition: 'all 0.2s',
+                      background: ofertarDisp === opt.val ? 'rgba(240,160,80,0.2)' : 'rgba(10,20,40,0.6)',
+                      color: ofertarDisp === opt.val ? '#ffa726' : 'rgba(255,255,255,0.6)',
+                      border: `1px solid ${ofertarDisp === opt.val ? 'rgba(240,160,80,0.5)' : 'rgba(80,120,180,0.25)'}`,
+                    }}>{opt.label}</button>
+                ))}
+              </div>
+              {ofertarDisp === 'custom' && (
+                <input type="date" value={ofertarCustomDate} onChange={e => setOfertarCustomDate(e.target.value)}
+                  style={{ ...S.input, marginTop: '8px', width: '200px' }} />
+              )}
+            </div>
+
+            {/* Canal */}
+            <div style={{ marginBottom: '16px' }}>
+              <label style={{ ...S.textMuted, fontSize: '11px', display: 'block', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Canal de envío</label>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                {[
+                  { val: 'email' as const, label: '📧 Correo', icon: Mail, ready: true },
+                  { val: 'whatsapp' as const, label: '📱 WhatsApp', icon: Phone, ready: false },
+                  { val: 'ambos' as const, label: '📧📱 Ambos', icon: Send, ready: false },
+                ].map(opt => (
+                  <button key={opt.val} onClick={() => opt.ready && setOfertarCanal(opt.val)}
+                    style={{
+                      padding: '8px 16px', borderRadius: '8px', fontSize: '13px', fontWeight: 600, fontFamily: "'Exo 2', sans-serif",
+                      cursor: opt.ready ? 'pointer' : 'not-allowed', transition: 'all 0.2s', opacity: opt.ready ? 1 : 0.4,
+                      background: ofertarCanal === opt.val ? 'rgba(33,150,243,0.2)' : 'rgba(10,20,40,0.6)',
+                      color: ofertarCanal === opt.val ? '#42a5f5' : 'rgba(255,255,255,0.6)',
+                      border: `1px solid ${ofertarCanal === opt.val ? 'rgba(33,150,243,0.5)' : 'rgba(80,120,180,0.25)'}`,
+                    }}>{opt.label}{!opt.ready && ' (próx.)'}</button>
+                ))}
+              </div>
+              {ofertarCanal !== 'email' && (
+                <div style={{ ...S.textMuted, fontSize: '11px', marginTop: '6px', color: '#ffa726' }}>
+                  ⚠️ WhatsApp requiere plantilla aprobada por Meta. Primero crea la plantilla en business.facebook.com
+                </div>
+              )}
+            </div>
+
+            {/* Preview */}
+            <div style={{ marginBottom: '16px' }}>
+              <label style={{ ...S.textMuted, fontSize: '11px', display: 'block', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Vista previa del correo</label>
+              <div style={{ background: '#fff', borderRadius: '8px', overflow: 'hidden', maxHeight: '220px', overflowY: 'auto' }}>
+                <div style={{ background: 'linear-gradient(135deg,#001f4d,#0066cc)', padding: '16px 20px', textAlign: 'center' }}>
+                  <div style={{ color: '#fff', fontSize: '16px', fontWeight: 700 }}>🚛 Equipo Disponible</div>
+                  <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: '11px', marginTop: '4px' }}>Grupo Loma Transportes — FX27</div>
+                </div>
+                <div style={{ padding: '16px 20px', fontSize: '13px', color: '#333' }}>
+                  <p style={{ margin: '0 0 10px' }}>Estimado equipo de <strong>[CLIENTE]</strong>,</p>
+                  <div style={{ background: '#e8f0fe', borderLeft: '3px solid #0066cc', borderRadius: '6px', padding: '12px', margin: '10px 0' }}>
+                    <div style={{ fontWeight: 700, color: '#001f4d', fontSize: '14px' }}>{expoTipo === 'THERMO' ? '❄️' : '📦'} Equipo {expoTipo} disponible</div>
+                    <div style={{ marginTop: '4px', fontSize: '12px' }}>📍 Zona: <strong>{zona}</strong></div>
+                    <div style={{ marginTop: '2px', fontSize: '12px' }}>📅 Disponibilidad: <strong>{dispLabel}</strong></div>
+                  </div>
+                  <p style={{ margin: '10px 0 0', fontSize: '12px', color: '#555' }}>Quedamos a sus órdenes para cualquier requerimiento de transporte.</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Selected clients list */}
+            <div style={{ marginBottom: '16px' }}>
+              <label style={{ ...S.textMuted, fontSize: '11px', display: 'block', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                Clientes a ofertar ({selectedClients.length})
+              </label>
+              <div style={{ ...S.card, maxHeight: '180px', overflowY: 'auto', padding: '0' }}>
+                {selectedClients.map((c, i) => (
+                  <div key={c.id} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 14px', borderBottom: '1px solid rgba(80,120,180,0.1)' }}>
+                    <div style={{ ...S.text, fontSize: '12px', fontWeight: 600, flex: 1 }}>{i + 1}. {c.cliente}</div>
+                    <div style={{ ...S.textMuted, fontSize: '11px' }}>{c.viajes} viajes · {c.estado}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Results */}
+            {ofertarResult && (
+              <div style={{ ...S.card, padding: '14px', marginBottom: '16px', border: '1px solid rgba(76,175,80,0.3)' }}>
+                <div style={{ ...S.text, fontSize: '14px', fontWeight: 700, marginBottom: '8px' }}>
+                  ✅ Ofertas registradas: {ofertarResult.success} · ❌ Fallidas: {ofertarResult.failed}
+                </div>
+                {ofertarResult.details.map((d, i) => (
+                  <div key={i} style={{ ...S.textMuted, fontSize: '11px', padding: '2px 0' }}>{d}</div>
+                ))}
+                <div style={{ ...S.textMuted, fontSize: '11px', marginTop: '8px', color: '#ffa726' }}>
+                  💡 Para enviar correos reales, agrega los emails de contacto en la tabla <strong>sc_contactos_clientes</strong> en Supabase.
+                </div>
+              </div>
+            )}
+
+            {/* Send button */}
+            <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+              <button onClick={() => { setShowOfertarModal(false); setOfertarResult(null); }}
+                style={S.btnSecondary}>Cancelar</button>
+              <button onClick={handleSendOfertas} disabled={ofertarSending || selectedClients.length === 0}
+                style={{ ...S.btn, display: 'flex', alignItems: 'center', gap: '8px', opacity: ofertarSending ? 0.7 : 1, padding: '12px 24px' }}>
+                {ofertarSending ? <Loader2 style={{ width: '16px', height: '16px', animation: 'spin 1s linear infinite' }} /> : <Send style={{ width: '16px', height: '16px' }} />}
+                {ofertarSending ? 'Enviando...' : `Ofertar a ${selectedClients.length} clientes`}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   // ============ EXPORTACIONES VIEW ============
   if (view === 'expo') {
     const neighborStates = expoEstado ? (NEIGHBOR_STATES[expoEstado] || []) : [];
@@ -909,6 +1289,14 @@ export function AtencionClientesModule({ onBack, userEmail, userName, userRole }
                 <Search style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', width: '16px', height: '16px', color: 'rgba(255,255,255,0.4)' }} />
                 <input value={searchExpo} onChange={e => setSearchExpo(e.target.value)} placeholder="Filtrar cliente..." style={{ ...S.input, paddingLeft: '38px' }} />
               </div>
+              {/* OFERTAR BUTTON */}
+              {selectedExpo.size > 0 && (
+                <button onClick={() => setShowOfertarModal(true)}
+                  style={{ ...S.btn, display: 'flex', alignItems: 'center', gap: '6px', background: 'linear-gradient(135deg, rgba(76,175,80,0.9) 0%, rgba(56,142,60,0.95) 100%)' }}>
+                  <Send style={{ width: '16px', height: '16px' }} />
+                  Ofertar ({selectedExpo.size})
+                </button>
+              )}
             </div>
             {expoExpanded && neighborStates.length > 0 && (
               <div style={{ marginTop: '12px', display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
@@ -964,6 +1352,13 @@ export function AtencionClientesModule({ onBack, userEmail, userName, userRole }
                 <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                   <thead style={{ position: 'sticky', top: 0, zIndex: 5 }}>
                     <tr>
+                      <th style={{ ...S.tableHeader, width: '36px', textAlign: 'center', padding: '8px 4px' }}>
+                        <button onClick={toggleSelectAllExpo} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '2px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          {selectedExpo.size === filteredExpo.length && filteredExpo.length > 0
+                            ? <CheckSquare style={{ width: '16px', height: '16px', color: 'rgba(240,160,80,1)' }} />
+                            : <Square style={{ width: '16px', height: '16px', color: 'rgba(255,255,255,0.3)' }} />}
+                        </button>
+                      </th>
                       <th style={{ ...S.tableHeader, width: '40px' }}>#</th>
                       <th style={S.tableHeader}>Cliente</th>
                       <th style={{ ...S.tableHeader, width: '80px', textAlign: 'center' }}>Viajes</th>
@@ -978,6 +1373,13 @@ export function AtencionClientesModule({ onBack, userEmail, userName, userRole }
                       <tr key={d.id} style={{ transition: 'background 0.2s' }}
                         onMouseEnter={e => (e.currentTarget.style.background = 'rgba(240,160,80,0.06)')}
                         onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+                        <td style={{ ...S.tableCell, textAlign: 'center', padding: '4px' }}>
+                          <button onClick={() => toggleSelectExpo(d.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '2px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            {selectedExpo.has(d.id)
+                              ? <CheckSquare style={{ width: '15px', height: '15px', color: 'rgba(240,160,80,1)' }} />
+                              : <Square style={{ width: '15px', height: '15px', color: 'rgba(255,255,255,0.25)' }} />}
+                          </button>
+                        </td>
                         <td style={{ ...S.tableCell, color: 'rgba(255,255,255,0.4)' }}>{i + 1}</td>
                         <td style={{ ...S.tableCell, fontWeight: 600 }}>{d.cliente}</td>
                         <td style={{ ...S.tableCell, textAlign: 'center', fontWeight: 700, color: 'rgba(240,160,80,1)' }}>{d.viajes}</td>
@@ -1004,8 +1406,10 @@ export function AtencionClientesModule({ onBack, userEmail, userName, userRole }
           )}
           <div style={{ ...S.textMuted, fontSize: '11px', marginTop: '8px', textAlign: 'right' }}>
             {filteredExpo.length} resultados · {expoTipo} · {expoExpanded ? `${expoEstado} + vecinos` : expoEstado || 'Sin filtro'}
+            {selectedExpo.size > 0 && <span style={{ color: 'rgba(240,160,80,1)', marginLeft: '12px' }}>· {selectedExpo.size} seleccionados</span>}
           </div>
         </div></div>
+        <OfertarModal />
         <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
       </div>
     );
