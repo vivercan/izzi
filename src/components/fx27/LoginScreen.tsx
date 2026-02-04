@@ -106,7 +106,7 @@ export const LoginScreen = ({
             type="button"
             onClick={onGoogleSignIn}
             disabled={googleLoading}
-            className="w-full py-3 rounded-lg transition-all duration-300 hover:scale-[1.02] hover:shadow-2xl"
+            className="py-3 rounded-lg transition-all duration-300 hover:scale-[1.02] hover:shadow-2xl"
             style={{
               fontFamily: "'Exo 2', sans-serif",
               fontSize: '15px',
@@ -121,6 +121,8 @@ export const LoginScreen = ({
               gap: '12px',
               opacity: googleLoading ? 0.7 : 1,
               boxShadow: '0 4px 16px rgba(0, 0, 0, 0.2)',
+              width: '80%',
+              margin: '0 auto',
             }}
           >
             {!googleLoading && (
