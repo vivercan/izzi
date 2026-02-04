@@ -145,25 +145,78 @@ const ESTADO_DISPLAY: Record<string, string> = {
   'TAMAULIPAS': 'TAMPS', 'TLAXCALA': 'TLAX', 'VERACRUZ': 'VER', 'YUCATAN': 'YUC',
   'ZACATECAS': 'ZAC',
 };
-const extractEstado = (zona: string): string | null => {
-  if (!zona) return null;
+const extractEstados = (zona: string): string[] => {
+  if (!zona) return [];
   const z = zona.toUpperCase()
     .replace(/MÉXICO/g, 'MEXICO').replace(/QUERÉTARO/g, 'QUERETARO')
     .replace(/MICHOACÁN/g, 'MICHOACAN').replace(/YUCATÁN/g, 'YUCATAN')
-    .replace(/LEÓN/g, 'LEON').replace(/SAN LUIS POTOSÍ/g, 'SAN LUIS POTOSI');
+    .replace(/LEÓN/g, 'LEON').replace(/SAN LUIS POTOSÍ/g, 'SAN LUIS POTOSI')
+    .replace(/COAHUILA DE ZARAGOZA/g, 'COAHUILA');
+  const found = new Set<string>();
+  // Direct state name matches
   for (const edo of ESTADOS_MX) {
-    if (z.includes(edo)) return edo;
+    if (z.includes(edo)) found.add(edo);
   }
-  if (z.includes('CDMX') || z.includes('CD. DE MEXICO') || z.includes('D.F.')) return 'CIUDAD DE MEXICO';
-  if (z.includes('EDO. MEX') || z.includes('EDO MEX') || z.includes('EDOMEX')) return 'ESTADO DE MEXICO';
-  if (z.includes('NVO LEON') || z.includes('N.L.') || z.includes('MONTERREY') || z.includes('MTY')) return 'NUEVO LEON';
-  if (z.includes('QRO')) return 'QUERETARO';
-  if (z.includes('GDL') || z.includes('GUADALAJARA')) return 'JALISCO';
-  if (z.includes('SLP')) return 'SAN LUIS POTOSI';
-  if (z.includes('AGS')) return 'AGUASCALIENTES';
-  if (z.includes('TEXAS') || z.includes('EL PASO') || z.includes('LAREDO') || z.includes('CAROLINA')
-    || z.includes('MINNESOTA') || z.includes('CHICAGO') || z.includes('KENTUCKY') || z.includes('NASHVILLE')) return 'USA';
-  return null;
+  // City/abbreviation → state mappings
+  const CITY_MAP: [string, string][] = [
+    // Nuevo León
+    ['MONTERREY', 'NUEVO LEON'], ['MTY', 'NUEVO LEON'], ['NVO LEON', 'NUEVO LEON'], ['N.L.', 'NUEVO LEON'], ['NVO. LEON', 'NUEVO LEON'], ['APODACA', 'NUEVO LEON'], ['SAN NICOLAS', 'NUEVO LEON'], ['SANTA CATARINA', 'NUEVO LEON'], ['GARCIA NL', 'NUEVO LEON'], ['ESCOBEDO', 'NUEVO LEON'], ['GUADALUPE NL', 'NUEVO LEON'], ['CIENEGA DE FLORES', 'NUEVO LEON'], ['PESQUERIA', 'NUEVO LEON'],
+    // CDMX / Edo Mex
+    ['CDMX', 'CIUDAD DE MEXICO'], ['CD. DE MEXICO', 'CIUDAD DE MEXICO'], ['D.F.', 'CIUDAD DE MEXICO'], ['CIUDAD DE MEX', 'CIUDAD DE MEXICO'],
+    ['EDO. MEX', 'ESTADO DE MEXICO'], ['EDO MEX', 'ESTADO DE MEXICO'], ['EDOMEX', 'ESTADO DE MEXICO'], ['TOLUCA', 'ESTADO DE MEXICO'], ['NAUCALPAN', 'ESTADO DE MEXICO'], ['TLALNEPANTLA', 'ESTADO DE MEXICO'], ['ECATEPEC', 'ESTADO DE MEXICO'], ['CUAUTITLAN', 'ESTADO DE MEXICO'], ['TULTITLAN', 'ESTADO DE MEXICO'], ['IXTAPALUCA', 'ESTADO DE MEXICO'], ['ATIZAPAN', 'ESTADO DE MEXICO'],
+    // Coahuila
+    ['SALTILLO', 'COAHUILA'], ['RAMOS ARIZPE', 'COAHUILA'], ['MONCLOVA', 'COAHUILA'], ['TORREON', 'COAHUILA'], ['PIEDRAS NEGRAS', 'COAHUILA'], ['ARTEAGA COAH', 'COAHUILA'], ['CIUDAD ACUÑA', 'COAHUILA'],
+    // Jalisco
+    ['GDL', 'JALISCO'], ['GUADALAJARA', 'JALISCO'], ['ZAPOPAN', 'JALISCO'], ['TLAQUEPAQUE', 'JALISCO'], ['TONALA JAL', 'JALISCO'], ['TLAJOMULCO', 'JALISCO'], ['EL SALTO JAL', 'JALISCO'],
+    // Guanajuato
+    ['LEON GTO', 'GUANAJUATO'], ['CELAYA', 'GUANAJUATO'], ['IRAPUATO', 'GUANAJUATO'], ['SILAO', 'GUANAJUATO'], ['SALAMANCA GTO', 'GUANAJUATO'], ['SAN MIGUEL ALLENDE', 'GUANAJUATO'],
+    // Querétaro
+    ['QRO', 'QUERETARO'], ['QUERETARO', 'QUERETARO'], ['SAN JUAN DEL RIO', 'QUERETARO'], ['EL MARQUES', 'QUERETARO'],
+    // San Luis Potosí
+    ['SLP', 'SAN LUIS POTOSI'], ['SAN LUIS', 'SAN LUIS POTOSI'],
+    // Aguascalientes
+    ['AGS', 'AGUASCALIENTES'],
+    // Puebla
+    ['PUEBLA', 'PUEBLA'], ['CHOLULA', 'PUEBLA'], ['TEHUACAN', 'PUEBLA'], ['SAN MARTIN TEXMELUCAN', 'PUEBLA'],
+    // Tamaulipas
+    ['REYNOSA', 'TAMAULIPAS'], ['MATAMOROS TAM', 'TAMAULIPAS'], ['NUEVO LAREDO', 'TAMAULIPAS'], ['TAMPICO', 'TAMAULIPAS'], ['CD. VICTORIA', 'TAMAULIPAS'], ['ALTAMIRA', 'TAMAULIPAS'],
+    // Chihuahua
+    ['CD. JUAREZ', 'CHIHUAHUA'], ['CIUDAD JUAREZ', 'CHIHUAHUA'], ['JUAREZ CHIH', 'CHIHUAHUA'], ['CHIHUAHUA', 'CHIHUAHUA'], ['DELICIAS', 'CHIHUAHUA'], ['CUAUHTEMOC CHIH', 'CHIHUAHUA'],
+    // Sonora
+    ['HERMOSILLO', 'SONORA'], ['NOGALES', 'SONORA'], ['CD. OBREGON', 'SONORA'], ['GUAYMAS', 'SONORA'], ['EMPALME', 'SONORA'],
+    // Baja California
+    ['TIJUANA', 'BAJA CALIFORNIA'], ['MEXICALI', 'BAJA CALIFORNIA'], ['ENSENADA', 'BAJA CALIFORNIA'], ['TECATE', 'BAJA CALIFORNIA'], ['ROSARITO', 'BAJA CALIFORNIA'],
+    // Yucatán
+    ['MERIDA', 'YUCATAN'],
+    // Veracruz
+    ['VERACRUZ', 'VERACRUZ'], ['XALAPA', 'VERACRUZ'], ['COATZACOALCOS', 'VERACRUZ'], ['BOCA DEL RIO', 'VERACRUZ'], ['CORDOBA VER', 'VERACRUZ'], ['ORIZABA', 'VERACRUZ'],
+    // Sinaloa
+    ['CULIACAN', 'SINALOA'], ['MAZATLAN', 'SINALOA'], ['LOS MOCHIS', 'SINALOA'],
+    // Durango
+    ['DURANGO', 'DURANGO'], ['GOMEZ PALACIO', 'DURANGO'], ['LERDO DGO', 'DURANGO'],
+    // Michoacán
+    ['MORELIA', 'MICHOACAN'], ['LAZARO CARDENAS', 'MICHOACAN'], ['URUAPAN', 'MICHOACAN'], ['ZAMORA MICH', 'MICHOACAN'],
+    // Hidalgo
+    ['PACHUCA', 'HIDALGO'], ['TULA HGO', 'HIDALGO'], ['TIZAYUCA', 'HIDALGO'],
+    // Tlaxcala
+    ['TLAXCALA', 'TLAXCALA'], ['APIZACO', 'TLAXCALA'],
+    // Morelos
+    ['CUERNAVACA', 'MORELOS'], ['CUAUTLA MOR', 'MORELOS'],
+    // Quintana Roo
+    ['CANCUN', 'QUINTANA ROO'], ['PLAYA DEL CARMEN', 'QUINTANA ROO'],
+    // Tabasco
+    ['VILLAHERMOSA', 'TABASCO'],
+    // Zacatecas
+    ['ZACATECAS', 'ZACATECAS'], ['FRESNILLO', 'ZACATECAS'],
+    // Nayarit
+    ['TEPIC', 'NAYARIT'],
+  ];
+  for (const [city, estado] of CITY_MAP) {
+    if (z.includes(city)) found.add(estado);
+  }
+  // Filter out USA (this is northbound import, destinos are in Mexico)
+  found.delete('USA');
+  return Array.from(found);
 };
 
 // ============ STYLES ============
@@ -696,28 +749,33 @@ FX27 Future Experience 27 — Grupo Loma Transportes © ${new Date().getFullYear
   // Consolidate duplicate clients with smart normalization
   const consolidatedImpo = useMemo(() => {
     const filtered = impoData.filter(d => !isExcludedImpo(d.cliente));
-    const map = new Map<string, { id: number; cliente: string; viajes: number; thermo: number; seco: number; formatos: number; tipo_equipo: string; estados: Set<string> }>();
+    const map = new Map<string, { id: number; cliente: string; viajes: number; thermo: number; seco: number; formatos: number; tipo_equipo: string; estados: Set<string>; rawZonas: Set<string> }>();
     filtered.forEach(d => {
       const key = normalizeClient(d.cliente);
-      const estado = extractEstado(d.zona_entrega);
+      const estados = extractEstados(d.zona_entrega);
       if (map.has(key)) {
         const ex = map.get(key)!;
         ex.viajes += d.viajes;
         ex.thermo += d.thermo;
         ex.seco += d.seco;
         ex.formatos += d.formatos;
-        if (estado) ex.estados.add(estado);
+        estados.forEach(e => ex.estados.add(e));
+        if (d.zona_entrega) ex.rawZonas.add(d.zona_entrega.trim());
         if (ex.thermo > 0 && ex.seco > 0) ex.tipo_equipo = 'THERMO / SECO';
         else if (ex.thermo > 0) ex.tipo_equipo = 'THERMO';
         else ex.tipo_equipo = 'SECO';
       } else {
-        map.set(key, { id: d.id, cliente: key.split(' ').map(w => w.charAt(0) + w.slice(1).toLowerCase()).join(' ').replace(/\b(De|Del|Y|S\.a\.|S\.a|Sa|Cv|Llc|Inc|Ltd)\b/gi, m => m.toLowerCase()), viajes: d.viajes, thermo: d.thermo, seco: d.seco, formatos: d.formatos, tipo_equipo: d.tipo_equipo, estados: new Set(estado ? [estado] : []) });
+        const rawSet = new Set<string>();
+        if (d.zona_entrega) rawSet.add(d.zona_entrega.trim());
+        map.set(key, { id: d.id, cliente: key.split(' ').map(w => w.charAt(0) + w.slice(1).toLowerCase()).join(' ').replace(/\b(De|Del|Y|S\.a\.|S\.a|Sa|Cv|Llc|Inc|Ltd)\b/gi, m => m.toLowerCase()), viajes: d.viajes, thermo: d.thermo, seco: d.seco, formatos: d.formatos, tipo_equipo: d.tipo_equipo, estados: new Set(estados), rawZonas: rawSet });
       }
     });
     return Array.from(map.values()).map(d => {
-      const edos = Array.from(d.estados).filter(e => e !== 'USA').sort();
+      const edos = Array.from(d.estados).sort();
       const abrevs = edos.map(e => ESTADO_DISPLAY[e] || e);
-      return { ...d, estadosStr: abrevs.join(', ') || '—' };
+      // If no states were recognized, use raw zona_entrega as fallback
+      const fallback = abrevs.length === 0 ? Array.from(d.rawZonas).slice(0, 3).join(', ') : '';
+      return { ...d, estadosStr: abrevs.join(', ') || fallback || '—' };
     });
   }, [impoData]);
 
@@ -1643,13 +1701,13 @@ FX27 Future Experience 27 — Grupo Loma Transportes © ${new Date().getFullYear
                   <th style={{ ...S.tableHeader, width: '76px', padding: '10px 4px', cursor: 'pointer', userSelect: 'none', background: 'rgba(10,18,36,0.98)', borderBottom: '2px solid rgba(240,160,80,0.5)' }} onClick={() => handleImpoSort('tipo_equipo')}>
                     <span style={{ display: 'inline-flex', alignItems: 'center' }}>Tipo <SortIcon col="tipo_equipo" /></span>
                   </th>
-                  <th style={{ ...S.tableHeader, padding: '10px 6px', cursor: 'pointer', userSelect: 'none', background: 'rgba(10,18,36,0.98)', borderBottom: '2px solid rgba(240,160,80,0.5)' }} onClick={() => handleImpoSort('zona')}>
+                  <th style={{ ...S.tableHeader, width: '30%', padding: '10px 6px', cursor: 'pointer', userSelect: 'none', background: 'rgba(10,18,36,0.98)', borderBottom: '2px solid rgba(240,160,80,0.5)' }} onClick={() => handleImpoSort('zona')}>
                     <span style={{ display: 'inline-flex', alignItems: 'center' }}>Destinos <SortIcon col="zona" /></span>
                   </th>
-                  <th style={{ ...S.tableHeader, width: '65px', textAlign: 'center', padding: '10px 2px', cursor: 'pointer', userSelect: 'none', background: 'rgba(10,18,36,0.98)', borderBottom: '2px solid rgba(240,160,80,0.5)' }} onClick={() => handleImpoSort('ejecutivo')}>
+                  <th style={{ ...S.tableHeader, width: '70px', textAlign: 'center', padding: '10px 4px', cursor: 'pointer', userSelect: 'none', background: 'rgba(10,18,36,0.98)', borderBottom: '2px solid rgba(240,160,80,0.5)' }} onClick={() => handleImpoSort('ejecutivo')}>
                     <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>Ventas <SortIcon col="ejecutivo" /></span>
                   </th>
-                  <th style={{ ...S.tableHeader, width: '55px', textAlign: 'center', padding: '10px 2px', cursor: 'pointer', userSelect: 'none', background: 'rgba(10,18,36,0.98)', borderBottom: '2px solid rgba(240,160,80,0.5)' }} onClick={() => handleImpoSort('ejecutivoSC')}>
+                  <th style={{ ...S.tableHeader, width: '60px', textAlign: 'center', padding: '10px 4px', cursor: 'pointer', userSelect: 'none', background: 'rgba(10,18,36,0.98)', borderBottom: '2px solid rgba(240,160,80,0.5)' }} onClick={() => handleImpoSort('ejecutivoSC')}>
                     <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>CSR <SortIcon col="ejecutivoSC" /></span>
                   </th>
                 </tr>
