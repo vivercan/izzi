@@ -54,6 +54,16 @@ const NEIGHBOR_STATES: Record<string, string[]> = {
 const EJECUTIVOS_SC = ['ELI', 'LIZ'];
 const VENDEDORES = ['ISIS', 'LEO'];
 
+// ============ EXPO: EXCLUSION ============
+const CLIENTES_EXCLUIDOS_EXPO = [
+  'TROB TRANSPORTES', 'TROB USA', 'SPEEDYHAUL', 'WEXPRESS', 'W EXPRESS',
+  'TROB ', 'SHI ',
+];
+const isExcludedExpo = (cliente: string): boolean => {
+  const c = cliente.toUpperCase();
+  return CLIENTES_EXCLUIDOS_EXPO.some(e => c.includes(e.trim()));
+};
+
 // ============ IMPORTACIÓN: EXCLUSION & MAPPING ============
 const CLIENTES_EXCLUIDOS_IMPO = [
   'NATURESWEET', 'NATURE SWEET', 'NS BRANDS', 'NSBRAND',
@@ -380,7 +390,7 @@ export function AtencionClientesModule({ onBack, userEmail, userName, userRole }
     if (expoExpanded && NEIGHBOR_STATES[expoEstado]) {
       targetEstados = [expoEstado, ...NEIGHBOR_STATES[expoEstado]];
     }
-    let data = expoData.filter(d => d.tipo === expoTipo && targetEstados.includes(d.estado));
+    let data = expoData.filter(d => d.tipo === expoTipo && targetEstados.includes(d.estado) && !isExcludedExpo(d.cliente));
     if (searchExpo) {
       const q = searchExpo.toLowerCase();
       data = data.filter(d => d.cliente.toLowerCase().includes(q) || d.origenes.toLowerCase().includes(q));
@@ -392,7 +402,6 @@ export function AtencionClientesModule({ onBack, userEmail, userName, userRole }
     clientes: filteredExpo.length,
     viajes: filteredExpo.reduce((s, d) => s + d.viajes, 0),
     formatos: filteredExpo.reduce((s, d) => s + d.num_formatos, 0),
-    dedicados: filteredExpo.filter(d => d.dedicado === 'SI').length,
   }), [filteredExpo]);
 
   // ============ IMPO LOGIC ============
@@ -660,7 +669,7 @@ export function AtencionClientesModule({ onBack, userEmail, userName, userRole }
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '20px' }}>
             {[
               { id: 'asignacion' as const, title: 'Asignación de Clientes', desc: `${asigKPIs.total} clientes · ${asigKPIs.pendientes} pendientes`, icon: ClipboardList },
-              { id: 'expo' as const, title: 'Exportaciones', desc: `${expoData.length} registros · 25 estados · THERMO/SECO`, icon: Upload },
+              { id: 'expo' as const, title: 'Expo Radar', desc: `${expoData.length} registros · 25 estados · THERMO/SECO`, icon: Upload },
               { id: 'impo' as const, title: 'Importación', desc: `${impoData.length} clientes · USA → México`, icon: Download },
             ].map(item => {
               const Icon = item.icon;
@@ -860,7 +869,7 @@ export function AtencionClientesModule({ onBack, userEmail, userName, userRole }
       <div style={{ ...S.bg, width: '100vw', height: '100vh', overflow: 'auto' }}>
         <div style={{ ...S.overlay, position: 'fixed', inset: 0, pointerEvents: 'none' }} />
         <div style={{ position: 'relative' }}>
-          <Header title="Buscador de Exportaciones" />
+          <Header title="Expo Radar" />
           <div style={{ padding: '12px 40px' }}>
           <div style={{ ...S.card, padding: '16px', marginBottom: '12px' }}>
             <div style={{ display: 'flex', gap: '16px', alignItems: 'flex-end', flexWrap: 'wrap' }}>
@@ -920,15 +929,14 @@ export function AtencionClientesModule({ onBack, userEmail, userName, userRole }
               <KPICard label="Clientes" value={expoKPIs.clientes} icon={Users} />
               <KPICard label="Viajes" value={expoKPIs.viajes.toLocaleString()} icon={Truck} color="#2196f3" />
               <KPICard label="Formatos" value={expoKPIs.formatos} icon={ClipboardList} color="#9c27b0" />
-              <KPICard label="Dedicados" value={expoKPIs.dedicados} icon={UserCheck} color="#4caf50" />
             </div>
           )}
           {filteredExpo.length > 0 && (
             <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '12px' }}>
               <button onClick={() => {
-                const headers = ['#', 'CLIENTE', 'VIAJES', 'FORMATOS', 'ORÍGENES', 'DEDICADO', 'CRUCE', 'ESTADO'];
-                const rows = filteredExpo.map((d, i) => [String(i + 1), d.cliente, String(d.viajes), String(d.num_formatos), d.origenes, d.dedicado, d.cruce, d.estado]);
-                const ctx = `Búsqueda: ${expoTipo} en ${expoEstado}${expoExpanded ? ' + vecinos' : ''}. ${expoKPIs.clientes} clientes, ${expoKPIs.viajes} viajes, ${expoKPIs.dedicados} dedicados`;
+                const headers = ['#', 'CLIENTE', 'VIAJES', 'FORMATOS', 'ORÍGENES', 'CRUCE', 'ESTADO'];
+                const rows = filteredExpo.map((d, i) => [String(i + 1), d.cliente, String(d.viajes), String(d.num_formatos), d.origenes, d.cruce, d.estado]);
+                const ctx = `Búsqueda: ${expoTipo} en ${expoEstado}${expoExpanded ? ' + vecinos' : ''}. ${expoKPIs.clientes} clientes, ${expoKPIs.viajes} viajes`;
                 handleExportWithAI(headers, rows, `EXPO_${expoTipo}_${expoEstado}`, ctx);
               }} disabled={exporting} style={{ ...S.btn, display: 'flex', alignItems: 'center', gap: '6px' }}>
                 {exporting ? <Loader2 style={{ width: '16px', height: '16px', animation: 'spin 1s linear infinite' }} /> : <FileSpreadsheet style={{ width: '16px', height: '16px' }} />}
@@ -961,26 +969,20 @@ export function AtencionClientesModule({ onBack, userEmail, userName, userRole }
                       <th style={{ ...S.tableHeader, width: '80px', textAlign: 'center' }}>Viajes</th>
                       <th style={{ ...S.tableHeader, width: '70px', textAlign: 'center' }}>Fmts</th>
                       <th style={S.tableHeader}>Orígenes</th>
-                      <th style={{ ...S.tableHeader, width: '80px', textAlign: 'center' }}>Dedicado</th>
                       <th style={{ ...S.tableHeader, width: '70px', textAlign: 'center' }}>Cruce</th>
                       {expoExpanded && <th style={{ ...S.tableHeader, width: '120px' }}>Estado</th>}
                     </tr>
                   </thead>
                   <tbody>
                     {filteredExpo.map((d, i) => (
-                      <tr key={d.id} style={{ transition: 'background 0.2s', background: d.dedicado === 'SI' ? 'rgba(76,175,80,0.04)' : 'transparent' }}
+                      <tr key={d.id} style={{ transition: 'background 0.2s' }}
                         onMouseEnter={e => (e.currentTarget.style.background = 'rgba(240,160,80,0.06)')}
-                        onMouseLeave={e => (e.currentTarget.style.background = d.dedicado === 'SI' ? 'rgba(76,175,80,0.04)' : 'transparent')}>
+                        onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
                         <td style={{ ...S.tableCell, color: 'rgba(255,255,255,0.4)' }}>{i + 1}</td>
                         <td style={{ ...S.tableCell, fontWeight: 600 }}>{d.cliente}</td>
                         <td style={{ ...S.tableCell, textAlign: 'center', fontWeight: 700, color: 'rgba(240,160,80,1)' }}>{d.viajes}</td>
                         <td style={{ ...S.tableCell, textAlign: 'center' }}>{d.num_formatos}</td>
                         <td style={{ ...S.tableCell, fontSize: '11px', color: 'rgba(255,255,255,0.6)', maxWidth: '300px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={d.origenes}>{d.origenes}</td>
-                        <td style={{ ...S.tableCell, textAlign: 'center' }}>
-                          <span style={{ padding: '3px 8px', borderRadius: '4px', fontSize: '10px', fontWeight: 700, fontFamily: "'Exo 2', sans-serif",
-                            background: d.dedicado === 'SI' ? 'rgba(76,175,80,0.15)' : 'rgba(120,120,120,0.1)',
-                            color: d.dedicado === 'SI' ? '#66bb6a' : 'rgba(255,255,255,0.35)' }}>{d.dedicado}</span>
-                        </td>
                         <td style={{ ...S.tableCell, textAlign: 'center' }}>
                           <span style={{ padding: '3px 8px', borderRadius: '4px', fontSize: '10px', fontWeight: 700, fontFamily: "'Exo 2', sans-serif",
                             background: d.cruce === 'SI' ? 'rgba(33,150,243,0.15)' : 'rgba(120,120,120,0.1)',
