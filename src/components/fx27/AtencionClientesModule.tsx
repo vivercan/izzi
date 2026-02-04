@@ -28,7 +28,7 @@ interface DataImpo {
   formatos: number; tipo_equipo: string; zona_entrega: string; empresa: string;
 }
 interface Props {
-  onBack: () => void; userEmail?: string; userName?: string; userRole?: string;
+  onBack: () => void; userEmail?: string; userName?: string; userRole?: string; gmailToken?: string;
 }
 
 // ============ NEIGHBOR STATES MAP ============
@@ -286,7 +286,7 @@ const KPICard = ({ label, value, icon: Icon, color = 'rgba(240,160,80,1)' }: { l
 );
 
 // ============ MAIN COMPONENT ============
-export function AtencionClientesModule({ onBack, userEmail, userName, userRole }: Props) {
+export function AtencionClientesModule({ onBack, userEmail, userName, userRole, gmailToken: loginGmailToken }: Props) {
   const [view, setView] = useState<'home' | 'asignacion' | 'expo' | 'impo'>('home');
   const [loading, setLoading] = useState(true);
 
@@ -365,6 +365,15 @@ export function AtencionClientesModule({ onBack, userEmail, userName, userRole }
     script.onload = () => setGsiLoaded(true);
     document.head.appendChild(script);
   }, []);
+
+  // ============ PRE-POPULATE GMAIL FROM LOGIN ============
+  useEffect(() => {
+    if (loginGmailToken && !gmailToken) {
+      setGmailToken(loginGmailToken);
+      setGmailEmail(userEmail || '');
+      setGmailName(userName || '');
+    }
+  }, [loginGmailToken]);
 
   // ============ GMAIL OAUTH CONNECT ============
   const handleGmailConnect = () => {

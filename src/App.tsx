@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { LoginScreen } from './components/fx27/LoginScreen';
 import { DashboardScreen } from './components/fx27/DashboardScreen';
 import { AgregarLeadModule } from './components/fx27/AgregarLeadModule';
@@ -29,6 +29,11 @@ import { AtencionClientesModule } from './components/fx27/AtencionClientesModule
 import { MODULE_IMAGES } from './assets/module-images';
 import { projectId, publicAnonKey } from './utils/supabase/info';
 import './styles/globals.css';
+
+// ============ GOOGLE OAUTH CONFIG ============
+const GOOGLE_CLIENT_ID = '26773356182-sb6d8l7krsltmjfh2rto7nutd4eu73qr.apps.googleusercontent.com';
+const GOOGLE_SCOPES = 'https://www.googleapis.com/auth/gmail.send https://www.googleapis.com/auth/userinfo.email';
+const TOKEN_REFRESH_MS = 55 * 60 * 1000; // 55 minutos
 
 // ═══════════════════════════════════════════════════════════════════════════════════════════════════
 // 📋 MATRIZ COMPLETA DE USUARIOS FX27 - ACTUALIZADA 17/DIC/2025
@@ -210,7 +215,12 @@ export default function App() {
   const [loginError, setLoginError] = useState<string>('');
   const [currentUserEmail, setCurrentUserEmail] = useState<string>('');
   const [currentUserName, setCurrentUserName] = useState<string>('');
+  const [gmailToken, setGmailToken] = useState<string>('');
+  const [googleLoading, setGoogleLoading] = useState(false);
+  const [gsiLoaded, setGsiLoaded] = useState(false);
   const [rutaPublica, setRutaPublica] = useState<{tipo: string, id: string} | null>(null);
+  const tokenClientRef = useRef<any>(null);
+  const refreshIntervalRef = useRef<any>(null);
 
     // Detectar rutas públicas (sin login requerido)
   useEffect(() => {
@@ -248,6 +258,10 @@ export default function App() {
           setCurrentUserEmail(session.email);
           setCurrentUserName(usuario.nombre);
           console.log('✅ Sesión restaurada:', usuario.nombre, '| Ventas:', usuario.vendedorVentas || 'TODO', '| Leads:', usuario.vendedorLeads || 'TODO');
+          // Si tenía sesión guardada, intentar refresh silencioso del token de Gmail
+          if (gsiLoaded) {
+            silentTokenRefresh();
+          }
         } else {
           localStorage.removeItem('fx27-session');
         }
@@ -257,50 +271,148 @@ export default function App() {
     }
   }, []);
 
-  // 🔐 LOGIN
-  const handleLogin = (email: string, password: string) => {
-    console.log('🔐 Login:', email);
-    setLoginError('');
+  // 🔑 CARGAR GOOGLE IDENTITY SERVICES
+  useEffect(() => {
+    if (document.getElementById('gsi-script')) { setGsiLoaded(true); return; }
+    const script = document.createElement('script');
+    script.id = 'gsi-script';
+    script.src = 'https://accounts.google.com/gsi/client';
+    script.async = true;
+    script.onload = () => setGsiLoaded(true);
+    document.head.appendChild(script);
+  }, []);
 
-    const usuario = USUARIOS_AUTORIZADOS.find(u =>
-      u.correo === email && u.password === password && u.activo
-    );
+  // Cuando GSI carga y hay sesión guardada → refresh silencioso
+  useEffect(() => {
+    if (gsiLoaded && isLoggedIn && !gmailToken) {
+      silentTokenRefresh();
+    }
+  }, [gsiLoaded, isLoggedIn]);
 
-    if (!usuario) {
-      setLoginError('Credenciales incorrectas. Verifica tu email y contraseña.');
+  // 🔄 CLEANUP del interval al desmontar
+  useEffect(() => {
+    return () => {
+      if (refreshIntervalRef.current) clearInterval(refreshIntervalRef.current);
+    };
+  }, []);
+
+  // 🔄 SILENT TOKEN REFRESH — renueva sin popup
+  const silentTokenRefresh = () => {
+    if (!(window as any).google?.accounts?.oauth2) return;
+    try {
+      const client = (window as any).google.accounts.oauth2.initTokenClient({
+        client_id: GOOGLE_CLIENT_ID,
+        scope: GOOGLE_SCOPES,
+        callback: (resp: any) => {
+          if (!resp.error && resp.access_token) {
+            setGmailToken(resp.access_token);
+            console.log('🔄 Gmail token renovado silenciosamente');
+          }
+        },
+      });
+      tokenClientRef.current = client;
+      client.requestAccessToken({ prompt: '' });
+    } catch (e) {
+      console.log('⚠️ Silent refresh falló, se pedirá al usuario la próxima vez');
+    }
+  };
+
+  // 🔄 INICIAR AUTO-REFRESH cada 55 minutos
+  const startTokenRefreshInterval = () => {
+    if (refreshIntervalRef.current) clearInterval(refreshIntervalRef.current);
+    refreshIntervalRef.current = setInterval(() => {
+      console.log('🔄 Auto-refresh Gmail token...');
+      silentTokenRefresh();
+    }, TOKEN_REFRESH_MS);
+  };
+
+  // 🔐 GOOGLE SIGN-IN — trigger popup
+  const handleGoogleSignIn = () => {
+    if (!gsiLoaded || !(window as any).google?.accounts?.oauth2) {
+      setLoginError('Google Sign-In no cargó. Recarga la página e intenta de nuevo.');
       return;
     }
+    setGoogleLoading(true);
+    setLoginError('');
 
-    console.log('✅ Login OK:', usuario.nombre, '| Rol:', usuario.rolDisplay);
-    console.log('   → Ventas filtro:', usuario.vendedorVentas || 'VER TODO');
-    console.log('   → Leads filtro:', usuario.vendedorLeads || 'VER TODO');
+    const client = (window as any).google.accounts.oauth2.initTokenClient({
+      client_id: GOOGLE_CLIENT_ID,
+      scope: GOOGLE_SCOPES,
+      callback: async (resp: any) => {
+        if (resp.error) {
+          setGoogleLoading(false);
+          if (resp.error !== 'access_denied') {
+            setLoginError('Error de autenticación. Intenta de nuevo.');
+          }
+          return;
+        }
+        try {
+          const info = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
+            headers: { Authorization: `Bearer ${resp.access_token}` },
+          });
+          const data = await info.json();
+          const email = data.email;
 
-    setUserRole(usuario.rol);
-    setUserRolDisplay(usuario.rolDisplay);
-    setUserVendedorVentas(usuario.vendedorVentas || '');
-    setUserVendedorLeads(usuario.vendedorLeads || '');
-    setUserPermisosCustom(usuario.permisosCustom || []);
-    setIsLoggedIn(true);
-    setCurrentUserEmail(email);
-    setCurrentUserName(usuario.nombre);
+          if (!email) {
+            setLoginError('No se pudo obtener el correo de Google.');
+            setGoogleLoading(false);
+            return;
+          }
 
-    localStorage.setItem('fx27-session', JSON.stringify({
-      role: usuario.rol,
-      rolDisplay: usuario.rolDisplay,
-      vendedorVentas: usuario.vendedorVentas || '',
-      vendedorLeads: usuario.vendedorLeads || '',
-      permisosCustom: usuario.permisosCustom || [],
-      email: email,
-      name: usuario.nombre,
-      timestamp: new Date().toISOString()
-    }));
+          // Validar contra usuarios autorizados
+          const usuario = USUARIOS_AUTORIZADOS.find(u => u.correo === email && u.activo);
 
-    // Actualizar último acceso
-    fetch(`https://${projectId}.supabase.co/functions/v1/make-server-d84b50bb/usuarios/ultimo-acceso`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${publicAnonKey}` },
-      body: JSON.stringify({ email })
-    }).catch(() => {});
+          if (!usuario) {
+            setLoginError(`El correo ${email} no tiene acceso a FX27. Contacta al administrador.`);
+            setGoogleLoading(false);
+            // Revocar token si no es usuario autorizado
+            (window as any).google.accounts.oauth2.revoke(resp.access_token);
+            return;
+          }
+
+          console.log('✅ Google Login OK:', usuario.nombre, '| Rol:', usuario.rolDisplay);
+
+          setUserRole(usuario.rol);
+          setUserRolDisplay(usuario.rolDisplay);
+          setUserVendedorVentas(usuario.vendedorVentas || '');
+          setUserVendedorLeads(usuario.vendedorLeads || '');
+          setUserPermisosCustom(usuario.permisosCustom || []);
+          setIsLoggedIn(true);
+          setCurrentUserEmail(email);
+          setCurrentUserName(usuario.nombre);
+          setGmailToken(resp.access_token);
+          tokenClientRef.current = client;
+
+          // Guardar sesión
+          localStorage.setItem('fx27-session', JSON.stringify({
+            role: usuario.rol,
+            rolDisplay: usuario.rolDisplay,
+            vendedorVentas: usuario.vendedorVentas || '',
+            vendedorLeads: usuario.vendedorLeads || '',
+            permisosCustom: usuario.permisosCustom || [],
+            email: email,
+            name: usuario.nombre,
+            timestamp: new Date().toISOString()
+          }));
+
+          // Iniciar auto-refresh del token cada 55 min
+          startTokenRefreshInterval();
+
+          // Actualizar último acceso
+          fetch(`https://${projectId}.supabase.co/functions/v1/make-server-d84b50bb/usuarios/ultimo-acceso`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${publicAnonKey}` },
+            body: JSON.stringify({ email })
+          }).catch(() => {});
+
+        } catch {
+          setLoginError('Error al conectar con Google. Intenta de nuevo.');
+        }
+        setGoogleLoading(false);
+      },
+    });
+
+    client.requestAccessToken();
   };
 
   const handleLogout = () => {
@@ -313,6 +425,16 @@ export default function App() {
     setUserPermisosCustom([]);
     setCurrentUserEmail('');
     setCurrentUserName('');
+    setGmailToken('');
+    setGoogleLoading(false);
+    if (refreshIntervalRef.current) {
+      clearInterval(refreshIntervalRef.current);
+      refreshIntervalRef.current = null;
+    }
+    // Revocar token de Google si existe
+    if (gmailToken) {
+      try { (window as any).google?.accounts?.oauth2?.revoke(gmailToken); } catch {}
+    }
     localStorage.removeItem('fx27-session');
   };
 
@@ -348,7 +470,7 @@ export default function App() {
   return (
     <div className="w-full min-h-screen">
       {!isLoggedIn ? (
-        <LoginScreen onLogin={handleLogin} loginError={loginError} />
+        <LoginScreen onGoogleSignIn={handleGoogleSignIn} loginError={loginError} googleLoading={googleLoading} />
       ) : currentModule ? (
         <>
           {currentModule === 'agregar-lead' && <AgregarLeadModule onBack={handleBack} />}
@@ -375,7 +497,7 @@ export default function App() {
           {currentModule === 'vista-clientes-carroll' && <VistaClientesCarroll onBack={() => setCurrentModule('dedicados')} />}
           {currentModule === 'mapa-climatico-carroll' && <MapaClimaticoCarroll onBack={() => setCurrentModule('dedicados')} />}
           {currentModule === 'sales-horizon' && <SalesHorizonModule onBack={handleBack} />}
-          {currentModule === 'atencion-clientes' && <AtencionClientesModule onBack={handleBack} userEmail={currentUserEmail} userName={currentUserName} />}
+          {currentModule === 'atencion-clientes' && <AtencionClientesModule onBack={handleBack} userEmail={currentUserEmail} userName={currentUserName} gmailToken={gmailToken} />}
           {currentModule === 'asignar-csr' && <AsignarCSR />}
           {currentModule === 'asignar-cxc' && <AsignarCxC />}
           {currentModule === 'confirmar-alta' && <ConfirmarAlta />}
