@@ -69,16 +69,10 @@ const EJECUTIVO_ISIS = [
   'BAKERY MACHINERY', 'MARTICO', 'ARGOS FREIGHT',
   'BERRIES PARADISE', 'RED ROAD', 'ZEBRA',
 ];
-const EJECUTIVO_PALOMA = [
-  'PAC INTERNATIONAL', 'P.A.C.', 'SHORELINE', 'ATLAS EXPEDIT',
-  'LOGISTEED', 'SCHENKER', 'COMERCIALIZADORA KEES',
-  'FP GRUPO', 'JA FREIGHT', 'JA CARRIER', 'CLG',
-  'COURIER NETWORK', 'PXGL', 'SUN BERRIES', 'AGRICOLA SUN',
-];
+// LEO es nuevo, aún sin clientes asignados
 const getEjecutivoImpo = (cliente: string): string => {
   const c = cliente.toUpperCase();
   if (EJECUTIVO_ISIS.some(e => c.includes(e))) return 'ISIS';
-  if (EJECUTIVO_PALOMA.some(e => c.includes(e))) return 'PALOMA';
   return '—';
 };
 const isExcludedImpo = (cliente: string): boolean => {
@@ -331,12 +325,13 @@ export function AtencionClientesModule({ onBack, userEmail, userName, userRole }
 
   // ============ ASIGNACION LOGIC ============
   const handleAssign = async (id: number, ejecutivo: string, vendedor: string) => {
-    const status = (ejecutivo === 'PENDIENTE' && (!vendedor || vendedor === 'PENDIENTE')) ? 'PENDIENTE' : 'ASIGNADO';
+    const vend = vendedor === 'PENDIENTE' || !vendedor ? '' : vendedor;
+    const status = (ejecutivo === 'PENDIENTE' && !vend) ? 'PENDIENTE' : 'ASIGNADO';
     const { error } = await supabase.from('sc_clientes_asignacion')
-      .update({ ejecutivo_sc: ejecutivo, vendedor: vendedor || 'PENDIENTE', status, updated_at: new Date().toISOString() })
+      .update({ ejecutivo_sc: ejecutivo, vendedor: vend, status, updated_at: new Date().toISOString() })
       .eq('id', id);
     if (!error) {
-      setAsignacion(prev => prev.map(c => c.id === id ? { ...c, ejecutivo_sc: ejecutivo, vendedor: vendedor || 'PENDIENTE', status } : c));
+      setAsignacion(prev => prev.map(c => c.id === id ? { ...c, ejecutivo_sc: ejecutivo, vendedor: vend, status } : c));
       setEditingId(null);
     }
   };
@@ -753,7 +748,7 @@ export function AtencionClientesModule({ onBack, userEmail, userName, userRole }
           </select>
           <button onClick={() => {
             const headers = ['#', 'CLIENTE', 'VENDEDOR', 'EJECUTIVO SC', 'STATUS', 'NOTAS'];
-            const rows = filteredAsignacion.map(c => [String(c.numero), c.cliente, c.vendedor || 'PENDIENTE', c.ejecutivo_sc, c.status, c.notas || '']);
+            const rows = filteredAsignacion.map(c => [String(c.numero), c.cliente, c.vendedor || '', c.ejecutivo_sc, c.status, c.notas || '']);
             const ctx = `${asigKPIs.total} clientes. Vendedores: ISIS ${asigKPIs.isis}, LEO ${asigKPIs.leo}. CSR: ELI ${asigKPIs.eli}, LIZ ${asigKPIs.liz}. Pendientes: ${asigKPIs.pendientes}`;
             handleExportWithAI(headers, rows, 'Asignacion_Clientes_SC', ctx);
           }} disabled={exporting}
@@ -790,15 +785,15 @@ export function AtencionClientesModule({ onBack, userEmail, userName, userRole }
                       {editingId === c.id ? (
                         <select value={editVendedor} onChange={e => setEditVendedor(e.target.value)}
                           style={{ ...S.select, padding: '6px 10px', fontSize: '12px', width: '100px' }}>
-                          <option value="PENDIENTE">PENDIENTE</option>
+                          <option value="">—</option>
                           {VENDEDORES.map(v => <option key={v} value={v}>{v}</option>)}
                         </select>
                       ) : (
                         <span style={{
                           padding: '4px 10px', borderRadius: '6px', fontSize: '12px', fontWeight: 700, fontFamily: "'Exo 2', sans-serif",
-                          background: c.vendedor === 'ISIS' ? 'rgba(76,175,80,0.15)' : c.vendedor === 'LEO' ? 'rgba(41,182,246,0.15)' : 'rgba(255,152,0,0.15)',
-                          color: c.vendedor === 'ISIS' ? '#66bb6a' : c.vendedor === 'LEO' ? '#29b6f6' : '#ffa726',
-                        }}>{c.vendedor || 'PENDIENTE'}</span>
+                          background: c.vendedor === 'ISIS' ? 'rgba(76,175,80,0.15)' : c.vendedor === 'LEO' ? 'rgba(41,182,246,0.15)' : 'transparent',
+                          color: c.vendedor === 'ISIS' ? '#66bb6a' : c.vendedor === 'LEO' ? '#29b6f6' : 'rgba(255,255,255,0.25)',
+                        }}>{c.vendedor || '—'}</span>
                       )}
                     </td>
                     {/* EJECUTIVO SC COLUMN */}
@@ -838,7 +833,7 @@ export function AtencionClientesModule({ onBack, userEmail, userName, userRole }
                           </button>
                         </div>
                       ) : (
-                        <button onClick={() => { setEditingId(c.id); setEditEjecutivo(c.ejecutivo_sc); setEditVendedor(c.vendedor || 'PENDIENTE'); }}
+                        <button onClick={() => { setEditingId(c.id); setEditEjecutivo(c.ejecutivo_sc); setEditVendedor(c.vendedor || ''); }}
                           style={{ ...S.btnSecondary, padding: '5px 12px', fontSize: '11px', display: 'flex', alignItems: 'center', gap: '4px' }}>
                           <UserCheck style={{ width: '13px', height: '13px' }} /> Asignar
                         </button>
@@ -931,8 +926,8 @@ export function AtencionClientesModule({ onBack, userEmail, userName, userRole }
           {filteredExpo.length > 0 && (
             <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '12px' }}>
               <button onClick={() => {
-                const headers = ['#', 'CLIENTE', 'VIAJES', 'FORMATOS', 'ORÍGENES', 'DEDICADO', 'CRUCE', 'EMPRESA', 'ESTADO'];
-                const rows = filteredExpo.map((d, i) => [String(i + 1), d.cliente, String(d.viajes), String(d.num_formatos), d.origenes, d.dedicado, d.cruce, d.empresa, d.estado]);
+                const headers = ['#', 'CLIENTE', 'VIAJES', 'FORMATOS', 'ORÍGENES', 'DEDICADO', 'CRUCE', 'ESTADO'];
+                const rows = filteredExpo.map((d, i) => [String(i + 1), d.cliente, String(d.viajes), String(d.num_formatos), d.origenes, d.dedicado, d.cruce, d.estado]);
                 const ctx = `Búsqueda: ${expoTipo} en ${expoEstado}${expoExpanded ? ' + vecinos' : ''}. ${expoKPIs.clientes} clientes, ${expoKPIs.viajes} viajes, ${expoKPIs.dedicados} dedicados`;
                 handleExportWithAI(headers, rows, `EXPO_${expoTipo}_${expoEstado}`, ctx);
               }} disabled={exporting} style={{ ...S.btn, display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -968,7 +963,6 @@ export function AtencionClientesModule({ onBack, userEmail, userName, userRole }
                       <th style={S.tableHeader}>Orígenes</th>
                       <th style={{ ...S.tableHeader, width: '80px', textAlign: 'center' }}>Dedicado</th>
                       <th style={{ ...S.tableHeader, width: '70px', textAlign: 'center' }}>Cruce</th>
-                      <th style={{ ...S.tableHeader, width: '130px' }}>Empresa</th>
                       {expoExpanded && <th style={{ ...S.tableHeader, width: '120px' }}>Estado</th>}
                     </tr>
                   </thead>
@@ -992,7 +986,6 @@ export function AtencionClientesModule({ onBack, userEmail, userName, userRole }
                             background: d.cruce === 'SI' ? 'rgba(33,150,243,0.15)' : 'rgba(120,120,120,0.1)',
                             color: d.cruce === 'SI' ? '#42a5f5' : 'rgba(255,255,255,0.35)' }}>{d.cruce}</span>
                         </td>
-                        <td style={{ ...S.tableCell, fontSize: '11px' }}>{d.empresa || '—'}</td>
                         {expoExpanded && (
                           <td style={S.tableCell}>
                             <span style={{ padding: '3px 8px', borderRadius: '12px', fontSize: '10px', fontWeight: 600, fontFamily: "'Exo 2', sans-serif",
@@ -1110,8 +1103,8 @@ export function AtencionClientesModule({ onBack, userEmail, userName, userRole }
                     <td style={{ ...S.tableCell, textAlign: 'center', padding: '5px 2px' }}>
                       <span style={{
                         padding: '2px 5px', borderRadius: '4px', fontSize: '9px', fontWeight: 700, fontFamily: "'Exo 2', sans-serif",
-                        background: ejecVta === 'ISIS' ? 'rgba(76,175,80,0.15)' : ejecVta === 'PALOMA' ? 'rgba(33,150,243,0.15)' : 'rgba(120,120,120,0.08)',
-                        color: ejecVta === 'ISIS' ? '#66bb6a' : ejecVta === 'PALOMA' ? '#42a5f5' : 'rgba(255,255,255,0.25)',
+                        background: ejecVta === 'ISIS' ? 'rgba(76,175,80,0.15)' : 'rgba(120,120,120,0.08)',
+                        color: ejecVta === 'ISIS' ? '#66bb6a' : 'rgba(255,255,255,0.25)',
                       }}>{ejecVta}</span>
                     </td>
                     <td style={{ ...S.tableCell, textAlign: 'center', padding: '5px 2px' }}>
