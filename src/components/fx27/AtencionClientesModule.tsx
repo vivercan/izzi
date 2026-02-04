@@ -995,7 +995,7 @@ FX27 Future Experience 27 — Grupo Loma Transportes © ${new Date().getFullYear
       <div style={{ ...S.overlay, position: 'fixed', inset: 0, pointerEvents: 'none' }} />
       <div style={{ position: 'relative', height: '100vh', display: 'flex', flexDirection: 'column' }}>
         <Header title="Asignación de Clientes" />
-        <div style={{ padding: '12px 40px', flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+        <div style={{ padding: '12px 40px 4px', flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
         <div style={{ display: 'flex', gap: '14px', marginBottom: '12px', flexWrap: 'wrap', flexShrink: 0 }}>
           <KPICard label="Total Clientes" value={asigKPIs.total} icon={Users} />
           <KPICard label="Vta: ISIS" value={asigKPIs.isis} icon={Truck} color="#4caf50" />
@@ -1420,7 +1420,7 @@ FX27 Future Experience 27 — Grupo Loma Transportes © ${new Date().getFullYear
         <div style={{ ...S.overlay, position: 'fixed', inset: 0, pointerEvents: 'none' }} />
         <div style={{ position: 'relative', height: '100vh', display: 'flex', flexDirection: 'column' }}>
           <Header title="Expo Radar" />
-          <div style={{ padding: '12px 40px', flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+          <div style={{ padding: '12px 40px 4px', flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
           <div style={{ ...S.card, padding: '16px', marginBottom: '12px', flexShrink: 0 }}>
             <div style={{ display: 'flex', gap: '16px', alignItems: 'flex-end', flexWrap: 'wrap' }}>
               <div style={{ flex: '0 0 200px' }}>
@@ -1591,7 +1591,7 @@ FX27 Future Experience 27 — Grupo Loma Transportes © ${new Date().getFullYear
       <div style={{ ...S.overlay, position: 'fixed', inset: 0, pointerEvents: 'none' }} />
       <div style={{ position: 'relative', height: '100vh', display: 'flex', flexDirection: 'column' }}>
         <Header title="Clientes de Importación" subtitle={`${impoData.length} clientes · Entregas USA → México`} />
-        <div style={{ padding: '12px 40px', flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+        <div style={{ padding: '12px 40px 4px', flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
         <div style={{ display: 'flex', gap: '14px', marginBottom: '12px', flexWrap: 'wrap', flexShrink: 0 }}>
           <KPICard label="Clientes" value={impoKPIs.clientes} icon={Users} />
           <KPICard label="Viajes Totales" value={impoKPIs.viajes.toLocaleString()} icon={Truck} color="#2196f3" />
@@ -1624,32 +1624,32 @@ FX27 Future Experience 27 — Grupo Loma Transportes © ${new Date().getFullYear
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead style={{ position: 'sticky', top: 0, zIndex: 5 }}>
                 <tr>
-                  <th style={{ ...S.tableHeader, width: '30px', padding: '6px 4px' }}>#</th>
-                  <th style={{ ...S.tableHeader, width: '18%', padding: '6px 8px', cursor: 'pointer', userSelect: 'none' }} onClick={() => handleImpoSort('cliente')}>
+                  <th style={{ ...S.tableHeader, width: '30px', padding: '10px 4px', background: 'rgba(10,18,36,0.98)', borderBottom: '2px solid rgba(240,160,80,0.5)' }}>#</th>
+                  <th style={{ ...S.tableHeader, width: '22%', padding: '10px 8px', cursor: 'pointer', userSelect: 'none', background: 'rgba(10,18,36,0.98)', borderBottom: '2px solid rgba(240,160,80,0.5)' }} onClick={() => handleImpoSort('cliente')}>
                     <span style={{ display: 'inline-flex', alignItems: 'center' }}>Cliente <SortIcon col="cliente" /></span>
                   </th>
-                  <th style={{ ...S.tableHeader, width: '46px', textAlign: 'center', padding: '6px 2px', cursor: 'pointer', userSelect: 'none' }} onClick={() => handleImpoSort('viajes')}>
+                  <th style={{ ...S.tableHeader, width: '52px', textAlign: 'center', padding: '10px 2px', cursor: 'pointer', userSelect: 'none', background: 'rgba(10,18,36,0.98)', borderBottom: '2px solid rgba(240,160,80,0.5)' }} onClick={() => handleImpoSort('viajes')}>
                     <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>Viajes <SortIcon col="viajes" /></span>
                   </th>
-                  <th style={{ ...S.tableHeader, width: '46px', textAlign: 'center', padding: '6px 2px', cursor: 'pointer', userSelect: 'none' }} onClick={() => handleImpoSort('thermo')}>
+                  <th style={{ ...S.tableHeader, width: '46px', textAlign: 'center', padding: '10px 2px', cursor: 'pointer', userSelect: 'none', background: 'rgba(10,18,36,0.98)', borderBottom: '2px solid rgba(240,160,80,0.5)' }} onClick={() => handleImpoSort('thermo')}>
                     <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>Thm <SortIcon col="thermo" /></span>
                   </th>
-                  <th style={{ ...S.tableHeader, width: '40px', textAlign: 'center', padding: '6px 2px', cursor: 'pointer', userSelect: 'none' }} onClick={() => handleImpoSort('seco')}>
+                  <th style={{ ...S.tableHeader, width: '44px', textAlign: 'center', padding: '10px 2px', cursor: 'pointer', userSelect: 'none', background: 'rgba(10,18,36,0.98)', borderBottom: '2px solid rgba(240,160,80,0.5)' }} onClick={() => handleImpoSort('seco')}>
                     <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>Seco <SortIcon col="seco" /></span>
                   </th>
-                  <th style={{ ...S.tableHeader, width: '36px', textAlign: 'center', padding: '6px 2px', cursor: 'pointer', userSelect: 'none' }} onClick={() => handleImpoSort('formatos')}>
+                  <th style={{ ...S.tableHeader, width: '40px', textAlign: 'center', padding: '10px 2px', cursor: 'pointer', userSelect: 'none', background: 'rgba(10,18,36,0.98)', borderBottom: '2px solid rgba(240,160,80,0.5)' }} onClick={() => handleImpoSort('formatos')}>
                     <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>Fmt <SortIcon col="formatos" /></span>
                   </th>
-                  <th style={{ ...S.tableHeader, width: '76px', padding: '6px 4px', cursor: 'pointer', userSelect: 'none' }} onClick={() => handleImpoSort('tipo_equipo')}>
+                  <th style={{ ...S.tableHeader, width: '76px', padding: '10px 4px', cursor: 'pointer', userSelect: 'none', background: 'rgba(10,18,36,0.98)', borderBottom: '2px solid rgba(240,160,80,0.5)' }} onClick={() => handleImpoSort('tipo_equipo')}>
                     <span style={{ display: 'inline-flex', alignItems: 'center' }}>Tipo <SortIcon col="tipo_equipo" /></span>
                   </th>
-                  <th style={{ ...S.tableHeader, padding: '6px 6px', cursor: 'pointer', userSelect: 'none' }} onClick={() => handleImpoSort('zona')}>
+                  <th style={{ ...S.tableHeader, padding: '10px 6px', cursor: 'pointer', userSelect: 'none', background: 'rgba(10,18,36,0.98)', borderBottom: '2px solid rgba(240,160,80,0.5)' }} onClick={() => handleImpoSort('zona')}>
                     <span style={{ display: 'inline-flex', alignItems: 'center' }}>Destinos <SortIcon col="zona" /></span>
                   </th>
-                  <th style={{ ...S.tableHeader, width: '58px', textAlign: 'center', padding: '6px 2px', cursor: 'pointer', userSelect: 'none' }} onClick={() => handleImpoSort('ejecutivo')}>
+                  <th style={{ ...S.tableHeader, width: '65px', textAlign: 'center', padding: '10px 2px', cursor: 'pointer', userSelect: 'none', background: 'rgba(10,18,36,0.98)', borderBottom: '2px solid rgba(240,160,80,0.5)' }} onClick={() => handleImpoSort('ejecutivo')}>
                     <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>Ventas <SortIcon col="ejecutivo" /></span>
                   </th>
-                  <th style={{ ...S.tableHeader, width: '50px', textAlign: 'center', padding: '6px 2px', cursor: 'pointer', userSelect: 'none' }} onClick={() => handleImpoSort('ejecutivoSC')}>
+                  <th style={{ ...S.tableHeader, width: '55px', textAlign: 'center', padding: '10px 2px', cursor: 'pointer', userSelect: 'none', background: 'rgba(10,18,36,0.98)', borderBottom: '2px solid rgba(240,160,80,0.5)' }} onClick={() => handleImpoSort('ejecutivoSC')}>
                     <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>CSR <SortIcon col="ejecutivoSC" /></span>
                   </th>
                 </tr>

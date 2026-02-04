@@ -61,7 +61,7 @@ export const LoginScreen = ({
         style={{ paddingRight: "60%", paddingTop: "60px" }}
       >
         <div
-          className="w-[520px] rounded-[var(--radius-lg)] px-8 pt-6 pb-6 flex flex-col gap-5 ml-auto mr-auto"
+          className="w-[520px] rounded-[var(--radius-lg)] px-8 pt-6 pb-6 flex flex-col ml-auto mr-auto"
           style={{
             background: "rgba(255, 255, 255, 0.05)",
             backdropFilter: "blur(40px) saturate(150%)",
@@ -70,6 +70,7 @@ export const LoginScreen = ({
             border: "1px solid rgba(255, 255, 255, 0.18)",
             borderTop: "1px solid rgba(255, 255, 255, 0.25)",
             WebkitBackdropFilter: "blur(40px) saturate(150%)",
+            minHeight: '220px',
           }}
         >
           {/* Title */}
@@ -122,7 +123,7 @@ export const LoginScreen = ({
               opacity: googleLoading ? 0.7 : 1,
               boxShadow: '0 4px 16px rgba(0, 0, 0, 0.2)',
               width: '80%',
-              margin: '0 auto',
+              margin: '24px auto 0',
             }}
           >
             {!googleLoading && (
@@ -143,7 +144,8 @@ export const LoginScreen = ({
               fontSize: "11px",
               color: 'rgba(255, 255, 255, 0.35)',
               textAlign: 'center',
-              margin: '-4px 0 0',
+              marginTop: 'auto',
+              paddingTop: '16px',
             }}
           >
             Solo cuentas autorizadas @trob.com.mx · @wexpress.com.mx · @speedyhaul.com.mx
