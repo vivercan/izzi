@@ -387,7 +387,7 @@ export function AtencionClientesModule({ onBack, userEmail, userName, userRole, 
   const [contactsLoading, setContactsLoading] = useState(false);
   const [contactsSaving, setContactsSaving] = useState(false);
   const [newContact, setNewContact] = useState<Contacto>({ cliente_nombre: '', contacto_nombre: '', email: '', whatsapp: '', cargo: '', notas: '' });
-  const [clientesConContactos, setClientesConContactos] = useState<Set<string>>(new Set());
+  const [clientesConContactos, setClientesConContactos] = useState<Map<string, number>>(new Map());
 
   // ============ FETCH DATA ============
   useEffect(() => {
@@ -402,9 +402,13 @@ export function AtencionClientesModule({ onBack, userEmail, userName, userRole, 
         if (asigRes.data) setAsignacion(asigRes.data);
         if (expoRes.data) setExpoData(expoRes.data);
         if (impoRes.data) setImpoData(impoRes.data);
-        // Load which clients have contacts
+        // Load contact counts per client
         const { data: contactosIdx } = await supabase.from('sc_contactos_clientes').select('cliente_nombre');
-        if (contactosIdx) setClientesConContactos(new Set(contactosIdx.map(c => c.cliente_nombre)));
+        if (contactosIdx) {
+          const countMap = new Map<string, number>();
+          contactosIdx.forEach(c => countMap.set(c.cliente_nombre, (countMap.get(c.cliente_nombre) || 0) + 1));
+          setClientesConContactos(countMap);
+        }
       } catch (err) { console.error('Error fetching data:', err); }
       setLoading(false);
     };
@@ -454,7 +458,7 @@ export function AtencionClientesModule({ onBack, userEmail, userName, userRole, 
       if (!error && data) {
         setContactsList(prev => [...prev, data[0]]);
         setNewContact({ cliente_nombre: contactsCliente, contacto_nombre: '', email: '', whatsapp: '', cargo: '', notas: '' });
-        setClientesConContactos(prev => new Set(prev).add(contactsCliente));
+        setClientesConContactos(prev => { const m = new Map(prev); m.set(contactsCliente, (m.get(contactsCliente) || 0) + 1); return m; });
       }
     } catch {}
     setContactsSaving(false);
@@ -465,9 +469,7 @@ export function AtencionClientesModule({ onBack, userEmail, userName, userRole, 
     if (!error) {
       const newList = contactsList.filter(c => c.id !== id);
       setContactsList(newList);
-      if (newList.length === 0) {
-        setClientesConContactos(prev => { const s = new Set(prev); s.delete(contactsCliente); return s; });
-      }
+      setClientesConContactos(prev => { const m = new Map(prev); const cnt = (m.get(contactsCliente) || 1) - 1; if (cnt <= 0) m.delete(contactsCliente); else m.set(contactsCliente, cnt); return m; });
     }
   };
 
@@ -1109,18 +1111,16 @@ FX27 Future Experience 27 — Grupo Loma Transportes © ${new Date().getFullYear
               </thead>
               <tbody>
                 {filteredAsignacion.map(c => {
-                  const missingVendedor = !c.vendedor;
-                  const missingCSR = c.ejecutivo_sc === 'PENDIENTE';
-                  const incomplete = missingVendedor || missingCSR;
-                  const incompleteCount = (missingVendedor ? 1 : 0) + (missingCSR ? 1 : 0);
+                  const contactCount = clientesConContactos.get(c.cliente) || 0;
+                  const incomplete = contactCount < 2;
                   return (
-                  <tr key={c.id} style={{ transition: 'background 0.2s', borderLeft: incomplete ? '3px solid rgba(255,100,60,0.7)' : '3px solid rgba(76,175,80,0.4)', background: incomplete ? 'rgba(255,100,60,0.03)' : 'transparent' }}
-                    onMouseEnter={e => (e.currentTarget.style.background = incomplete ? 'rgba(255,100,60,0.07)' : 'rgba(240,160,80,0.05)')}
-                    onMouseLeave={e => (e.currentTarget.style.background = incomplete ? 'rgba(255,100,60,0.03)' : 'transparent')}>
+                  <tr key={c.id} style={{ transition: 'background 0.2s', borderLeft: incomplete ? '3px solid rgba(255,80,80,0.7)' : '3px solid rgba(76,175,80,0.5)', background: incomplete ? 'rgba(255,80,80,0.03)' : 'transparent' }}
+                    onMouseEnter={e => (e.currentTarget.style.background = incomplete ? 'rgba(255,80,80,0.07)' : 'rgba(240,160,80,0.05)')}
+                    onMouseLeave={e => (e.currentTarget.style.background = incomplete ? 'rgba(255,80,80,0.03)' : 'transparent')}>
                     <td style={{ ...S.tableCell, color: 'rgba(255,255,255,0.4)' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                         <span>{c.numero}</span>
-                        {incomplete && <span title={`Falta: ${[missingVendedor && 'Vendedor', missingCSR && 'CSR'].filter(Boolean).join(', ')}`} style={{ width: '7px', height: '7px', borderRadius: '50%', background: incompleteCount === 2 ? '#ff5252' : '#ffa726', display: 'inline-block', flexShrink: 0 }} />}
+                        {incomplete && <span title={`${contactCount === 0 ? 'Sin contactos' : `Solo ${contactCount} contacto — mínimo 2`}`} style={{ width: '7px', height: '7px', borderRadius: '50%', background: '#ff5252', display: 'inline-block', flexShrink: 0 }} />}
                       </div>
                     </td>
                     <td style={{ ...S.tableCell, fontWeight: 600 }}>{c.cliente}</td>
@@ -1186,9 +1186,9 @@ FX27 Future Experience 27 — Grupo Loma Transportes © ${new Date().getFullYear
                       <button onClick={() => openContactsModal(c.cliente)}
                         style={{
                           ...S.btnSecondary, padding: '5px 12px', fontSize: '11px', display: 'flex', alignItems: 'center', gap: '4px',
-                          background: clientesConContactos.has(c.cliente) ? 'rgba(76,175,80,0.15)' : 'rgba(255,255,255,0.04)',
-                          borderColor: clientesConContactos.has(c.cliente) ? 'rgba(76,175,80,0.4)' : undefined,
-                          color: clientesConContactos.has(c.cliente) ? '#66bb6a' : undefined,
+                          background: (clientesConContactos.get(c.cliente) || 0) >= 2 ? 'rgba(76,175,80,0.15)' : 'rgba(255,255,255,0.04)',
+                          borderColor: (clientesConContactos.get(c.cliente) || 0) >= 2 ? 'rgba(76,175,80,0.4)' : undefined,
+                          color: (clientesConContactos.get(c.cliente) || 0) >= 2 ? '#66bb6a' : undefined,
                         }}>
                         <Mail style={{ width: '13px', height: '13px' }} /> Contactos
                       </button>
