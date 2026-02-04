@@ -1108,11 +1108,21 @@ FX27 Future Experience 27 — Grupo Loma Transportes © ${new Date().getFullYear
                 </tr>
               </thead>
               <tbody>
-                {filteredAsignacion.map(c => (
-                  <tr key={c.id} style={{ transition: 'background 0.2s' }}
-                    onMouseEnter={e => (e.currentTarget.style.background = 'rgba(240,160,80,0.05)')}
-                    onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
-                    <td style={{ ...S.tableCell, color: 'rgba(255,255,255,0.4)' }}>{c.numero}</td>
+                {filteredAsignacion.map(c => {
+                  const missingVendedor = !c.vendedor;
+                  const missingCSR = c.ejecutivo_sc === 'PENDIENTE';
+                  const incomplete = missingVendedor || missingCSR;
+                  const incompleteCount = (missingVendedor ? 1 : 0) + (missingCSR ? 1 : 0);
+                  return (
+                  <tr key={c.id} style={{ transition: 'background 0.2s', borderLeft: incomplete ? '3px solid rgba(255,100,60,0.7)' : '3px solid rgba(76,175,80,0.4)', background: incomplete ? 'rgba(255,100,60,0.03)' : 'transparent' }}
+                    onMouseEnter={e => (e.currentTarget.style.background = incomplete ? 'rgba(255,100,60,0.07)' : 'rgba(240,160,80,0.05)')}
+                    onMouseLeave={e => (e.currentTarget.style.background = incomplete ? 'rgba(255,100,60,0.03)' : 'transparent')}>
+                    <td style={{ ...S.tableCell, color: 'rgba(255,255,255,0.4)' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <span>{c.numero}</span>
+                        {incomplete && <span title={`Falta: ${[missingVendedor && 'Vendedor', missingCSR && 'CSR'].filter(Boolean).join(', ')}`} style={{ width: '7px', height: '7px', borderRadius: '50%', background: incompleteCount === 2 ? '#ff5252' : '#ffa726', display: 'inline-block', flexShrink: 0 }} />}
+                      </div>
+                    </td>
                     <td style={{ ...S.tableCell, fontWeight: 600 }}>{c.cliente}</td>
                     {/* VENDEDOR COLUMN */}
                     <td style={S.tableCell}>
@@ -1185,7 +1195,8 @@ FX27 Future Experience 27 — Grupo Loma Transportes © ${new Date().getFullYear
                       </div>
                     </td>
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
           </div>
