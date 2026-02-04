@@ -450,7 +450,7 @@ export function AtencionClientesModule({ onBack, userEmail, userName, userRole, 
   };
 
   const saveNewContact = async () => {
-    if (!newContact.contacto_nombre && !newContact.email && !newContact.whatsapp) return;
+    if (!newContact.contacto_nombre || !newContact.email || !newContact.whatsapp) return;
     setContactsSaving(true);
     try {
       const payload = { ...newContact, cliente_nombre: contactsCliente };
@@ -1082,6 +1082,7 @@ FX27 Future Experience 27 — Grupo Loma Transportes © ${new Date().getFullYear
             <option value="LIZ">CSR: LIZ</option>
             <option value="PENDIENTE">Pendientes</option>
           </select>
+          {userRole === 'admin' && (
           <button onClick={() => {
             const headers = ['#', 'CLIENTE', 'VENDEDOR', 'EJECUTIVO SC', 'STATUS', 'NOTAS'];
             const rows = filteredAsignacion.map(c => [String(c.numero), c.cliente, c.vendedor || '', c.ejecutivo_sc, c.status, c.notas || '']);
@@ -1092,6 +1093,7 @@ FX27 Future Experience 27 — Grupo Loma Transportes © ${new Date().getFullYear
             {exporting ? <Loader2 style={{ width: '16px', height: '16px', animation: 'spin 1s linear infinite' }} /> : <FileSpreadsheet style={{ width: '16px', height: '16px' }} />}
             Exportar Excel
           </button>
+          )}
         </div>
 
         {/* Table */}
@@ -1218,8 +1220,18 @@ FX27 Future Experience 27 — Grupo Loma Transportes © ${new Date().getFullYear
                   Contactos — {contactsCliente}
                 </h3>
                 <p style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '12px', color: 'rgba(255,255,255,0.4)', margin: '4px 0 0' }}>
-                  Emails y WhatsApp para envío de ofertas
+                  Mínimo 2 contactos con correo y WhatsApp para envío de ofertas
                 </p>
+                {!contactsLoading && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '8px' }}>
+                    <div style={{ flex: 1, height: '4px', borderRadius: '2px', background: 'rgba(255,255,255,0.1)', maxWidth: '120px' }}>
+                      <div style={{ height: '100%', borderRadius: '2px', width: `${Math.min(contactsList.length / 2 * 100, 100)}%`, background: contactsList.length >= 2 ? '#4caf50' : '#ff5252', transition: 'width 0.3s' }} />
+                    </div>
+                    <span style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '11px', fontWeight: 700, color: contactsList.length >= 2 ? '#4caf50' : '#ff5252' }}>
+                      {contactsList.length}/2 {contactsList.length >= 2 ? '✓ Completo' : 'mínimo'}
+                    </span>
+                  </div>
+                )}
               </div>
               <button onClick={() => setShowContactsModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}>
                 <X style={{ width: '20px', height: '20px', color: 'rgba(255,255,255,0.5)' }} />
@@ -1234,7 +1246,7 @@ FX27 Future Experience 27 — Grupo Loma Transportes © ${new Date().getFullYear
                 </div>
               ) : contactsList.length === 0 ? (
                 <div style={{ textAlign: 'center', padding: '16px', color: 'rgba(255,255,255,0.3)', fontFamily: "'Exo 2', sans-serif", fontSize: '13px' }}>
-                  Sin contactos registrados. Agrega el primer contacto abajo.
+                  ⚠️ Sin contactos registrados. Se requieren mínimo 2 contactos con correo y WhatsApp.
                 </div>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '16px' }}>
@@ -1291,14 +1303,17 @@ FX27 Future Experience 27 — Grupo Loma Transportes © ${new Date().getFullYear
                     placeholder="Notas (opcional)" style={{ ...S.input, fontSize: '13px', padding: '8px 12px', gridColumn: '1 / -1' }} />
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '10px' }}>
-                  <button onClick={saveNewContact} disabled={contactsSaving || (!newContact.contacto_nombre && !newContact.email && !newContact.whatsapp)}
+                  <button onClick={saveNewContact} disabled={contactsSaving || !newContact.contacto_nombre || !newContact.email || !newContact.whatsapp}
                     style={{
                       ...S.btn, padding: '8px 20px', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px',
-                      opacity: (!newContact.contacto_nombre && !newContact.email && !newContact.whatsapp) ? 0.4 : 1,
+                      opacity: (!newContact.contacto_nombre || !newContact.email || !newContact.whatsapp) ? 0.4 : 1,
                     }}>
                     {contactsSaving ? <Loader2 style={{ width: '14px', height: '14px', animation: 'spin 1s linear infinite' }} /> : <Save style={{ width: '14px', height: '14px' }} />}
                     Guardar Contacto
                   </button>
+                  <p style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '10px', color: 'rgba(255,255,255,0.3)', margin: '6px 0 0', textAlign: 'center' }}>
+                    * Nombre, correo y WhatsApp son obligatorios
+                  </p>
                 </div>
               </div>
             </div>
@@ -1560,7 +1575,7 @@ FX27 Future Experience 27 — Grupo Loma Transportes © ${new Date().getFullYear
               <KPICard label="Formatos" value={expoKPIs.formatos} icon={ClipboardList} color="#9c27b0" />
             </div>
           )}
-          {filteredExpo.length > 0 && (
+          {filteredExpo.length > 0 && userRole === 'admin' && (
             <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '12px', flexShrink: 0 }}>
               <button onClick={() => {
                 const headers = ['#', 'CLIENTE', 'VIAJES', 'FORMATOS', 'ORÍGENES', 'CRUCE', 'ESTADO'];
@@ -1680,6 +1695,7 @@ FX27 Future Experience 27 — Grupo Loma Transportes © ${new Date().getFullYear
             <option value="THERMO">Solo Thermo</option>
             <option value="SECO">Solo Seco</option>
           </select>
+          {userRole === 'admin' && (
           <button onClick={() => {
             const headers = ['#', 'CLIENTE', 'VIAJES', 'THERMO', 'SECO', 'FMTS', 'TIPO EQUIPO', 'DESTINOS', 'VENTAS', 'CSR'];
             const rows = filteredImpo.map((d, i) => [String(i + 1), d.cliente, String(d.viajes), String(d.thermo), String(d.seco), String(d.formatos), d.tipo_equipo, d.estadosStr, getEjecutivoImpo(d.cliente), getEjecutivoSC(d.cliente)]);
@@ -1689,6 +1705,7 @@ FX27 Future Experience 27 — Grupo Loma Transportes © ${new Date().getFullYear
             {exporting ? <Loader2 style={{ width: '16px', height: '16px', animation: 'spin 1s linear infinite' }} /> : <FileSpreadsheet style={{ width: '16px', height: '16px' }} />}
             Exportar Excel
           </button>
+          )}
         </div>
         <div style={{ ...S.card, overflow: 'hidden', flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
           <div style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden' }}>
