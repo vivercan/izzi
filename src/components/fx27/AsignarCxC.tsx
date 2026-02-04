@@ -39,7 +39,12 @@ interface Solicitud {
   created_at: string;
 }
 
-export function AsignarCxC() {
+interface AsignarCxCProps {
+  onBack?: () => void;
+  onAssigned?: () => void;
+}
+
+export function AsignarCxC({ onBack, onAssigned }: AsignarCxCProps) {
   const [loading, setLoading] = useState(true);
   const [solicitudes, setSolicitudes] = useState<Solicitud[]>([]);
   const [cxcList, setCxcList] = useState<CxC[]>([]);
@@ -154,6 +159,7 @@ export function AsignarCxC() {
     setSelectedCxC('');
     setSubmitting(false);
     fetchData();
+    onAssigned?.();
   };
 
   const cxcSeleccionado = cxcList.find(c => c.id === selectedCxC);

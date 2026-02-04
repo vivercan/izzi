@@ -228,8 +228,11 @@ export default function App() {
       setRutaPublica({ tipo: 'alta-cliente', id: altaMatch[1] });
     }
     // Rutas internas de alta (requieren login pero se detectan para navegación directa)
-    if (path === '/alta-clientes/asignar-cxc') {
+    if (path === '/alta-clientes/asignar-cxc' || path === '/asignar-cxc') {
       setCurrentModule('asignar-cxc');
+    }
+    if (path === '/servicio-clientes') {
+      setCurrentModule('servicio-clientes');
     }
   }, []);
   // 🔧 INICIALIZAR AL CARGAR

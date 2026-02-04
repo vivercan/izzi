@@ -61,6 +61,11 @@ export default function RevisarSolicitudAlta({ solicitudId, onUpdated }: Props) 
       if (data.analisis_riesgo) setAnalisis(data.analisis_riesgo);
       if (data.tipo_pago) setTipoPago(data.tipo_pago);
       if (data.dias_credito) setDiasCredito(data.dias_credito);
+      // Restaurar CSR si ya fue asignado previamente
+      if (data.csr_email) {
+        const csrMatch = CSR_CATALOGO.find(c => c.email === data.csr_email);
+        if (csrMatch) setCsrSeleccionado(csrMatch.id);
+      }
     } catch (err) {
       console.error('Error:', err);
     } finally {
@@ -130,8 +135,15 @@ export default function RevisarSolicitudAlta({ solicitudId, onUpdated }: Props) 
             solicitudId,
             razonSocial: solicitud.razon_social,
             rfc: solicitud.rfc_mc || solicitud.rfc,
+            nombreContacto: solicitud.nombre_cliente,
+            emailCliente: solicitud.email_cliente,
+            empresaFacturadora: solicitud.giro || solicitud.empresa_facturadora,
             csrNombre: csr?.nombre,
+            csrEmail: csr?.email,
+            csrTelefono: csr?.celular,
             cxcNombre: updated.cxc_nombre,
+            cxcEmail: updated.cxc_email,
+            cxcTelefono: updated.cxc_telefono || updated.cxc_celular,
             tipoPago: tipoPago,
             diasCredito: tipoPago === 'CREDITO' ? diasCredito : null
           })
