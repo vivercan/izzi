@@ -8,7 +8,7 @@ const ANTHROPIC_KEY = import.meta.env.VITE_ANTHROPIC_API_KEY || '';
 
 // ============ TYPES ============
 interface ClienteAsignacion {
-  id: number; numero: number; cliente: string; ejecutivo_sc: string; status: string; notas: string | null;
+  id: number; numero: number; cliente: string; vendedor: string; ejecutivo_sc: string; status: string; notas: string | null;
 }
 interface DataExpo {
   id: number; estado: string; tipo: string; cliente: string; viajes: number; formatos_venta: string;
@@ -52,6 +52,7 @@ const NEIGHBOR_STATES: Record<string, string[]> = {
 };
 
 const EJECUTIVOS_SC = ['ELI', 'LIZ'];
+const VENDEDORES = ['ISIS', 'LEO'];
 
 // ============ IMPORTACIÓN: EXCLUSION & MAPPING ============
 const CLIENTES_EXCLUIDOS_IMPO = [
@@ -90,7 +91,6 @@ const CLIENT_NORM: Record<string, string> = {
   'EUROPARTNERS MEXICO SA DE CV': 'EUROPARTNERS MEXICO',
   'ZEBRA CARRIERS INC': 'ZEBRA',
   'ZEBRA LOGISTICS': 'ZEBRA',
-
   'SUMMIT PLASTICS GUANAJUATO': 'SUMMIT PLASTICS',
   'SUMMIT PLASTICS SILAO': 'SUMMIT PLASTICS',
   'INTERLAND USA': 'INTERLAND TRANSPORT',
@@ -261,7 +261,7 @@ const exportToExcel = (headers: string[], rows: string[][], filename: string, ai
 
 // ============ KPI CARD ============
 const KPICard = ({ label, value, icon: Icon, color = 'rgba(240,160,80,1)' }: { label: string; value: string | number; icon: any; color?: string }) => (
-  <div style={{ ...S.card, padding: '16px 20px', display: 'flex', alignItems: 'center', gap: '14px', flex: 1, minWidth: '160px' }}>
+  <div style={{ ...S.card, padding: '16px 20px', display: 'flex', alignItems: 'center', gap: '14px', flex: 1, minWidth: '140px' }}>
     <div style={{ background: `${color}22`, borderRadius: '10px', padding: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
       <Icon style={{ width: '22px', height: '22px', color }} />
     </div>
@@ -287,6 +287,7 @@ export function AtencionClientesModule({ onBack, userEmail, userName, userRole }
   const [filterEjec, setFilterEjec] = useState('TODOS');
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editEjecutivo, setEditEjecutivo] = useState('');
+  const [editVendedor, setEditVendedor] = useState('');
 
   // Expo state
   const [expoTipo, setExpoTipo] = useState('THERMO');
@@ -329,23 +330,29 @@ export function AtencionClientesModule({ onBack, userEmail, userName, userRole }
   }, []);
 
   // ============ ASIGNACION LOGIC ============
-  const handleAssign = async (id: number, ejecutivo: string) => {
-    const status = ejecutivo === 'PENDIENTE' ? 'PENDIENTE' : 'ASIGNADO';
+  const handleAssign = async (id: number, ejecutivo: string, vendedor: string) => {
+    const status = (ejecutivo === 'PENDIENTE' && (!vendedor || vendedor === 'PENDIENTE')) ? 'PENDIENTE' : 'ASIGNADO';
     const { error } = await supabase.from('sc_clientes_asignacion')
-      .update({ ejecutivo_sc: ejecutivo, status, updated_at: new Date().toISOString() })
+      .update({ ejecutivo_sc: ejecutivo, vendedor: vendedor || 'PENDIENTE', status, updated_at: new Date().toISOString() })
       .eq('id', id);
     if (!error) {
-      setAsignacion(prev => prev.map(c => c.id === id ? { ...c, ejecutivo_sc: ejecutivo, status } : c));
+      setAsignacion(prev => prev.map(c => c.id === id ? { ...c, ejecutivo_sc: ejecutivo, vendedor: vendedor || 'PENDIENTE', status } : c));
       setEditingId(null);
     }
   };
 
   const filteredAsignacion = useMemo(() => {
     let data = asignacion;
-    if (filterEjec !== 'TODOS') data = data.filter(c => c.ejecutivo_sc === filterEjec);
+    if (filterEjec === 'ISIS' || filterEjec === 'LEO') {
+      data = data.filter(c => c.vendedor === filterEjec);
+    } else if (filterEjec === 'PENDIENTE') {
+      data = data.filter(c => c.status === 'PENDIENTE');
+    } else if (filterEjec !== 'TODOS') {
+      data = data.filter(c => c.ejecutivo_sc === filterEjec);
+    }
     if (searchAsig) {
       const q = searchAsig.toLowerCase();
-      data = data.filter(c => c.cliente.toLowerCase().includes(q) || (c.notas || '').toLowerCase().includes(q));
+      data = data.filter(c => c.cliente.toLowerCase().includes(q) || (c.notas || '').toLowerCase().includes(q) || (c.vendedor || '').toLowerCase().includes(q));
     }
     // CSR filter: show only their clients
     if (userRole === 'csr' && userEmail) {
@@ -359,6 +366,8 @@ export function AtencionClientesModule({ onBack, userEmail, userName, userRole }
 
   const asigKPIs = useMemo(() => ({
     total: asignacion.length,
+    isis: asignacion.filter(c => c.vendedor === 'ISIS').length,
+    leo: asignacion.filter(c => c.vendedor === 'LEO').length,
     eli: asignacion.filter(c => c.ejecutivo_sc === 'ELI').length,
     liz: asignacion.filter(c => c.ejecutivo_sc === 'LIZ').length,
     pendientes: asignacion.filter(c => c.status === 'PENDIENTE').length,
@@ -443,17 +452,14 @@ export function AtencionClientesModule({ onBack, userEmail, userName, userRole }
 
   const filteredImpo = useMemo(() => {
     let data = consolidatedImpo;
-    // Filter by tipo
     if (filterTipoImpo !== 'TODOS') {
       if (filterTipoImpo === 'THERMO') data = data.filter(d => d.thermo > 0);
       else if (filterTipoImpo === 'SECO') data = data.filter(d => d.seco > 0);
     }
-    // Search
     if (searchImpo) {
       const q = searchImpo.toLowerCase();
       data = data.filter(d => d.cliente.toLowerCase().includes(q) || d.estadosStr.toLowerCase().includes(q) || getEjecutivoImpo(d.cliente).toLowerCase().includes(q) || getEjecutivoSC(d.cliente).toLowerCase().includes(q));
     }
-    // Sort
     data = [...data].sort((a, b) => {
       let va: any, vb: any;
       switch (impoSortCol) {
@@ -487,7 +493,7 @@ export function AtencionClientesModule({ onBack, userEmail, userName, userRole }
     setAiLoading(true);
     let context = '';
     if (view === 'asignacion') {
-      context = `Datos de asignación de clientes (${asignacion.length} clientes). ELI tiene ${asigKPIs.eli}, LIZ tiene ${asigKPIs.liz}, PENDIENTES: ${asigKPIs.pendientes}. Lista: ${asignacion.slice(0, 50).map(c => `${c.cliente} (${c.ejecutivo_sc})`).join(', ')}...`;
+      context = `Datos de asignación de clientes (${asignacion.length} clientes). Vendedores: ISIS ${asigKPIs.isis}, LEO ${asigKPIs.leo}. CSR: ELI ${asigKPIs.eli}, LIZ ${asigKPIs.liz}. PENDIENTES: ${asigKPIs.pendientes}. Lista: ${asignacion.slice(0, 50).map(c => `${c.cliente} (Vta:${c.vendedor || '—'}, SC:${c.ejecutivo_sc})`).join(', ')}...`;
     } else if (view === 'expo') {
       const expoSample = filteredExpo.length > 0 ? filteredExpo : expoData.slice(0, 30);
       context = `Datos de exportación (471 registros). Filtro actual: ${expoTipo} en ${expoEstado || 'sin seleccionar'}. Resultados: ${expoSample.map(d => `${d.cliente}: ${d.viajes} viajes desde ${d.estado} (${d.tipo}, Ded:${d.dedicado}, Cruce:${d.cruce})`).join(' | ')}`;
@@ -515,17 +521,11 @@ export function AtencionClientesModule({ onBack, userEmail, userName, userRole }
   // ============ COMMON HEADER — EXACT MODULETEMPLATE ============
   const Header = ({ title, subtitle }: { title: string; subtitle?: string }) => (
     <div style={{ position: 'relative', height: '119px', overflow: 'hidden', marginBottom: '0px' }}>
-      {/* Layer 1: Base navy → petroleo */}
       <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(135deg, #0a1628 0%, #0d1f35 25%, #0f2847 50%, #0a1e38 75%, #081420 100%)' }} />
-      {/* Layer 2: Horizontal depth */}
       <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(90deg, rgba(15,30,56,0.9) 0%, rgba(20,45,75,0.6) 30%, rgba(15,35,60,0.7) 70%, rgba(10,20,40,0.9) 100%)' }} />
-      {/* Layer 3: Blue accent bottom */}
       <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse 80% 100% at 50% 100%, rgba(59,130,246,0.08) 0%, transparent 60%)' }} />
-      {/* Layer 4: Dark overlay */}
       <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(8,15,28,0.4) 0%, rgba(8,15,28,0.2) 50%, rgba(8,15,28,0.5) 100%)' }} />
-      {/* Bottom accent line */}
       <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '1px', background: 'linear-gradient(90deg, transparent 0%, rgba(59,130,246,0.2) 20%, rgba(59,130,246,0.3) 50%, rgba(59,130,246,0.2) 80%, transparent 100%)' }} />
-      {/* FX27 Logo — metal brushed */}
       <div style={{ position: 'absolute', zIndex: 50, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', top: '13px', right: '32px' }}>
         <div style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '72px', fontWeight: 900, lineHeight: 1, letterSpacing: '-2px',
           background: 'linear-gradient(135deg, #E8EEF4 0%, #B5C4D8 30%, #D8DFE8 55%, #9FB0C5 80%, #D0D9E4 100%)',
@@ -535,15 +535,14 @@ export function AtencionClientesModule({ onBack, userEmail, userName, userRole }
           color: 'rgba(240,160,80,0.75)', marginTop: '4px', marginRight: '-3px',
           filter: 'blur(0.5px) drop-shadow(0 0 8px rgba(240,160,80,0.6)) drop-shadow(0 0 16px rgba(240,160,80,0.4))' }}>Future Experience 27</div>
       </div>
-      {/* Back + Title */}
       <div style={{ position: 'relative', zIndex: 20, display: 'flex', alignItems: 'center', paddingTop: '25px', paddingLeft: '24px', paddingRight: '200px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
           <button onClick={() => setView('home')}
             style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '48px', height: '48px', borderRadius: '12px',
               background: '#fe5000', border: '1px solid rgba(255,255,255,0.2)', color: '#fff', cursor: 'pointer',
               boxShadow: '0 4px 12px rgba(254,80,0,0.4), inset 0 1px 0 rgba(255,255,255,0.2)', transition: 'all 0.2s' }}
-            onMouseEnter={e => { e.currentTarget.style.background = '#cc4000'; e.currentTarget.style.boxShadow = '0 6px 16px rgba(254,80,0,0.5), inset 0 1px 0 rgba(255,255,255,0.15)'; }}
-            onMouseLeave={e => { e.currentTarget.style.background = '#fe5000'; e.currentTarget.style.boxShadow = '0 4px 12px rgba(254,80,0,0.4), inset 0 1px 0 rgba(255,255,255,0.2)'; }}>
+            onMouseEnter={e => { e.currentTarget.style.background = '#cc4000'; }}
+            onMouseLeave={e => { e.currentTarget.style.background = '#fe5000'; }}>
             <ArrowLeft style={{ width: '24px', height: '24px', strokeWidth: 2.5 }} />
           </button>
           <h1 style={{ fontFamily: "'Exo 2', sans-serif", fontWeight: 600, fontSize: '32px', lineHeight: 1, color: 'white', margin: 0 }}>{title}</h1>
@@ -558,8 +557,7 @@ export function AtencionClientesModule({ onBack, userEmail, userName, userRole }
       <div style={{ display: 'flex', gap: '10px', alignItems: 'center', marginBottom: aiResult ? '12px' : '0' }}>
         <Brain style={{ width: '20px', height: '20px', color: 'rgba(240,160,80,0.9)', flexShrink: 0 }} />
         <input value={aiQuery} onChange={e => setAiQuery(e.target.value)} placeholder="Pregunta algo... ej: ¿Qué clientes cargan thermo en Jalisco?"
-          style={{ ...S.input, flex: 1 }}
-          onKeyDown={e => e.key === 'Enter' && handleAISearch()} />
+          style={{ ...S.input, flex: 1 }} onKeyDown={e => e.key === 'Enter' && handleAISearch()} />
         <button onClick={handleAISearch} disabled={aiLoading}
           style={{ ...S.btn, display: 'flex', alignItems: 'center', gap: '6px', opacity: aiLoading ? 0.7 : 1 }}>
           {aiLoading ? <Loader2 style={{ width: '16px', height: '16px', animation: 'spin 1s linear infinite' }} /> : <Search style={{ width: '16px', height: '16px' }} />}
@@ -593,25 +591,18 @@ export function AtencionClientesModule({ onBack, userEmail, userName, userRole }
   if (view === 'home') return (
     <div style={{ ...S.bg, width: '100vw', height: '100vh', overflow: 'auto', position: 'relative' }}>
       <div style={{ ...S.overlay, position: 'fixed', inset: 0, pointerEvents: 'none' }} />
-      {/* Halo volumétrico — exact Dashboard */}
       <div style={{ position: 'fixed', pointerEvents: 'none', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
         width: '80%', height: '68%',
         background: 'radial-gradient(ellipse at center, rgba(30,80,160,0.08) 0%, rgba(40,90,170,0.04) 35%, transparent 70%)',
         filter: 'blur(90px)' }} />
       <div style={{ position: 'relative', zIndex: 1 }}>
-        {/* ═══ HEADER BAR 119px — EXACT MODULETEMPLATE ═══ */}
+        {/* HEADER BAR */}
         <div style={{ position: 'relative', height: '119px', overflow: 'hidden' }}>
-          {/* Base: navy → petroleo gradient */}
           <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(135deg, #0a1628 0%, #0d1f35 25%, #0f2847 50%, #0a1e38 75%, #081420 100%)' }} />
-          {/* Horizontal depth */}
           <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(90deg, rgba(15,30,56,0.9) 0%, rgba(20,45,75,0.6) 30%, rgba(15,35,60,0.7) 70%, rgba(10,20,40,0.9) 100%)' }} />
-          {/* Blue accent at bottom */}
           <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse 80% 100% at 50% 100%, rgba(59,130,246,0.08) 0%, transparent 60%)' }} />
-          {/* Dark overlay */}
           <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(8,15,28,0.4) 0%, rgba(8,15,28,0.2) 50%, rgba(8,15,28,0.5) 100%)' }} />
-          {/* Bottom line */}
           <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '1px', background: 'linear-gradient(90deg, transparent 0%, rgba(59,130,246,0.2) 20%, rgba(59,130,246,0.3) 50%, rgba(59,130,246,0.2) 80%, transparent 100%)' }} />
-          {/* FX27 Logo — EXACT from ModuleTemplate */}
           <div style={{ position: 'absolute', zIndex: 50, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', top: '13px', right: '32px' }}>
             <div style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '72px', fontWeight: 900, lineHeight: 1, letterSpacing: '-2px',
               background: 'linear-gradient(135deg, #E8EEF4 0%, #B5C4D8 30%, #D8DFE8 55%, #9FB0C5 80%, #D0D9E4 100%)',
@@ -621,28 +612,29 @@ export function AtencionClientesModule({ onBack, userEmail, userName, userRole }
               color: 'rgba(240,160,80,0.75)', marginTop: '4px', marginRight: '-3px',
               filter: 'blur(0.5px) drop-shadow(0 0 8px rgba(240,160,80,0.6)) drop-shadow(0 0 16px rgba(240,160,80,0.4))' }}>Future Experience 27</div>
           </div>
-          {/* Back button + Title — relative z-20 */}
           <div style={{ position: 'relative', zIndex: 20, display: 'flex', alignItems: 'center', gap: '24px', paddingTop: '25px', paddingLeft: '24px' }}>
             <button onClick={onBack}
               style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '48px', height: '48px', borderRadius: '12px',
                 background: '#fe5000', border: '1px solid rgba(255,255,255,0.2)', color: '#fff', cursor: 'pointer',
                 boxShadow: '0 4px 12px rgba(254,80,0,0.4), inset 0 1px 0 rgba(255,255,255,0.2)', transition: 'all 0.2s' }}
-              onMouseEnter={e => { e.currentTarget.style.background = '#cc4000'; e.currentTarget.style.boxShadow = '0 6px 16px rgba(254,80,0,0.5), inset 0 1px 0 rgba(255,255,255,0.15)'; }}
-              onMouseLeave={e => { e.currentTarget.style.background = '#fe5000'; e.currentTarget.style.boxShadow = '0 4px 12px rgba(254,80,0,0.4), inset 0 1px 0 rgba(255,255,255,0.2)'; }}>
+              onMouseEnter={e => { e.currentTarget.style.background = '#cc4000'; }}
+              onMouseLeave={e => { e.currentTarget.style.background = '#fe5000'; }}>
               <ArrowLeft style={{ width: '24px', height: '24px', strokeWidth: 2.5 }} />
             </button>
             <h1 style={{ fontFamily: "'Exo 2', sans-serif", fontWeight: 600, fontSize: '32px', lineHeight: 1, color: 'white', margin: 0 }}>Servicio a Clientes</h1>
           </div>
         </div>
 
-        {/* CONTENT AREA */}
+        {/* CONTENT */}
         <div style={{ padding: '40px 48px', maxWidth: '1400px', margin: '0 auto' }}>
-          {/* KPI CARDS */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px', marginBottom: '48px' }}>
+          {/* KPI CARDS — 6 items in 3-col grid (2 rows) */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px', marginBottom: '48px' }}>
             {[
               { label: 'CLIENTES ACTIVOS', value: asigKPIs.total, icon: Users, color: 'rgba(240,160,80,1)' },
-              { label: 'ASIGNADOS ELI', value: asigKPIs.eli, icon: UserCheck, color: '#4caf50' },
-              { label: 'ASIGNADOS LIZ', value: asigKPIs.liz, icon: UserCheck, color: '#2196f3' },
+              { label: 'VTA: ISIS', value: asigKPIs.isis, icon: Truck, color: '#4caf50' },
+              { label: 'VTA: LEO', value: asigKPIs.leo, icon: Truck, color: '#29b6f6' },
+              { label: 'CSR: ELI', value: asigKPIs.eli, icon: UserCheck, color: '#ba68c8' },
+              { label: 'CSR: LIZ', value: asigKPIs.liz, icon: UserCheck, color: '#2196f3' },
               { label: 'PENDIENTES', value: asigKPIs.pendientes, icon: AlertTriangle, color: '#ff9800' },
             ].map((kpi, i) => {
               const Icon = kpi.icon;
@@ -653,7 +645,6 @@ export function AtencionClientesModule({ onBack, userEmail, userName, userRole }
                   boxShadow: '0 4px 16px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.05), inset 0 -1px 0 rgba(0,0,0,0.3)',
                   padding: '20px 24px', display: 'flex', alignItems: 'center', gap: '16px', position: 'relative', overflow: 'hidden',
                 }}>
-                  {/* Top accent */}
                   <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '2px',
                     background: `linear-gradient(90deg, transparent, ${kpi.color}66 50%, transparent)` }} />
                   <div style={{ width: '44px', height: '44px', borderRadius: '10px', background: `${kpi.color}18`,
@@ -670,7 +661,7 @@ export function AtencionClientesModule({ onBack, userEmail, userName, userRole }
             })}
           </div>
 
-          {/* 3 MAIN SECTION BUTTONS — EXACT DASHBOARD CARD STYLE */}
+          {/* 3 MAIN SECTION BUTTONS */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '20px' }}>
             {[
               { id: 'asignacion' as const, title: 'Asignación de Clientes', desc: `${asigKPIs.total} clientes · ${asigKPIs.pendientes} pendientes`, icon: ClipboardList },
@@ -685,13 +676,11 @@ export function AtencionClientesModule({ onBack, userEmail, userName, userRole }
                     background: 'linear-gradient(155deg, rgba(18,32,58,0.96) 0%, rgba(12,22,42,0.98) 35%, rgba(8,16,32,1) 70%, rgba(6,12,24,1) 100%)',
                     border: '2px solid transparent',
                     backgroundImage: 'linear-gradient(155deg, rgba(18,32,58,0.96) 0%, rgba(12,22,42,0.98) 35%, rgba(8,16,32,1) 70%, rgba(6,12,24,1) 100%), linear-gradient(135deg, rgba(180,100,50,0.28) 0%, rgba(60,90,140,0.25) 50%, rgba(180,100,50,0.28) 100%)',
-                    backgroundOrigin: 'border-box',
-                    backgroundClip: 'padding-box, border-box',
+                    backgroundOrigin: 'border-box', backgroundClip: 'padding-box, border-box',
                     borderRadius: '10px', cursor: 'pointer', textAlign: 'center' as const,
                     boxShadow: '0 2px 4px rgba(0,0,0,0.3), 0 6px 16px rgba(0,0,0,0.5), inset -2px -2px 4px rgba(0,0,0,0.2)',
                     padding: '48px 32px', display: 'flex', flexDirection: 'column' as const, alignItems: 'center', gap: '20px',
-                    transition: 'all 0.3s ease', position: 'relative' as const, overflow: 'hidden',
-                    transform: 'translateY(0)',
+                    transition: 'all 0.3s ease', position: 'relative' as const, overflow: 'hidden', transform: 'translateY(0)',
                   }}
                   onMouseEnter={e => {
                     e.currentTarget.style.transform = 'translateY(-6px)';
@@ -703,17 +692,13 @@ export function AtencionClientesModule({ onBack, userEmail, userName, userRole }
                     e.currentTarget.style.backgroundImage = 'linear-gradient(155deg, rgba(18,32,58,0.96) 0%, rgba(12,22,42,0.98) 35%, rgba(8,16,32,1) 70%, rgba(6,12,24,1) 100%), linear-gradient(135deg, rgba(180,100,50,0.28) 0%, rgba(60,90,140,0.25) 50%, rgba(180,100,50,0.28) 100%)';
                     e.currentTarget.style.boxShadow = '0 2px 4px rgba(0,0,0,0.3), 0 6px 16px rgba(0,0,0,0.5), inset -2px -2px 4px rgba(0,0,0,0.2)';
                   }}>
-                  {/* Top highlight - 35% height */}
                   <div className="absolute top-0 left-0 right-0 h-[35%] opacity-30 group-hover:opacity-50 transition-opacity duration-300 pointer-events-none"
                     style={{ background: 'linear-gradient(180deg, rgba(255,255,255,0.12) 0%, transparent 100%)', borderTopLeftRadius: '10px', borderTopRightRadius: '10px' }} />
-                  {/* Orange accent line top - hidden → visible */}
                   <div className="absolute top-0 left-0 right-0 h-[3px] opacity-0 group-hover:opacity-100 transition-opacity duration-300"
                     style={{ background: 'linear-gradient(90deg, transparent 0%, rgba(240,160,80,0.3) 15%, rgba(240,160,80,0.85) 50%, rgba(240,160,80,0.3) 85%, transparent 100%)',
                       boxShadow: '0 2px 12px rgba(240,160,80,0.5), 0 0 20px rgba(240,160,80,0.3)', borderTopLeftRadius: '10px', borderTopRightRadius: '10px' }} />
-                  {/* Inner glow from top on hover */}
                   <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"
                     style={{ background: 'radial-gradient(ellipse at 50% 0%, rgba(240,160,80,0.15) 0%, rgba(220,140,70,0.08) 40%, transparent 70%)', borderRadius: '10px' }} />
-                  {/* Icon — white, hover orange with glow */}
                   <Icon className="relative z-10 transition-all duration-300 group-hover:text-[rgba(240,160,80,1)]"
                     style={{ width: '56px', height: '56px', color: 'rgba(255,255,255,0.95)', strokeWidth: 1.4,
                       filter: 'drop-shadow(0 4px 10px rgba(0,0,0,0.6)) drop-shadow(0 0 14px rgba(255,255,255,0.15))' }} />
@@ -729,9 +714,7 @@ export function AtencionClientesModule({ onBack, userEmail, userName, userRole }
           </div>
         </div>
       </div>
-      <style>{`
-        @keyframes spin { to { transform: rotate(360deg); } }
-      `}</style>
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   );
 
@@ -740,14 +723,16 @@ export function AtencionClientesModule({ onBack, userEmail, userName, userRole }
     <div style={{ ...S.bg, width: '100vw', height: '100vh', overflow: 'auto' }}>
       <div style={{ ...S.overlay, position: 'fixed', inset: 0, pointerEvents: 'none' }} />
       <div style={{ position: 'relative' }}>
-        <Header title="Asignación de Clientes" subtitle={`${asigKPIs.total} clientes · Asigna ejecutivo de servicio a cada cliente`} />
+        <Header title="Asignación de Clientes" />
         <div style={{ padding: '12px 40px' }}>
 
-        {/* KPIs */}
+        {/* KPIs — 6 items */}
         <div style={{ display: 'flex', gap: '14px', marginBottom: '12px', flexWrap: 'wrap' }}>
           <KPICard label="Total Clientes" value={asigKPIs.total} icon={Users} />
-          <KPICard label="Eli Pasillas" value={asigKPIs.eli} icon={UserCheck} color="#4caf50" />
-          <KPICard label="Liz Garcia" value={asigKPIs.liz} icon={UserCheck} color="#2196f3" />
+          <KPICard label="Vta: ISIS" value={asigKPIs.isis} icon={Truck} color="#4caf50" />
+          <KPICard label="Vta: LEO" value={asigKPIs.leo} icon={Truck} color="#29b6f6" />
+          <KPICard label="CSR: Eli" value={asigKPIs.eli} icon={UserCheck} color="#ba68c8" />
+          <KPICard label="CSR: Liz" value={asigKPIs.liz} icon={UserCheck} color="#2196f3" />
           <KPICard label="Pendientes" value={asigKPIs.pendientes} icon={AlertTriangle} color="#ff9800" />
         </div>
 
@@ -758,16 +743,18 @@ export function AtencionClientesModule({ onBack, userEmail, userName, userRole }
             <input value={searchAsig} onChange={e => setSearchAsig(e.target.value)} placeholder="Buscar cliente..."
               style={{ ...S.input, paddingLeft: '38px' }} />
           </div>
-          <select value={filterEjec} onChange={e => setFilterEjec(e.target.value)} style={{ ...S.select, width: '180px' }}>
+          <select value={filterEjec} onChange={e => setFilterEjec(e.target.value)} style={{ ...S.select, width: '200px' }}>
             <option value="TODOS">Todos</option>
-            <option value="ELI">ELI</option>
-            <option value="LIZ">LIZ</option>
+            <option value="ISIS">Vendedor: ISIS</option>
+            <option value="LEO">Vendedor: LEO</option>
+            <option value="ELI">CSR: ELI</option>
+            <option value="LIZ">CSR: LIZ</option>
             <option value="PENDIENTE">Pendientes</option>
           </select>
           <button onClick={() => {
-            const headers = ['#', 'CLIENTE', 'EJECUTIVO SC', 'STATUS', 'NOTAS'];
-            const rows = filteredAsignacion.map(c => [String(c.numero), c.cliente, c.ejecutivo_sc, c.status, c.notas || '']);
-            const ctx = `${asigKPIs.total} clientes totales, ELI: ${asigKPIs.eli}, LIZ: ${asigKPIs.liz}, Pendientes: ${asigKPIs.pendientes}`;
+            const headers = ['#', 'CLIENTE', 'VENDEDOR', 'EJECUTIVO SC', 'STATUS', 'NOTAS'];
+            const rows = filteredAsignacion.map(c => [String(c.numero), c.cliente, c.vendedor || 'PENDIENTE', c.ejecutivo_sc, c.status, c.notas || '']);
+            const ctx = `${asigKPIs.total} clientes. Vendedores: ISIS ${asigKPIs.isis}, LEO ${asigKPIs.leo}. CSR: ELI ${asigKPIs.eli}, LIZ ${asigKPIs.liz}. Pendientes: ${asigKPIs.pendientes}`;
             handleExportWithAI(headers, rows, 'Asignacion_Clientes_SC', ctx);
           }} disabled={exporting}
             style={{ ...S.btn, display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -778,14 +765,15 @@ export function AtencionClientesModule({ onBack, userEmail, userName, userRole }
 
         {/* Table */}
         <div style={{ ...S.card, overflow: 'hidden' }}>
-          <div style={{ maxHeight: 'calc(100vh - 290px)', overflowY: 'auto' }}>
+          <div style={{ maxHeight: 'calc(100vh - 310px)', overflowY: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead style={{ position: 'sticky', top: 0, zIndex: 5 }}>
                 <tr>
                   <th style={{ ...S.tableHeader, width: '50px' }}>#</th>
                   <th style={{ ...S.tableHeader }}>Cliente</th>
-                  <th style={{ ...S.tableHeader, width: '150px' }}>Ejecutivo SC</th>
-                  <th style={{ ...S.tableHeader, width: '120px' }}>Status</th>
+                  <th style={{ ...S.tableHeader, width: '110px' }}>Vendedor</th>
+                  <th style={{ ...S.tableHeader, width: '120px' }}>Ejecutivo SC</th>
+                  <th style={{ ...S.tableHeader, width: '100px' }}>Status</th>
                   <th style={{ ...S.tableHeader }}>Notas</th>
                   <th style={{ ...S.tableHeader, width: '100px' }}>Acción</th>
                 </tr>
@@ -797,18 +785,35 @@ export function AtencionClientesModule({ onBack, userEmail, userName, userRole }
                     onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
                     <td style={{ ...S.tableCell, color: 'rgba(255,255,255,0.4)' }}>{c.numero}</td>
                     <td style={{ ...S.tableCell, fontWeight: 600 }}>{c.cliente}</td>
+                    {/* VENDEDOR COLUMN */}
+                    <td style={S.tableCell}>
+                      {editingId === c.id ? (
+                        <select value={editVendedor} onChange={e => setEditVendedor(e.target.value)}
+                          style={{ ...S.select, padding: '6px 10px', fontSize: '12px', width: '100px' }}>
+                          <option value="PENDIENTE">PENDIENTE</option>
+                          {VENDEDORES.map(v => <option key={v} value={v}>{v}</option>)}
+                        </select>
+                      ) : (
+                        <span style={{
+                          padding: '4px 10px', borderRadius: '6px', fontSize: '12px', fontWeight: 700, fontFamily: "'Exo 2', sans-serif",
+                          background: c.vendedor === 'ISIS' ? 'rgba(76,175,80,0.15)' : c.vendedor === 'LEO' ? 'rgba(41,182,246,0.15)' : 'rgba(255,152,0,0.15)',
+                          color: c.vendedor === 'ISIS' ? '#66bb6a' : c.vendedor === 'LEO' ? '#29b6f6' : '#ffa726',
+                        }}>{c.vendedor || 'PENDIENTE'}</span>
+                      )}
+                    </td>
+                    {/* EJECUTIVO SC COLUMN */}
                     <td style={S.tableCell}>
                       {editingId === c.id ? (
                         <select value={editEjecutivo} onChange={e => setEditEjecutivo(e.target.value)}
-                          style={{ ...S.select, padding: '6px 10px', fontSize: '12px', width: '120px' }}>
+                          style={{ ...S.select, padding: '6px 10px', fontSize: '12px', width: '100px' }}>
                           <option value="PENDIENTE">PENDIENTE</option>
                           {EJECUTIVOS_SC.map(e => <option key={e} value={e}>{e}</option>)}
                         </select>
                       ) : (
                         <span style={{
                           padding: '4px 10px', borderRadius: '6px', fontSize: '12px', fontWeight: 700, fontFamily: "'Exo 2', sans-serif",
-                          background: c.ejecutivo_sc === 'ELI' ? 'rgba(76,175,80,0.15)' : c.ejecutivo_sc === 'LIZ' ? 'rgba(33,150,243,0.15)' : 'rgba(255,152,0,0.15)',
-                          color: c.ejecutivo_sc === 'ELI' ? '#66bb6a' : c.ejecutivo_sc === 'LIZ' ? '#42a5f5' : '#ffa726',
+                          background: c.ejecutivo_sc === 'ELI' ? 'rgba(186,104,200,0.15)' : c.ejecutivo_sc === 'LIZ' ? 'rgba(33,150,243,0.15)' : 'rgba(255,152,0,0.15)',
+                          color: c.ejecutivo_sc === 'ELI' ? '#ba68c8' : c.ejecutivo_sc === 'LIZ' ? '#42a5f5' : '#ffa726',
                         }}>{c.ejecutivo_sc}</span>
                       )}
                     </td>
@@ -823,7 +828,7 @@ export function AtencionClientesModule({ onBack, userEmail, userName, userRole }
                     <td style={S.tableCell}>
                       {editingId === c.id ? (
                         <div style={{ display: 'flex', gap: '4px' }}>
-                          <button onClick={() => handleAssign(c.id, editEjecutivo)}
+                          <button onClick={() => handleAssign(c.id, editEjecutivo, editVendedor)}
                             style={{ background: 'rgba(76,175,80,0.2)', border: '1px solid rgba(76,175,80,0.4)', borderRadius: '6px', padding: '4px 8px', cursor: 'pointer' }}>
                             <Check style={{ width: '14px', height: '14px', color: '#66bb6a' }} />
                           </button>
@@ -833,7 +838,7 @@ export function AtencionClientesModule({ onBack, userEmail, userName, userRole }
                           </button>
                         </div>
                       ) : (
-                        <button onClick={() => { setEditingId(c.id); setEditEjecutivo(c.ejecutivo_sc); }}
+                        <button onClick={() => { setEditingId(c.id); setEditEjecutivo(c.ejecutivo_sc); setEditVendedor(c.vendedor || 'PENDIENTE'); }}
                           style={{ ...S.btnSecondary, padding: '5px 12px', fontSize: '11px', display: 'flex', alignItems: 'center', gap: '4px' }}>
                           <UserCheck style={{ width: '13px', height: '13px' }} /> Asignar
                         </button>
@@ -860,16 +865,12 @@ export function AtencionClientesModule({ onBack, userEmail, userName, userRole }
       <div style={{ ...S.bg, width: '100vw', height: '100vh', overflow: 'auto' }}>
         <div style={{ ...S.overlay, position: 'fixed', inset: 0, pointerEvents: 'none' }} />
         <div style={{ position: 'relative' }}>
-          <Header title="Buscador de Exportaciones" subtitle="Encuentra clientes por tipo de equipo y estado de origen" />
+          <Header title="Buscador de Exportaciones" />
           <div style={{ padding: '12px 40px' }}>
-
-          {/* Filters */}
           <div style={{ ...S.card, padding: '16px', marginBottom: '12px' }}>
             <div style={{ display: 'flex', gap: '16px', alignItems: 'flex-end', flexWrap: 'wrap' }}>
               <div style={{ flex: '0 0 200px' }}>
-                <label style={{ ...S.textMuted, fontSize: '11px', display: 'block', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                  Tipo de Equipo
-                </label>
+                <label style={{ ...S.textMuted, fontSize: '11px', display: 'block', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Tipo de Equipo</label>
                 <div style={{ display: 'flex', gap: '0' }}>
                   {['THERMO', 'SECO'].map(t => (
                     <button key={t} onClick={() => setExpoTipo(t)}
@@ -880,42 +881,31 @@ export function AtencionClientesModule({ onBack, userEmail, userName, userRole }
                         background: expoTipo === t ? (t === 'THERMO' ? 'rgba(33,150,243,0.3)' : 'rgba(255,152,0,0.3)') : 'rgba(10,20,40,0.6)',
                         color: expoTipo === t ? '#fff' : 'rgba(255,255,255,0.5)',
                         borderColor: expoTipo === t ? (t === 'THERMO' ? 'rgba(33,150,243,0.6)' : 'rgba(255,152,0,0.6)') : 'rgba(80,120,180,0.3)',
-                      }}>
-                      {t === 'THERMO' ? '❄️' : '📦'} {t}
-                    </button>
+                      }}>{t === 'THERMO' ? '❄️' : '📦'} {t}</button>
                   ))}
                 </div>
               </div>
-
               <div style={{ flex: 1, minWidth: '250px' }}>
-                <label style={{ ...S.textMuted, fontSize: '11px', display: 'block', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                  Estado de Origen
-                </label>
-                <select value={expoEstado} onChange={e => { setExpoEstado(e.target.value); setExpoExpanded(false); }}
-                  style={S.select}>
+                <label style={{ ...S.textMuted, fontSize: '11px', display: 'block', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Estado de Origen</label>
+                <select value={expoEstado} onChange={e => { setExpoEstado(e.target.value); setExpoExpanded(false); }} style={S.select}>
                   <option value="">— Selecciona un estado —</option>
                   {estadosDisponibles.map(e => <option key={e} value={e}>{e}</option>)}
                 </select>
               </div>
-
               {expoEstado && neighborStates.length > 0 && (
                 <button onClick={() => setExpoExpanded(!expoExpanded)}
-                  style={{
-                    ...S.btnSecondary, display: 'flex', alignItems: 'center', gap: '6px', padding: '10px 16px',
+                  style={{ ...S.btnSecondary, display: 'flex', alignItems: 'center', gap: '6px', padding: '10px 16px',
                     ...(expoExpanded ? { border: '1px solid rgba(33,150,243,0.5)', color: '#42a5f5', background: 'rgba(33,150,243,0.1)' } : {}),
                   }}>
                   <MapPin style={{ width: '16px', height: '16px' }} />
                   {expoExpanded ? `Búsqueda ampliada (${neighborStates.length + 1} estados)` : `Ampliar a estados vecinos (+${neighborStates.length})`}
                 </button>
               )}
-
               <div style={{ position: 'relative', flex: '0 0 250px' }}>
                 <Search style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', width: '16px', height: '16px', color: 'rgba(255,255,255,0.4)' }} />
-                <input value={searchExpo} onChange={e => setSearchExpo(e.target.value)} placeholder="Filtrar cliente..."
-                  style={{ ...S.input, paddingLeft: '38px' }} />
+                <input value={searchExpo} onChange={e => setSearchExpo(e.target.value)} placeholder="Filtrar cliente..." style={{ ...S.input, paddingLeft: '38px' }} />
               </div>
             </div>
-
             {expoExpanded && neighborStates.length > 0 && (
               <div style={{ marginTop: '12px', display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
                 <span style={{ ...S.textMuted, fontSize: '11px' }}>Estados incluidos:</span>
@@ -930,8 +920,6 @@ export function AtencionClientesModule({ onBack, userEmail, userName, userRole }
               </div>
             )}
           </div>
-
-          {/* KPIs */}
           {expoEstado && (
             <div style={{ display: 'flex', gap: '14px', marginBottom: '16px', flexWrap: 'wrap' }}>
               <KPICard label="Clientes" value={expoKPIs.clientes} icon={Users} />
@@ -940,8 +928,6 @@ export function AtencionClientesModule({ onBack, userEmail, userName, userRole }
               <KPICard label="Dedicados" value={expoKPIs.dedicados} icon={UserCheck} color="#4caf50" />
             </div>
           )}
-
-          {/* Export button */}
           {filteredExpo.length > 0 && (
             <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '12px' }}>
               <button onClick={() => {
@@ -949,31 +935,24 @@ export function AtencionClientesModule({ onBack, userEmail, userName, userRole }
                 const rows = filteredExpo.map((d, i) => [String(i + 1), d.cliente, String(d.viajes), String(d.num_formatos), d.origenes, d.dedicado, d.cruce, d.empresa, d.estado]);
                 const ctx = `Búsqueda: ${expoTipo} en ${expoEstado}${expoExpanded ? ' + vecinos' : ''}. ${expoKPIs.clientes} clientes, ${expoKPIs.viajes} viajes, ${expoKPIs.dedicados} dedicados`;
                 handleExportWithAI(headers, rows, `EXPO_${expoTipo}_${expoEstado}`, ctx);
-              }} disabled={exporting}
-                style={{ ...S.btn, display: 'flex', alignItems: 'center', gap: '6px' }}>
+              }} disabled={exporting} style={{ ...S.btn, display: 'flex', alignItems: 'center', gap: '6px' }}>
                 {exporting ? <Loader2 style={{ width: '16px', height: '16px', animation: 'spin 1s linear infinite' }} /> : <FileSpreadsheet style={{ width: '16px', height: '16px' }} />}
                 Exportar Excel
               </button>
             </div>
           )}
-
-          {/* Results */}
           {!expoEstado ? (
             <div style={{ ...S.card, padding: '60px 40px', textAlign: 'center' }}>
               <MapPin style={{ width: '48px', height: '48px', color: 'rgba(240,160,80,0.4)', margin: '0 auto 16px' }} />
               <p style={{ ...S.text, fontSize: '16px', fontWeight: 600 }}>Selecciona tipo de equipo y estado</p>
-              <p style={{ ...S.textMuted, fontSize: '13px', marginTop: '8px' }}>
-                Elige THERMO o SECO y un estado para ver los clientes que han cargado desde ahí
-              </p>
+              <p style={{ ...S.textMuted, fontSize: '13px', marginTop: '8px' }}>Elige THERMO o SECO y un estado para ver los clientes que han cargado desde ahí</p>
             </div>
           ) : filteredExpo.length === 0 ? (
             <div style={{ ...S.card, padding: '40px', textAlign: 'center' }}>
               <AlertTriangle style={{ width: '36px', height: '36px', color: 'rgba(255,152,0,0.6)', margin: '0 auto 12px' }} />
               <p style={{ ...S.text, fontSize: '14px' }}>No se encontraron resultados para {expoTipo} en {expoEstado}</p>
               {!expoExpanded && neighborStates.length > 0 && (
-                <button onClick={() => setExpoExpanded(true)} style={{ ...S.btn, marginTop: '12px' }}>
-                  Ampliar búsqueda a estados vecinos
-                </button>
+                <button onClick={() => setExpoExpanded(true)} style={{ ...S.btn, marginTop: '12px' }}>Ampliar búsqueda a estados vecinos</button>
               )}
             </div>
           ) : (
@@ -1002,30 +981,23 @@ export function AtencionClientesModule({ onBack, userEmail, userName, userRole }
                         <td style={{ ...S.tableCell, fontWeight: 600 }}>{d.cliente}</td>
                         <td style={{ ...S.tableCell, textAlign: 'center', fontWeight: 700, color: 'rgba(240,160,80,1)' }}>{d.viajes}</td>
                         <td style={{ ...S.tableCell, textAlign: 'center' }}>{d.num_formatos}</td>
-                        <td style={{ ...S.tableCell, fontSize: '11px', color: 'rgba(255,255,255,0.6)', maxWidth: '300px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
-                          title={d.origenes}>{d.origenes}</td>
+                        <td style={{ ...S.tableCell, fontSize: '11px', color: 'rgba(255,255,255,0.6)', maxWidth: '300px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={d.origenes}>{d.origenes}</td>
                         <td style={{ ...S.tableCell, textAlign: 'center' }}>
-                          <span style={{
-                            padding: '3px 8px', borderRadius: '4px', fontSize: '10px', fontWeight: 700, fontFamily: "'Exo 2', sans-serif",
+                          <span style={{ padding: '3px 8px', borderRadius: '4px', fontSize: '10px', fontWeight: 700, fontFamily: "'Exo 2', sans-serif",
                             background: d.dedicado === 'SI' ? 'rgba(76,175,80,0.15)' : 'rgba(120,120,120,0.1)',
-                            color: d.dedicado === 'SI' ? '#66bb6a' : 'rgba(255,255,255,0.35)',
-                          }}>{d.dedicado}</span>
+                            color: d.dedicado === 'SI' ? '#66bb6a' : 'rgba(255,255,255,0.35)' }}>{d.dedicado}</span>
                         </td>
                         <td style={{ ...S.tableCell, textAlign: 'center' }}>
-                          <span style={{
-                            padding: '3px 8px', borderRadius: '4px', fontSize: '10px', fontWeight: 700, fontFamily: "'Exo 2', sans-serif",
+                          <span style={{ padding: '3px 8px', borderRadius: '4px', fontSize: '10px', fontWeight: 700, fontFamily: "'Exo 2', sans-serif",
                             background: d.cruce === 'SI' ? 'rgba(33,150,243,0.15)' : 'rgba(120,120,120,0.1)',
-                            color: d.cruce === 'SI' ? '#42a5f5' : 'rgba(255,255,255,0.35)',
-                          }}>{d.cruce}</span>
+                            color: d.cruce === 'SI' ? '#42a5f5' : 'rgba(255,255,255,0.35)' }}>{d.cruce}</span>
                         </td>
                         <td style={{ ...S.tableCell, fontSize: '11px' }}>{d.empresa || '—'}</td>
                         {expoExpanded && (
                           <td style={S.tableCell}>
-                            <span style={{
-                              padding: '3px 8px', borderRadius: '12px', fontSize: '10px', fontWeight: 600, fontFamily: "'Exo 2', sans-serif",
+                            <span style={{ padding: '3px 8px', borderRadius: '12px', fontSize: '10px', fontWeight: 600, fontFamily: "'Exo 2', sans-serif",
                               background: d.estado === expoEstado ? 'rgba(240,160,80,0.15)' : 'rgba(33,150,243,0.1)',
-                              color: d.estado === expoEstado ? '#ffa726' : '#42a5f5',
-                            }}>{d.estado}</span>
+                              color: d.estado === expoEstado ? '#ffa726' : '#42a5f5' }}>{d.estado}</span>
                           </td>
                         )}
                       </tr>
@@ -1051,16 +1023,12 @@ export function AtencionClientesModule({ onBack, userEmail, userName, userRole }
       <div style={{ position: 'relative' }}>
         <Header title="Clientes de Importación" subtitle={`${impoData.length} clientes · Entregas USA → México`} />
         <div style={{ padding: '12px 40px' }}>
-
-        {/* KPIs */}
         <div style={{ display: 'flex', gap: '14px', marginBottom: '12px', flexWrap: 'wrap' }}>
           <KPICard label="Clientes" value={impoKPIs.clientes} icon={Users} />
           <KPICard label="Viajes Totales" value={impoKPIs.viajes.toLocaleString()} icon={Truck} color="#2196f3" />
           <KPICard label="Viajes Thermo" value={impoKPIs.thermo.toLocaleString()} icon={Download} color="#29b6f6" />
           <KPICard label="Viajes Seco" value={impoKPIs.seco.toLocaleString()} icon={Upload} color="#ff9800" />
         </div>
-
-        {/* Filters */}
         <div style={{ display: 'flex', gap: '12px', marginBottom: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
           <div style={{ position: 'relative', flex: 1, minWidth: '250px' }}>
             <Search style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', width: '16px', height: '16px', color: 'rgba(255,255,255,0.4)' }} />
@@ -1077,14 +1045,11 @@ export function AtencionClientesModule({ onBack, userEmail, userName, userRole }
             const rows = filteredImpo.map((d, i) => [String(i + 1), d.cliente, String(d.viajes), String(d.thermo), String(d.seco), String(d.formatos), d.tipo_equipo, d.estadosStr, getEjecutivoImpo(d.cliente), getEjecutivoSC(d.cliente)]);
             const ctx = `${impoKPIs.clientes} clientes IMPO consolidados, ${impoKPIs.viajes} viajes totales, ${impoKPIs.thermo} thermo, ${impoKPIs.seco} seco`;
             handleExportWithAI(headers, rows, 'Importacion_Clientes', ctx);
-          }} disabled={exporting}
-            style={{ ...S.btn, display: 'flex', alignItems: 'center', gap: '6px' }}>
+          }} disabled={exporting} style={{ ...S.btn, display: 'flex', alignItems: 'center', gap: '6px' }}>
             {exporting ? <Loader2 style={{ width: '16px', height: '16px', animation: 'spin 1s linear infinite' }} /> : <FileSpreadsheet style={{ width: '16px', height: '16px' }} />}
             Exportar Excel
           </button>
         </div>
-
-        {/* Table */}
         <div style={{ ...S.card, overflow: 'hidden' }}>
           <div style={{ maxHeight: 'calc(100vh - 290px)', overflowY: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' }}>
@@ -1141,9 +1106,7 @@ export function AtencionClientesModule({ onBack, userEmail, userName, userRole }
                         color: d.tipo_equipo.includes('THERMO') && d.tipo_equipo.includes('SECO') ? '#ba68c8' : d.tipo_equipo.includes('THERMO') ? '#42a5f5' : '#ffa726',
                       }}>{d.tipo_equipo}</span>
                     </td>
-                    <td style={{ ...S.tableCell, fontSize: '10px', padding: '4px 6px', lineHeight: '1.3',
-                      color: 'rgba(255,255,255,0.65)' }}
-                      title={d.estadosStr}>{d.estadosStr}</td>
+                    <td style={{ ...S.tableCell, fontSize: '10px', padding: '4px 6px', lineHeight: '1.3', color: 'rgba(255,255,255,0.65)' }} title={d.estadosStr}>{d.estadosStr}</td>
                     <td style={{ ...S.tableCell, textAlign: 'center', padding: '5px 2px' }}>
                       <span style={{
                         padding: '2px 5px', borderRadius: '4px', fontSize: '9px', fontWeight: 700, fontFamily: "'Exo 2', sans-serif",
