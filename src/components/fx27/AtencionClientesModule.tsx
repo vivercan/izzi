@@ -808,7 +808,7 @@ FX27 Future Experience 27 — Grupo Loma Transportes © ${new Date().getFullYear
 
   // ============ HOME VIEW ============
   if (view === 'home') return (
-    <div style={{ ...S.bg, width: '100vw', height: '100vh', overflow: 'auto', position: 'relative' }}>
+    <div style={{ ...S.bg, width: '100vw', height: '100vh', overflow: 'hidden', position: 'relative' }}>
       <div style={{ ...S.overlay, position: 'fixed', inset: 0, pointerEvents: 'none' }} />
       <div style={{ position: 'fixed', pointerEvents: 'none', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
         width: '80%', height: '68%',
@@ -939,11 +939,11 @@ FX27 Future Experience 27 — Grupo Loma Transportes © ${new Date().getFullYear
 
   // ============ ASIGNACION VIEW ============
   if (view === 'asignacion') return (
-    <div style={{ ...S.bg, width: '100vw', height: '100vh', overflow: 'auto' }}>
+    <div style={{ ...S.bg, width: '100vw', height: '100vh', overflow: 'hidden' }}>
       <div style={{ ...S.overlay, position: 'fixed', inset: 0, pointerEvents: 'none' }} />
-      <div style={{ position: 'relative' }}>
+      <div style={{ position: 'relative', height: '100vh', display: 'flex', flexDirection: 'column' }}>
         <Header title="Asignación de Clientes" />
-        <div style={{ padding: '12px 40px' }}>
+        <div style={{ padding: '12px 40px', flex: 1, overflow: 'hidden' }}>
 
         {/* KPIs — 6 items */}
         <div style={{ display: 'flex', gap: '14px', marginBottom: '12px', flexWrap: 'wrap' }}>
@@ -1255,11 +1255,11 @@ FX27 Future Experience 27 — Grupo Loma Transportes © ${new Date().getFullYear
   if (view === 'expo') {
     const neighborStates = expoEstado ? (NEIGHBOR_STATES[expoEstado] || []) : [];
     return (
-      <div style={{ ...S.bg, width: '100vw', height: '100vh', overflow: 'auto' }}>
+      <div style={{ ...S.bg, width: '100vw', height: '100vh', overflow: 'hidden' }}>
         <div style={{ ...S.overlay, position: 'fixed', inset: 0, pointerEvents: 'none' }} />
-        <div style={{ position: 'relative' }}>
+        <div style={{ position: 'relative', height: '100vh', display: 'flex', flexDirection: 'column' }}>
           <Header title="Expo Radar" />
-          <div style={{ padding: '12px 40px' }}>
+          <div style={{ padding: '12px 40px', flex: 1, overflow: 'hidden' }}>
           <div style={{ ...S.card, padding: '16px', marginBottom: '12px' }}>
             <div style={{ display: 'flex', gap: '16px', alignItems: 'flex-end', flexWrap: 'wrap' }}>
               <div style={{ flex: '0 0 200px' }}>
@@ -1426,11 +1426,11 @@ FX27 Future Experience 27 — Grupo Loma Transportes © ${new Date().getFullYear
 
   // ============ IMPORTACION VIEW ============
   return (
-    <div style={{ ...S.bg, width: '100vw', height: '100vh', overflow: 'auto' }}>
+    <div style={{ ...S.bg, width: '100vw', height: '100vh', overflow: 'hidden' }}>
       <div style={{ ...S.overlay, position: 'fixed', inset: 0, pointerEvents: 'none' }} />
-      <div style={{ position: 'relative' }}>
+      <div style={{ position: 'relative', height: '100vh', display: 'flex', flexDirection: 'column' }}>
         <Header title="Clientes de Importación" subtitle={`${impoData.length} clientes · Entregas USA → México`} />
-        <div style={{ padding: '12px 40px' }}>
+        <div style={{ padding: '12px 40px', flex: 1, overflow: 'hidden' }}>
         <div style={{ display: 'flex', gap: '14px', marginBottom: '12px', flexWrap: 'wrap' }}>
           <KPICard label="Clientes" value={impoKPIs.clientes} icon={Users} />
           <KPICard label="Viajes Totales" value={impoKPIs.viajes.toLocaleString()} icon={Truck} color="#2196f3" />
