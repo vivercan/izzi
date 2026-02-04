@@ -995,10 +995,8 @@ FX27 Future Experience 27 — Grupo Loma Transportes © ${new Date().getFullYear
       <div style={{ ...S.overlay, position: 'fixed', inset: 0, pointerEvents: 'none' }} />
       <div style={{ position: 'relative', height: '100vh', display: 'flex', flexDirection: 'column' }}>
         <Header title="Asignación de Clientes" />
-        <div style={{ padding: '12px 40px', flex: 1, overflow: 'hidden' }}>
-
-        {/* KPIs — 6 items */}
-        <div style={{ display: 'flex', gap: '14px', marginBottom: '12px', flexWrap: 'wrap' }}>
+        <div style={{ padding: '12px 40px', flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+        <div style={{ display: 'flex', gap: '14px', marginBottom: '12px', flexWrap: 'wrap', flexShrink: 0 }}>
           <KPICard label="Total Clientes" value={asigKPIs.total} icon={Users} />
           <KPICard label="Vta: ISIS" value={asigKPIs.isis} icon={Truck} color="#4caf50" />
           <KPICard label="Vta: LEO" value={asigKPIs.leo} icon={Truck} color="#29b6f6" />
@@ -1008,7 +1006,7 @@ FX27 Future Experience 27 — Grupo Loma Transportes © ${new Date().getFullYear
         </div>
 
         {/* Filters & Actions */}
-        <div style={{ display: 'flex', gap: '12px', marginBottom: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', gap: '12px', marginBottom: '10px', alignItems: 'center', flexWrap: 'wrap', flexShrink: 0 }}>
           <div style={{ position: 'relative', flex: 1, minWidth: '250px' }}>
             <Search style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', width: '16px', height: '16px', color: 'rgba(255,255,255,0.4)' }} />
             <input value={searchAsig} onChange={e => setSearchAsig(e.target.value)} placeholder="Buscar cliente..."
@@ -1035,8 +1033,8 @@ FX27 Future Experience 27 — Grupo Loma Transportes © ${new Date().getFullYear
         </div>
 
         {/* Table */}
-        <div style={{ ...S.card, overflow: 'hidden' }}>
-          <div style={{ maxHeight: 'calc(100vh - 310px)', overflowY: 'auto' }}>
+        <div style={{ ...S.card, overflow: 'hidden', flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
+          <div style={{ flex: 1, overflowY: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead style={{ position: 'sticky', top: 0, zIndex: 5 }}>
                 <tr>
@@ -1132,7 +1130,7 @@ FX27 Future Experience 27 — Grupo Loma Transportes © ${new Date().getFullYear
             </table>
           </div>
         </div>
-        <div style={{ ...S.textMuted, fontSize: '11px', marginTop: '8px', textAlign: 'right' }}>
+        <div style={{ ...S.textMuted, fontSize: '11px', marginTop: '8px', textAlign: 'right', flexShrink: 0 }}>
           Mostrando {filteredAsignacion.length} de {asignacion.length} clientes
         </div>
       </div></div>
@@ -1422,8 +1420,8 @@ FX27 Future Experience 27 — Grupo Loma Transportes © ${new Date().getFullYear
         <div style={{ ...S.overlay, position: 'fixed', inset: 0, pointerEvents: 'none' }} />
         <div style={{ position: 'relative', height: '100vh', display: 'flex', flexDirection: 'column' }}>
           <Header title="Expo Radar" />
-          <div style={{ padding: '12px 40px', flex: 1, overflow: 'hidden' }}>
-          <div style={{ ...S.card, padding: '16px', marginBottom: '12px' }}>
+          <div style={{ padding: '12px 40px', flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+          <div style={{ ...S.card, padding: '16px', marginBottom: '12px', flexShrink: 0 }}>
             <div style={{ display: 'flex', gap: '16px', alignItems: 'flex-end', flexWrap: 'wrap' }}>
               <div style={{ flex: '0 0 200px' }}>
                 <label style={{ ...S.textMuted, fontSize: '11px', display: 'block', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Tipo de Equipo</label>
@@ -1485,14 +1483,14 @@ FX27 Future Experience 27 — Grupo Loma Transportes © ${new Date().getFullYear
             )}
           </div>
           {expoEstado && (
-            <div style={{ display: 'flex', gap: '14px', marginBottom: '16px', flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', gap: '14px', marginBottom: '16px', flexWrap: 'wrap', flexShrink: 0 }}>
               <KPICard label="Clientes" value={expoKPIs.clientes} icon={Users} />
               <KPICard label="Viajes" value={expoKPIs.viajes.toLocaleString()} icon={Truck} color="#2196f3" />
               <KPICard label="Formatos" value={expoKPIs.formatos} icon={ClipboardList} color="#9c27b0" />
             </div>
           )}
           {filteredExpo.length > 0 && (
-            <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '12px' }}>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '12px', flexShrink: 0 }}>
               <button onClick={() => {
                 const headers = ['#', 'CLIENTE', 'VIAJES', 'FORMATOS', 'ORÍGENES', 'CRUCE', 'ESTADO'];
                 const rows = filteredExpo.map((d, i) => [String(i + 1), d.cliente, String(d.viajes), String(d.num_formatos), d.origenes, d.cruce, d.estado]);
@@ -1519,8 +1517,8 @@ FX27 Future Experience 27 — Grupo Loma Transportes © ${new Date().getFullYear
               )}
             </div>
           ) : (
-            <div style={{ ...S.card, overflow: 'hidden' }}>
-              <div style={{ maxHeight: 'calc(100vh - 380px)', overflowY: 'auto' }}>
+            <div style={{ ...S.card, overflow: 'hidden', flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
+              <div style={{ flex: 1, overflowY: 'auto' }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                   <thead style={{ position: 'sticky', top: 0, zIndex: 5 }}>
                     <tr>
@@ -1576,7 +1574,7 @@ FX27 Future Experience 27 — Grupo Loma Transportes © ${new Date().getFullYear
               </div>
             </div>
           )}
-          <div style={{ ...S.textMuted, fontSize: '11px', marginTop: '8px', textAlign: 'right' }}>
+          <div style={{ ...S.textMuted, fontSize: '11px', marginTop: '8px', textAlign: 'right', flexShrink: 0 }}>
             {filteredExpo.length} resultados · {expoTipo} · {expoExpanded ? `${expoEstado} + vecinos` : expoEstado || 'Sin filtro'}
             {selectedExpo.size > 0 && <span style={{ color: 'rgba(240,160,80,1)', marginLeft: '12px' }}>· {selectedExpo.size} seleccionados</span>}
           </div>
@@ -1593,14 +1591,14 @@ FX27 Future Experience 27 — Grupo Loma Transportes © ${new Date().getFullYear
       <div style={{ ...S.overlay, position: 'fixed', inset: 0, pointerEvents: 'none' }} />
       <div style={{ position: 'relative', height: '100vh', display: 'flex', flexDirection: 'column' }}>
         <Header title="Clientes de Importación" subtitle={`${impoData.length} clientes · Entregas USA → México`} />
-        <div style={{ padding: '12px 40px', flex: 1, overflow: 'hidden' }}>
-        <div style={{ display: 'flex', gap: '14px', marginBottom: '12px', flexWrap: 'wrap' }}>
+        <div style={{ padding: '12px 40px', flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+        <div style={{ display: 'flex', gap: '14px', marginBottom: '12px', flexWrap: 'wrap', flexShrink: 0 }}>
           <KPICard label="Clientes" value={impoKPIs.clientes} icon={Users} />
           <KPICard label="Viajes Totales" value={impoKPIs.viajes.toLocaleString()} icon={Truck} color="#2196f3" />
           <KPICard label="Viajes Thermo" value={impoKPIs.thermo.toLocaleString()} icon={Download} color="#29b6f6" />
           <KPICard label="Viajes Seco" value={impoKPIs.seco.toLocaleString()} icon={Upload} color="#ff9800" />
         </div>
-        <div style={{ display: 'flex', gap: '12px', marginBottom: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', gap: '12px', marginBottom: '10px', alignItems: 'center', flexWrap: 'wrap', flexShrink: 0 }}>
           <div style={{ position: 'relative', flex: 1, minWidth: '250px' }}>
             <Search style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', width: '16px', height: '16px', color: 'rgba(255,255,255,0.4)' }} />
             <input value={searchImpo} onChange={e => setSearchImpo(e.target.value)} placeholder="Buscar cliente, estado o ejecutivo..."
@@ -1621,9 +1619,9 @@ FX27 Future Experience 27 — Grupo Loma Transportes © ${new Date().getFullYear
             Exportar Excel
           </button>
         </div>
-        <div style={{ ...S.card, overflow: 'hidden' }}>
-          <div style={{ maxHeight: 'calc(100vh - 290px)', overflowY: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' }}>
+        <div style={{ ...S.card, overflow: 'hidden', flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
+          <div style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead style={{ position: 'sticky', top: 0, zIndex: 5 }}>
                 <tr>
                   <th style={{ ...S.tableHeader, width: '30px', padding: '6px 4px' }}>#</th>
@@ -1665,7 +1663,7 @@ FX27 Future Experience 27 — Grupo Loma Transportes © ${new Date().getFullYear
                     onMouseEnter={e => (e.currentTarget.style.background = 'rgba(240,160,80,0.05)')}
                     onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
                     <td style={{ ...S.tableCell, color: 'rgba(255,255,255,0.4)', padding: '5px 4px' }}>{i + 1}</td>
-                    <td style={{ ...S.tableCell, fontWeight: 600, padding: '5px 8px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: '11.5px' }} title={d.cliente}>{d.cliente}</td>
+                    <td style={{ ...S.tableCell, fontWeight: 600, padding: '5px 8px', fontSize: '11.5px' }}>{d.cliente}</td>
                     <td style={{ ...S.tableCell, textAlign: 'center', fontWeight: 700, color: 'rgba(240,160,80,1)', padding: '5px 2px' }}>{d.viajes}</td>
                     <td style={{ ...S.tableCell, textAlign: 'center', padding: '5px 2px', color: d.thermo > 0 ? '#29b6f6' : 'rgba(255,255,255,0.25)' }}>{d.thermo}</td>
                     <td style={{ ...S.tableCell, textAlign: 'center', padding: '5px 2px', color: d.seco > 0 ? '#ffa726' : 'rgba(255,255,255,0.25)' }}>{d.seco}</td>
@@ -1699,7 +1697,7 @@ FX27 Future Experience 27 — Grupo Loma Transportes © ${new Date().getFullYear
             </table>
           </div>
         </div>
-        <div style={{ ...S.textMuted, fontSize: '11px', marginTop: '8px', textAlign: 'right' }}>
+        <div style={{ ...S.textMuted, fontSize: '11px', marginTop: '8px', textAlign: 'right', flexShrink: 0 }}>
           Mostrando {filteredImpo.length} de {consolidatedImpo.length} clientes (excluidos dedicados e internos)
         </div>
       </div></div>
