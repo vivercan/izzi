@@ -1,7 +1,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
-// ASIGNAR CXC (COBRANZA) - Para Claudia Priana / Martha Velasco
-// CORREGIDO: Usa PENDIENTE_COBRANZA y envía datos completos
-// Versión: 2.1 - 23/Ene/2026 - Fix fetch
+// ASIGNAR CXC (COBRANZA) - Para Claudia Priana (Track B)
+// PARALELO: Evalúa si CSR ya fue asignado antes de transicionar estatus
+// Versión: 3.0 - 04/Feb/2026 - Flujo paralelo
 // ═══════════════════════════════════════════════════════════════════════════
 
 import { useState, useEffect } from 'react';
@@ -53,11 +53,12 @@ export function AsignarCxC() {
   const fetchData = async () => {
     setLoading(true);
 
-    // CORREGIDO: Buscar PENDIENTE_COBRANZA (no PENDIENTE_CXC)
+    // PARALELO: Buscar solicitudes EN_REVISION que no tengan CxC asignado
     const { data: sols } = await supabase
       .from('alta_clientes')
       .select('*')
-      .eq('estatus', 'PENDIENTE_COBRANZA')
+      .eq('estatus', 'EN_REVISION')
+      .is('cxc_nombre', null)
       .order('created_at', { ascending: false });
 
     const { data: cxcs } = await supabase
@@ -86,7 +87,8 @@ export function AsignarCxC() {
                           user?.email?.includes('martha') ? 'Martha Velasco' :
                           'Gerencia CxC';
 
-      await supabase
+      // Guardar CxC (sin cambiar estatus aún)
+      const { data: updated, error: updateError } = await supabase
         .from('alta_clientes')
         .update({
           cxc_id: cxcData.id,
@@ -96,37 +98,51 @@ export function AsignarCxC() {
           cxc_telefono: cxcData.telefono || cxcData.celular,
           cxc_asignado_por: asignadoPor,
           cxc_asignado_fecha: new Date().toISOString(),
-          estatus: 'PENDIENTE_CONFIRMACION'
         })
-        .eq('id', selectedSolicitud.id);
+        .eq('id', selectedSolicitud.id)
+        .select()
+        .single();
 
-      // CORREGIDO: Enviar datos completos al Edge Function
-      await fetch(`${supabaseUrl}/functions/v1/enviar-correo-alta`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${supabaseAnonKey}`
-        },
-        body: JSON.stringify({
-          tipo: 'pendiente_confirmacion',
-          solicitudId: selectedSolicitud.id,
-          razonSocial: selectedSolicitud.razon_social,
-          rfc: selectedSolicitud.rfc_mc || selectedSolicitud.rfc,
-          nombreContacto: selectedSolicitud.nombre_cliente,
-          emailCliente: selectedSolicitud.email_cliente,
-          empresaFacturadora: selectedSolicitud.giro || selectedSolicitud.empresa_facturadora,
-          csrNombre: selectedSolicitud.csr_nombre,
-          csrEmail: selectedSolicitud.csr_email,
-          csrTelefono: selectedSolicitud.csr_celular || selectedSolicitud.csr_telefono,
-          cxcNombre: cxcData.nombre,
-          cxcEmail: cxcData.email,
-          cxcTelefono: cxcData.telefono || cxcData.celular,
-          tipoPago: selectedSolicitud.tipo_pago,
-          diasCredito: selectedSolicitud.dias_credito
-        })
-      });
+      if (updateError) throw updateError;
 
-      alert('✅ Ejecutivo CxC asignado. Se notificó a Nancy Alonso.');
+      // Evaluar si AMBOS tracks están completos (CSR + tipo_pago + CxC)
+      if (updated.csr_nombre && updated.tipo_pago) {
+        // CSR ya fue asignado por Juan → transicionar a PENDIENTE_CONFIRMACION
+        await supabase.from('alta_clientes')
+          .update({ estatus: 'PENDIENTE_CONFIRMACION' })
+          .eq('id', selectedSolicitud.id);
+
+        // Notificar a Nancy que puede confirmar
+        await fetch(`${supabaseUrl}/functions/v1/enviar-correo-alta`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${supabaseAnonKey}`
+          },
+          body: JSON.stringify({
+            tipo: 'pendiente_confirmacion',
+            solicitudId: selectedSolicitud.id,
+            razonSocial: selectedSolicitud.razon_social,
+            rfc: selectedSolicitud.rfc_mc || selectedSolicitud.rfc,
+            nombreContacto: selectedSolicitud.nombre_cliente,
+            emailCliente: selectedSolicitud.email_cliente,
+            empresaFacturadora: selectedSolicitud.giro || selectedSolicitud.empresa_facturadora,
+            csrNombre: updated.csr_nombre,
+            csrEmail: updated.csr_email,
+            csrTelefono: updated.csr_celular || updated.csr_telefono,
+            cxcNombre: cxcData.nombre,
+            cxcEmail: cxcData.email,
+            cxcTelefono: cxcData.telefono || cxcData.celular,
+            tipoPago: updated.tipo_pago,
+            diasCredito: updated.dias_credito
+          })
+        }).catch(() => {});
+
+        alert('✅ CxC asignado. CSR ya estaba asignado — solicitud lista para confirmación de Nancy.');
+      } else {
+        // CSR aún no asignado → queda en EN_REVISION esperando a Juan
+        alert('✅ Ejecutivo CxC asignado. Falta asignación de CSR por Juan Viveros.');
+      }
 
     } catch (error) {
       console.error('Error:', error);
@@ -251,7 +267,7 @@ export function AsignarCxC() {
                 {cxcSeleccionado && (
                   <div className="mb-4 p-3 bg-blue-500/10 rounded-lg border border-blue-500/30">
                     <p className="text-blue-300 text-xs">
-                      Al asignar, se notificará a <strong>Nancy Alonso</strong> para que confirme el alta del cliente.
+                      Al asignar, si el CSR ya fue asignado por Juan, se notificará automáticamente a <strong>Nancy Alonso</strong> para confirmar el alta.
                     </p>
                   </div>
                 )}
@@ -262,7 +278,7 @@ export function AsignarCxC() {
                   className="mt-auto w-full py-2.5 rounded-lg flex items-center justify-center gap-2 disabled:opacity-40 text-white font-semibold transition-all"
                   style={{ background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)' }}
                 >
-                  <Send className="w-4 h-4" /> Asignar y Enviar a Nancy
+                  <Send className="w-4 h-4" /> Asignar Ejecutivo CxC
                 </button>
               </>
             )}
@@ -278,7 +294,7 @@ export function AsignarCxC() {
             <p className="text-white/70 text-sm mb-3">
               ¿Asignar <b className="text-white">{selectedSolicitud.razon_social}</b> a <b className="text-blue-400">{cxcSeleccionado.nombre}</b>?
             </p>
-            <p className="text-white/50 text-xs mb-4">Se enviará notificación a Nancy Alonso.</p>
+            <p className="text-white/50 text-xs mb-4">Si el CSR ya fue asignado, se notificará a Nancy Alonso.</p>
             <div className="flex gap-2">
               <button onClick={() => setShowConfirm(false)} className="flex-1 py-2 rounded-lg bg-white/10 text-white text-sm hover:bg-white/20 transition-all">Cancelar</button>
               <button onClick={handleAsignar} disabled={submitting} className="flex-1 py-2 rounded-lg bg-blue-500 text-white text-sm flex items-center justify-center gap-1 hover:bg-blue-600 transition-all disabled:opacity-50">

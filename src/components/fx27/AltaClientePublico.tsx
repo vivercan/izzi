@@ -179,7 +179,7 @@ export function AltaClientePublico({ solicitudId }: Props) {
       if (!data) throw new Error('Not found');
       setSolicitud(data);
       if (data.estatus === 'COMPLETADA') setPaso('completado');
-      else if (['PENDIENTE_CSR','PENDIENTE_CXC','PENDIENTE_CONFIRMACION'].includes(data.estatus)) setPaso('enviado');
+      else if (['EN_REVISION','PENDIENTE_CSR','PENDIENTE_CXC','PENDIENTE_CONFIRMACION'].includes(data.estatus)) setPaso('enviado');
       else if (data.documentos_validados && data.datos_extraidos) { setDatos(data.datos_extraidos); setPaso('formulario'); }
       else if (data.errores_validacion?.length > 0) { setErrores(data.errores_validacion); setPaso('errores'); }
       if (data.documentos) setUploadedDocs(data.documentos);
@@ -269,7 +269,7 @@ export function AltaClientePublico({ solicitudId }: Props) {
         contacto_admin_clabe: datos.clabe || '', 
         forma_pago: getFormaPago(), 
         idioma: lang, 
-        estatus: 'PENDIENTE_CSR', 
+        estatus: 'EN_REVISION', 
         firma_fecha: new Date().toISOString(), 
         firma_navegador: navigator.userAgent,
         confirmacion_pago: true,
@@ -277,7 +277,7 @@ export function AltaClientePublico({ solicitudId }: Props) {
         confirmacion_pago_ip: 'captured'
       }).eq('id', solicitudId);
       await fetch(`${supabaseUrl}/functions/v1/generar-pdf-solicitud`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${supabaseAnonKey}` }, body: JSON.stringify({ solicitudId, idioma: lang }) }).catch(() => {});
-      await fetch(`${supabaseUrl}/functions/v1/enviar-correo-alta`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${supabaseAnonKey}` }, body: JSON.stringify({ tipo: 'solicitud_completada', solicitudId, razonSocial: datos.razon_social || solicitud?.razon_social, empresaFacturadora: EMPRESAS_FACTURADORAS[solicitud?.giro] || EMPRESAS_FACTURADORAS[solicitud?.empresa_facturadora] || solicitud?.giro || solicitud?.empresa_facturadora }) }).catch(() => {});
+      await fetch(`${supabaseUrl}/functions/v1/enviar-correo-alta`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${supabaseAnonKey}` }, body: JSON.stringify({ tipo: 'en_revision', solicitudId, razonSocial: datos.razon_social || solicitud?.razon_social, empresaFacturadora: EMPRESAS_FACTURADORAS[solicitud?.giro] || EMPRESAS_FACTURADORAS[solicitud?.empresa_facturadora] || solicitud?.giro || solicitud?.empresa_facturadora }) }).catch(() => {});
       setPaso('enviado');
     } catch { alert('Error'); }
     finally { setSubmitting(false); }

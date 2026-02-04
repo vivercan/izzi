@@ -1,7 +1,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
 // CONFIRMAR ALTA - Para Nancy Alonso
-// CORREGIDO: Usa columnas csr_* y cxc_* correctamente
-// Versión: 2.0 - 10/Ene/2026
+// AUTO-SYNC: Inserta en sc_clientes_asignacion + sc_contactos_clientes
+// Versión: 3.0 - 04/Feb/2026 - Flujo paralelo con auto-sync
 // ═══════════════════════════════════════════════════════════════════════════
 
 import { useState, useEffect } from 'react';
@@ -17,6 +17,16 @@ const EMPRESAS: Record<string, { nombre: string; razonSocial: string; color: str
   'WE': { nombre: 'WExpress', razonSocial: 'WEXPRESS LOGISTICS SA DE CV', color: '#059669' },
   'SHI': { nombre: 'Speedyhaul', razonSocial: 'SPEEDYHAUL SA DE CV', color: '#7c3aed' },
   'TROB_USA': { nombre: 'TROB USA', razonSocial: 'TROB TRANSPORTES USA LLC', color: '#dc2626' }
+};
+
+// Mapeo CSR nombre → código para sc_clientes_asignacion
+const CSR_CODIGO_MAP: Record<string, string> = {
+  'Elizabeth Pasillas Romo': 'ELI',
+  'Eli Pasillas': 'ELI',
+  'customer.service1@trob.com.mx': 'ELI',
+  'Lizeth Garcia Paredes': 'LIZ',
+  'Liz Garcia': 'LIZ',
+  'customer.service3@trob.com.mx': 'LIZ',
 };
 
 interface Props {
@@ -73,10 +83,11 @@ export default function ConfirmarAltaNancy({ solicitudId, onConfirmed }: Props) 
     }
   };
 
-  // CORREGIDO: Usa columnas csr_* y cxc_*
+  // AUTO-SYNC: Confirma alta + inserta en sc_clientes_asignacion + sc_contactos_clientes
   const confirmarAlta = async () => {
     setConfirming(true);
     try {
+      // 1. Marcar como COMPLETADA
       await supabase.from('alta_clientes').update({
         estatus: 'COMPLETADA',
         confirmado_por: 'Nancy Alonso',
@@ -84,6 +95,7 @@ export default function ConfirmarAltaNancy({ solicitudId, onConfirmed }: Props) 
         fecha_completado: new Date().toISOString()
       }).eq('id', solicitudId);
 
+      // 2. Enviar correo de bienvenida
       await fetch(`${supabaseUrl}/functions/v1/enviar-correo-alta`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${supabaseAnonKey}` },
@@ -105,12 +117,57 @@ export default function ConfirmarAltaNancy({ solicitudId, onConfirmed }: Props) 
           diasCredito: solicitud.dias_credito,
           creadoPorEmail: solicitud.creado_por_email || solicitud.enviado_por
         })
+      }).catch(() => {});
+
+      // 3. AUTO-SYNC: Insertar en sc_clientes_asignacion
+      const csrCodigo = CSR_CODIGO_MAP[solicitud.csr_nombre] || CSR_CODIGO_MAP[solicitud.csr_email] || 'PENDIENTE';
+      const rfcCliente = solicitud.rfc_mc || solicitud.rfc || '';
+
+      await supabase.from('sc_clientes_asignacion').upsert({
+        cliente: solicitud.razon_social,
+        rfc: rfcCliente,
+        vendedor: solicitud.vendedor_codigo || 'PENDIENTE',
+        ejecutivo_sc: csrCodigo,
+        status: 'ASIGNADO',
+        empresa: solicitud.giro || solicitud.empresa_facturadora || '',
+        tipo_pago: solicitud.tipo_pago,
+        dias_credito: solicitud.dias_credito,
+        cxc_nombre: solicitud.cxc_nombre,
+        cxc_email: solicitud.cxc_email,
+        notas: `Alta completada ${new Date().toLocaleDateString('es-MX')}`,
+        created_at: new Date().toISOString()
+      }, { onConflict: 'rfc' }).then(({ error }) => {
+        if (error) console.warn('Auto-sync asignacion:', error.message);
       });
 
+      // 4. AUTO-SYNC: Insertar contactos del formulario
+      const contactos = [
+        { tipo: 'ADMIN_PAGOS', nombre: solicitud.contacto_admin_nombre, email: solicitud.contacto_admin_email, telefono: solicitud.contacto_admin_tel, celular: solicitud.contacto_admin_cel },
+        { tipo: 'FACTURAS', nombre: solicitud.contacto_fact_nombre, email: solicitud.contacto_fact_email, telefono: solicitud.contacto_fact_tel, celular: solicitud.contacto_fact_cel },
+        { tipo: 'OPERATIVO_1', nombre: solicitud.contacto_op1_nombre, email: solicitud.contacto_op1_email, telefono: solicitud.contacto_op1_tel, celular: solicitud.contacto_op1_cel },
+        { tipo: 'OPERATIVO_2', nombre: solicitud.contacto_op2_nombre, email: solicitud.contacto_op2_email, telefono: solicitud.contacto_op2_tel, celular: solicitud.contacto_op2_cel },
+      ];
+
+      for (const c of contactos) {
+        if (c.nombre) {
+          await supabase.from('sc_contactos_clientes').insert({
+            cliente_rfc: rfcCliente,
+            tipo_contacto: c.tipo,
+            nombre: c.nombre,
+            email: c.email || '',
+            telefono: c.telefono || '',
+            celular: c.celular || '',
+          }).then(({ error }) => {
+            if (error) console.warn(`Auto-sync contacto ${c.tipo}:`, error.message);
+          });
+        }
+      }
+
       setConfirmed(true);
-      alert('Alta confirmada. Se envió correo de bienvenida al cliente.');
+      alert('✅ Alta confirmada. Cliente sincronizado al módulo de Asignación.');
       onConfirmed?.();
     } catch (err) {
+      console.error('Error:', err);
       alert('Error al confirmar');
     } finally {
       setConfirming(false);

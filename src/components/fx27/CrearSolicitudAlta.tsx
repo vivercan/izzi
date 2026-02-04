@@ -17,6 +17,13 @@ const EMPRESAS_FACTURADORAS = [
   { id: 'TROB_USA', nombre: 'TROB USA LLC', color: '#ef4444' }
 ];
 
+// Mapeo automático de email creador → vendedor
+const VENDEDOR_MAP: Record<string, { codigo: string; nombre: string }> = {
+  'isis.estrada@wexpress.com.mx': { codigo: 'ISIS', nombre: 'Isis Estrada' },
+  'leonardo.gonzalez@wexpress.com.mx': { codigo: 'LEO', nombre: 'Leonardo Gonzalez' },
+  'paloma.oliva@speedyhaul.com.mx': { codigo: 'PALOMA', nombre: 'Paloma Oliva' },
+};
+
 interface Props {
   usuarioCreador: string;
   onClose?: () => void;
@@ -57,6 +64,9 @@ export default function CrearSolicitudAlta({ usuarioCreador, onClose, onCreated 
     setSending(true);
 
     try {
+      // Mapear email del creador a vendedor
+      const vendedor = VENDEDOR_MAP[usuarioCreador.toLowerCase()] || { codigo: 'PENDIENTE', nombre: '' };
+
       // Crear la solicitud en BD - USANDO NOMBRES CORRECTOS DE COLUMNAS
       const { data: solicitud, error: insertError } = await supabase
         .from('alta_clientes')
@@ -68,7 +78,9 @@ export default function CrearSolicitudAlta({ usuarioCreador, onClose, onCreated 
           tipo_empresa: tipoEmpresa,
           giro: empresaFacturadora, // Usamos giro para empresa facturadora
           enviado_por: usuarioCreador,
-          estatus: 'ENVIADA'
+          estatus: 'ENVIADA',
+          vendedor_codigo: vendedor.codigo,
+          vendedor_nombre: vendedor.nombre
         })
         .select()
         .single();

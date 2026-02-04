@@ -274,6 +274,66 @@ const emailClienteCompleto = (data: any) => {
 };
 
 // ═══════════════════════════════════════════════════════════════════════════
+// CASO 1B: EN_REVISION (en_revision) — NUEVO FLUJO PARALELO
+// Trigger: Cliente completó formulario público
+// Destino: Juan Viveros (CSR + Pago) + Claudia Priana (CxC) — SIMULTÁNEO
+// ═══════════════════════════════════════════════════════════════════════════
+
+const emailEnRevision = (data: any, destinatario: 'juan' | 'claudia') => {
+  const accion = destinatario === 'juan' 
+    ? 'Asignar CSR y Tipo de Pago' 
+    : 'Asignar Ejecutivo de Cobranza (CxC)';
+  const botonTexto = destinatario === 'juan' 
+    ? 'REVISAR Y ASIGNAR CSR →' 
+    : 'ASIGNAR COBRANZA →';
+  const linkDestino = destinatario === 'juan'
+    ? 'https://www.jjcrm27.com/servicio-clientes'
+    : 'https://www.jjcrm27.com/asignar-cxc';
+
+  const content = `
+    <div style="background: linear-gradient(135deg, #dbeafe 0%, #e0f2fe 100%); border-radius: 8px; padding: 20px; margin-bottom: 20px;">
+      <h2 style="color: ${COLORS.azulCorporativo}; font-size: 18px; margin: 0 0 5px 0;">
+        📥 Nueva Solicitud de Alta — En Revisión
+      </h2>
+      <p style="color: ${COLORS.textoGris}; font-size: 13px; margin: 0;">
+        Un cliente ha completado el formulario. Tu acción: <strong>${accion}</strong>
+      </p>
+    </div>
+    
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 20px;">
+      <tr>
+        <td style="padding: 10px 0; border-bottom: 1px solid #e2e8f0;">
+          <span style="color: ${COLORS.textoGris}; font-size: 12px;">Razón Social:</span><br>
+          <span style="color: ${COLORS.textoOscuro}; font-size: 15px; font-weight: 600;">${data.razonSocial || '-'}</span>
+        </td>
+      </tr>
+      <tr>
+        <td style="padding: 10px 0; border-bottom: 1px solid #e2e8f0;">
+          <span style="color: ${COLORS.textoGris}; font-size: 12px;">Empresa Facturadora:</span><br>
+          <span style="color: ${COLORS.textoOscuro}; font-size: 15px; font-weight: 600;">${data.empresaFacturadora || 'Por definir'}</span>
+        </td>
+      </tr>
+    </table>
+
+    <div style="background: #fffbeb; border: 1px solid #fbbf24; border-radius: 6px; padding: 12px; margin-bottom: 20px;">
+      <p style="color: #92400e; font-size: 12px; margin: 0;">
+        ⚡ Este flujo es paralelo. ${destinatario === 'juan' ? 'Claudia también fue notificada para asignar CxC.' : 'Juan también fue notificado para asignar CSR y tipo de pago.'}
+        Cuando ambos completen su parte, Nancy será notificada para confirmar.
+      </p>
+    </div>
+    
+    <div style="text-align: center;">
+      <a href="${linkDestino}" 
+         style="display: inline-block; background: linear-gradient(135deg, ${COLORS.naranja} 0%, #cc4000 100%); color: #ffffff; text-decoration: none; padding: 12px 30px; border-radius: 6px; font-size: 13px; font-weight: 700;">
+        ${botonTexto}
+      </a>
+    </div>
+  `;
+  
+  return templateBase(content, 'EN REVISIÓN', data.empresaFacturadora);
+};
+
+// ═══════════════════════════════════════════════════════════════════════════
 // CASO 2: PENDIENTE_CXC (asignar_cobranza)
 // Trigger: Juan Viveros asigna CSR + tipo pago
 // Destino: CSR asignado + Claudia Priana + Martha Velasco
@@ -640,6 +700,30 @@ serve(async (req) => {
           html
         );
         results.push({ to: 'juan.viveros@trob.com.mx', result });
+        break;
+      }
+      
+      // ─────────────────────────────────────────────────────────────────────
+      // CASO 1B: Cliente completó → Notificar a Juan Y Claudia (PARALELO)
+      // ─────────────────────────────────────────────────────────────────────
+      case 'en_revision': {
+        // Correo a Juan (CSR + tipo pago)
+        const htmlJuan = emailEnRevision(body, 'juan');
+        const resultJuan = await enviarCorreo(
+          ['juan.viveros@trob.com.mx'],
+          `📥 Nueva Solicitud: ${body.razonSocial} — Asignar CSR`,
+          htmlJuan
+        );
+        results.push({ to: 'juan.viveros@trob.com.mx', result: resultJuan });
+
+        // Correo a Claudia (CxC)
+        const htmlClaudia = emailEnRevision(body, 'claudia');
+        const resultClaudia = await enviarCorreo(
+          ['claudia.priana@trob.com.mx'],
+          `📥 Nueva Solicitud: ${body.razonSocial} — Asignar CxC`,
+          htmlClaudia
+        );
+        results.push({ to: 'claudia.priana@trob.com.mx', result: resultClaudia });
         break;
       }
       

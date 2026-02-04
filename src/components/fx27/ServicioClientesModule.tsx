@@ -1,6 +1,6 @@
 // ═══════════════════════════════════════════════════════════════════════════
 // SERVICIO A CLIENTES MODULE - ESTILO DASHBOARD EXACTO
-// Versión: 2.1 - 23/Ene/2026 - Filtro por usuario (ventas solo ve sus altas)
+// Versión: 3.0 - 04/Feb/2026 - Flujo paralelo EN_REVISION
 // ═══════════════════════════════════════════════════════════════════════════
 
 import { useState, useEffect } from 'react';
@@ -23,6 +23,7 @@ const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 const ESTATUS_CONFIG: Record<string, { label: string; color: string; bg: string; icon: any }> = {
   'ENVIADA': { label: 'Enviada', color: '#f59e0b', bg: 'rgba(245,158,11,0.15)', icon: Mail },
+  'EN_REVISION': { label: 'En Revisión', color: '#3b82f6', bg: 'rgba(59,130,246,0.15)', icon: Search },
   'PENDIENTE_CSR': { label: 'Pendiente CSR', color: '#3b82f6', bg: 'rgba(59,130,246,0.15)', icon: Clock },
   'PENDIENTE_COBRANZA': { label: 'Pendiente CxC', color: '#8b5cf6', bg: 'rgba(139,92,246,0.15)', icon: CreditCard },
   'PENDIENTE_CONFIRMACION': { label: 'Por Confirmar', color: '#f97316', bg: 'rgba(249,115,22,0.15)', icon: Shield },
@@ -202,8 +203,7 @@ export function ServicioClientesModule({ onBack, userEmail, userName }: Props) {
     const botones = [
       { id: 'nueva-alta', nombre: 'Nueva Alta', icon: UserPlus, onClick: () => setShowCrearModal(true) },
       { id: 'solicitudes', nombre: 'Solicitudes', icon: FileText, onClick: () => { setFiltroEstatus(''); setVista('lista'); } },
-      { id: 'pendientes-csr', nombre: 'Pendientes CSR', icon: Clock, onClick: () => { setFiltroEstatus('PENDIENTE_CSR'); setVista('lista'); } },
-      { id: 'pendientes-cxc', nombre: 'Pendientes CxC', icon: CreditCard, onClick: () => { setFiltroEstatus('PENDIENTE_COBRANZA'); setVista('lista'); } },
+      { id: 'en-revision', nombre: 'En Revisión', icon: Search, onClick: () => { setFiltroEstatus('EN_REVISION'); setVista('lista'); } },
       { id: 'por-confirmar', nombre: 'Por Confirmar', icon: Shield, onClick: () => { setFiltroEstatus('PENDIENTE_CONFIRMACION'); setVista('lista'); } },
       { id: 'completadas', nombre: 'Completadas', icon: CheckCircle2, onClick: () => { setFiltroEstatus('COMPLETADA'); setVista('lista'); } }
     ];
@@ -612,7 +612,7 @@ export function ServicioClientesModule({ onBack, userEmail, userName }: Props) {
                           <button
                             onClick={() => {
                               setSolicitudSeleccionada(sol.id);
-                              if (sol.estatus === 'PENDIENTE_CSR') setVista('revisar'); else if (sol.estatus === 'PENDIENTE_COBRANZA') setVista('asignar_cxc');
+                              if (sol.estatus === 'EN_REVISION' || sol.estatus === 'PENDIENTE_CSR') setVista('revisar'); else if (sol.estatus === 'PENDIENTE_COBRANZA') setVista('asignar_cxc');
                               else if (sol.estatus === 'PENDIENTE_CONFIRMACION') setVista('confirmar');
                               else setVista('revisar');
                             }}

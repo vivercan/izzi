@@ -1,8 +1,8 @@
 // ═══════════════════════════════════════════════════════════════════════════
-// REVISAR SOLICITUD DE ALTA - Para Juan Viveros
+// REVISAR SOLICITUD DE ALTA - Para Juan Viveros (Track A)
 // Incluye: Validar Cliente (IA), Asignar CSR, Tipo Pago
-// CORREGIDO: Usa columnas csr_* de la tabla
-// Versión: 2.1 - 23/Ene/2026 - Fix fetch
+// PARALELO: No cambia estatus directamente; evalúa si CxC ya fue asignado
+// Versión: 3.0 - 04/Feb/2026 - Flujo paralelo
 // ═══════════════════════════════════════════════════════════════════════════
 
 import { useState, useEffect } from 'react';
@@ -93,13 +93,15 @@ export default function RevisarSolicitudAlta({ solicitudId, onUpdated }: Props) 
     }
   };
 
-  // CORREGIDO: Usa columnas csr_* y tipo_pago
+  // PARALELO: Guarda CSR + pago, luego evalúa si ambos tracks completos
   const guardarAsignacion = async () => {
     if (!csrSeleccionado) { alert('Seleccione un CSR'); return; }
     setSaving(true);
     try {
       const csr = CSR_CATALOGO.find(c => c.id === csrSeleccionado);
-      await supabase.from('alta_clientes').update({
+      
+      // Guardar CSR + tipo pago (sin cambiar estatus aún)
+      const { data: updated, error: updateError } = await supabase.from('alta_clientes').update({
         csr_nombre: csr?.nombre,
         csr_email: csr?.email,
         csr_celular: csr?.celular,
@@ -108,29 +110,39 @@ export default function RevisarSolicitudAlta({ solicitudId, onUpdated }: Props) 
         csr_asignado_fecha: new Date().toISOString(),
         tipo_pago: tipoPago,
         dias_credito: tipoPago === 'CREDITO' ? diasCredito : null,
-        estatus: 'PENDIENTE_COBRANZA'
-      }).eq('id', solicitudId);
+      }).eq('id', solicitudId).select().single();
 
-      await fetch(`${supabaseUrl}/functions/v1/enviar-correo-alta`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${supabaseAnonKey}` },
-        body: JSON.stringify({
-          tipo: 'asignar_cobranza',
-          solicitudId,
-          razonSocial: solicitud.razon_social,
-          rfc: solicitud.rfc_mc || solicitud.rfc,
-          nombreContacto: solicitud.nombre_cliente,
-          emailCliente: solicitud.email_cliente,
-          empresaFacturadora: solicitud.giro || solicitud.empresa_facturadora,
-          csrNombre: csr?.nombre,
-          csrEmail: csr?.email,
-          csrTelefono: csr?.celular,
-          tipoPago: tipoPago,
-          diasCredito: tipoPago === 'CREDITO' ? diasCredito : null
-        })
-      });
+      if (updateError) throw updateError;
 
-      alert('Asignación guardada. Se notificó al CSR y al equipo de Cobranza.');
+      // Evaluar si AMBOS tracks están completos (CSR + CxC)
+      if (updated.cxc_nombre) {
+        // CxC ya fue asignado por Claudia → transicionar a PENDIENTE_CONFIRMACION
+        await supabase.from('alta_clientes')
+          .update({ estatus: 'PENDIENTE_CONFIRMACION' })
+          .eq('id', solicitudId);
+
+        // Notificar a Nancy que puede confirmar
+        await fetch(`${supabaseUrl}/functions/v1/enviar-correo-alta`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${supabaseAnonKey}` },
+          body: JSON.stringify({
+            tipo: 'pendiente_confirmacion',
+            solicitudId,
+            razonSocial: solicitud.razon_social,
+            rfc: solicitud.rfc_mc || solicitud.rfc,
+            csrNombre: csr?.nombre,
+            cxcNombre: updated.cxc_nombre,
+            tipoPago: tipoPago,
+            diasCredito: tipoPago === 'CREDITO' ? diasCredito : null
+          })
+        }).catch(() => {});
+
+        alert('✅ Asignación completa. CxC ya estaba asignado — solicitud lista para confirmación de Nancy.');
+      } else {
+        // CxC aún no asignado → queda en EN_REVISION esperando a Claudia
+        alert('✅ CSR y tipo de pago guardados. Falta asignación de CxC por Claudia.');
+      }
+
       onUpdated?.();
     } catch (err) {
       console.error('Error:', err);
@@ -264,7 +276,7 @@ export default function RevisarSolicitudAlta({ solicitudId, onUpdated }: Props) 
         </div>
 
         <button onClick={guardarAsignacion} disabled={saving || !csrSeleccionado} className="w-full mt-6 py-4 rounded-xl flex items-center justify-center gap-3 font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition-all" style={{ background: 'linear-gradient(135deg, #fe5000 0%, #cc4000 100%)' }}>
-          {saving ? <><Loader2 className="w-5 h-5 animate-spin text-white" /><span className="text-white">Guardando...</span></> : <><CheckCircle2 className="w-5 h-5 text-white" /><span className="text-white">Guardar y Enviar a Cobranza</span></>}
+          {saving ? <><Loader2 className="w-5 h-5 animate-spin text-white" /><span className="text-white">Guardando...</span></> : <><CheckCircle2 className="w-5 h-5 text-white" /><span className="text-white">Guardar CSR y Tipo de Pago</span></>}
         </button>
       </div>
     </div>

@@ -21,9 +21,7 @@ import { AdminCarrollModule } from './components/fx27/AdminCarrollModule';
 import { VistaClientesCarroll } from './components/fx27/VistaClientesCarroll';
 import { MapaClimaticoCarroll } from './components/fx27/MapaClimaticoCarroll';
 import { AltaClientePublico } from './components/fx27/AltaClientePublico';
-import { AsignarCSR } from './components/fx27/AsignarCSR';
 import { AsignarCxC } from './components/fx27/AsignarCxC';
-import { ConfirmarAlta } from './components/fx27/ConfirmarAlta';
 import SalesHorizonModule from './components/fx27/SalesHorizonModule';
 import { AtencionClientesModule } from './components/fx27/AtencionClientesModule';
 import { MODULE_IMAGES } from './assets/module-images';
@@ -230,12 +228,8 @@ export default function App() {
       setRutaPublica({ tipo: 'alta-cliente', id: altaMatch[1] });
     }
     // Rutas internas de alta (requieren login pero se detectan para navegación directa)
-    if (path === '/alta-clientes/asignar-csr') {
-      setCurrentModule('asignar-csr');
-    } else if (path === '/alta-clientes/asignar-cxc') {
+    if (path === '/alta-clientes/asignar-cxc') {
       setCurrentModule('asignar-cxc');
-    } else if (path === '/alta-clientes/confirmar') {
-      setCurrentModule('confirmar-alta');
     }
   }, []);
   // 🔧 INICIALIZAR AL CARGAR
@@ -497,10 +491,8 @@ export default function App() {
           {currentModule === 'vista-clientes-carroll' && <VistaClientesCarroll onBack={() => setCurrentModule('dedicados')} />}
           {currentModule === 'mapa-climatico-carroll' && <MapaClimaticoCarroll onBack={() => setCurrentModule('dedicados')} />}
           {currentModule === 'sales-horizon' && <SalesHorizonModule onBack={handleBack} />}
-          {currentModule === 'atencion-clientes' && <AtencionClientesModule onBack={handleBack} userEmail={currentUserEmail} userName={currentUserName} gmailToken={gmailToken} />}
-          {currentModule === 'asignar-csr' && <AsignarCSR />}
+          {currentModule === 'atencion-clientes' && <AtencionClientesModule onBack={handleBack} userEmail={currentUserEmail} userName={currentUserName} gmailToken={gmailToken} userRole={userRole} />}
           {currentModule === 'asignar-cxc' && <AsignarCxC />}
-          {currentModule === 'confirmar-alta' && <ConfirmarAlta />}
         </>
       ) : (
         <DashboardScreen
