@@ -123,9 +123,8 @@ export default function ConfirmarAltaNancy({ solicitudId, onConfirmed }: Props) 
       const csrCodigo = CSR_CODIGO_MAP[solicitud.csr_nombre] || CSR_CODIGO_MAP[solicitud.csr_email] || 'PENDIENTE';
       const rfcCliente = solicitud.rfc_mc || solicitud.rfc || '';
 
-      await supabase.from('sc_clientes_asignacion').upsert({
+      const asignacionData: any = {
         cliente: solicitud.razon_social,
-        rfc: rfcCliente,
         vendedor: solicitud.vendedor_codigo || 'PENDIENTE',
         ejecutivo_sc: csrCodigo,
         status: 'ASIGNADO',
@@ -135,30 +134,45 @@ export default function ConfirmarAltaNancy({ solicitudId, onConfirmed }: Props) 
         cxc_nombre: solicitud.cxc_nombre,
         cxc_email: solicitud.cxc_email,
         notas: `Alta completada ${new Date().toLocaleDateString('es-MX')}`,
-        created_at: new Date().toISOString()
-      }, { onConflict: 'rfc' }).then(({ error }) => {
-        if (error) console.warn('Auto-sync asignacion:', error.message);
-      });
+      };
+
+      if (rfcCliente) {
+        // Con RFC: upsert con conflict en rfc
+        asignacionData.rfc = rfcCliente;
+        await supabase.from('sc_clientes_asignacion')
+          .upsert(asignacionData, { onConflict: 'rfc' })
+          .then(({ error }) => {
+            if (error) console.warn('Auto-sync asignacion:', error.message);
+          });
+      } else {
+        // Sin RFC: insert simple
+        await supabase.from('sc_clientes_asignacion')
+          .insert(asignacionData)
+          .then(({ error }) => {
+            if (error) console.warn('Auto-sync asignacion:', error.message);
+          });
+      }
 
       // 4. AUTO-SYNC: Insertar contactos del formulario
+      // Columnas reales: cliente_nombre, contacto_nombre, email, whatsapp, cargo, empresa
       const contactos = [
-        { tipo: 'ADMIN_PAGOS', nombre: solicitud.contacto_admin_nombre, email: solicitud.contacto_admin_email, telefono: solicitud.contacto_admin_tel, celular: solicitud.contacto_admin_cel },
-        { tipo: 'FACTURAS', nombre: solicitud.contacto_fact_nombre, email: solicitud.contacto_fact_email, telefono: solicitud.contacto_fact_tel, celular: solicitud.contacto_fact_cel },
-        { tipo: 'OPERATIVO_1', nombre: solicitud.contacto_op1_nombre, email: solicitud.contacto_op1_email, telefono: solicitud.contacto_op1_tel, celular: solicitud.contacto_op1_cel },
-        { tipo: 'OPERATIVO_2', nombre: solicitud.contacto_op2_nombre, email: solicitud.contacto_op2_email, telefono: solicitud.contacto_op2_tel, celular: solicitud.contacto_op2_cel },
+        { cargo: 'ADMIN_PAGOS', nombre: solicitud.contacto_admin_nombre, email: solicitud.contacto_admin_email, whatsapp: solicitud.contacto_admin_cel || solicitud.contacto_admin_tel },
+        { cargo: 'FACTURAS', nombre: solicitud.contacto_fact_nombre, email: solicitud.contacto_fact_email, whatsapp: solicitud.contacto_fact_cel || solicitud.contacto_fact_tel },
+        { cargo: 'OPERATIVO_1', nombre: solicitud.contacto_op1_nombre, email: solicitud.contacto_op1_email, whatsapp: solicitud.contacto_op1_cel || solicitud.contacto_op1_tel },
+        { cargo: 'OPERATIVO_2', nombre: solicitud.contacto_op2_nombre, email: solicitud.contacto_op2_email, whatsapp: solicitud.contacto_op2_cel || solicitud.contacto_op2_tel },
       ];
 
       for (const c of contactos) {
         if (c.nombre) {
           await supabase.from('sc_contactos_clientes').insert({
-            cliente_rfc: rfcCliente,
-            tipo_contacto: c.tipo,
-            nombre: c.nombre,
+            cliente_nombre: solicitud.razon_social,
+            contacto_nombre: c.nombre,
             email: c.email || '',
-            telefono: c.telefono || '',
-            celular: c.celular || '',
+            whatsapp: c.whatsapp || '',
+            cargo: c.cargo,
+            empresa: solicitud.giro || solicitud.empresa_facturadora || '',
           }).then(({ error }) => {
-            if (error) console.warn(`Auto-sync contacto ${c.tipo}:`, error.message);
+            if (error) console.warn(`Auto-sync contacto ${c.cargo}:`, error.message);
           });
         }
       }
