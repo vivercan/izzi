@@ -57,9 +57,15 @@ serve(async (req) => {
           continue;
         }
 
-        // Convertir a base64
+        // Convertir a base64 (chunked para archivos grandes)
         const arrayBuffer = await fileData.arrayBuffer();
-        const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+        const bytes = new Uint8Array(arrayBuffer);
+        let binary = '';
+        const chunkSize = 8192;
+        for (let i = 0; i < bytes.length; i += chunkSize) {
+          binary += String.fromCharCode(...bytes.subarray(i, i + chunkSize));
+        }
+        const base64 = btoa(binary);
         
         // Detectar tipo de archivo
         const extension = filePath.split(".").pop()?.toLowerCase();
@@ -233,13 +239,26 @@ Devuelve un JSON con:
       if (de.razon_social) updateData.razon_social = de.razon_social;
       if (de.calle) {
         updateData.direccion_completa = `${de.calle} ${de.no_ext || ""} ${de.no_int ? "Int. " + de.no_int : ""}, ${de.colonia || ""}, ${de.ciudad || ""}, ${de.estado || ""} CP ${de.cp || ""}`.trim();
+        updateData.calle = de.calle;
+        if (de.no_ext) updateData.no_ext = de.no_ext;
+        if (de.no_int) updateData.no_int = de.no_int;
+        if (de.colonia) updateData.colonia = de.colonia;
+        if (de.cp) updateData.cp = de.cp;
+        if (de.ciudad) updateData.ciudad = de.ciudad;
+        if (de.estado) updateData.estado = de.estado;
+        if (de.pais) updateData.pais = de.pais;
       }
       if (de.banco) updateData.contacto_admin_banco = de.banco;
       if (de.clabe) updateData.contacto_admin_clabe = de.clabe;
       if (de.routing_number) updateData.contacto_admin_clabe = de.routing_number;
+      if (de.representante_legal) updateData.nombre_rep_legal = de.representante_legal;
+      if (de.giro) updateData.giro = de.giro;
     }
 
-    await supabase.from("alta_clientes").update(updateData).eq("id", solicitudId);
+    const { error: updateError } = await supabase.from("alta_clientes").update(updateData).eq("id", solicitudId);
+    if (updateError) {
+      console.error("Error guardando datos extraidos:", updateError);
+    }
 
     // ═══════════════════════════════════════════════════════════════════════════
     // RESPUESTA
