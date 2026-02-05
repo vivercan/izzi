@@ -11,10 +11,11 @@ import CrearSolicitudAlta from './CrearSolicitudAlta';
 import RevisarSolicitudAlta from './RevisarSolicitudAlta';
 import ConfirmarAltaNancy from './ConfirmarAltaNancy';
 import { AsignarCxC } from './AsignarCxC';
+import AnalisisContratosModule from './AnalisisContratosModule';
 import {
   UserPlus, FileText, CheckCircle2, Clock, AlertCircle,
   Search, RefreshCw, Loader2, Eye, ArrowLeft, Shield, CreditCard, Mail,
-  Edit2, Trash2, X, AlertTriangle
+  Edit2, Trash2, X, AlertTriangle, Scale
 } from 'lucide-react';
 
 const supabaseUrl = 'https://fbxbsslhewchyibdoyzk.supabase.co';
@@ -44,7 +45,7 @@ interface Props {
   userName?: string;
 }
 
-type Vista = 'hub' | 'lista' | 'revisar' | 'asignar_cxc' | 'confirmar';
+type Vista = 'hub' | 'lista' | 'revisar' | 'asignar_cxc' | 'confirmar' | 'analisis-contratos';
 
 export function ServicioClientesModule({ onBack, userEmail, userName }: Props) {
   const [vista, setVista] = useState<Vista>('hub');
@@ -205,7 +206,8 @@ export function ServicioClientesModule({ onBack, userEmail, userName }: Props) {
       { id: 'solicitudes', nombre: 'Solicitudes', icon: FileText, onClick: () => { setFiltroEstatus(''); setVista('lista'); } },
       { id: 'en-revision', nombre: 'En Revisión', icon: Search, onClick: () => { setFiltroEstatus('EN_REVISION'); setVista('lista'); } },
       { id: 'por-confirmar', nombre: 'Por Confirmar', icon: Shield, onClick: () => { setFiltroEstatus('PENDIENTE_CONFIRMACION'); setVista('lista'); } },
-      { id: 'completadas', nombre: 'Completadas', icon: CheckCircle2, onClick: () => { setFiltroEstatus('COMPLETADA'); setVista('lista'); } }
+      { id: 'completadas', nombre: 'Completadas', icon: CheckCircle2, onClick: () => { setFiltroEstatus('COMPLETADA'); setVista('lista'); } },
+      { id: 'analisis-contratos', nombre: 'Análisis de\nContratos', icon: Scale, onClick: () => setVista('analisis-contratos') }
     ];
 
     return (
@@ -841,6 +843,7 @@ export function ServicioClientesModule({ onBack, userEmail, userName }: Props) {
   // ═══════════════════════════════════════════════════════════════════════════
   // RENDER PRINCIPAL
   // ═══════════════════════════════════════════════════════════════════════════
+  if (vista === 'analisis-contratos') return <AnalisisContratosModule onBack={() => setVista('hub')} />;
   if (vista === 'hub') return renderHub();
   if (vista === 'lista') return renderLista();
   if (vista === 'revisar') return renderRevisar();
