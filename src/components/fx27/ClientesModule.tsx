@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { ModuleTemplate } from './ModuleTemplate';
 import { MODULE_IMAGES } from '../../assets/module-images';
-import { UserPlus, Users, Send, Mail, User, Plus, X, Clock, CheckCircle2, AlertCircle, FileText, Eye, Loader2, ArrowLeft, Building2, Phone, MapPin, CreditCard, Upload, Download, Trash2 } from 'lucide-react';
+import { UserPlus, Users, Send, Mail, User, Plus, X, Clock, CheckCircle2, AlertCircle, FileText, Eye, Loader2, ArrowLeft, Building2, Phone, MapPin, CreditCard, Upload, Download, Trash2, Scale, Shield, ShieldAlert, ShieldCheck, FileWarning, ChevronDown, ChevronUp, AlertTriangle, FileDown, RotateCcw } from 'lucide-react';
 import { projectId, publicAnonKey } from '../../utils/supabase/info';
 
 interface ClientesModuleProps {
@@ -43,7 +43,37 @@ interface Documento {
   created_at: string;
 }
 
-type Vista = 'hub' | 'nueva-alta' | 'clientes' | 'detalle-cliente';
+// ═══════════════════════════════════════════════════════════
+// INTERFACES PARA ANÁLISIS DE CONTRATOS
+// ═══════════════════════════════════════════════════════════
+interface RiesgoContrato {
+  clausula: string;
+  descripcion: string;
+  severidad: 'ALTA' | 'MEDIA' | 'BAJA';
+  sugerencia: string;
+}
+
+interface AnalisisContrato {
+  datos_extraidos: {
+    representante_legal: string;
+    notaria: string;
+    numero_escritura: string;
+    fecha_contrato: string;
+    partes: string[];
+    objeto_contrato: string;
+    vigencia: string;
+    monto_o_tarifa: string;
+  };
+  es_leonino: boolean;
+  explicacion_leonino: string;
+  riesgos: RiesgoContrato[];
+  resumen_ejecutivo: string;
+  clausulas_faltantes: string[];
+  version_blindada: string;
+  calificacion_riesgo: number; // 1-10
+}
+
+type Vista = 'hub' | 'nueva-alta' | 'clientes' | 'detalle-cliente' | 'analisis-contratos';
 
 export const ClientesModule = ({ onBack }: ClientesModuleProps) => {
   const [vista, setVista] = useState<Vista>('hub');
@@ -70,6 +100,25 @@ export const ClientesModule = ({ onBack }: ClientesModuleProps) => {
   const [tipoEmpresa, setTipoEmpresa] = useState<'MEXICANA' | 'USA_CANADA'>('MEXICANA');
   const [emailsAdicionales, setEmailsAdicionales] = useState<string[]>([]);
   const [nuevoEmailAdicional, setNuevoEmailAdicional] = useState('');
+
+  // ═══════════════════════════════════════════════════════════
+  // STATE PARA ANÁLISIS DE CONTRATOS
+  // ═══════════════════════════════════════════════════════════
+  const [archivoContrato, setArchivoContrato] = useState<File | null>(null);
+  const [archivoBase64, setArchivoBase64] = useState<string>('');
+  const [analizandoContrato, setAnalizandoContrato] = useState(false);
+  const [analisisResultado, setAnalisisResultado] = useState<AnalisisContrato | null>(null);
+  const [analisisError, setAnalisisError] = useState<string>('');
+  const [seccionesAbiertas, setSeccionesAbiertas] = useState<Record<string, boolean>>({
+    datos: true,
+    leonino: true,
+    riesgos: true,
+    faltantes: true,
+    resumen: true,
+    blindado: false,
+  });
+  const [dragOver, setDragOver] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const getUserEmail = () => {
     try {
@@ -161,12 +210,186 @@ export const ClientesModule = ({ onBack }: ClientesModuleProps) => {
   };
 
   // ═══════════════════════════════════════════════════════════
+  // LÓGICA DE ANÁLISIS DE CONTRATOS
+  // ═══════════════════════════════════════════════════════════
+  const handleFileSelect = async (file: File) => {
+    if (!file) return;
+    
+    // Validar tipo
+    const allowedTypes = ['application/pdf', 'image/png', 'image/jpeg', 'image/jpg', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+    if (!allowedTypes.includes(file.type) && !file.name.endsWith('.pdf') && !file.name.endsWith('.docx') && !file.name.endsWith('.doc')) {
+      setAnalisisError('Solo se aceptan archivos PDF, Word o imágenes (PNG/JPG)');
+      return;
+    }
+    
+    // Validar tamaño (max 10MB)
+    if (file.size > 10 * 1024 * 1024) {
+      setAnalisisError('El archivo no debe exceder 10MB');
+      return;
+    }
+
+    setArchivoContrato(file);
+    setAnalisisError('');
+    setAnalisisResultado(null);
+
+    // Convertir a base64
+    const reader = new FileReader();
+    reader.onload = () => {
+      const base64 = (reader.result as string).split(',')[1];
+      setArchivoBase64(base64);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setDragOver(false);
+    const file = e.dataTransfer.files[0];
+    if (file) handleFileSelect(file);
+  };
+
+  const analizarContrato = async () => {
+    if (!archivoBase64 || !archivoContrato) return;
+
+    setAnalizandoContrato(true);
+    setAnalisisError('');
+    setAnalisisResultado(null);
+
+    try {
+      const response = await fetch(`https://${projectId}.supabase.co/functions/v1/analizar-contrato`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${publicAnonKey}`,
+        },
+        body: JSON.stringify({
+          archivo_base64: archivoBase64,
+          nombre_archivo: archivoContrato.name,
+          tipo_archivo: archivoContrato.type || 'application/pdf',
+          fecha_analisis: new Date().toLocaleDateString('es-MX', { day: '2-digit', month: 'long', year: 'numeric' }),
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.success && data.analisis) {
+        setAnalisisResultado(data.analisis);
+      } else {
+        setAnalisisError(data.error || 'Error al analizar el contrato. Intenta de nuevo.');
+      }
+    } catch (error) {
+      console.error('Error:', error);
+      setAnalisisError('Error de conexión al analizar el contrato');
+    } finally {
+      setAnalizandoContrato(false);
+    }
+  };
+
+  const toggleSeccion = (seccion: string) => {
+    setSeccionesAbiertas(prev => ({ ...prev, [seccion]: !prev[seccion] }));
+  };
+
+  const descargarAnalisis = () => {
+    if (!analisisResultado) return;
+    const r = analisisResultado;
+
+    let contenido = `ANÁLISIS DE CONTRATO - GRUPO LOMA | TROB TRANSPORTES\n`;
+    contenido += `${'═'.repeat(60)}\n`;
+    contenido += `Fecha de Análisis: ${new Date().toLocaleDateString('es-MX', { day: '2-digit', month: 'long', year: 'numeric' })}\n`;
+    contenido += `Archivo Analizado: ${archivoContrato?.name || 'N/A'}\n`;
+    contenido += `Calificación de Riesgo: ${r.calificacion_riesgo}/10\n\n`;
+
+    contenido += `${'─'.repeat(60)}\n`;
+    contenido += `DATOS EXTRAÍDOS\n`;
+    contenido += `${'─'.repeat(60)}\n`;
+    contenido += `Representante Legal: ${r.datos_extraidos.representante_legal}\n`;
+    contenido += `Notaría: ${r.datos_extraidos.notaria}\n`;
+    contenido += `No. Escritura: ${r.datos_extraidos.numero_escritura}\n`;
+    contenido += `Fecha del Contrato: ${r.datos_extraidos.fecha_contrato}\n`;
+    contenido += `Partes: ${r.datos_extraidos.partes.join(' | ')}\n`;
+    contenido += `Objeto: ${r.datos_extraidos.objeto_contrato}\n`;
+    contenido += `Vigencia: ${r.datos_extraidos.vigencia}\n`;
+    contenido += `Monto/Tarifa: ${r.datos_extraidos.monto_o_tarifa}\n\n`;
+
+    contenido += `${'─'.repeat(60)}\n`;
+    contenido += `ANÁLISIS LEONINO: ${r.es_leonino ? '⚠️ SÍ - CONTRATO LEONINO DETECTADO' : '✅ NO ES LEONINO'}\n`;
+    contenido += `${'─'.repeat(60)}\n`;
+    contenido += `${r.explicacion_leonino}\n\n`;
+
+    contenido += `${'─'.repeat(60)}\n`;
+    contenido += `PUNTOS DE RIESGO (${r.riesgos.length})\n`;
+    contenido += `${'─'.repeat(60)}\n`;
+    r.riesgos.forEach((riesgo, i) => {
+      contenido += `\n${i + 1}. [${riesgo.severidad}] ${riesgo.clausula}\n`;
+      contenido += `   Descripción: ${riesgo.descripcion}\n`;
+      contenido += `   Sugerencia: ${riesgo.sugerencia}\n`;
+    });
+
+    if (r.clausulas_faltantes.length > 0) {
+      contenido += `\n${'─'.repeat(60)}\n`;
+      contenido += `CLÁUSULAS FALTANTES\n`;
+      contenido += `${'─'.repeat(60)}\n`;
+      r.clausulas_faltantes.forEach((c, i) => {
+        contenido += `${i + 1}. ${c}\n`;
+      });
+    }
+
+    contenido += `\n${'─'.repeat(60)}\n`;
+    contenido += `RESUMEN EJECUTIVO\n`;
+    contenido += `${'─'.repeat(60)}\n`;
+    contenido += `${r.resumen_ejecutivo}\n`;
+
+    contenido += `\n${'═'.repeat(60)}\n`;
+    contenido += `VERSIÓN BLINDADA / MODIFICACIONES SUGERIDAS\n`;
+    contenido += `${'═'.repeat(60)}\n`;
+    contenido += `${r.version_blindada}\n`;
+
+    contenido += `\n\n${'═'.repeat(60)}\n`;
+    contenido += `Documento generado por FX27 - Análisis de Contratos con IA\n`;
+    contenido += `GRUPO LOMA | TROB TRANSPORTES\n`;
+    contenido += `${new Date().toLocaleString('es-MX')}\n`;
+
+    const blob = new Blob([contenido], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `Analisis_Contrato_${archivoContrato?.name?.replace(/\.[^/.]+$/, '') || 'documento'}_${new Date().toISOString().split('T')[0]}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  const resetAnalisis = () => {
+    setArchivoContrato(null);
+    setArchivoBase64('');
+    setAnalisisResultado(null);
+    setAnalisisError('');
+  };
+
+  const getSeveridadColor = (severidad: string) => {
+    switch (severidad) {
+      case 'ALTA': return { bg: 'rgba(239,68,68,0.15)', border: 'rgba(239,68,68,0.4)', text: '#fca5a5', icon: '#ef4444' };
+      case 'MEDIA': return { bg: 'rgba(245,158,11,0.15)', border: 'rgba(245,158,11,0.4)', text: '#fcd34d', icon: '#f59e0b' };
+      case 'BAJA': return { bg: 'rgba(59,130,246,0.15)', border: 'rgba(59,130,246,0.4)', text: '#93c5fd', icon: '#3b82f6' };
+      default: return { bg: 'rgba(107,114,128,0.15)', border: 'rgba(107,114,128,0.4)', text: '#d1d5db', icon: '#6b7280' };
+    }
+  };
+
+  const getRiesgoGlobalColor = (score: number) => {
+    if (score <= 3) return { color: '#22c55e', label: 'BAJO', bg: 'rgba(34,197,94,0.15)' };
+    if (score <= 6) return { color: '#f59e0b', label: 'MEDIO', bg: 'rgba(245,158,11,0.15)' };
+    return { color: '#ef4444', label: 'ALTO', bg: 'rgba(239,68,68,0.15)' };
+  };
+
+  // ═══════════════════════════════════════════════════════════
   // HUB - ESTILO DASHBOARD
   // ═══════════════════════════════════════════════════════════
   const renderHub = () => {
     const botones = [
       { id: 'nueva-alta', nombre: 'Nueva Alta', icon: UserPlus },
-      { id: 'clientes', nombre: 'Clientes', icon: Users },
+      { id: 'clientes', nombre: 'Solicitudes', icon: FileText },
+      { id: 'analisis-contratos', nombre: 'Análisis de\nContratos', icon: Scale },
     ];
 
     return (
@@ -202,8 +425,20 @@ export const ClientesModule = ({ onBack }: ClientesModuleProps) => {
           }}
         />
 
+        {/* Título */}
+        <div className="relative z-10 pt-10 pb-4 px-12">
+          <h2 style={{
+            fontFamily: "'Exo 2', sans-serif",
+            fontSize: '22px',
+            fontWeight: 600,
+            color: 'rgba(255, 255, 255, 0.9)',
+          }}>
+            Administración de Clientes
+          </h2>
+        </div>
+
         {/* Contenido */}
-        <div className="relative z-10 p-12">
+        <div className="relative z-10 px-12 pb-12">
           <div className="flex gap-6">
             {botones.map((btn) => {
               const Icon = btn.icon;
@@ -220,8 +455,8 @@ export const ClientesModule = ({ onBack }: ClientesModuleProps) => {
                     backgroundClip: 'padding-box, border-box',
                     boxShadow: '0 2px 4px rgba(0, 0, 0, 0.25), 0 4px 12px rgba(0, 0, 0, 0.45), 0 8px 24px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.05), inset 0 -1px 0 rgba(0, 0, 0, 0.35), inset 2px 2px 4px rgba(30, 50, 80, 0.12), inset -2px -2px 4px rgba(0, 0, 0, 0.2)',
                     borderRadius: '12px',
-                    width: '250px',
-                    height: '212px',
+                    width: '180px',
+                    height: '180px',
                     cursor: 'pointer',
                   }}
                   onMouseEnter={(e) => {
@@ -235,14 +470,16 @@ export const ClientesModule = ({ onBack }: ClientesModuleProps) => {
                     e.currentTarget.style.boxShadow = '0 2px 4px rgba(0, 0, 0, 0.25), 0 4px 12px rgba(0, 0, 0, 0.45), 0 8px 24px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.05), inset 0 -1px 0 rgba(0, 0, 0, 0.35), inset 2px 2px 4px rgba(30, 50, 80, 0.12), inset -2px -2px 4px rgba(0, 0, 0, 0.2)';
                   }}
                 >
-                  <Icon style={{ width: '70px', height: '70px', color: 'rgba(255, 255, 255, 0.7)' }} />
+                  <Icon style={{ width: '56px', height: '56px', color: 'rgba(255, 255, 255, 0.7)' }} />
                   <span
                     style={{
                       fontFamily: "'Exo 2', sans-serif",
-                      fontSize: '19px',
+                      fontSize: '15px',
                       fontWeight: 500,
                       color: 'rgba(255, 255, 255, 0.85)',
                       textAlign: 'center',
+                      whiteSpace: 'pre-line',
+                      lineHeight: '1.3',
                     }}
                   >
                     {btn.nombre}
@@ -560,6 +797,381 @@ export const ClientesModule = ({ onBack }: ClientesModuleProps) => {
   };
 
   // ═══════════════════════════════════════════════════════════
+  // ANÁLISIS DE CONTRATOS - VISTA COMPLETA
+  // ═══════════════════════════════════════════════════════════
+  const renderAnalisisContratos = () => {
+    return (
+      <div className="p-8 max-w-5xl mx-auto">
+        <button onClick={() => { setVista('hub'); resetAnalisis(); }} className="flex items-center gap-2 mb-6 text-white/60 hover:text-white transition-colors">
+          <ArrowLeft className="w-5 h-5" />
+          <span style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '14px' }}>Volver</span>
+        </button>
+
+        {/* Header */}
+        <div className="flex items-center gap-4 mb-8">
+          <div className="p-3 rounded-xl" style={{ background: 'rgba(139, 92, 246, 0.2)' }}>
+            <Scale className="w-8 h-8" style={{ color: '#a78bfa' }} />
+          </div>
+          <div>
+            <h3 style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '22px', fontWeight: 600, color: '#fff' }}>Análisis de Contratos</h3>
+            <p style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '13px', color: 'rgba(255,255,255,0.5)' }}>
+              Análisis con IA — Detecta cláusulas leoninas, riesgos y genera versión blindada para TROB
+            </p>
+          </div>
+        </div>
+
+        {/* Zona de carga de archivo */}
+        {!analisisResultado && (
+          <div className="rounded-xl p-8" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.1)' }}>
+            
+            {/* Drop zone */}
+            <div
+              className="relative rounded-xl p-12 text-center cursor-pointer transition-all duration-300"
+              style={{
+                background: dragOver ? 'rgba(139, 92, 246, 0.1)' : 'rgba(255,255,255,0.02)',
+                border: `2px dashed ${dragOver ? 'rgba(139, 92, 246, 0.6)' : archivoContrato ? 'rgba(34,197,94,0.4)' : 'rgba(255,255,255,0.15)'}`,
+              }}
+              onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+              onDragLeave={() => setDragOver(false)}
+              onDrop={handleDrop}
+              onClick={() => fileInputRef.current?.click()}
+            >
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".pdf,.doc,.docx,.png,.jpg,.jpeg"
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) handleFileSelect(file);
+                }}
+              />
+
+              {archivoContrato ? (
+                <div className="flex flex-col items-center gap-4">
+                  <div className="p-4 rounded-full" style={{ background: 'rgba(34,197,94,0.15)' }}>
+                    <FileText className="w-12 h-12" style={{ color: '#22c55e' }} />
+                  </div>
+                  <div>
+                    <p style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '16px', fontWeight: 600, color: '#fff' }}>
+                      {archivoContrato.name}
+                    </p>
+                    <p style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '13px', color: 'rgba(255,255,255,0.5)', marginTop: '4px' }}>
+                      {(archivoContrato.size / 1024 / 1024).toFixed(2)} MB
+                    </p>
+                  </div>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); resetAnalisis(); }}
+                    className="flex items-center gap-2 px-4 py-2 rounded-lg hover:bg-white/10 transition-colors"
+                    style={{ border: '1px solid rgba(255,255,255,0.15)' }}
+                  >
+                    <RotateCcw className="w-4 h-4 text-white/60" />
+                    <span style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '13px', color: 'rgba(255,255,255,0.6)' }}>Cambiar archivo</span>
+                  </button>
+                </div>
+              ) : (
+                <div className="flex flex-col items-center gap-4">
+                  <div className="p-4 rounded-full" style={{ background: 'rgba(139, 92, 246, 0.1)' }}>
+                    <Upload className="w-12 h-12" style={{ color: 'rgba(255,255,255,0.4)' }} />
+                  </div>
+                  <div>
+                    <p style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '16px', fontWeight: 500, color: 'rgba(255,255,255,0.8)' }}>
+                      Arrastra el contrato aquí o haz clic para seleccionar
+                    </p>
+                    <p style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '13px', color: 'rgba(255,255,255,0.4)', marginTop: '8px' }}>
+                      Formatos aceptados: PDF, Word (.docx), Imágenes (PNG, JPG) — Máx. 10MB
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Error */}
+            {analisisError && (
+              <div className="mt-4 p-4 rounded-lg flex items-center gap-3" style={{ background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)' }}>
+                <AlertCircle className="w-5 h-5 flex-shrink-0" style={{ color: '#ef4444' }} />
+                <span style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '14px', color: '#fca5a5' }}>{analisisError}</span>
+              </div>
+            )}
+
+            {/* Botón analizar */}
+            <button
+              onClick={analizarContrato}
+              disabled={!archivoContrato || analizandoContrato}
+              className="w-full mt-6 flex items-center justify-center gap-3 py-4 rounded-lg transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+              style={{
+                background: archivoContrato ? 'linear-gradient(135deg, #7c3aed 0%, #5b21b6 100%)' : 'rgba(255,255,255,0.05)',
+                fontFamily: "'Exo 2', sans-serif",
+                fontSize: '15px',
+                fontWeight: 600,
+                color: '#fff',
+              }}
+            >
+              {analizandoContrato ? (
+                <>
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                  Analizando contrato con IA... Esto puede tomar 30-60 segundos
+                </>
+              ) : (
+                <>
+                  <Scale className="w-5 h-5" />
+                  Analizar Contrato
+                </>
+              )}
+            </button>
+
+            {/* Animación de análisis */}
+            {analizandoContrato && (
+              <div className="mt-6 space-y-3">
+                {['Extrayendo texto del documento...', 'Identificando partes y representantes...', 'Analizando cláusulas y condiciones...', 'Evaluando riesgos y cláusulas leoninas...', 'Generando versión blindada para TROB...'].map((paso, i) => (
+                  <div key={i} className="flex items-center gap-3 animate-pulse" style={{ animationDelay: `${i * 0.3}s` }}>
+                    <div className="w-2 h-2 rounded-full" style={{ background: '#a78bfa' }} />
+                    <span style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '13px', color: 'rgba(255,255,255,0.5)' }}>{paso}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ═══ RESULTADOS DEL ANÁLISIS ═══ */}
+        {analisisResultado && (
+          <div className="space-y-4">
+
+            {/* Barra de riesgo global */}
+            {(() => {
+              const rg = getRiesgoGlobalColor(analisisResultado.calificacion_riesgo);
+              return (
+                <div className="rounded-xl p-6 flex items-center justify-between" style={{ background: rg.bg, border: `1px solid ${rg.color}40` }}>
+                  <div className="flex items-center gap-4">
+                    {analisisResultado.calificacion_riesgo > 6 ? (
+                      <ShieldAlert className="w-10 h-10" style={{ color: rg.color }} />
+                    ) : analisisResultado.calificacion_riesgo > 3 ? (
+                      <Shield className="w-10 h-10" style={{ color: rg.color }} />
+                    ) : (
+                      <ShieldCheck className="w-10 h-10" style={{ color: rg.color }} />
+                    )}
+                    <div>
+                      <p style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '18px', fontWeight: 700, color: rg.color }}>
+                        RIESGO {rg.label} — {analisisResultado.calificacion_riesgo}/10
+                      </p>
+                      <p style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '13px', color: 'rgba(255,255,255,0.6)' }}>
+                        {analisisResultado.riesgos.length} puntos de riesgo detectados
+                        {analisisResultado.es_leonino && ' — CONTRATO LEONINO DETECTADO'}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex gap-3">
+                    <button
+                      onClick={descargarAnalisis}
+                      className="flex items-center gap-2 px-5 py-3 rounded-lg transition-all hover:brightness-110"
+                      style={{ background: 'linear-gradient(135deg, #fe5000 0%, #cc4000 100%)', fontFamily: "'Exo 2', sans-serif", fontSize: '14px', fontWeight: 600, color: '#fff' }}
+                    >
+                      <FileDown className="w-5 h-5" />
+                      Descargar Análisis
+                    </button>
+                    <button
+                      onClick={resetAnalisis}
+                      className="flex items-center gap-2 px-4 py-3 rounded-lg hover:bg-white/10 transition-colors"
+                      style={{ border: '1px solid rgba(255,255,255,0.2)', fontFamily: "'Exo 2', sans-serif", fontSize: '14px', color: 'rgba(255,255,255,0.7)' }}
+                    >
+                      <RotateCcw className="w-4 h-4" />
+                      Nuevo Análisis
+                    </button>
+                  </div>
+                </div>
+              );
+            })()}
+
+            {/* Sección: Datos Extraídos */}
+            <div className="rounded-xl overflow-hidden" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
+              <button onClick={() => toggleSeccion('datos')} className="w-full flex items-center justify-between p-5 hover:bg-white/5 transition-colors">
+                <div className="flex items-center gap-3">
+                  <FileText className="w-5 h-5" style={{ color: '#a78bfa' }} />
+                  <span style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '16px', fontWeight: 600, color: '#fff' }}>Datos Extraídos del Contrato</span>
+                </div>
+                {seccionesAbiertas.datos ? <ChevronUp className="w-5 h-5 text-white/40" /> : <ChevronDown className="w-5 h-5 text-white/40" />}
+              </button>
+              {seccionesAbiertas.datos && (
+                <div className="px-5 pb-5">
+                  <div className="grid grid-cols-2 gap-4">
+                    {[
+                      { label: 'Representante Legal', value: analisisResultado.datos_extraidos.representante_legal },
+                      { label: 'Notaría', value: analisisResultado.datos_extraidos.notaria },
+                      { label: 'No. Escritura', value: analisisResultado.datos_extraidos.numero_escritura },
+                      { label: 'Fecha del Contrato', value: analisisResultado.datos_extraidos.fecha_contrato },
+                      { label: 'Objeto del Contrato', value: analisisResultado.datos_extraidos.objeto_contrato },
+                      { label: 'Vigencia', value: analisisResultado.datos_extraidos.vigencia },
+                      { label: 'Monto / Tarifa', value: analisisResultado.datos_extraidos.monto_o_tarifa },
+                    ].map((campo) => (
+                      <div key={campo.label} className="p-3 rounded-lg" style={{ background: 'rgba(255,255,255,0.03)' }}>
+                        <p style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '11px', fontWeight: 600, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{campo.label}</p>
+                        <p style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '14px', color: '#fff', marginTop: '4px' }}>{campo.value || 'No especificado'}</p>
+                      </div>
+                    ))}
+                    <div className="col-span-2 p-3 rounded-lg" style={{ background: 'rgba(255,255,255,0.03)' }}>
+                      <p style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '11px', fontWeight: 600, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Partes del Contrato</p>
+                      <p style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '14px', color: '#fff', marginTop: '4px' }}>{analisisResultado.datos_extraidos.partes.join(' — ')}</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Sección: Análisis Leonino */}
+            <div className="rounded-xl overflow-hidden" style={{
+              background: analisisResultado.es_leonino ? 'rgba(239,68,68,0.05)' : 'rgba(34,197,94,0.05)',
+              border: `1px solid ${analisisResultado.es_leonino ? 'rgba(239,68,68,0.2)' : 'rgba(34,197,94,0.2)'}`,
+            }}>
+              <button onClick={() => toggleSeccion('leonino')} className="w-full flex items-center justify-between p-5 hover:bg-white/5 transition-colors">
+                <div className="flex items-center gap-3">
+                  {analisisResultado.es_leonino ? (
+                    <AlertTriangle className="w-5 h-5" style={{ color: '#ef4444' }} />
+                  ) : (
+                    <ShieldCheck className="w-5 h-5" style={{ color: '#22c55e' }} />
+                  )}
+                  <span style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '16px', fontWeight: 600, color: '#fff' }}>
+                    Análisis de Cláusulas Leoninas — {analisisResultado.es_leonino ? 'DETECTADO' : 'NO DETECTADO'}
+                  </span>
+                </div>
+                {seccionesAbiertas.leonino ? <ChevronUp className="w-5 h-5 text-white/40" /> : <ChevronDown className="w-5 h-5 text-white/40" />}
+              </button>
+              {seccionesAbiertas.leonino && (
+                <div className="px-5 pb-5">
+                  <p style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '14px', color: 'rgba(255,255,255,0.8)', lineHeight: '1.7', whiteSpace: 'pre-wrap' }}>
+                    {analisisResultado.explicacion_leonino}
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {/* Sección: Puntos de Riesgo */}
+            <div className="rounded-xl overflow-hidden" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
+              <button onClick={() => toggleSeccion('riesgos')} className="w-full flex items-center justify-between p-5 hover:bg-white/5 transition-colors">
+                <div className="flex items-center gap-3">
+                  <FileWarning className="w-5 h-5" style={{ color: '#f59e0b' }} />
+                  <span style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '16px', fontWeight: 600, color: '#fff' }}>
+                    Puntos de Riesgo ({analisisResultado.riesgos.length})
+                  </span>
+                </div>
+                {seccionesAbiertas.riesgos ? <ChevronUp className="w-5 h-5 text-white/40" /> : <ChevronDown className="w-5 h-5 text-white/40" />}
+              </button>
+              {seccionesAbiertas.riesgos && (
+                <div className="px-5 pb-5 space-y-3">
+                  {analisisResultado.riesgos.map((riesgo, i) => {
+                    const col = getSeveridadColor(riesgo.severidad);
+                    return (
+                      <div key={i} className="rounded-lg p-4" style={{ background: col.bg, border: `1px solid ${col.border}` }}>
+                        <div className="flex items-start justify-between mb-2">
+                          <p style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '15px', fontWeight: 600, color: '#fff' }}>
+                            {riesgo.clausula}
+                          </p>
+                          <span className="flex-shrink-0 px-3 py-1 rounded-full text-xs font-bold" style={{ background: col.bg, color: col.text, border: `1px solid ${col.border}` }}>
+                            {riesgo.severidad}
+                          </span>
+                        </div>
+                        <p style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '13px', color: 'rgba(255,255,255,0.7)', marginBottom: '8px' }}>
+                          {riesgo.descripcion}
+                        </p>
+                        <div className="flex items-start gap-2 p-3 rounded-lg" style={{ background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.2)' }}>
+                          <ShieldCheck className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color: '#22c55e' }} />
+                          <p style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '12px', color: '#86efac' }}>
+                            <strong>Sugerencia:</strong> {riesgo.sugerencia}
+                          </p>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            {/* Sección: Cláusulas Faltantes */}
+            {analisisResultado.clausulas_faltantes.length > 0 && (
+              <div className="rounded-xl overflow-hidden" style={{ background: 'rgba(245,158,11,0.05)', border: '1px solid rgba(245,158,11,0.2)' }}>
+                <button onClick={() => toggleSeccion('faltantes')} className="w-full flex items-center justify-between p-5 hover:bg-white/5 transition-colors">
+                  <div className="flex items-center gap-3">
+                    <AlertTriangle className="w-5 h-5" style={{ color: '#f59e0b' }} />
+                    <span style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '16px', fontWeight: 600, color: '#fff' }}>
+                      Cláusulas Faltantes ({analisisResultado.clausulas_faltantes.length})
+                    </span>
+                  </div>
+                  {seccionesAbiertas.faltantes ? <ChevronUp className="w-5 h-5 text-white/40" /> : <ChevronDown className="w-5 h-5 text-white/40" />}
+                </button>
+                {seccionesAbiertas.faltantes && (
+                  <div className="px-5 pb-5 space-y-2">
+                    {analisisResultado.clausulas_faltantes.map((clausula, i) => (
+                      <div key={i} className="flex items-start gap-3 p-3 rounded-lg" style={{ background: 'rgba(255,255,255,0.03)' }}>
+                        <span style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '13px', fontWeight: 700, color: '#f59e0b', minWidth: '24px' }}>{i + 1}.</span>
+                        <p style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '13px', color: 'rgba(255,255,255,0.8)' }}>{clausula}</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Sección: Resumen Ejecutivo */}
+            <div className="rounded-xl overflow-hidden" style={{ background: 'rgba(59,130,246,0.05)', border: '1px solid rgba(59,130,246,0.2)' }}>
+              <button onClick={() => toggleSeccion('resumen')} className="w-full flex items-center justify-between p-5 hover:bg-white/5 transition-colors">
+                <div className="flex items-center gap-3">
+                  <FileText className="w-5 h-5" style={{ color: '#3b82f6' }} />
+                  <span style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '16px', fontWeight: 600, color: '#fff' }}>Resumen Ejecutivo</span>
+                </div>
+                {seccionesAbiertas.resumen ? <ChevronUp className="w-5 h-5 text-white/40" /> : <ChevronDown className="w-5 h-5 text-white/40" />}
+              </button>
+              {seccionesAbiertas.resumen && (
+                <div className="px-5 pb-5">
+                  <p style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '14px', color: 'rgba(255,255,255,0.8)', lineHeight: '1.7', whiteSpace: 'pre-wrap' }}>
+                    {analisisResultado.resumen_ejecutivo}
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {/* Sección: Versión Blindada */}
+            <div className="rounded-xl overflow-hidden" style={{ background: 'rgba(34,197,94,0.05)', border: '1px solid rgba(34,197,94,0.2)' }}>
+              <button onClick={() => toggleSeccion('blindado')} className="w-full flex items-center justify-between p-5 hover:bg-white/5 transition-colors">
+                <div className="flex items-center gap-3">
+                  <ShieldCheck className="w-5 h-5" style={{ color: '#22c55e' }} />
+                  <span style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '16px', fontWeight: 600, color: '#fff' }}>Versión Blindada — Modificaciones para TROB</span>
+                </div>
+                {seccionesAbiertas.blindado ? <ChevronUp className="w-5 h-5 text-white/40" /> : <ChevronDown className="w-5 h-5 text-white/40" />}
+              </button>
+              {seccionesAbiertas.blindado && (
+                <div className="px-5 pb-5">
+                  <p style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '14px', color: 'rgba(255,255,255,0.8)', lineHeight: '1.7', whiteSpace: 'pre-wrap' }}>
+                    {analisisResultado.version_blindada}
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {/* Botón descargar al final */}
+            <div className="flex justify-center pt-4">
+              <button
+                onClick={descargarAnalisis}
+                className="flex items-center gap-3 px-8 py-4 rounded-xl transition-all hover:brightness-110"
+                style={{
+                  background: 'linear-gradient(135deg, #fe5000 0%, #cc4000 100%)',
+                  fontFamily: "'Exo 2', sans-serif",
+                  fontSize: '16px',
+                  fontWeight: 600,
+                  color: '#fff',
+                  boxShadow: '0 4px 15px rgba(254, 80, 0, 0.3)',
+                }}
+              >
+                <FileDown className="w-6 h-6" />
+                Descargar Análisis Completo
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  // ═══════════════════════════════════════════════════════════
   // RENDER PRINCIPAL
   // ═══════════════════════════════════════════════════════════
   return (
@@ -569,6 +1181,7 @@ export const ClientesModule = ({ onBack }: ClientesModuleProps) => {
         {vista === 'nueva-alta' && renderNuevaAlta()}
         {vista === 'clientes' && renderClientes()}
         {vista === 'detalle-cliente' && renderDetalleCliente()}
+        {vista === 'analisis-contratos' && renderAnalisisContratos()}
       </div>
     </ModuleTemplate>
   );
