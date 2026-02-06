@@ -88,34 +88,76 @@ export default function AnalisisContratosModule({ onBack }: Props) {
   const descargarContratoLlenado = () => {
     if (!resultado) return;
     const r = resultado;
-    const html = `
-<div class="header">
-  <div class="logo-area"><div class="logo-text">FX27</div><div><div style="font-size:18px;font-weight:700;">Contrato Completo</div><div class="logo-sub">${archivoContrato?.name || 'Contrato'}</div></div></div>
-  <div><div class="fecha">${new Date().toLocaleDateString('es-MX', { day: '2-digit', month: 'long', year: 'numeric' })}</div></div>
-</div>
-<div class="section"><div class="content" style="font-size:13px;line-height:2;">${r.contrato_llenado || r.version_blindada || 'No se pudo generar el contrato llenado.'}</div></div>`;
-    generarPDF('Contrato — ' + (archivoContrato?.name || ''), html, '#1a1a2e');
+    const w = window.open('', '_blank');
+    if (!w) return;
+    w.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Contrato — ${archivoContrato?.name || ''}</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Merriweather:wght@300;400;700&family=Exo+2:wght@400;600;700&display=swap');
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: 'Merriweather', 'Times New Roman', serif; color: #1a1a1a; padding: 60px 70px; line-height: 1.9; font-size: 12.5px; }
+.watermark { position: fixed; top: 20px; right: 30px; font-family: 'Exo 2', sans-serif; font-size: 10px; color: #ccc; }
+.header { text-align: center; margin-bottom: 40px; padding-bottom: 20px; border-bottom: 2px solid #1a1a1a; }
+.header h1 { font-family: 'Exo 2', sans-serif; font-size: 11px; color: #666; letter-spacing: 0.15em; text-transform: uppercase; margin-bottom: 5px; }
+.header .date { font-size: 11px; color: #888; }
+.contract-body { white-space: pre-wrap; text-align: justify; }
+.footer { margin-top: 60px; padding-top: 20px; border-top: 1px solid #ddd; text-align: center; font-family: 'Exo 2', sans-serif; font-size: 10px; color: #aaa; }
+.no-print { text-align: center; margin-bottom: 30px; }
+.no-print button { background: #1a1a1a; color: #fff; border: none; padding: 12px 30px; border-radius: 6px; font-size: 14px; font-weight: 600; cursor: pointer; font-family: 'Exo 2', sans-serif; }
+.no-print p { margin-top: 8px; font-size: 12px; color: #888; font-family: 'Exo 2', sans-serif; }
+@media print { .no-print { display: none; } .watermark { position: fixed; } body { padding: 40px 50px; } }
+</style></head><body>
+<div class="no-print"><button onclick="window.print()">Descargar PDF</button><p>Ctrl+P → Guardar como PDF</p></div>
+<div class="watermark">FX27 — GRUPO LOMA</div>
+<div class="header"><h1>Contrato Generado por FX27</h1><div class="date">${new Date().toLocaleDateString('es-MX', { day: '2-digit', month: 'long', year: 'numeric' })}</div></div>
+<div class="contract-body">${r.contrato_llenado || r.version_blindada || 'No se pudo generar el contrato.'}</div>
+<div class="footer">Documento procesado por FX27 — GRUPO LOMA | TROB TRANSPORTES — ${new Date().toLocaleString('es-MX')}</div>
+</body></html>`);
+    w.document.close();
   };
 
   // ═══ DESCARGAR VERSIÓN BLINDADA (PDF) ═══
   const descargarBlindada = () => {
     if (!resultado) return;
     const r = resultado;
-    const html = `
-<div class="header">
-  <div class="logo-area"><div class="logo-text">FX27</div><div><div style="font-size:18px;font-weight:700;">Versión Blindada para TROB</div><div class="logo-sub">Protección legal — ${archivoContrato?.name || 'Contrato'}</div></div></div>
-  <div><div class="badge" style="background:#22c55e;">VERSIÓN PROTEGIDA</div><div class="fecha">${new Date().toLocaleDateString('es-MX', { day: '2-digit', month: 'long', year: 'numeric' })}</div></div>
-</div>
-<div class="section"><div class="section-title" style="color:#22c55e;">Contrato Blindado — Listo para Firma</div>
-<div class="content" style="font-size:13px;line-height:2;">${resultado.version_blindada}</div></div>
-<div class="section" style="margin-top:40px;">
-<div class="grid">
-  <div class="grid-item" style="border-left-color:#22c55e;"><div class="grid-label">Representante Legal TROB</div><div class="grid-value">Alejandro López Ramírez</div></div>
-  <div class="grid-item" style="border-left-color:#22c55e;"><div class="grid-label">Escritura</div><div class="grid-value">21,183 — Vol 494 — Notaría 35</div></div>
-  <div class="grid-item" style="border-left-color:#22c55e;"><div class="grid-label">RFC</div><div class="grid-value">TTR151216CHA</div></div>
-  <div class="grid-item" style="border-left-color:#22c55e;"><div class="grid-label">Jurisdicción</div><div class="grid-value">Aguascalientes, Aguascalientes</div></div>
-</div></div>`;
-    generarPDF('Versión Blindada TROB — ' + (archivoContrato?.name || ''), html, '#22c55e');
+    const w = window.open('', '_blank');
+    if (!w) return;
+    w.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Contrato Blindado TROB — ${archivoContrato?.name || ''}</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Merriweather:wght@300;400;700&family=Exo+2:wght@400;600;700&display=swap');
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: 'Merriweather', 'Times New Roman', serif; color: #1a1a1a; padding: 60px 70px; line-height: 1.9; font-size: 12.5px; }
+.watermark { position: fixed; top: 20px; right: 30px; font-family: 'Exo 2', sans-serif; font-size: 10px; color: #16a34a; }
+.header { text-align: center; margin-bottom: 40px; padding-bottom: 20px; border-bottom: 2px solid #16a34a; }
+.header h1 { font-family: 'Exo 2', sans-serif; font-size: 11px; color: #16a34a; letter-spacing: 0.15em; text-transform: uppercase; margin-bottom: 5px; }
+.header .sub { font-size: 11px; color: #888; margin-top: 3px; }
+.contract-body { white-space: pre-wrap; text-align: justify; }
+.datos-trob { margin-top: 50px; padding: 20px; border: 1px solid #e0e0e0; border-radius: 8px; font-family: 'Exo 2', sans-serif; font-size: 11px; }
+.datos-trob h3 { font-size: 12px; color: #16a34a; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.1em; }
+.datos-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.dato { color: #555; }
+.dato strong { color: #1a1a1a; }
+.footer { margin-top: 60px; padding-top: 20px; border-top: 1px solid #ddd; text-align: center; font-family: 'Exo 2', sans-serif; font-size: 10px; color: #aaa; }
+.no-print { text-align: center; margin-bottom: 30px; }
+.no-print button { background: #16a34a; color: #fff; border: none; padding: 12px 30px; border-radius: 6px; font-size: 14px; font-weight: 600; cursor: pointer; font-family: 'Exo 2', sans-serif; }
+.no-print p { margin-top: 8px; font-size: 12px; color: #888; font-family: 'Exo 2', sans-serif; }
+@media print { .no-print { display: none; } body { padding: 40px 50px; } }
+</style></head><body>
+<div class="no-print"><button onclick="window.print()">Descargar PDF</button><p>Ctrl+P → Guardar como PDF</p></div>
+<div class="watermark">FX27 — VERSIÓN BLINDADA</div>
+<div class="header"><h1>Contrato Blindado — Protección TROB</h1><div class="sub">Original: ${archivoContrato?.name || ''} | Riesgo original: ${r.calificacion_riesgo}/10</div></div>
+<div class="contract-body">${r.version_blindada}</div>
+<div class="datos-trob"><h3>Datos de TROB utilizados</h3><div class="datos-grid">
+<div class="dato"><strong>Razón Social:</strong> TROB TRANSPORTES, S.A. DE C.V.</div>
+<div class="dato"><strong>RFC:</strong> TTR151216CHA</div>
+<div class="dato"><strong>Escritura:</strong> 21,183 Vol 494 — Notaría 35</div>
+<div class="dato"><strong>Notario:</strong> Lic. Fernando Quezada Leos, Ags</div>
+<div class="dato"><strong>Rep. Legal:</strong> Alejandro López Ramírez</div>
+<div class="dato"><strong>Banco:</strong> BBVA — CLABE 012010001042583559</div>
+<div class="dato"><strong>Jurisdicción:</strong> Aguascalientes, Aguascalientes</div>
+</div></div>
+<div class="footer">Documento procesado por FX27 — GRUPO LOMA | TROB TRANSPORTES — ${new Date().toLocaleString('es-MX')}</div>
+</body></html>`);
+    w.document.close();
   };
 
   // ═══ DESCARGAR ANÁLISIS DE RIESGOS (PDF) ═══

@@ -285,12 +285,20 @@ EN LA VERSIÓN BLINDADA:
 - Procedimiento de reclamaciones con plazos
 - Límite de indemnización razonable
 
-IMPORTANTE SOBRE contrato_llenado:
-- Reproduce el contrato ORIGINAL tal cual está redactado, palabra por palabra
-- Solo rellena los espacios en blanco, guiones bajos (___), campos vacíos con los datos correctos
+REGLA CRÍTICA SOBRE contrato_llenado:
+- DEBES reproducir el contrato COMPLETO, TODAS las cláusulas, TODOS los párrafos, CADA palabra
+- NUNCA uses frases como "[resto del contrato...]", "[continúa igual...]", "[ver original...]" o cualquier resumen/atajo
+- Si el contrato tiene 50 cláusulas, las 50 deben aparecer completas
+- Solo rellena los espacios en blanco (___), fechas vacías, campos por definir
 - La fecha debe ser la fecha de análisis proporcionada
 - NO modifiques la redacción, NO agregues cláusulas, NO cambies el orden
-- Es el mismo contrato pero "limpio" y completo, listo para firma
+- Es el contrato IDÉNTICO pero sin campos vacíos, listo para firma
+- Si truncas o resumes el contrato, el resultado es INÚTIL y INACEPTABLE
+
+REGLA CRÍTICA SOBRE version_blindada:
+- DEBES escribir el contrato COMPLETO con TODAS las modificaciones, TODAS las cláusulas
+- NUNCA uses frases como "[resto igual...]", "[mantener cláusula original...]" o resúmenes
+- Cada cláusula modificada debe estar completa, y las no modificadas también deben aparecer íntegras
 
 RESPONDE EXCLUSIVAMENTE en JSON válido (sin markdown, sin backticks, solo JSON puro):
 {
@@ -304,7 +312,7 @@ RESPONDE EXCLUSIVAMENTE en JSON válido (sin markdown, sin backticks, solo JSON 
     "vigencia": "período de vigencia",
     "monto_o_tarifa": "monto o tarifa acordada"
   },
-  "contrato_llenado": "El contrato original COMPLETO reproducido tal cual pero con TODOS los espacios en blanco rellenados con los datos correctos y la fecha del día. Debe ser idéntico al original solo que sin campos vacíos.",
+  "contrato_llenado": "OBLIGATORIO: El texto COMPLETO del contrato original, cláusula por cláusula, párrafo por párrafo, palabra por palabra. Solo con los espacios en blanco rellenados y la fecha del día. NUNCA truncar, NUNCA resumir, NUNCA usar [...]. CADA cláusula debe estar aquí.",
   "es_leonino": true,
   "explicacion_leonino": "explicación detallada",
   "riesgos": [
@@ -316,7 +324,7 @@ RESPONDE EXCLUSIVAMENTE en JSON válido (sin markdown, sin backticks, solo JSON 
     }
   ],
   "clausulas_faltantes": ["descripción de cada cláusula que falta"],
-  "version_blindada": "CONTRATO COMPLETO modificado con todas las protecciones para TROB, usando datos reales de la empresa",
+  "version_blindada": "OBLIGATORIO: El contrato COMPLETO reescrito con TODAS las protecciones para TROB. CADA cláusula debe estar aquí, las modificadas y las no modificadas. NUNCA truncar.",
   "calificacion_riesgo": 7,
   "resumen_ejecutivo": "resumen ejecutivo con hallazgos y recomendaciones"
 }`;
@@ -332,7 +340,7 @@ RESPONDE EXCLUSIVAMENTE en JSON válido (sin markdown, sin backticks, solo JSON 
       },
       body: JSON.stringify({
         model: "claude-sonnet-4-20250514",
-        max_tokens: 32000,
+        max_tokens: 64000,
         system: systemPrompt,
         messages: [{ role: "user", content: userContent }],
       }),
