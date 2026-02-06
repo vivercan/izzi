@@ -1,5 +1,6 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import * as fflate from "https://esm.sh/fflate@0.8.2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -7,7 +8,7 @@ const corsHeaders = {
 };
 
 // ═══════════════════════════════════════════════════════════════
-// DATOS DE TROB TRANSPORTES - Para referencia en análisis
+// DATOS DE TROB TRANSPORTES
 // ═══════════════════════════════════════════════════════════════
 const DATOS_TROB = `
 DATOS DE NUESTRA EMPRESA (la parte que debe ser PROTEGIDA en el contrato):
@@ -43,7 +44,7 @@ DIRECTOR GENERAL: Alejandro López Ramírez (alejandro.lopez@trob.com.mx)
 GERENTE COMERCIAL: Juan José Viveros Vázquez (juan.viveros@trob.com.mx, +52 811 239 2266)
 
 EMPRESAS DEL GRUPO:
-- TROB Transportes S.A. de C.V. (59.5% de la flota)
+- TROB Transportes S.A. de C.V. (59.5%)
 - WExpress (25.5%)
 - Speedyhaul International (15%)
 - TROB USA LLC
@@ -51,6 +52,118 @@ EMPRESAS DEL GRUPO:
 FLOTA: 220+ tractores, cajas 53 ft seco y refrigerado
 COBERTURA: Nacional + Cross-Border USA (Laredo TX, Colombia NL, McAllen TX)
 `;
+
+// ═══════════════════════════════════════════════════════════════
+// EXTRAER TEXTO DE .DOCX (ZIP con XML)
+// ═══════════════════════════════════════════════════════════════
+function extractTextFromDocx(base64Data: string): string {
+  try {
+    // Decode base64 to Uint8Array
+    const binaryString = atob(base64Data);
+    const bytes = new Uint8Array(binaryString.length);
+    for (let i = 0; i < binaryString.length; i++) {
+      bytes[i] = binaryString.charCodeAt(i);
+    }
+
+    // Unzip the docx
+    const unzipped = fflate.unzipSync(bytes);
+
+    // Find word/document.xml
+    let xmlContent = "";
+    for (const [path, data] of Object.entries(unzipped)) {
+      if (path === "word/document.xml" || path.includes("word/document")) {
+        xmlContent = new TextDecoder().decode(data as Uint8Array);
+        break;
+      }
+    }
+
+    if (!xmlContent) {
+      // Try any XML file
+      for (const [path, data] of Object.entries(unzipped)) {
+        if (path.endsWith(".xml") && path.includes("word")) {
+          xmlContent = new TextDecoder().decode(data as Uint8Array);
+          break;
+        }
+      }
+    }
+
+    if (!xmlContent) {
+      return "[No se pudo extraer texto del archivo Word]";
+    }
+
+    // Extract text from XML - remove tags, keep text content
+    // Match <w:t> tags which contain the actual text
+    const textParts: string[] = [];
+    const regex = /<w:t[^>]*>([^<]*)<\/w:t>/g;
+    let match;
+    while ((match = regex.exec(xmlContent)) !== null) {
+      textParts.push(match[1]);
+    }
+
+    // Also detect paragraph breaks
+    let result = xmlContent;
+    // Replace paragraph endings with newlines
+    result = result.replace(/<\/w:p>/g, "\n");
+    // Remove all XML tags
+    result = result.replace(/<[^>]+>/g, "");
+    // Clean up whitespace
+    result = result.replace(/\n{3,}/g, "\n\n").trim();
+
+    if (result.length < 50 && textParts.length > 0) {
+      return textParts.join(" ");
+    }
+
+    return result || textParts.join(" ") || "[Archivo Word vacío o no legible]";
+  } catch (error) {
+    console.error("Error extracting docx:", error);
+    return `[Error al extraer texto del Word: ${error.message}]`;
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// EXTRAER TEXTO DE .XLSX
+// ═══════════════════════════════════════════════════════════════
+function extractTextFromXlsx(base64Data: string): string {
+  try {
+    const binaryString = atob(base64Data);
+    const bytes = new Uint8Array(binaryString.length);
+    for (let i = 0; i < binaryString.length; i++) {
+      bytes[i] = binaryString.charCodeAt(i);
+    }
+
+    const unzipped = fflate.unzipSync(bytes);
+
+    // Get shared strings
+    let sharedStrings: string[] = [];
+    for (const [path, data] of Object.entries(unzipped)) {
+      if (path.includes("sharedStrings.xml")) {
+        const xml = new TextDecoder().decode(data as Uint8Array);
+        const regex = /<t[^>]*>([^<]*)<\/t>/g;
+        let match;
+        while ((match = regex.exec(xml)) !== null) {
+          sharedStrings.push(match[1]);
+        }
+        break;
+      }
+    }
+
+    // Get sheet data
+    let sheetText = "";
+    for (const [path, data] of Object.entries(unzipped)) {
+      if (path.includes("sheet1.xml") || path.includes("sheet.xml")) {
+        const xml = new TextDecoder().decode(data as Uint8Array);
+        sheetText = xml.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+        break;
+      }
+    }
+
+    return sharedStrings.length > 0 
+      ? "CONTENIDO DEL EXCEL:\n" + sharedStrings.join(" | ") + "\n\n" + sheetText
+      : sheetText || "[Excel vacío]";
+  } catch (error) {
+    return `[Error al extraer Excel: ${error.message}]`;
+  }
+}
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -75,56 +188,53 @@ serve(async (req) => {
       });
     }
 
-    // Determinar cómo enviar el archivo a Claude
     const fileName = (nombre_archivo || "").toLowerCase();
     const fileType = (tipo_archivo || "").toLowerCase();
     
-    // Tipos soportados nativamente por Anthropic como document
     const isPDF = fileType.includes("pdf") || fileName.endsWith(".pdf");
     const isImage = fileType.includes("image") || fileName.endsWith(".png") || fileName.endsWith(".jpg") || fileName.endsWith(".jpeg");
-    
-    // Word y Excel NO son soportados nativamente - enviamos como texto en el prompt
     const isWord = fileType.includes("word") || fileType.includes("officedocument.wordprocessing") || fileName.endsWith(".docx") || fileName.endsWith(".doc");
-    const isExcel = fileType.includes("excel") || fileType.includes("spreadsheet") || fileName.endsWith(".xlsx") || fileName.endsWith(".xls") || fileName.endsWith(".csv");
+    const isExcel = fileType.includes("excel") || fileType.includes("spreadsheet") || fileName.endsWith(".xlsx") || fileName.endsWith(".xls");
+    const isCSV = fileName.endsWith(".csv") || fileType.includes("csv");
 
-    // Construir el contenido del mensaje según el tipo
+    // Construir contenido del mensaje
     let userContent: any[] = [];
 
     if (isPDF) {
       userContent = [
-        {
-          type: "document",
-          source: { type: "base64", media_type: "application/pdf", data: archivo_base64 },
-        },
-        { type: "text", text: `Analiza este contrato. Archivo: ${nombre_archivo}. Fecha de análisis: ${fecha_analisis || new Date().toLocaleDateString("es-MX")}` },
+        { type: "document", source: { type: "base64", media_type: "application/pdf", data: archivo_base64 } },
+        { type: "text", text: `Analiza este contrato. Archivo: ${nombre_archivo}. Fecha: ${fecha_analisis}` },
       ];
     } else if (isImage) {
       const mediaType = fileName.endsWith(".png") ? "image/png" : "image/jpeg";
       userContent = [
-        {
-          type: "image",
-          source: { type: "base64", media_type: mediaType, data: archivo_base64 },
-        },
-        { type: "text", text: `Analiza este contrato (imagen). Archivo: ${nombre_archivo}. Fecha de análisis: ${fecha_analisis || new Date().toLocaleDateString("es-MX")}` },
+        { type: "image", source: { type: "base64", media_type: mediaType, data: archivo_base64 } },
+        { type: "text", text: `Analiza este contrato (imagen). Archivo: ${nombre_archivo}. Fecha: ${fecha_analisis}` },
       ];
-    } else if (isWord || isExcel) {
-      // Para Word/Excel: decodificamos el base64 y extraemos lo que podamos como texto
-      // Enviamos el base64 como documento genérico con instrucciones
+    } else if (isWord) {
+      // EXTRAER TEXTO del Word
+      console.log("Extracting text from Word document...");
+      const extractedText = extractTextFromDocx(archivo_base64);
+      console.log(`Extracted ${extractedText.length} chars from Word`);
       userContent = [
-        {
-          type: "document",
-          source: { type: "base64", media_type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document", data: archivo_base64 },
-        },
-        { type: "text", text: `Analiza este contrato en formato Word/Excel. Archivo: ${nombre_archivo}. Fecha de análisis: ${fecha_analisis || new Date().toLocaleDateString("es-MX")}` },
+        { type: "text", text: `Analiza el siguiente contrato extraído de un archivo Word (${nombre_archivo}). Fecha de análisis: ${fecha_analisis}.\n\n--- INICIO DEL CONTRATO ---\n${extractedText}\n--- FIN DEL CONTRATO ---` },
+      ];
+    } else if (isExcel) {
+      console.log("Extracting text from Excel...");
+      const extractedText = extractTextFromXlsx(archivo_base64);
+      userContent = [
+        { type: "text", text: `Analiza el siguiente contrato/documento extraído de un archivo Excel (${nombre_archivo}). Fecha: ${fecha_analisis}.\n\n${extractedText}` },
+      ];
+    } else if (isCSV) {
+      const text = atob(archivo_base64);
+      userContent = [
+        { type: "text", text: `Analiza este documento CSV (${nombre_archivo}). Fecha: ${fecha_analisis}.\n\n${text}` },
       ];
     } else {
       // Fallback: intentar como PDF
       userContent = [
-        {
-          type: "document",
-          source: { type: "base64", media_type: "application/pdf", data: archivo_base64 },
-        },
-        { type: "text", text: `Analiza este contrato. Archivo: ${nombre_archivo}. Fecha de análisis: ${fecha_analisis || new Date().toLocaleDateString("es-MX")}` },
+        { type: "document", source: { type: "base64", media_type: "application/pdf", data: archivo_base64 } },
+        { type: "text", text: `Analiza este contrato. Archivo: ${nombre_archivo}. Fecha: ${fecha_analisis}` },
       ];
     }
 
@@ -133,65 +243,77 @@ serve(async (req) => {
 ${DATOS_TROB}
 
 INSTRUCCIONES DE ANÁLISIS:
-1. Lee el contrato completo
+1. Lee el contrato completo con máximo detalle
 2. Identifica TODAS las partes, fechas, montos, vigencias
-3. Detecta si el contrato es LEONINO (abusivo, desproporcionado)
+3. Detecta si el contrato es LEONINO (abusivo, desproporcionado contra TROB)
 4. Identifica CADA punto de riesgo para TROB
-5. Lista cláusulas que FALTAN y deberían incluirse
-6. Genera una VERSIÓN BLINDADA que proteja a TROB
+5. Lista cláusulas que FALTAN y deberían incluirse para proteger a TROB
+6. Genera una VERSIÓN BLINDADA completa del contrato que proteja a TROB
 
-CRITERIOS DE RIESGO PARA TROB (empresa de transporte):
+CRITERIOS DE RIESGO PARA TROB (empresa de autotransporte):
 - Responsabilidad excesiva por daños a mercancía sin límites razonables
 - Penalizaciones desproporcionadas por retrasos
 - Plazos de pago mayores a 30 días
-- Falta de cláusula de fuerza mayor (bloqueos, clima, inseguridad)
-- Jurisdicción fuera de Aguascalientes (inconveniente para TROB)
+- Falta de cláusula de fuerza mayor (bloqueos, clima, inseguridad en carreteras)
+- Jurisdicción fuera de Aguascalientes
 - Falta de cláusula de ajuste por combustible
 - Cláusulas de exclusividad sin reciprocidad
 - Responsabilidad por merma sin tolerancias estándar del sector
-- Falta de procedimiento claro para reclamaciones
+- Falta de procedimiento claro para reclamaciones con plazos definidos
 - Seguros insuficientes o responsabilidad solidaria excesiva
 - Plazos de preaviso para terminación menores a 30 días
 - Penalidades por cancelación unilateral sin reciprocidad
+- Falta de límite máximo de indemnización
+- Cesión de derechos sin consentimiento
+- Modificaciones unilaterales de tarifas
+
+SEMÁFORO DE RIESGO:
+- 1-3: VERDE (contrato seguro, bajo riesgo)
+- 4-6: AMARILLO (riesgo moderado, requiere ajustes)
+- 7-10: ROJO (peligroso/leonino, no firmar sin cambios)
 
 EN LA VERSIÓN BLINDADA:
-- Usa los datos reales de TROB (escritura 21,183, notaría 35, Rep Legal Alejandro López Ramírez)
-- Jurisdicción: Aguascalientes
+- Usa los datos reales de TROB (Escritura 21,183, Vol 494, Notaría 35, Notario Lic. Fernando Quezada Leos, Aguascalientes)
+- Representante Legal: Alejandro López Ramírez
+- RFC: TTR151216CHA
+- Jurisdicción: tribunales de Aguascalientes, Aguascalientes
 - Incluye cláusula de fuerza mayor
 - Incluye cláusula de ajuste por combustible
 - Límites razonables de responsabilidad
-- Pagos a 30 días máximo
+- Pagos a máximo 30 días
 - Preaviso de 30 días para terminación
+- Procedimiento de reclamaciones con plazos
+- Límite de indemnización razonable
 
-RESPONDE EXCLUSIVAMENTE en JSON con esta estructura (sin markdown, sin backticks, solo JSON puro):
+RESPONDE EXCLUSIVAMENTE en JSON válido (sin markdown, sin backticks, solo JSON puro):
 {
   "datos_extraidos": {
-    "representante_legal": "nombre del rep legal de la contraparte",
-    "notaria": "datos de notaría si aparecen",
-    "numero_escritura": "número si aparece",
+    "representante_legal": "nombre del rep legal de la CONTRAPARTE (no TROB)",
+    "notaria": "datos de notaría de la contraparte si aparecen",
+    "numero_escritura": "número de escritura de la contraparte si aparece",
     "fecha_contrato": "fecha del contrato",
-    "partes": ["PARTE A", "PARTE B"],
-    "objeto_contrato": "descripción breve del objeto",
+    "partes": ["NOMBRE PARTE A completo", "NOMBRE PARTE B completo"],
+    "objeto_contrato": "descripción del objeto del contrato",
     "vigencia": "período de vigencia",
     "monto_o_tarifa": "monto o tarifa acordada"
   },
-  "es_leonino": true/false,
-  "explicacion_leonino": "explicación detallada de por qué es o no leonino",
+  "es_leonino": true,
+  "explicacion_leonino": "explicación detallada",
   "riesgos": [
     {
-      "clausula": "nombre o número de la cláusula",
+      "clausula": "nombre/número de la cláusula",
       "descripcion": "qué dice y por qué es riesgoso para TROB",
-      "severidad": "ALTA/MEDIA/BAJA",
+      "severidad": "ALTA",
       "sugerencia": "cómo modificarla para proteger a TROB"
     }
   ],
-  "clausulas_faltantes": [
-    "descripción de cada cláusula que debería incluirse"
-  ],
-  "version_blindada": "texto completo del contrato modificado protegiendo a TROB, usando sus datos reales (Escritura 21,183, Notaría 35, Rep Legal Alejandro López Ramírez, etc.)",
+  "clausulas_faltantes": ["descripción de cada cláusula que falta"],
+  "version_blindada": "CONTRATO COMPLETO modificado con todas las protecciones para TROB, usando datos reales de la empresa",
   "calificacion_riesgo": 7,
-  "resumen_ejecutivo": "resumen de 3-5 párrafos con hallazgos principales y recomendaciones"
+  "resumen_ejecutivo": "resumen ejecutivo con hallazgos y recomendaciones"
 }`;
+
+    console.log(`Sending to Anthropic... Content type: ${userContent[0]?.type}, fileName: ${fileName}`);
 
     const response = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
@@ -210,65 +332,8 @@ RESPONDE EXCLUSIVAMENTE en JSON con esta estructura (sin markdown, sin backticks
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error("Anthropic API error:", response.status, errorText);
-      
-      // Si falla con document type, reintentar sin el tipo document
-      if (response.status === 400 && (isWord || isExcel)) {
-        console.log("Retrying without document type for Word/Excel...");
-        
-        // Retry: enviar solo como texto pidiendo que interprete
-        const retryContent = [
-          { type: "text", text: `El siguiente es un contrato en formato ${isWord ? 'Word (.docx)' : 'Excel (.xlsx)'}. El archivo se llama "${nombre_archivo}". Por favor analízalo como contrato. Si no puedes leer el contenido binario, indica qué información necesitas. Fecha de análisis: ${fecha_analisis || new Date().toLocaleDateString("es-MX")}.\n\nArchivo en base64 (primeros 1000 caracteres para referencia): ${archivo_base64.substring(0, 1000)}` },
-        ];
-        
-        const retryResponse = await fetch("https://api.anthropic.com/v1/messages", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "x-api-key": ANTHROPIC_API_KEY,
-            "anthropic-version": "2023-06-01",
-          },
-          body: JSON.stringify({
-            model: "claude-sonnet-4-20250514",
-            max_tokens: 16000,
-            system: systemPrompt,
-            messages: [{ role: "user", content: retryContent }],
-          }),
-        });
-        
-        if (!retryResponse.ok) {
-          return new Response(JSON.stringify({ 
-            success: false, 
-            error: `Para archivos Word/Excel, por favor conviértelos a PDF primero. Error: ${retryResponse.status}` 
-          }), {
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-            status: 200,
-          });
-        }
-        
-        const retryData = await retryResponse.json();
-        const retryText = retryData.content?.[0]?.text || "";
-        
-        try {
-          const jsonMatch = retryText.match(/\{[\s\S]*\}/);
-          if (jsonMatch) {
-            const analisis = JSON.parse(jsonMatch[0]);
-            return new Response(JSON.stringify({ success: true, analisis }), {
-              headers: { ...corsHeaders, "Content-Type": "application/json" },
-            });
-          }
-        } catch {}
-        
-        return new Response(JSON.stringify({ 
-          success: false, 
-          error: "No se pudo analizar el archivo Word/Excel. Conviértelo a PDF para mejores resultados." 
-        }), {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-          status: 200,
-        });
-      }
-      
-      return new Response(JSON.stringify({ success: false, error: `Error de IA: ${response.status}` }), {
+      console.error("Anthropic error:", response.status, errorText);
+      return new Response(JSON.stringify({ success: false, error: `Error de IA: ${response.status}. Intenta con PDF.` }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 200,
       });
@@ -277,35 +342,27 @@ RESPONDE EXCLUSIVAMENTE en JSON con esta estructura (sin markdown, sin backticks
     const data = await response.json();
     const text = data.content?.[0]?.text || "";
 
-    // Extraer JSON de la respuesta
+    // Parse JSON
     let analisis;
     try {
-      // Intentar parsear directamente
       analisis = JSON.parse(text);
     } catch {
-      // Buscar JSON dentro del texto
       const jsonMatch = text.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
-        try {
-          analisis = JSON.parse(jsonMatch[0]);
-        } catch {
-          return new Response(JSON.stringify({ success: false, error: "No se pudo interpretar la respuesta de IA" }), {
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-            status: 200,
+        try { analisis = JSON.parse(jsonMatch[0]); } catch {
+          return new Response(JSON.stringify({ success: false, error: "No se pudo interpretar la respuesta" }), {
+            headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200,
           });
         }
       } else {
         return new Response(JSON.stringify({ success: false, error: "Respuesta inesperada de IA" }), {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200,
         });
       }
     }
 
-    // Validar campos mínimos
-    if (!analisis.datos_extraidos) {
-      analisis.datos_extraidos = { representante_legal: "", notaria: "", numero_escritura: "", fecha_contrato: "", partes: [], objeto_contrato: "", vigencia: "", monto_o_tarifa: "" };
-    }
+    // Defaults
+    if (!analisis.datos_extraidos) analisis.datos_extraidos = { representante_legal: "", notaria: "", numero_escritura: "", fecha_contrato: "", partes: [], objeto_contrato: "", vigencia: "", monto_o_tarifa: "" };
     if (!analisis.riesgos) analisis.riesgos = [];
     if (!analisis.clausulas_faltantes) analisis.clausulas_faltantes = [];
     if (typeof analisis.calificacion_riesgo !== "number") analisis.calificacion_riesgo = 5;
