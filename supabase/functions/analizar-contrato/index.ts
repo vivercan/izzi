@@ -285,6 +285,13 @@ EN LA VERSIÓN BLINDADA:
 - Procedimiento de reclamaciones con plazos
 - Límite de indemnización razonable
 
+IMPORTANTE SOBRE contrato_llenado:
+- Reproduce el contrato ORIGINAL tal cual está redactado, palabra por palabra
+- Solo rellena los espacios en blanco, guiones bajos (___), campos vacíos con los datos correctos
+- La fecha debe ser la fecha de análisis proporcionada
+- NO modifiques la redacción, NO agregues cláusulas, NO cambies el orden
+- Es el mismo contrato pero "limpio" y completo, listo para firma
+
 RESPONDE EXCLUSIVAMENTE en JSON válido (sin markdown, sin backticks, solo JSON puro):
 {
   "datos_extraidos": {
@@ -297,6 +304,7 @@ RESPONDE EXCLUSIVAMENTE en JSON válido (sin markdown, sin backticks, solo JSON 
     "vigencia": "período de vigencia",
     "monto_o_tarifa": "monto o tarifa acordada"
   },
+  "contrato_llenado": "El contrato original COMPLETO reproducido tal cual pero con TODOS los espacios en blanco rellenados con los datos correctos y la fecha del día. Debe ser idéntico al original solo que sin campos vacíos.",
   "es_leonino": true,
   "explicacion_leonino": "explicación detallada",
   "riesgos": [
@@ -324,7 +332,7 @@ RESPONDE EXCLUSIVAMENTE en JSON válido (sin markdown, sin backticks, solo JSON 
       },
       body: JSON.stringify({
         model: "claude-sonnet-4-20250514",
-        max_tokens: 16000,
+        max_tokens: 32000,
         system: systemPrompt,
         messages: [{ role: "user", content: userContent }],
       }),
@@ -363,6 +371,7 @@ RESPONDE EXCLUSIVAMENTE en JSON válido (sin markdown, sin backticks, solo JSON 
 
     // Defaults
     if (!analisis.datos_extraidos) analisis.datos_extraidos = { representante_legal: "", notaria: "", numero_escritura: "", fecha_contrato: "", partes: [], objeto_contrato: "", vigencia: "", monto_o_tarifa: "" };
+    if (!analisis.contrato_llenado) analisis.contrato_llenado = "";
     if (!analisis.riesgos) analisis.riesgos = [];
     if (!analisis.clausulas_faltantes) analisis.clausulas_faltantes = [];
     if (typeof analisis.calificacion_riesgo !== "number") analisis.calificacion_riesgo = 5;

@@ -3,7 +3,7 @@ import { Scale, FileText, Upload, Loader2, AlertCircle, ArrowLeft, Shield, Shiel
 const supabaseUrl = 'https://fbxbsslhewchyibdoyzk.supabase.co';
 const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZieGJzc2xoZXdjaHlpYmRveXprIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI1MzczODEsImV4cCI6MjA3ODExMzM4MX0.Z8JPlg7hhKbA624QGHp2bKKTNtCD3WInQMO5twjl6a0';
 interface RiesgoContrato { clausula: string; descripcion: string; severidad: 'ALTA'|'MEDIA'|'BAJA'; sugerencia: string; }
-interface AnalisisContrato { datos_extraidos: { representante_legal: string; notaria: string; numero_escritura: string; fecha_contrato: string; partes: string[]; objeto_contrato: string; vigencia: string; monto_o_tarifa: string; }; es_leonino: boolean; explicacion_leonino: string; riesgos: RiesgoContrato[]; resumen_ejecutivo: string; clausulas_faltantes: string[]; version_blindada: string; calificacion_riesgo: number; }
+interface AnalisisContrato { datos_extraidos: { representante_legal: string; notaria: string; numero_escritura: string; fecha_contrato: string; partes: string[]; objeto_contrato: string; vigencia: string; monto_o_tarifa: string; }; es_leonino: boolean; explicacion_leonino: string; riesgos: RiesgoContrato[]; resumen_ejecutivo: string; clausulas_faltantes: string[]; version_blindada: string; contrato_llenado: string; calificacion_riesgo: number; }
 interface Props { onBack: () => void; }
 
 // ═══ PDF Generator ═══
@@ -57,7 +57,7 @@ export default function AnalisisContratosModule({ onBack }: Props) {
   const [analizando, setAnalizando] = useState(false);
   const [resultado, setResultado] = useState<AnalisisContrato | null>(null);
   const [error, setError] = useState('');
-  const [secciones, setSecciones] = useState<Record<string, boolean>>({ datos: true, leonino: true, riesgos: true, faltantes: true, resumen: true, blindado: false });
+  const [secciones, setSecciones] = useState<Record<string, boolean>>({ contratoLlenado: false, datos: true, leonino: true, riesgos: true, faltantes: true, resumen: true, blindado: false });
   const [dragOver, setDragOver] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const handleFile = (file: File) => { if (!file) return; if (file.size > 25*1024*1024) { setError('Max 25MB'); return; } setArchivoContrato(file); setError(''); setResultado(null); const r = new FileReader(); r.onload = () => setArchivoBase64((r.result as string).split(',')[1]); r.readAsDataURL(file); };
@@ -74,23 +74,11 @@ export default function AnalisisContratosModule({ onBack }: Props) {
     const r = resultado;
     const html = `
 <div class="header">
-  <div class="logo-area"><div class="logo-text">FX27</div><div><div style="font-size:18px;font-weight:700;">Datos del Contrato</div><div class="logo-sub">${archivoContrato?.name || 'Contrato'}</div></div></div>
-  <div><div class="badge">RIESGO ${riskColor(r.calificacion_riesgo).label} — ${r.calificacion_riesgo}/10</div><div class="fecha">${new Date().toLocaleDateString('es-MX', { day: '2-digit', month: 'long', year: 'numeric' })}</div></div>
+  <div class="logo-area"><div class="logo-text">FX27</div><div><div style="font-size:18px;font-weight:700;">Contrato Completo</div><div class="logo-sub">${archivoContrato?.name || 'Contrato'}</div></div></div>
+  <div><div class="fecha">${new Date().toLocaleDateString('es-MX', { day: '2-digit', month: 'long', year: 'numeric' })}</div></div>
 </div>
-<div class="section"><div class="section-title">Datos Extraídos del Contrato</div>
-<div class="grid">
-  <div class="grid-item"><div class="grid-label">Representante Legal</div><div class="grid-value">${r.datos_extraidos.representante_legal || 'N/A'}</div></div>
-  <div class="grid-item"><div class="grid-label">Notaría</div><div class="grid-value">${r.datos_extraidos.notaria || 'N/A'}</div></div>
-  <div class="grid-item"><div class="grid-label">No. Escritura</div><div class="grid-value">${r.datos_extraidos.numero_escritura || 'N/A'}</div></div>
-  <div class="grid-item"><div class="grid-label">Fecha</div><div class="grid-value">${r.datos_extraidos.fecha_contrato || 'N/A'}</div></div>
-  <div class="grid-item"><div class="grid-label">Objeto</div><div class="grid-value">${r.datos_extraidos.objeto_contrato || 'N/A'}</div></div>
-  <div class="grid-item"><div class="grid-label">Vigencia</div><div class="grid-value">${r.datos_extraidos.vigencia || 'N/A'}</div></div>
-  <div class="grid-item"><div class="grid-label">Monto / Tarifa</div><div class="grid-value">${r.datos_extraidos.monto_o_tarifa || 'N/A'}</div></div>
-  <div class="grid-item"><div class="grid-label">Partes</div><div class="grid-value">${r.datos_extraidos.partes.join(' — ')}</div></div>
-</div></div>
-<div class="section"><div class="section-title">Análisis Leonino — ${r.es_leonino ? '⚠️ DETECTADO' : '✅ NO DETECTADO'}</div><div class="content">${r.explicacion_leonino}</div></div>
-<div class="section"><div class="section-title">Resumen Ejecutivo</div><div class="content">${r.resumen_ejecutivo}</div></div>`;
-    generarPDF('Contrato Analizado — ' + (archivoContrato?.name || ''), html, '#0066cc');
+<div class="section"><div class="content" style="font-size:13px;line-height:2;">${r.contrato_llenado || r.version_blindada || 'No se pudo generar el contrato llenado.'}</div></div>`;
+    generarPDF('Contrato — ' + (archivoContrato?.name || ''), html, '#1a1a2e');
   };
 
   // ═══ DESCARGAR VERSIÓN BLINDADA (PDF) ═══
@@ -160,7 +148,7 @@ ${faltantesHtml}
         </div>
       </div>
       <div className="relative z-10 p-4 px-6" style={{ maxWidth: '100%' }}>
-        <div className="flex items-center gap-4 mb-6"><div className="p-3 rounded-xl" style={{ background: 'rgba(255,255,255,0.06)' }}><ShieldCheck className="w-8 h-8" style={{ color: 'rgba(255,255,255,0.7)' }} /></div><div><h3 style={{ fontFamily: F, fontSize: '22px', fontWeight: 600, color: '#fff' }}>Análisis de Contrato con FX27</h3><p style={{ fontFamily: F, fontSize: '13px', color: 'rgba(255,255,255,0.5)' }}>Detecta cláusulas leoninas, riesgos y genera versión blindada para TROB</p></div></div>
+        <div className="flex items-center gap-4 mb-6"><div className="p-3 rounded-xl" style={{ background: 'rgba(139,92,246,0.2)' }}><ShieldCheck className="w-8 h-8" style={{ color: '#a78bfa' }} /></div><div><h3 style={{ fontFamily: F, fontSize: '22px', fontWeight: 600, color: '#fff' }}>Análisis de Contratos con IA</h3><p style={{ fontFamily: F, fontSize: '13px', color: 'rgba(255,255,255,0.5)' }}>Detecta cláusulas leoninas, riesgos y genera versión blindada para TROB</p></div></div>
 
         {!resultado && (
           <div className="rounded-xl p-6" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.1)' }}>
@@ -169,7 +157,7 @@ ${faltantesHtml}
               {archivoContrato ? (<div className="flex flex-col items-center gap-3"><div className="p-4 rounded-full" style={{ background: 'rgba(34,197,94,0.15)' }}><FileText className="w-10 h-10" style={{ color: '#22c55e' }} /></div><p style={{ fontFamily: F, fontSize: '16px', fontWeight: 600, color: '#fff' }}>{archivoContrato.name}</p><p style={{ fontFamily: F, fontSize: '13px', color: 'rgba(255,255,255,0.5)' }}>{(archivoContrato.size/1024/1024).toFixed(2)} MB</p><button onClick={(e) => { e.stopPropagation(); reset(); }} className="flex items-center gap-2 px-4 py-2 rounded-lg hover:bg-white/10" style={{ border: '1px solid rgba(255,255,255,0.15)' }}><RotateCcw className="w-4 h-4 text-white/60" /><span style={{ fontFamily: F, fontSize: '13px', color: 'rgba(255,255,255,0.6)' }}>Cambiar</span></button></div>) : (<div className="flex flex-col items-center gap-3"><div className="p-4 rounded-full" style={{ background: 'rgba(139,92,246,0.1)' }}><Upload className="w-10 h-10" style={{ color: 'rgba(255,255,255,0.4)' }} /></div><p style={{ fontFamily: F, fontSize: '16px', fontWeight: 500, color: 'rgba(255,255,255,0.8)' }}>Arrastra el contrato o haz clic</p><p style={{ fontFamily: F, fontSize: '13px', color: 'rgba(255,255,255,0.4)' }}>PDF, Word, Excel, Imágenes — Máx 25MB</p></div>)}
             </div>
             {error && <div className="mt-4 p-4 rounded-lg flex items-center gap-3" style={{ background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)' }}><AlertCircle className="w-5 h-5" style={{ color: '#ef4444' }} /><span style={{ fontFamily: F, fontSize: '14px', color: '#fca5a5' }}>{error}</span></div>}
-            <button onClick={analizar} disabled={!archivoContrato || analizando} className="w-full mt-5 flex items-center justify-center gap-2 py-3 rounded-lg transition-all disabled:opacity-40" style={{ background: archivoContrato ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.05)', fontFamily: F, fontSize: '14px', fontWeight: 500, color: '#fff', letterSpacing: '0.05em', backdropFilter: 'blur(10px)', border: '1px solid rgba(255,255,255,0.15)' }}>{analizando ? <><Loader2 className="w-5 h-5 animate-spin" /> Analizando... 30-60 seg</> : <><ShieldCheck className="w-5 h-5" /> Analizar Contrato</>}</button>
+            <button onClick={analizar} disabled={!archivoContrato || analizando} className="w-full mt-5 flex items-center justify-center gap-3 py-4 rounded-lg transition-all disabled:opacity-40" style={{ background: archivoContrato ? 'linear-gradient(135deg, #7c3aed, #5b21b6)' : 'rgba(255,255,255,0.05)', fontFamily: F, fontSize: '15px', fontWeight: 600, color: '#fff' }}>{analizando ? <><Loader2 className="w-5 h-5 animate-spin" /> Analizando... 30-60 seg</> : <><ShieldCheck className="w-5 h-5" /> Analizar Contrato</>}</button>
             {analizando && <div className="mt-5 space-y-3">{['Extrayendo texto del documento...','Identificando partes y representantes...','Analizando cláusulas y condiciones...','Evaluando riesgos para TROB...','Generando versión blindada...'].map((p,i) => <div key={i} className="flex items-center gap-3 animate-pulse" style={{ animationDelay: i*0.3+'s' }}><div className="w-2 h-2 rounded-full" style={{ background: '#a78bfa' }} /><span style={{ fontFamily: F, fontSize: '13px', color: 'rgba(255,255,255,0.5)' }}>{p}</span></div>)}</div>}
           </div>
         )}
@@ -195,7 +183,7 @@ ${faltantesHtml}
                   {/* Botones de descarga */}
                   <div className="flex flex-wrap gap-2">
                     <button onClick={descargarContratoLlenado} className="flex items-center gap-2 px-4 py-2.5 rounded-lg hover:brightness-110 transition-all" style={{ background: 'linear-gradient(135deg, #0066cc, #004499)', fontFamily: F, fontSize: '13px', fontWeight: 600, color: '#fff' }}>
-                      <Download className="w-4 h-4" /> Contrato Llenado
+                      <Download className="w-4 h-4" /> Contrato Completo
                     </button>
                     <button onClick={descargarBlindada} className="flex items-center gap-2 px-4 py-2.5 rounded-lg hover:brightness-110 transition-all" style={{ background: 'linear-gradient(135deg, #22c55e, #16a34a)', fontFamily: F, fontSize: '13px', fontWeight: 600, color: '#fff' }}>
                       <ShieldCheck className="w-4 h-4" /> Blindada TROB
@@ -210,8 +198,13 @@ ${faltantesHtml}
                 </div>
               </div>); })()}
 
+            {/* ═══ CONTRATO LLENADO ═══ */}
+            {resultado.contrato_llenado && <SectionCard title="Contrato Completo (Llenado)" icon={<FileText className="w-5 h-5" style={{ color: '#fff' }} />} open={secciones.contratoLlenado} onToggle={() => toggle('contratoLlenado')} bg="rgba(255,255,255,0.04)" borderColor="rgba(255,255,255,0.12)">
+              <p style={{ fontFamily: F, fontSize: '13px', color: 'rgba(255,255,255,0.85)', lineHeight: '1.9', whiteSpace: 'pre-wrap' }}>{resultado.contrato_llenado}</p>
+            </SectionCard>}
+
             {/* ═══ DATOS EXTRAÍDOS ═══ */}
-            <SectionCard title="Datos Extraídos" icon={<FileText className="w-5 h-5" style={{ color: 'rgba(255,255,255,0.7)' }} />} open={secciones.datos} onToggle={() => toggle('datos')}>
+            <SectionCard title="Datos Extraídos" icon={<FileText className="w-5 h-5" style={{ color: '#a78bfa' }} />} open={secciones.datos} onToggle={() => toggle('datos')}>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                 {[{l:'Rep. Legal',v:resultado.datos_extraidos.representante_legal},{l:'Notaría',v:resultado.datos_extraidos.notaria},{l:'Escritura',v:resultado.datos_extraidos.numero_escritura},{l:'Fecha',v:resultado.datos_extraidos.fecha_contrato},{l:'Objeto',v:resultado.datos_extraidos.objeto_contrato},{l:'Vigencia',v:resultado.datos_extraidos.vigencia},{l:'Monto',v:resultado.datos_extraidos.monto_o_tarifa}].map(c => <div key={c.l} className="p-3 rounded-lg" style={{ background: 'rgba(255,255,255,0.03)' }}><p style={{ fontFamily: F, fontSize: '10px', fontWeight: 600, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase' }}>{c.l}</p><p style={{ fontFamily: F, fontSize: '13px', color: '#fff', marginTop: '2px' }}>{c.v || 'N/A'}</p></div>)}
                 <div className="p-3 rounded-lg" style={{ background: 'rgba(255,255,255,0.03)' }}><p style={{ fontFamily: F, fontSize: '10px', fontWeight: 600, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase' }}>Partes</p><p style={{ fontFamily: F, fontSize: '13px', color: '#fff', marginTop: '2px' }}>{resultado.datos_extraidos.partes.join(' — ')}</p></div>
@@ -250,7 +243,7 @@ ${faltantesHtml}
 
             {/* ═══ BOTONES FINALES ═══ */}
             <div className="flex flex-wrap justify-center gap-3 pt-4 pb-8">
-              <button onClick={descargarContratoLlenado} className="flex items-center gap-3 px-6 py-3.5 rounded-xl hover:brightness-110" style={{ background: 'linear-gradient(135deg, #0066cc, #004499)', fontFamily: F, fontSize: '14px', fontWeight: 600, color: '#fff', boxShadow: '0 4px 12px rgba(0,102,204,0.3)' }}><Download className="w-5 h-5" /> Descargar Contrato Llenado</button>
+              <button onClick={descargarContratoLlenado} className="flex items-center gap-3 px-6 py-3.5 rounded-xl hover:brightness-110" style={{ background: 'linear-gradient(135deg, #0066cc, #004499)', fontFamily: F, fontSize: '14px', fontWeight: 600, color: '#fff', boxShadow: '0 4px 12px rgba(0,102,204,0.3)' }}><Download className="w-5 h-5" /> Descargar Contrato Completo</button>
               <button onClick={descargarBlindada} className="flex items-center gap-3 px-6 py-3.5 rounded-xl hover:brightness-110" style={{ background: 'linear-gradient(135deg, #22c55e, #16a34a)', fontFamily: F, fontSize: '14px', fontWeight: 600, color: '#fff', boxShadow: '0 4px 12px rgba(34,197,94,0.3)' }}><ShieldCheck className="w-5 h-5" /> Descargar Blindada TROB</button>
               <button onClick={descargarRiesgos} className="flex items-center gap-3 px-6 py-3.5 rounded-xl hover:brightness-110" style={{ background: 'linear-gradient(135deg, #fe5000, #cc4000)', fontFamily: F, fontSize: '14px', fontWeight: 600, color: '#fff', boxShadow: '0 4px 12px rgba(254,80,0,0.3)' }}><FileWarning className="w-5 h-5" /> Descargar Análisis Riesgos</button>
             </div>
