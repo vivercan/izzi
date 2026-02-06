@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Scale, FileText, Upload, Loader2, AlertCircle, ArrowLeft, Shield, ShieldAlert, ShieldCheck, FileWarning, ChevronDown, ChevronUp, AlertTriangle, FileDown, RotateCcw, CheckCircle2, Download } from 'lucide-react';
 const supabaseUrl = 'https://fbxbsslhewchyibdoyzk.supabase.co';
 const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZieGJzc2xoZXdjaHlpYmRveXprIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI1MzczODEsImV4cCI6MjA3ODExMzM4MX0.Z8JPlg7hhKbA624QGHp2bKKTNtCD3WInQMO5twjl6a0';
@@ -49,6 +49,22 @@ ${contenido}
 
 function SectionCard({ title, icon, open, onToggle, children, bg, borderColor }: { title: string; icon: React.ReactNode; open: boolean; onToggle: () => void; children: React.ReactNode; bg?: string; borderColor?: string; }) {
   return (<div className="rounded-xl overflow-hidden" style={{ background: bg || 'rgba(255,255,255,0.03)', border: '1px solid ' + (borderColor || 'rgba(255,255,255,0.08)') }}><button onClick={onToggle} className="w-full flex items-center justify-between p-5 hover:bg-white/5 transition-colors"><div className="flex items-center gap-3">{icon}<span style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '16px', fontWeight: 600, color: '#fff' }}>{title}</span></div>{open ? <ChevronUp className="w-5 h-5 text-white/40" /> : <ChevronDown className="w-5 h-5 text-white/40" />}</button>{open && <div className="px-5 pb-5">{children}</div>}</div>);
+}
+
+function ProgressSteps() {
+  const [done, setDone] = useState<number[]>([]);
+  const steps = ['Extrayendo texto del documento','Identificando partes y representantes','Analizando cláusulas y condiciones','Evaluando riesgos para TROB','Generando versión blindada'];
+  useEffect(() => {
+    const timers = [3000, 8000, 16000, 25000, 38000];
+    const ids = timers.map((t, i) => setTimeout(() => setDone(prev => [...prev, i]), t));
+    return () => ids.forEach(clearTimeout);
+  }, []);
+  const F = "'Exo 2', sans-serif";
+  return (<div className="mt-5 space-y-2">{steps.map((p, i) => {
+    const completed = done.includes(i);
+    const active = !completed && (i === 0 || done.includes(i - 1));
+    return (<div key={i} className="flex items-center gap-3 py-1"><div style={{ width: '20px', height: '20px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: completed ? 'rgba(34,197,94,0.15)' : active ? 'rgba(255,255,255,0.1)' : 'transparent', border: completed ? '1.5px solid #22c55e' : active ? '1.5px solid rgba(255,255,255,0.3)' : '1.5px solid rgba(255,255,255,0.1)', transition: 'all 0.5s ease' }}>{completed ? <CheckCircle2 style={{ width: '14px', height: '14px', color: '#22c55e' }} /> : active ? <Loader2 style={{ width: '12px', height: '12px', color: 'rgba(255,255,255,0.5)' }} className="animate-spin" /> : null}</div><span style={{ fontFamily: F, fontSize: '13px', color: completed ? '#22c55e' : active ? 'rgba(255,255,255,0.7)' : 'rgba(255,255,255,0.25)', transition: 'color 0.5s ease', fontWeight: completed ? 500 : 400 }}>{p}{completed ? ' ✓' : active ? '...' : ''}</span></div>);
+  })}</div>);
 }
 
 export default function AnalisisContratosModule({ onBack }: Props) {
@@ -157,8 +173,8 @@ ${faltantesHtml}
               {archivoContrato ? (<div className="flex flex-col items-center gap-3"><div className="p-4 rounded-full" style={{ background: 'rgba(34,197,94,0.15)' }}><FileText className="w-10 h-10" style={{ color: '#22c55e' }} /></div><p style={{ fontFamily: F, fontSize: '16px', fontWeight: 600, color: '#fff' }}>{archivoContrato.name}</p><p style={{ fontFamily: F, fontSize: '13px', color: 'rgba(255,255,255,0.5)' }}>{(archivoContrato.size/1024/1024).toFixed(2)} MB</p><button onClick={(e) => { e.stopPropagation(); reset(); }} className="flex items-center gap-2 px-4 py-2 rounded-lg hover:bg-white/10" style={{ border: '1px solid rgba(255,255,255,0.15)' }}><RotateCcw className="w-4 h-4 text-white/60" /><span style={{ fontFamily: F, fontSize: '13px', color: 'rgba(255,255,255,0.6)' }}>Cambiar</span></button></div>) : (<div className="flex flex-col items-center gap-3"><div className="p-4 rounded-full" style={{ background: 'rgba(139,92,246,0.1)' }}><Upload className="w-10 h-10" style={{ color: 'rgba(255,255,255,0.4)' }} /></div><p style={{ fontFamily: F, fontSize: '16px', fontWeight: 500, color: 'rgba(255,255,255,0.8)' }}>Arrastra el contrato o haz clic</p><p style={{ fontFamily: F, fontSize: '13px', color: 'rgba(255,255,255,0.4)' }}>PDF, Word, Excel, Imágenes — Máx 25MB</p></div>)}
             </div>
             {error && <div className="mt-4 p-4 rounded-lg flex items-center gap-3" style={{ background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)' }}><AlertCircle className="w-5 h-5" style={{ color: '#ef4444' }} /><span style={{ fontFamily: F, fontSize: '14px', color: '#fca5a5' }}>{error}</span></div>}
-            <button onClick={analizar} disabled={!archivoContrato || analizando} className="w-full mt-5 flex items-center justify-center gap-3 py-4 rounded-lg transition-all disabled:opacity-40" style={{ background: archivoContrato ? 'linear-gradient(135deg, #7c3aed, #5b21b6)' : 'rgba(255,255,255,0.05)', fontFamily: F, fontSize: '15px', fontWeight: 600, color: '#fff' }}>{analizando ? <><Loader2 className="w-5 h-5 animate-spin" /> Analizando... 30-60 seg</> : <><ShieldCheck className="w-5 h-5" /> Analizar Contrato</>}</button>
-            {analizando && <div className="mt-5 space-y-3">{['Extrayendo texto del documento...','Identificando partes y representantes...','Analizando cláusulas y condiciones...','Evaluando riesgos para TROB...','Generando versión blindada...'].map((p,i) => <div key={i} className="flex items-center gap-3 animate-pulse" style={{ animationDelay: i*0.3+'s' }}><div className="w-2 h-2 rounded-full" style={{ background: '#a78bfa' }} /><span style={{ fontFamily: F, fontSize: '13px', color: 'rgba(255,255,255,0.5)' }}>{p}</span></div>)}</div>}
+            <div className="flex justify-center mt-5"><button onClick={analizar} disabled={!archivoContrato || analizando} className="flex items-center justify-center gap-2 px-8 py-3 rounded-xl transition-all disabled:opacity-30" style={{ background: 'rgba(255,255,255,0.07)', fontFamily: F, fontSize: '14px', fontWeight: 500, color: '#fff', border: '1px solid rgba(255,255,255,0.15)', backdropFilter: 'blur(12px)', letterSpacing: '0.03em' }}>{analizando ? <><Loader2 className="w-4 h-4 animate-spin" /> Analizando...</> : <><ShieldCheck className="w-4 h-4" /> Analizar Contrato</>}</button></div>
+            {analizando && <ProgressSteps />}
           </div>
         )}
 
