@@ -15,7 +15,7 @@ import AnalisisContratosModule from './AnalisisContratosModule';
 import {
   UserPlus, FileText, CheckCircle2, Clock, AlertCircle,
   Search, RefreshCw, Loader2, Eye, ArrowLeft, Shield, CreditCard, Mail,
-  Edit2, Trash2, X, AlertTriangle, Scale
+  Edit2, Trash2, X, AlertTriangle, ShieldCheck
 } from 'lucide-react';
 
 const supabaseUrl = 'https://fbxbsslhewchyibdoyzk.supabase.co';
@@ -207,7 +207,7 @@ export function ServicioClientesModule({ onBack, userEmail, userName }: Props) {
       { id: 'en-revision', nombre: 'En Revisión', icon: Search, onClick: () => { setFiltroEstatus('EN_REVISION'); setVista('lista'); } },
       { id: 'por-confirmar', nombre: 'Por Confirmar', icon: Shield, onClick: () => { setFiltroEstatus('PENDIENTE_CONFIRMACION'); setVista('lista'); } },
       { id: 'completadas', nombre: 'Completadas', icon: CheckCircle2, onClick: () => { setFiltroEstatus('COMPLETADA'); setVista('lista'); } },
-      { id: 'analisis-contratos', nombre: 'Análisis de\nContratos', icon: Scale, onClick: () => setVista('analisis-contratos') }
+      { id: 'analisis-contratos', nombre: 'Análisis de\nContratos', icon: ShieldCheck, onClick: () => setVista('analisis-contratos') }
     ];
 
     return (
