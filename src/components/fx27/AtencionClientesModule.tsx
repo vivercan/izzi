@@ -1195,7 +1195,7 @@ FX27 Future Experience 27 — Grupo Loma Transportes © ${new Date().getFullYear
                     <td style={{ ...S.tableCell, fontSize: '12px', color: 'rgba(255,255,255,0.5)' }}>{c.notas || '—'}</td>
                     <td style={S.tableCell}>
                       <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
-                      {editingId === c.id ? (
+                      {userRole === 'admin' && editingId === c.id ? (
                         <>
                           <button onClick={() => handleAssign(c.id, editEjecutivo, editVendedor)}
                             style={{ background: 'rgba(76,175,80,0.2)', border: '1px solid rgba(76,175,80,0.4)', borderRadius: '6px', padding: '4px 8px', cursor: 'pointer' }}>
@@ -1206,12 +1206,12 @@ FX27 Future Experience 27 — Grupo Loma Transportes © ${new Date().getFullYear
                             <X style={{ width: '14px', height: '14px', color: '#ff6b6b' }} />
                           </button>
                         </>
-                      ) : (
+                      ) : userRole === 'admin' ? (
                         <button onClick={() => { setEditingId(c.id); setEditEjecutivo(c.ejecutivo_sc); setEditVendedor(c.vendedor || ''); }}
                           style={{ ...S.btnSecondary, padding: '5px 12px', fontSize: '11px', display: 'flex', alignItems: 'center', gap: '4px' }}>
                           <UserCheck style={{ width: '13px', height: '13px' }} /> Asignar
                         </button>
-                      )}
+                      ) : null}
                       <button onClick={() => openContactsModal(c.cliente)}
                         style={{
                           ...S.btnSecondary, padding: '5px 12px', fontSize: '11px', display: 'flex', alignItems: 'center', gap: '4px',
