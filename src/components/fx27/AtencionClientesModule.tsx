@@ -443,9 +443,17 @@ export function AtencionClientesModule({ onBack, userEmail, userName, userRole, 
     setContactsLoading(true);
     setNewContact({ cliente_nombre: clienteNombre, contacto_nombre: '', email: '', whatsapp: '', cargo: '', notas: '' });
     try {
-      const { data } = await supabase.from('sc_contactos_clientes').select('*').eq('cliente_nombre', clienteNombre).order('id');
-      setContactsList(data || []);
-    } catch { setContactsList([]); }
+      const { data, error } = await supabase.from('sc_contactos_clientes').select('*').eq('cliente_nombre', clienteNombre).order('id');
+      if (error) {
+        console.error('Error cargando contactos:', error.message);
+        setContactsList([]);
+      } else {
+        setContactsList(data || []);
+      }
+    } catch (err) {
+      console.error('Error inesperado cargando contactos:', err);
+      setContactsList([]);
+    }
     setContactsLoading(false);
   };
 
@@ -453,24 +461,43 @@ export function AtencionClientesModule({ onBack, userEmail, userName, userRole, 
     if (!newContact.contacto_nombre || !newContact.email || !newContact.whatsapp) return;
     setContactsSaving(true);
     try {
-      const payload = { ...newContact, cliente_nombre: contactsCliente };
+      const payload = {
+        cliente_nombre: contactsCliente,
+        contacto_nombre: newContact.contacto_nombre,
+        email: newContact.email,
+        whatsapp: newContact.whatsapp,
+        cargo: newContact.cargo || '',
+        notas: newContact.notas || '',
+      };
       const { data, error } = await supabase.from('sc_contactos_clientes').insert(payload).select();
-      if (!error && data) {
+      if (error) {
+        console.error('Error guardando contacto:', error.message, error.details, error.hint);
+        alert(`Error al guardar contacto: ${error.message}`);
+      } else if (data && data.length > 0 && data[0]) {
         setContactsList(prev => [...prev, data[0]]);
         setNewContact({ cliente_nombre: contactsCliente, contacto_nombre: '', email: '', whatsapp: '', cargo: '', notas: '' });
         setClientesConContactos(prev => { const m = new Map(prev); m.set(contactsCliente, (m.get(contactsCliente) || 0) + 1); return m; });
+      } else {
+        console.warn('Insert sin error pero sin data retornada. data:', data);
+        alert('No se pudo guardar el contacto. Intenta de nuevo o contacta al administrador.');
       }
-    } catch {}
+    } catch (err) {
+      console.error('Error inesperado guardando contacto:', err);
+      alert('Error de conexión al guardar contacto. Verifica tu internet e intenta de nuevo.');
+    }
     setContactsSaving(false);
   };
 
   const deleteContact = async (id: number) => {
     const { error } = await supabase.from('sc_contactos_clientes').delete().eq('id', id);
-    if (!error) {
-      const newList = contactsList.filter(c => c.id !== id);
-      setContactsList(newList);
-      setClientesConContactos(prev => { const m = new Map(prev); const cnt = (m.get(contactsCliente) || 1) - 1; if (cnt <= 0) m.delete(contactsCliente); else m.set(contactsCliente, cnt); return m; });
+    if (error) {
+      console.error('Error eliminando contacto:', error.message);
+      alert(`Error al eliminar contacto: ${error.message}`);
+      return;
     }
+    const newList = contactsList.filter(c => c.id !== id);
+    setContactsList(newList);
+    setClientesConContactos(prev => { const m = new Map(prev); const cnt = (m.get(contactsCliente) || 1) - 1; if (cnt <= 0) m.delete(contactsCliente); else m.set(contactsCliente, cnt); return m; });
   };
 
   const handleGmailConnect = () => {
@@ -1250,7 +1277,7 @@ FX27 Future Experience 27 — Grupo Loma Transportes © ${new Date().getFullYear
                 </div>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '16px' }}>
-                  {contactsList.map((ct, i) => (
+                  {contactsList.filter(ct => ct && ct.contacto_nombre !== undefined).map((ct, i) => (
                     <div key={ct.id || i} style={{
                       background: 'rgba(255,255,255,0.04)', borderRadius: '8px', padding: '12px 16px',
                       border: '1px solid rgba(255,255,255,0.08)', display: 'flex', justifyContent: 'space-between', alignItems: 'center'
