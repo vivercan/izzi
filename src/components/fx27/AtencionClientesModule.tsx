@@ -345,6 +345,16 @@ export function AtencionClientesModule({ onBack, userEmail, userName, userRole, 
   const [editEjecutivo, setEditEjecutivo] = useState('');
   const [editVendedor, setEditVendedor] = useState('');
 
+  // Determine CSR tag for current user (LIZ or ELI)
+  const myCsrTag = useMemo(() => {
+    if (userRole !== 'csr') return '';
+    const n = (userName || '').toUpperCase();
+    const e = (userEmail || '').toLowerCase();
+    if (n.startsWith('LIZ') || e.includes('lizeth') || e.includes('customerservice3')) return 'LIZ';
+    if (n.startsWith('ELI') || e.includes('elizabeth') || e.includes('customerservice')) return 'ELI';
+    return '';
+  }, [userRole, userName, userEmail]);
+
   // Expo state
   const [expoTipo, setExpoTipo] = useState('THERMO');
   const [expoEstado, setExpoEstado] = useState('');
@@ -443,17 +453,9 @@ export function AtencionClientesModule({ onBack, userEmail, userName, userRole, 
     setContactsLoading(true);
     setNewContact({ cliente_nombre: clienteNombre, contacto_nombre: '', email: '', whatsapp: '', cargo: '', notas: '' });
     try {
-      const { data, error } = await supabase.from('sc_contactos_clientes').select('*').eq('cliente_nombre', clienteNombre).order('id');
-      if (error) {
-        console.error('Error cargando contactos:', error.message);
-        setContactsList([]);
-      } else {
-        setContactsList(data || []);
-      }
-    } catch (err) {
-      console.error('Error inesperado cargando contactos:', err);
-      setContactsList([]);
-    }
+      const { data } = await supabase.from('sc_contactos_clientes').select('*').eq('cliente_nombre', clienteNombre).order('id');
+      setContactsList(data || []);
+    } catch { setContactsList([]); }
     setContactsLoading(false);
   };
 
@@ -461,43 +463,24 @@ export function AtencionClientesModule({ onBack, userEmail, userName, userRole, 
     if (!newContact.contacto_nombre || !newContact.email || !newContact.whatsapp) return;
     setContactsSaving(true);
     try {
-      const payload = {
-        cliente_nombre: contactsCliente,
-        contacto_nombre: newContact.contacto_nombre,
-        email: newContact.email,
-        whatsapp: newContact.whatsapp,
-        cargo: newContact.cargo || '',
-        notas: newContact.notas || '',
-      };
+      const payload = { ...newContact, cliente_nombre: contactsCliente };
       const { data, error } = await supabase.from('sc_contactos_clientes').insert(payload).select();
-      if (error) {
-        console.error('Error guardando contacto:', error.message, error.details, error.hint);
-        alert(`Error al guardar contacto: ${error.message}`);
-      } else if (data && data.length > 0 && data[0]) {
+      if (!error && data) {
         setContactsList(prev => [...prev, data[0]]);
         setNewContact({ cliente_nombre: contactsCliente, contacto_nombre: '', email: '', whatsapp: '', cargo: '', notas: '' });
         setClientesConContactos(prev => { const m = new Map(prev); m.set(contactsCliente, (m.get(contactsCliente) || 0) + 1); return m; });
-      } else {
-        console.warn('Insert sin error pero sin data retornada. data:', data);
-        alert('No se pudo guardar el contacto. Intenta de nuevo o contacta al administrador.');
       }
-    } catch (err) {
-      console.error('Error inesperado guardando contacto:', err);
-      alert('Error de conexión al guardar contacto. Verifica tu internet e intenta de nuevo.');
-    }
+    } catch {}
     setContactsSaving(false);
   };
 
   const deleteContact = async (id: number) => {
     const { error } = await supabase.from('sc_contactos_clientes').delete().eq('id', id);
-    if (error) {
-      console.error('Error eliminando contacto:', error.message);
-      alert(`Error al eliminar contacto: ${error.message}`);
-      return;
+    if (!error) {
+      const newList = contactsList.filter(c => c.id !== id);
+      setContactsList(newList);
+      setClientesConContactos(prev => { const m = new Map(prev); const cnt = (m.get(contactsCliente) || 1) - 1; if (cnt <= 0) m.delete(contactsCliente); else m.set(contactsCliente, cnt); return m; });
     }
-    const newList = contactsList.filter(c => c.id !== id);
-    setContactsList(newList);
-    setClientesConContactos(prev => { const m = new Map(prev); const cnt = (m.get(contactsCliente) || 1) - 1; if (cnt <= 0) m.delete(contactsCliente); else m.set(contactsCliente, cnt); return m; });
   };
 
   const handleGmailConnect = () => {
@@ -1155,7 +1138,7 @@ FX27 Future Experience 27 — Grupo Loma Transportes © ${new Date().getFullYear
                     <td style={{ ...S.tableCell, fontWeight: 600 }}>{c.cliente}</td>
                     {/* VENDEDOR COLUMN */}
                     <td style={S.tableCell}>
-                      {editingId === c.id ? (
+                      {editingId === c.id && userRole === 'admin' ? (
                         <select value={editVendedor} onChange={e => setEditVendedor(e.target.value)}
                           style={{ ...S.select, padding: '6px 10px', fontSize: '12px', width: '100px' }}>
                           <option value="">—</option>
@@ -1175,7 +1158,10 @@ FX27 Future Experience 27 — Grupo Loma Transportes © ${new Date().getFullYear
                         <select value={editEjecutivo} onChange={e => setEditEjecutivo(e.target.value)}
                           style={{ ...S.select, padding: '6px 10px', fontSize: '12px', width: '100px' }}>
                           <option value="PENDIENTE">PENDIENTE</option>
-                          {EJECUTIVOS_SC.map(e => <option key={e} value={e}>{e}</option>)}
+                          {userRole === 'admin'
+                            ? EJECUTIVOS_SC.map(e => <option key={e} value={e}>{e}</option>)
+                            : myCsrTag ? <option value={myCsrTag}>{myCsrTag}</option> : null
+                          }
                         </select>
                       ) : (
                         <span style={{
@@ -1195,9 +1181,9 @@ FX27 Future Experience 27 — Grupo Loma Transportes © ${new Date().getFullYear
                     <td style={{ ...S.tableCell, fontSize: '12px', color: 'rgba(255,255,255,0.5)' }}>{c.notas || '—'}</td>
                     <td style={S.tableCell}>
                       <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
-                      {userRole === 'admin' && editingId === c.id ? (
+                      {(userRole === 'admin' || (userRole === 'csr' && myCsrTag)) && editingId === c.id ? (
                         <>
-                          <button onClick={() => handleAssign(c.id, editEjecutivo, editVendedor)}
+                          <button onClick={() => handleAssign(c.id, editEjecutivo, userRole === 'admin' ? editVendedor : (c.vendedor || ''))}
                             style={{ background: 'rgba(76,175,80,0.2)', border: '1px solid rgba(76,175,80,0.4)', borderRadius: '6px', padding: '4px 8px', cursor: 'pointer' }}>
                             <Check style={{ width: '14px', height: '14px', color: '#66bb6a' }} />
                           </button>
@@ -1210,6 +1196,11 @@ FX27 Future Experience 27 — Grupo Loma Transportes © ${new Date().getFullYear
                         <button onClick={() => { setEditingId(c.id); setEditEjecutivo(c.ejecutivo_sc); setEditVendedor(c.vendedor || ''); }}
                           style={{ ...S.btnSecondary, padding: '5px 12px', fontSize: '11px', display: 'flex', alignItems: 'center', gap: '4px' }}>
                           <UserCheck style={{ width: '13px', height: '13px' }} /> Asignar
+                        </button>
+                      ) : (userRole === 'csr' && myCsrTag) ? (
+                        <button onClick={() => { setEditingId(c.id); setEditEjecutivo(myCsrTag); setEditVendedor(c.vendedor || ''); }}
+                          style={{ ...S.btnSecondary, padding: '5px 12px', fontSize: '11px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                          <UserCheck style={{ width: '13px', height: '13px' }} /> Asignar SC
                         </button>
                       ) : null}
                       <button onClick={() => openContactsModal(c.cliente)}
@@ -1277,7 +1268,7 @@ FX27 Future Experience 27 — Grupo Loma Transportes © ${new Date().getFullYear
                 </div>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '16px' }}>
-                  {contactsList.filter(ct => ct && ct.contacto_nombre !== undefined).map((ct, i) => (
+                  {contactsList.map((ct, i) => (
                     <div key={ct.id || i} style={{
                       background: 'rgba(255,255,255,0.04)', borderRadius: '8px', padding: '12px 16px',
                       border: '1px solid rgba(255,255,255,0.08)', display: 'flex', justifyContent: 'space-between', alignItems: 'center'
