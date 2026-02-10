@@ -316,8 +316,8 @@ const exportToExcel = (headers: string[], rows: string[][], filename: string, ai
 };
 
 // ============ KPI CARD ============
-const KPICard = ({ label, value, icon: Icon, color = 'rgba(240,160,80,1)' }: { label: string; value: string | number; icon: any; color?: string }) => (
-  <div style={{ ...S.card, padding: '16px 20px', display: 'flex', alignItems: 'center', gap: '14px', flex: 1, minWidth: '140px' }}>
+const KPICard = ({ label, value, icon: Icon, color = 'rgba(240,160,80,1)', onClick, active }: { label: string; value: string | number; icon: any; color?: string; onClick?: () => void; active?: boolean }) => (
+  <div onClick={onClick} style={{ ...S.card, padding: '16px 20px', display: 'flex', alignItems: 'center', gap: '14px', flex: 1, minWidth: '140px', cursor: onClick ? 'pointer' : 'default', transition: 'all 0.2s', border: active ? `1px solid ${color}` : S.card.border, boxShadow: active ? `0 4px 16px rgba(0,0,0,0.4), 0 0 12px ${color}33` : S.card.boxShadow }}>
     <div style={{ background: `${color}22`, borderRadius: '10px', padding: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
       <Icon style={{ width: '22px', height: '22px', color }} />
     </div>
@@ -1069,12 +1069,12 @@ FX27 Future Experience 27 — Grupo Loma Transportes © ${new Date().getFullYear
         <Header title="Asignación de Clientes" />
         <div style={{ padding: '12px 40px 4px', flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
         <div style={{ display: 'flex', gap: '14px', marginBottom: '12px', flexWrap: 'wrap', flexShrink: 0 }}>
-          <KPICard label="Total Clientes" value={asigKPIs.total} icon={Users} />
-          <KPICard label="Vta: ISIS" value={asigKPIs.isis} icon={Truck} color="#4caf50" />
-          <KPICard label="Vta: LEO" value={asigKPIs.leo} icon={Truck} color="#29b6f6" />
-          <KPICard label="CSR: Eli" value={asigKPIs.eli} icon={UserCheck} color="#ba68c8" />
-          <KPICard label="CSR: Liz" value={asigKPIs.liz} icon={UserCheck} color="#2196f3" />
-          <KPICard label="Pendientes" value={asigKPIs.pendientes} icon={AlertTriangle} color="#ff9800" />
+          <KPICard label="Total Clientes" value={asigKPIs.total} icon={Users} onClick={() => setFilterEjec('TODOS')} active={filterEjec === 'TODOS'} />
+          <KPICard label="Vta: ISIS" value={asigKPIs.isis} icon={Truck} color="#4caf50" onClick={() => setFilterEjec('ISIS')} active={filterEjec === 'ISIS'} />
+          <KPICard label="Vta: LEO" value={asigKPIs.leo} icon={Truck} color="#29b6f6" onClick={() => setFilterEjec('LEO')} active={filterEjec === 'LEO'} />
+          <KPICard label="CSR: Eli" value={asigKPIs.eli} icon={UserCheck} color="#ba68c8" onClick={() => setFilterEjec('ELI')} active={filterEjec === 'ELI'} />
+          <KPICard label="CSR: Liz" value={asigKPIs.liz} icon={UserCheck} color="#2196f3" onClick={() => setFilterEjec('LIZ')} active={filterEjec === 'LIZ'} />
+          <KPICard label="Pendientes" value={asigKPIs.pendientes} icon={AlertTriangle} color="#ff9800" onClick={() => setFilterEjec('PENDIENTE')} active={filterEjec === 'PENDIENTE'} />
         </div>
 
         {/* Filters & Actions */}
