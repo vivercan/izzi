@@ -1199,8 +1199,8 @@ FX27 Future Experience 27 — Grupo Loma Transportes © ${new Date().getFullYear
                         </button>
                       ) : (userRole === 'csr' && myCsrTag) ? (
                         <button onClick={() => { setEditingId(c.id); setEditEjecutivo(myCsrTag); setEditVendedor(c.vendedor || ''); }}
-                          style={{ ...S.btnSecondary, padding: '5px 12px', fontSize: '11px', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                          <UserCheck style={{ width: '13px', height: '13px' }} /> Asignar SC
+                          style={{ ...S.btnSecondary, padding: '5px 12px', fontSize: '11px', display: 'flex', alignItems: 'center', gap: '4px', whiteSpace: 'nowrap' }}>
+                          <UserCheck style={{ width: '13px', height: '13px' }} /> Asignar
                         </button>
                       ) : null}
                       <button onClick={() => openContactsModal(c.cliente)}
