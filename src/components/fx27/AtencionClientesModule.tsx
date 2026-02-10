@@ -344,6 +344,8 @@ export function AtencionClientesModule({ onBack, userEmail, userName, userRole, 
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editEjecutivo, setEditEjecutivo] = useState('');
   const [editVendedor, setEditVendedor] = useState('');
+  const [asigSortCol, setAsigSortCol] = useState<string>('numero');
+  const [asigSortDir, setAsigSortDir] = useState<'asc' | 'desc'>('asc');
 
   // Determine CSR tag for current user (LIZ or ELI)
   const myCsrTag = useMemo(() => {
@@ -668,6 +670,18 @@ FX27 Future Experience 27 — Grupo Loma Transportes © ${new Date().getFullYear
     }
   };
 
+  // ============ ASIG SORT ============
+  const handleAsigSort = (col: string) => {
+    if (asigSortCol === col) setAsigSortDir(d => d === 'asc' ? 'desc' : 'asc');
+    else { setAsigSortCol(col); setAsigSortDir(col === 'numero' || col === 'cliente' ? 'asc' : 'asc'); }
+  };
+  const AsigSortIcon = ({ col }: { col: string }) => {
+    if (asigSortCol !== col) return <ChevronDown style={{ width: '12px', height: '12px', opacity: 0.3, marginLeft: '2px' }} />;
+    return asigSortDir === 'asc'
+      ? <ChevronUp style={{ width: '12px', height: '12px', opacity: 0.9, marginLeft: '2px', color: 'rgba(240,160,80,1)' }} />
+      : <ChevronDown style={{ width: '12px', height: '12px', opacity: 0.9, marginLeft: '2px', color: 'rgba(240,160,80,1)' }} />;
+  };
+
   const filteredAsignacion = useMemo(() => {
     let data = asignacion;
     if (filterEjec === 'ISIS' || filterEjec === 'LEO') {
@@ -688,8 +702,23 @@ FX27 Future Experience 27 — Grupo Loma Transportes © ${new Date().getFullYear
         data = data.filter(c => c.ejecutivo_sc === csrName || c.status === 'PENDIENTE');
       }
     }
+    // Sort
+    data = [...data].sort((a, b) => {
+      let va: any, vb: any;
+      switch (asigSortCol) {
+        case 'numero': va = a.numero; vb = b.numero; break;
+        case 'cliente': va = a.cliente.toUpperCase(); vb = b.cliente.toUpperCase(); break;
+        case 'vendedor': va = (a.vendedor || 'ZZZ').toUpperCase(); vb = (b.vendedor || 'ZZZ').toUpperCase(); break;
+        case 'ejecutivo_sc': va = a.ejecutivo_sc.toUpperCase(); vb = b.ejecutivo_sc.toUpperCase(); break;
+        case 'status': va = a.status.toUpperCase(); vb = b.status.toUpperCase(); break;
+        case 'notas': va = (a.notas || '').toUpperCase(); vb = (b.notas || '').toUpperCase(); break;
+        default: va = a.numero; vb = b.numero;
+      }
+      if (typeof va === 'string') return asigSortDir === 'asc' ? va.localeCompare(vb) : vb.localeCompare(va);
+      return asigSortDir === 'asc' ? va - vb : vb - va;
+    });
     return data;
-  }, [asignacion, filterEjec, searchAsig, userRole, userEmail, userName]);
+  }, [asignacion, filterEjec, searchAsig, userRole, userEmail, userName, asigSortCol, asigSortDir]);
 
   const asigKPIs = useMemo(() => ({
     total: asignacion.length,
@@ -1112,12 +1141,24 @@ FX27 Future Experience 27 — Grupo Loma Transportes © ${new Date().getFullYear
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead style={{ position: 'sticky', top: 0, zIndex: 5 }}>
                 <tr>
-                  <th style={{ ...S.tableHeader, width: '50px' }}>#</th>
-                  <th style={{ ...S.tableHeader }}>Cliente</th>
-                  <th style={{ ...S.tableHeader, width: '110px' }}>Vendedor</th>
-                  <th style={{ ...S.tableHeader, width: '120px' }}>Ejecutivo SC</th>
-                  <th style={{ ...S.tableHeader, width: '100px' }}>Status</th>
-                  <th style={{ ...S.tableHeader }}>Notas</th>
+                  <th style={{ ...S.tableHeader, width: '50px', cursor: 'pointer', userSelect: 'none' }} onClick={() => handleAsigSort('numero')}>
+                    <span style={{ display: 'inline-flex', alignItems: 'center' }}># <AsigSortIcon col="numero" /></span>
+                  </th>
+                  <th style={{ ...S.tableHeader, cursor: 'pointer', userSelect: 'none' }} onClick={() => handleAsigSort('cliente')}>
+                    <span style={{ display: 'inline-flex', alignItems: 'center' }}>Cliente <AsigSortIcon col="cliente" /></span>
+                  </th>
+                  <th style={{ ...S.tableHeader, width: '110px', cursor: 'pointer', userSelect: 'none' }} onClick={() => handleAsigSort('vendedor')}>
+                    <span style={{ display: 'inline-flex', alignItems: 'center' }}>Vendedor <AsigSortIcon col="vendedor" /></span>
+                  </th>
+                  <th style={{ ...S.tableHeader, width: '120px', cursor: 'pointer', userSelect: 'none' }} onClick={() => handleAsigSort('ejecutivo_sc')}>
+                    <span style={{ display: 'inline-flex', alignItems: 'center' }}>Ejecutivo SC <AsigSortIcon col="ejecutivo_sc" /></span>
+                  </th>
+                  <th style={{ ...S.tableHeader, width: '100px', cursor: 'pointer', userSelect: 'none' }} onClick={() => handleAsigSort('status')}>
+                    <span style={{ display: 'inline-flex', alignItems: 'center' }}>Status <AsigSortIcon col="status" /></span>
+                  </th>
+                  <th style={{ ...S.tableHeader, cursor: 'pointer', userSelect: 'none' }} onClick={() => handleAsigSort('notas')}>
+                    <span style={{ display: 'inline-flex', alignItems: 'center' }}>Notas <AsigSortIcon col="notas" /></span>
+                  </th>
                   <th style={{ ...S.tableHeader, width: '200px', textAlign: 'center' }}>Acción</th>
                 </tr>
               </thead>
