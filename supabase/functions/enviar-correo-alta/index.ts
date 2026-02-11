@@ -505,7 +505,7 @@ const emailPendienteConfirmacion = (data: any) => {
     </table>
 
     <div style="text-align: center;">
-      <a href="https://www.jjcrm27.com/servicio-clientes"
+      <a href="https://www.jjcrm27.com/confirmar-alta/${data.solicitudId}"
          style="display: inline-block; background: linear-gradient(135deg, ${COLORS.verde} 0%, #16a34a 100%); color: #ffffff; text-decoration: none; padding: 14px 35px; border-radius: 6px; font-size: 14px; font-weight: 700;">
         CONFIRMAR ALTA →
       </a>

@@ -23,6 +23,7 @@ import { MapaClimaticoCarroll } from './components/fx27/MapaClimaticoCarroll';
 import { AltaClientePublico } from './components/fx27/AltaClientePublico';
 import { AsignarCxC } from './components/fx27/AsignarCxC';
 import { AsignarCxCPublico } from './components/fx27/AsignarCxCPublico';
+import { ConfirmarAltaPublico } from './components/fx27/ConfirmarAltaPublico';
 import SalesHorizonModule from './components/fx27/SalesHorizonModule';
 import { AtencionClientesModule } from './components/fx27/AtencionClientesModule';
 import { MODULE_IMAGES } from './assets/module-images';
@@ -233,6 +234,11 @@ export default function App() {
     const cxcMatch = path.match(/^\/asignar-cxc\/([a-f0-9-]{36})$/i);
     if (cxcMatch) {
       setRutaPublica({ tipo: 'asignar-cxc', id: cxcMatch[1] });
+    }
+    // Ruta pública: Confirmar Alta sin login
+    const confirmarMatch = path.match(/^\/confirmar-alta\/([a-f0-9-]{36})$/i);
+    if (confirmarMatch) {
+      setRutaPublica({ tipo: 'confirmar-alta', id: confirmarMatch[1] });
     }
     // Rutas internas
     if (path === '/servicio-clientes') {
@@ -468,6 +474,9 @@ export default function App() {
     }
     if (rutaPublica.tipo === 'asignar-cxc') {
       return <AsignarCxCPublico solicitudId={rutaPublica.id} />;
+    }
+    if (rutaPublica.tipo === 'confirmar-alta') {
+      return <ConfirmarAltaPublico solicitudId={rutaPublica.id} />;
     }
   }
 
