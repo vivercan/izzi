@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { ArrowLeft, Users, Upload, Download, Search, UserCheck, X, FileSpreadsheet, Brain, MapPin, ChevronDown, ChevronUp, RefreshCw, ClipboardList, MessageSquare, Loader2, Check, AlertTriangle, Truck, Mail, Send, Phone, CheckSquare, Square, Edit2, Trash2, Plus, Save } from 'lucide-react';
+import { ArrowLeft, Users, Upload, Download, Search, UserCheck, X, FileSpreadsheet, Brain, MapPin, ChevronDown, ChevronUp, RefreshCw, ClipboardList, MessageSquare, Loader2, Check, AlertTriangle, Truck, Mail, Send, Phone, CheckSquare, Square, Edit2, Trash2, Plus, Save, DollarSign, Banknote, Clock, TrendingUp, Filter } from 'lucide-react';
 import { createClient } from '@supabase/supabase-js';
 import { projectId, publicAnonKey } from '../../utils/supabase/info';
 
@@ -30,6 +30,24 @@ interface DataImpo {
 interface Props {
   onBack: () => void; userEmail?: string; userName?: string; userRole?: string; gmailToken?: string;
 }
+
+// ═══ CXC TYPES & AGENT MAPPING ═══
+interface CxCRecord {
+  empresa: string; cliente: string; agente: string; saldo: number; vencido: number; vigente: number;
+  vencido_prox: number; dias_credito: string; dias_vencido: string; riesgo: string; pagado: number;
+  pronostico: string; promesa: string;
+}
+const CXC_AGENT_MAP: Record<string, { nombre: string; email: string; tel: string }> = {
+  'EDUARDO': { nombre: 'Eduardo Noriega', email: 'eduardo.noriega@trob.com.mx', tel: '449 592 0667' },
+  'FER ZAPATA': { nombre: 'Fernanda Zapata', email: 'fernanda.zapata@wexpress.com.mx', tel: '449 125 0291' },
+  'FER': { nombre: 'Fernanda Flores', email: 'maria.flores@trob.com.mx', tel: '449 592 0718' },
+  'MIGUEL': { nombre: 'Miguel Padilla', email: 'miguel.padilla@wexpress.com.mx', tel: '449 521 3117' },
+  'KARLA': { nombre: 'Karla Muñoz', email: 'karla.munoz@speedyhaul.com.mx', tel: '449 546 1703' },
+  'DIANA': { nombre: 'Diana Ortiz', email: 'diana.ortiz@trob.com.mx', tel: '449 592 0547' },
+  'NORMA': { nombre: 'Norma Muñiz', email: 'norma.muniz@trob.com.mx', tel: '449 592 0749' },
+  'CLAUDIA': { nombre: 'Claudia Priana', email: 'claudia.priana@trob.com.mx', tel: '449 243 2684' },
+  'DEMANDA': { nombre: 'En Demanda', email: '', tel: '' },
+};
 
 // ============ NEIGHBOR STATES MAP ============
 const NEIGHBOR_STATES: Record<string, string[]> = {
@@ -330,7 +348,7 @@ const KPICard = ({ label, value, icon: Icon, color = 'rgba(240,160,80,1)', onCli
 
 // ============ MAIN COMPONENT ============
 export function AtencionClientesModule({ onBack, userEmail, userName, userRole, gmailToken: loginGmailToken }: Props) {
-  const [view, setView] = useState<'home' | 'asignacion' | 'expo' | 'impo'>('home');
+  const [view, setView] = useState<'home' | 'asignacion' | 'expo' | 'impo' | 'cxc'>('home');
   const [loading, setLoading] = useState(true);
 
   // Data
@@ -378,6 +396,16 @@ export function AtencionClientesModule({ onBack, userEmail, userName, userRole, 
   // Export state
   const [exporting, setExporting] = useState(false);
 
+  // ═══ CXC STATE ═══
+  const [cxcData, setCxcData] = useState<CxCRecord[]>([]);
+  const [cxcSearch, setCxcSearch] = useState('');
+  const [cxcFilterEmpresa, setCxcFilterEmpresa] = useState('TODOS');
+  const [cxcFilterAgente, setCxcFilterAgente] = useState('TODOS');
+  const [cxcFilterEstatus, setCxcFilterEstatus] = useState('TODOS');
+  const [cxcSortCol, setCxcSortCol] = useState<'saldo' | 'vencido' | 'cliente' | 'riesgo'>('vencido');
+  const [cxcSortDir, setCxcSortDir] = useState<'asc' | 'desc'>('desc');
+  const [cxcDetalle, setCxcDetalle] = useState<CxCRecord | null>(null);
+
   // Ofertar state
   const [selectedExpo, setSelectedExpo] = useState<Set<number>>(new Set());
   const [showOfertarModal, setShowOfertarModal] = useState(false);
@@ -406,14 +434,21 @@ export function AtencionClientesModule({ onBack, userEmail, userName, userRole, 
     const fetchAll = async () => {
       setLoading(true);
       try {
-        const [asigRes, expoRes, impoRes] = await Promise.all([
+        const [asigRes, expoRes, impoRes, cxcRes] = await Promise.all([
           supabase.from('sc_clientes_asignacion').select('*').order('numero'),
           supabase.from('sc_data_expo').select('*').order('viajes', { ascending: false }),
           supabase.from('sc_data_impo').select('*').order('viajes', { ascending: false }),
+          supabase.from('sc_cobranza').select('*').order('saldo', { ascending: false }),
         ]);
         if (asigRes.data) setAsignacion(asigRes.data);
         if (expoRes.data) setExpoData(expoRes.data);
         if (impoRes.data) setImpoData(impoRes.data);
+        if (cxcRes.data) setCxcData(cxcRes.data.map((r: any) => ({
+          empresa: r.empresa, cliente: r.cliente, agente: r.agente,
+          saldo: Number(r.saldo) || 0, vencido: Number(r.vencido) || 0, vigente: Number(r.vigente) || 0,
+          vencido_prox: Number(r.vencido_prox) || 0, dias_credito: r.dias_credito || '', dias_vencido: r.dias_vencido || '',
+          riesgo: r.riesgo || '', pagado: Number(r.pagado) || 0, pronostico: r.pronostico || '', promesa: r.promesa || '',
+        })));
         // Load contact counts per client
         const { data: contactosIdx } = await supabase.from('sc_contactos_clientes').select('cliente_nombre');
         if (contactosIdx) {
@@ -729,7 +764,36 @@ FX27 Future Experience 27 — Grupo Loma Transportes © ${new Date().getFullYear
     pendientes: asignacion.filter(c => c.status === 'PENDIENTE').length,
   }), [asignacion]);
 
-  // ============ EXPO LOGIC ============
+  // ═══ CXC KPIs & FILTERED DATA ═══
+  const cxcKPIs = useMemo(() => {
+    const totalSaldo = cxcData.reduce((a, c) => a + c.saldo, 0);
+    const totalVencido = cxcData.reduce((a, c) => a + c.vencido, 0);
+    const totalVigente = cxcData.reduce((a, c) => a + c.vigente, 0);
+    const altoRiesgo = cxcData.filter(c => { const p = parseInt(c.riesgo); return p >= 50; }).length;
+    return { clientes: cxcData.length, totalSaldo, totalVencido, totalVigente, altoRiesgo,
+      trob: cxcData.filter(c => c.empresa === 'TROB').length, we: cxcData.filter(c => c.empresa === 'WE').length, shi: cxcData.filter(c => c.empresa === 'SHI').length };
+  }, [cxcData]);
+
+  const filteredCxc = useMemo(() => {
+    let d = [...cxcData];
+    if (cxcSearch) { const s = cxcSearch.toLowerCase(); d = d.filter(c => c.cliente.toLowerCase().includes(s) || c.agente.toLowerCase().includes(s)); }
+    if (cxcFilterEmpresa !== 'TODOS') d = d.filter(c => c.empresa === cxcFilterEmpresa);
+    if (cxcFilterAgente !== 'TODOS') d = d.filter(c => c.agente === cxcFilterAgente);
+    if (cxcFilterEstatus === 'VENCIDO') d = d.filter(c => c.vencido > 0);
+    else if (cxcFilterEstatus === 'AL_CORRIENTE') d = d.filter(c => c.vencido === 0);
+    else if (cxcFilterEstatus === 'ALTO_RIESGO') d = d.filter(c => { const p = parseInt(c.riesgo); return p >= 50; });
+    d.sort((a, b) => {
+      let va: any, vb: any;
+      if (cxcSortCol === 'saldo') { va = a.saldo; vb = b.saldo; }
+      else if (cxcSortCol === 'vencido') { va = a.vencido; vb = b.vencido; }
+      else if (cxcSortCol === 'cliente') { va = a.cliente; vb = b.cliente; }
+      else { va = parseInt(a.riesgo) || 0; vb = parseInt(b.riesgo) || 0; }
+      return cxcSortDir === 'desc' ? (vb > va ? 1 : -1) : (va > vb ? 1 : -1);
+    });
+    return d;
+  }, [cxcData, cxcSearch, cxcFilterEmpresa, cxcFilterAgente, cxcFilterEstatus, cxcSortCol, cxcSortDir]);
+
+  const cxcAgentes = useMemo(() => [...new Set(cxcData.map(c => c.agente))].sort(), [cxcData]);
   const estadosDisponibles = useMemo(() => {
     const estados = [...new Set(expoData.map(d => d.estado))].sort();
     return estados;
@@ -871,6 +935,8 @@ FX27 Future Experience 27 — Grupo Loma Transportes © ${new Date().getFullYear
       context = `Datos de exportación (471 registros). Filtro actual: ${expoTipo} en ${expoEstado || 'sin seleccionar'}. Resultados: ${expoSample.map(d => `${d.cliente}: ${d.viajes} viajes desde ${d.estado} (${d.tipo}, Ded:${d.dedicado}, Cruce:${d.cruce})`).join(' | ')}`;
     } else if (view === 'impo') {
       context = `Datos de importación (${impoData.length} clientes). Top: ${impoData.slice(0, 20).map(d => `${d.cliente}: ${d.viajes}v (T:${d.thermo}/S:${d.seco})`).join(' | ')}`;
+    } else if (view === 'cxc') {
+      context = `Cuentas por Cobrar Sem 7. Cartera: ${(cxcKPIs.totalSaldo/1e6).toFixed(2)}M. Vencido: ${(cxcKPIs.totalVencido/1e6).toFixed(2)}M. ${cxcKPIs.altoRiesgo} alto riesgo. Top vencidos: ${filteredCxc.filter(c=>c.vencido>0).slice(0,10).map(c => `${c.cliente}(${c.empresa}): $${c.vencido.toFixed(0)} vencido, ${c.riesgo} riesgo, ${c.dias_vencido}d`).join(' | ')}`;
     }
     const prompt = `Eres un asistente de Servicio a Clientes para Grupo Loma Transportes (TROB/WEXPRESS/SPEEDYHAUL), empresa de transporte con 242 tractores. Responde en español, conciso y útil.\n\nContexto de datos:\n${context}\n\nPregunta del usuario: ${aiQuery}\n\nResponde de forma directa, práctica y orientada a la acción. Si es una búsqueda, lista los resultados relevantes. Si es una consulta de negocio, da recomendaciones concretas.`;
     const result = await callClaudeAPI(prompt);
@@ -1033,12 +1099,13 @@ FX27 Future Experience 27 — Grupo Loma Transportes © ${new Date().getFullYear
             })}
           </div>
 
-          {/* 3 MAIN SECTION BUTTONS */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '20px' }}>
+          {/* 4 MAIN SECTION BUTTONS */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '20px' }}>
             {[
               { id: 'asignacion' as const, title: 'Asignación de Clientes', desc: `${asigKPIs.total} clientes · ${asigKPIs.pendientes} pendientes`, icon: ClipboardList },
               { id: 'expo' as const, title: 'Expo Radar', desc: `${expoData.length} registros · 25 estados · THERMO/SECO`, icon: Upload },
               { id: 'impo' as const, title: 'Importación', desc: `${impoData.length} clientes · USA → México`, icon: Download },
+              { id: 'cxc' as const, title: 'Cuentas por Cobrar', desc: `${cxcKPIs.clientes} clientes · $${(cxcKPIs.totalSaldo/1e6).toFixed(1)}M cartera`, icon: DollarSign },
             ].map(item => {
               const Icon = item.icon;
               return (
@@ -1851,4 +1918,230 @@ FX27 Future Experience 27 — Grupo Loma Transportes © ${new Date().getFullYear
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   );
+
+  // ═══════════════════════════════════════════════════════════
+  // CXC VIEW — Cuentas por Cobrar
+  // ═══════════════════════════════════════════════════════════
+  if (view === 'cxc') {
+    const fmt = (n: number) => n >= 1e6 ? `$${(n/1e6).toFixed(2)}M` : n >= 1e3 ? `$${(n/1e3).toFixed(1)}K` : `$${n.toFixed(2)}`;
+    const riskPct = (s: string) => { const n = parseInt(s); return isNaN(n) ? 0 : n; };
+    const riskColor = (s: string) => { const n = riskPct(s); return n >= 70 ? '#ef4444' : n >= 40 ? '#f59e0b' : n > 0 ? '#3b82f6' : '#22c55e'; };
+    const riskBg = (s: string) => { const n = riskPct(s); return n >= 70 ? 'rgba(239,68,68,0.10)' : n >= 40 ? 'rgba(245,158,11,0.08)' : n > 0 ? 'rgba(59,130,246,0.06)' : 'transparent'; };
+    const sortIcon = (col: string) => cxcSortCol === col ? (cxcSortDir === 'desc' ? <ChevronDown style={{width:'12px',height:'12px'}} /> : <ChevronUp style={{width:'12px',height:'12px'}} />) : null;
+    const toggleSort = (col: 'saldo' | 'vencido' | 'cliente' | 'riesgo') => { if (cxcSortCol === col) setCxcSortDir(d => d === 'desc' ? 'asc' : 'desc'); else { setCxcSortCol(col); setCxcSortDir('desc'); } };
+
+    return (
+    <div style={{ ...S.bg, width: '100vw', height: '100vh', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+      <div style={{ ...S.overlay, position: 'fixed', inset: 0, pointerEvents: 'none' }} />
+      <div style={{ position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', height: '100vh' }}>
+        <Header title="Cuentas por Cobrar" subtitle={`Semana 7 · ${cxcKPIs.clientes} clientes · Cartera ${fmt(cxcKPIs.totalSaldo)}`} />
+
+        <div style={{ padding: '12px 40px', flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+          {/* KPI CARDS */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '12px', marginBottom: '12px', flexShrink: 0 }}>
+            {[
+              { label: 'CARTERA TOTAL', value: fmt(cxcKPIs.totalSaldo), icon: DollarSign, color: '#38bdf8' },
+              { label: 'VENCIDO', value: fmt(cxcKPIs.totalVencido), icon: AlertTriangle, color: '#ef4444' },
+              { label: 'VIGENTE', value: fmt(cxcKPIs.totalVigente), icon: CheckSquare, color: '#22c55e' },
+              { label: 'ALTO RIESGO', value: String(cxcKPIs.altoRiesgo), icon: AlertTriangle, color: '#f59e0b' },
+              { label: 'CLIENTES', value: `${cxcKPIs.trob}T · ${cxcKPIs.we}W · ${cxcKPIs.shi}S`, icon: Users, color: 'rgba(240,160,80,1)' },
+            ].map((kpi, i) => {
+              const Icon = kpi.icon;
+              return (
+                <div key={i} style={{ ...S.card, padding: '14px 16px', display: 'flex', alignItems: 'center', gap: '12px', position: 'relative', overflow: 'hidden' }}>
+                  <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '2px', background: `linear-gradient(90deg, transparent, ${kpi.color}66 50%, transparent)` }} />
+                  <div style={{ width: '36px', height: '36px', borderRadius: '8px', background: `${kpi.color}18`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <Icon style={{ width: '18px', height: '18px', color: kpi.color }} />
+                  </div>
+                  <div>
+                    <div style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '20px', fontWeight: 800, color: 'rgba(255,255,255,0.95)', lineHeight: 1 }}>{kpi.value}</div>
+                    <div style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '9px', fontWeight: 700, color: kpi.color, letterSpacing: '0.1em', marginTop: '3px', textTransform: 'uppercase' }}>{kpi.label}</div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* FILTERS */}
+          <div style={{ display: 'flex', gap: '10px', marginBottom: '10px', alignItems: 'center', flexWrap: 'wrap', flexShrink: 0 }}>
+            <div style={{ position: 'relative', flex: 1, minWidth: '200px' }}>
+              <Search style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', width: '16px', height: '16px', color: 'rgba(255,255,255,0.4)' }} />
+              <input value={cxcSearch} onChange={e => setCxcSearch(e.target.value)} placeholder="Buscar cliente o agente..."
+                style={{ ...S.input, paddingLeft: '38px' }} />
+            </div>
+            <select value={cxcFilterEmpresa} onChange={e => setCxcFilterEmpresa(e.target.value)} style={{ ...S.select, width: '130px' }}>
+              <option value="TODOS">Empresa</option>
+              <option value="TROB">TROB</option>
+              <option value="WE">WExpress</option>
+              <option value="SHI">Speedyhaul</option>
+            </select>
+            <select value={cxcFilterAgente} onChange={e => setCxcFilterAgente(e.target.value)} style={{ ...S.select, width: '170px' }}>
+              <option value="TODOS">Ejecutivo CxC</option>
+              {cxcAgentes.map(a => <option key={a} value={a}>{CXC_AGENT_MAP[a]?.nombre || a}</option>)}
+            </select>
+            <select value={cxcFilterEstatus} onChange={e => setCxcFilterEstatus(e.target.value)} style={{ ...S.select, width: '150px' }}>
+              <option value="TODOS">Estatus</option>
+              <option value="VENCIDO">Con vencidos</option>
+              <option value="AL_CORRIENTE">Al corriente</option>
+              <option value="ALTO_RIESGO">Alto riesgo ≥50%</option>
+            </select>
+            <button onClick={() => {
+              const headers = ['EMPRESA', 'CLIENTE', 'EJECUTIVO CXC', 'SALDO', 'VENCIDO', 'VIGENTE', '% RIESGO', 'DÍAS VENCIDO'];
+              const rows = filteredCxc.map(c => [c.empresa, c.cliente, CXC_AGENT_MAP[c.agente]?.nombre || c.agente, c.saldo.toFixed(2), c.vencido.toFixed(2), c.vigente.toFixed(2), c.riesgo, c.dias_vencido]);
+              const ctx = `Cartera: ${fmt(cxcKPIs.totalSaldo)}. Vencido: ${fmt(cxcKPIs.totalVencido)}. ${cxcKPIs.altoRiesgo} clientes alto riesgo.`;
+              handleExportWithAI(headers, rows, 'Cuentas_por_Cobrar', ctx);
+            }} disabled={exporting} style={{ ...S.btn, display: 'flex', alignItems: 'center', gap: '6px' }}>
+              {exporting ? <Loader2 style={{ width: '16px', height: '16px', animation: 'spin 1s linear infinite' }} /> : <FileSpreadsheet style={{ width: '16px', height: '16px' }} />}
+              Exportar
+            </button>
+          </div>
+
+          {/* TABLE */}
+          <div style={{ ...S.card, overflow: 'hidden', flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
+            <div style={{ flex: 1, overflowY: 'auto', minHeight: 0 }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                <thead style={{ position: 'sticky', top: 0, zIndex: 5 }}>
+                  <tr>
+                    <th style={{ ...S.tableHeader, width: '70px' }}>Emp.</th>
+                    <th style={{ ...S.tableHeader, cursor: 'pointer' }} onClick={() => toggleSort('cliente')}>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>Cliente {sortIcon('cliente')}</span></th>
+                    <th style={{ ...S.tableHeader, width: '140px' }}>Ejecutivo CxC</th>
+                    <th style={{ ...S.tableHeader, width: '120px', cursor: 'pointer' }} onClick={() => toggleSort('saldo')}>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>Saldo {sortIcon('saldo')}</span></th>
+                    <th style={{ ...S.tableHeader, width: '120px', cursor: 'pointer' }} onClick={() => toggleSort('vencido')}>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>Vencido {sortIcon('vencido')}</span></th>
+                    <th style={{ ...S.tableHeader, width: '100px' }}>Vigente</th>
+                    <th style={{ ...S.tableHeader, width: '80px', cursor: 'pointer' }} onClick={() => toggleSort('riesgo')}>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>Riesgo {sortIcon('riesgo')}</span></th>
+                    <th style={{ ...S.tableHeader, width: '70px' }}>Días V.</th>
+                    <th style={{ ...S.tableHeader, width: '80px' }}>Crédito</th>
+                    <th style={{ ...S.tableHeader, width: '60px' }}>Info</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredCxc.map((c, i) => {
+                    const agent = CXC_AGENT_MAP[c.agente];
+                    const empColor = c.empresa === 'TROB' ? '#38bdf8' : c.empresa === 'WE' ? '#a78bfa' : '#f472b6';
+                    return (
+                      <tr key={i} style={{ background: riskBg(c.riesgo), transition: 'background 0.2s' }}
+                        onMouseEnter={e => e.currentTarget.style.background = 'rgba(240,160,80,0.06)'}
+                        onMouseLeave={e => e.currentTarget.style.background = riskBg(c.riesgo)}>
+                        <td style={S.tableCell}>
+                          <span style={{ padding: '2px 8px', borderRadius: '4px', fontSize: '10px', fontWeight: 700, fontFamily: "'Exo 2', sans-serif",
+                            background: `${empColor}20`, color: empColor }}>{c.empresa}</span>
+                        </td>
+                        <td style={{ ...S.tableCell, fontWeight: 600 }}>{c.cliente}</td>
+                        <td style={S.tableCell}>
+                          <div style={{ fontSize: '12px', fontWeight: 600, color: 'rgba(255,255,255,0.9)' }}>{agent?.nombre || c.agente}</div>
+                          {agent?.tel && <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.4)', marginTop: '1px' }}>{agent.tel}</div>}
+                        </td>
+                        <td style={{ ...S.tableCell, fontFamily: "'Exo 2', sans-serif", fontWeight: 700, color: 'rgba(255,255,255,0.9)' }}>
+                          {fmt(c.saldo)}
+                        </td>
+                        <td style={{ ...S.tableCell, fontFamily: "'Exo 2', sans-serif", fontWeight: 700, color: c.vencido > 0 ? '#ef4444' : 'rgba(255,255,255,0.4)' }}>
+                          {c.vencido > 0 ? fmt(c.vencido) : '—'}
+                        </td>
+                        <td style={{ ...S.tableCell, fontFamily: "'Exo 2', sans-serif", color: '#22c55e' }}>
+                          {c.vigente > 0 ? fmt(c.vigente) : '—'}
+                        </td>
+                        <td style={S.tableCell}>
+                          {c.riesgo && c.riesgo !== '0 %' ? (
+                            <span style={{ padding: '3px 8px', borderRadius: '6px', fontSize: '11px', fontWeight: 700, fontFamily: "'Exo 2', sans-serif",
+                              background: `${riskColor(c.riesgo)}20`, color: riskColor(c.riesgo) }}>{c.riesgo}</span>
+                          ) : <span style={{ color: '#22c55e', fontSize: '11px', fontWeight: 600 }}>OK</span>}
+                        </td>
+                        <td style={{ ...S.tableCell, fontFamily: "'Exo 2', sans-serif", fontWeight: 600,
+                          color: parseInt(c.dias_vencido) > 90 ? '#ef4444' : parseInt(c.dias_vencido) > 30 ? '#f59e0b' : 'rgba(255,255,255,0.5)' }}>
+                          {c.dias_vencido || '—'}
+                        </td>
+                        <td style={{ ...S.tableCell, fontSize: '11px', color: 'rgba(255,255,255,0.5)' }}>
+                          {c.dias_credito ? `${c.dias_credito}d` : '—'}
+                        </td>
+                        <td style={S.tableCell}>
+                          <button onClick={() => setCxcDetalle(c)} style={{ background: 'rgba(59,130,246,0.15)', border: '1px solid rgba(59,130,246,0.3)',
+                            borderRadius: '6px', padding: '4px 8px', cursor: 'pointer', color: '#60a5fa', fontSize: '11px', fontWeight: 600 }}>
+                            Ver
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <div style={{ ...S.textMuted, fontSize: '11px', marginTop: '8px', textAlign: 'right', flexShrink: 0 }}>
+            Mostrando {filteredCxc.length} de {cxcData.length} · Vencido total: {fmt(filteredCxc.reduce((a, c) => a + c.vencido, 0))}
+          </div>
+        </div>
+      </div>
+
+      {/* DETALLE MODAL */}
+      {cxcDetalle && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 100, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          onClick={() => setCxcDetalle(null)}>
+          <div onClick={e => e.stopPropagation()} style={{ ...S.card, width: '560px', maxHeight: '80vh', overflow: 'auto', padding: '0', border: '1px solid rgba(59,130,246,0.3)' }}>
+            <div style={{ padding: '20px 24px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                <div>
+                  <div style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '18px', fontWeight: 700, color: '#fff' }}>{cxcDetalle.cliente}</div>
+                  <span style={{ padding: '2px 10px', borderRadius: '4px', fontSize: '11px', fontWeight: 700, fontFamily: "'Exo 2', sans-serif",
+                    background: cxcDetalle.empresa === 'TROB' ? 'rgba(56,189,248,0.15)' : cxcDetalle.empresa === 'WE' ? 'rgba(167,139,250,0.15)' : 'rgba(244,114,182,0.15)',
+                    color: cxcDetalle.empresa === 'TROB' ? '#38bdf8' : cxcDetalle.empresa === 'WE' ? '#a78bfa' : '#f472b6' }}>{cxcDetalle.empresa}</span>
+                </div>
+                <button onClick={() => setCxcDetalle(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.4)' }}><X style={{width:'20px',height:'20px'}} /></button>
+              </div>
+            </div>
+            <div style={{ padding: '20px 24px' }}>
+              {/* Financials */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px', marginBottom: '20px' }}>
+                {[
+                  { label: 'Saldo Total', value: fmt(cxcDetalle.saldo), color: '#38bdf8' },
+                  { label: 'Vencido', value: cxcDetalle.vencido > 0 ? fmt(cxcDetalle.vencido) : '—', color: cxcDetalle.vencido > 0 ? '#ef4444' : '#22c55e' },
+                  { label: 'Vigente', value: cxcDetalle.vigente > 0 ? fmt(cxcDetalle.vigente) : '—', color: '#22c55e' },
+                ].map((item, i) => (
+                  <div key={i} style={{ background: 'rgba(255,255,255,0.03)', borderRadius: '8px', padding: '12px', textAlign: 'center', border: `1px solid ${item.color}20` }}>
+                    <div style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '9px', color: 'rgba(255,255,255,0.4)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: '4px' }}>{item.label}</div>
+                    <div style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '20px', fontWeight: 800, color: item.color }}>{item.value}</div>
+                  </div>
+                ))}
+              </div>
+              {/* Risk bar */}
+              {cxcDetalle.riesgo && cxcDetalle.riesgo !== '0 %' && (
+                <div style={{ marginBottom: '16px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
+                    <span style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '11px', color: 'rgba(255,255,255,0.5)' }}>Nivel de Riesgo</span>
+                    <span style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '13px', fontWeight: 700, color: riskColor(cxcDetalle.riesgo) }}>{cxcDetalle.riesgo}</span>
+                  </div>
+                  <div style={{ height: '6px', borderRadius: '3px', background: 'rgba(255,255,255,0.05)', overflow: 'hidden' }}>
+                    <div style={{ height: '100%', width: `${riskPct(cxcDetalle.riesgo)}%`, borderRadius: '3px', background: riskColor(cxcDetalle.riesgo), transition: 'width 0.5s' }} />
+                  </div>
+                </div>
+              )}
+              {/* Details grid */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                {[
+                  { label: 'Ejecutivo CxC', value: CXC_AGENT_MAP[cxcDetalle.agente]?.nombre || cxcDetalle.agente },
+                  { label: 'Teléfono', value: CXC_AGENT_MAP[cxcDetalle.agente]?.tel || '—' },
+                  { label: 'Email', value: CXC_AGENT_MAP[cxcDetalle.agente]?.email || '—' },
+                  { label: 'Días de crédito', value: cxcDetalle.dias_credito ? `${cxcDetalle.dias_credito} días` : '—' },
+                  { label: 'Días vencido', value: cxcDetalle.dias_vencido || '—' },
+                  { label: 'Vence próxima sem.', value: cxcDetalle.vencido_prox > 0 ? fmt(cxcDetalle.vencido_prox) : '—' },
+                ].map((item, i) => (
+                  <div key={i} style={{ background: 'rgba(255,255,255,0.02)', borderRadius: '6px', padding: '10px' }}>
+                    <div style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '9px', color: 'rgba(255,255,255,0.35)', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: '2px' }}>{item.label}</div>
+                    <div style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '13px', fontWeight: 600, color: 'rgba(255,255,255,0.85)' }}>{item.value}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+    </div>
+  );
+  }
+
+  return null;
 }
