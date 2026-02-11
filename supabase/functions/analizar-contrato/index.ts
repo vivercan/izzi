@@ -1,7 +1,6 @@
 // supabase/functions/analizar-contrato/index.ts
-// Edge Function para análisis de contratos con IA (Anthropic Claude)
-// GRUPO LOMA | TROB TRANSPORTES
-// v3.0 - Zero external dependencies, text extraction done client-side
+// GRUPO LOMA | TROB TRANSPORTES | v4.0
+// FIXED: anthropic-version 2023-06-01 + pdfs-2024-09-25 beta
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
@@ -13,101 +12,76 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
-function jsonResponse(data: any, status = 200) {
+function ok(data: any) {
   return new Response(JSON.stringify(data), {
-    status,
+    status: 200,
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
 }
 
 serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders });
-  }
+  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   try {
-    if (!ANTHROPIC_API_KEY) {
-      return jsonResponse({ success: false, error: "API key de Anthropic no configurada en Supabase Secrets." });
-    }
+    if (!ANTHROPIC_API_KEY) return ok({ success: false, error: "ANTHROPIC_API_KEY no configurada." });
 
     let body;
-    try {
-      body = await req.json();
-    } catch (_) {
-      return jsonResponse({ success: false, error: "Error al leer la solicitud." });
-    }
+    try { body = await req.json(); } catch (_) { return ok({ success: false, error: "Error al leer solicitud." }); }
 
-    const {
-      archivo_base64,
-      nombre_archivo,
-      tipo_archivo,
-      fecha_analisis,
-      texto_extraido,  // NEW: pre-extracted text from client for Word/Excel
-    } = body;
+    const { archivo_base64, nombre_archivo, tipo_archivo, fecha_analisis, texto_extraido } = body;
+    if (!archivo_base64 && !texto_extraido) return ok({ success: false, error: "No se recibió archivo ni texto." });
 
-    if (!archivo_base64 && !texto_extraido) {
-      return jsonResponse({ success: false, error: "No se recibió el archivo ni texto." });
-    }
-
-    const fileName = (nombre_archivo || "").toLowerCase();
+    const fn = (nombre_archivo || "").toLowerCase();
     const fechaStr = fecha_analisis || new Date().toLocaleDateString("es-MX");
-    console.log(`[contrato] Archivo: ${nombre_archivo}, Tipo: ${tipo_archivo}, Texto: ${texto_extraido ? texto_extraido.length + ' chars' : 'no'}`);
+    const isPDF = tipo_archivo?.includes("pdf") || fn.endsWith(".pdf");
+    const isImage = tipo_archivo?.includes("image") || /\.(png|jpg|jpeg|gif|webp)$/.test(fn);
 
-    // Detect file type
-    const isPDF = tipo_archivo?.includes("pdf") || fileName.endsWith(".pdf");
-    const isImage = tipo_archivo?.includes("image") || /\.(png|jpg|jpeg|gif|webp)$/.test(fileName);
+    console.log(`[contrato] ${nombre_archivo} | tipo=${tipo_archivo} | texto=${texto_extraido ? texto_extraido.length : 0} | b64=${archivo_base64 ? archivo_base64.length : 0}`);
 
-    // Build content blocks
-    const contentBlocks: any[] = [];
+    const content: any[] = [];
+    let needsPdfBeta = false;
 
     if (texto_extraido && texto_extraido.length > 30) {
-      // Text was extracted client-side (Word, Excel, etc.)
+      // Pre-extracted text from client (Word, Excel)
       console.log(`[contrato] Using pre-extracted text: ${texto_extraido.length} chars`);
-      contentBlocks.push({
-        type: "text",
-        text: `TEXTO DEL CONTRATO "${nombre_archivo}":\n\n${"═".repeat(50)}\n\n${texto_extraido}\n\n${"═".repeat(50)}\n\nFecha: ${fechaStr}. Analiza este contrato completo para TROB TRANSPORTES. RESPONDE SOLO CON JSON VÁLIDO.`,
-      });
+      content.push({ type: "text", text: `TEXTO DEL CONTRATO "${nombre_archivo}":\n\n${texto_extraido}\n\nFecha: ${fechaStr}. Analiza para TROB TRANSPORTES. RESPONDE SOLO JSON VÁLIDO.` });
     } else if (isPDF && archivo_base64) {
-      console.log("[contrato] Sending PDF to Anthropic");
-      contentBlocks.push(
+      console.log("[contrato] PDF mode with beta header");
+      needsPdfBeta = true;
+      content.push(
         { type: "document", source: { type: "base64", media_type: "application/pdf", data: archivo_base64 } },
-        { type: "text", text: `Analiza este contrato PDF para TROB TRANSPORTES. Archivo: "${nombre_archivo}". Fecha: ${fechaStr}. RESPONDE SOLO CON JSON VÁLIDO.` }
+        { type: "text", text: `Analiza este contrato PDF para TROB TRANSPORTES. Archivo: "${nombre_archivo}". Fecha: ${fechaStr}. RESPONDE SOLO JSON VÁLIDO.` }
       );
     } else if (isImage && archivo_base64) {
-      console.log("[contrato] Sending image to Anthropic");
-      const ext = fileName.split(".").pop() || "jpeg";
-      const mediaMap: Record<string, string> = { png: "image/png", jpg: "image/jpeg", jpeg: "image/jpeg", gif: "image/gif", webp: "image/webp" };
-      contentBlocks.push(
-        { type: "image", source: { type: "base64", media_type: mediaMap[ext] || "image/jpeg", data: archivo_base64 } },
-        { type: "text", text: `Imagen de un contrato. Analízalo para TROB TRANSPORTES. Archivo: "${nombre_archivo}". Fecha: ${fechaStr}. RESPONDE SOLO CON JSON VÁLIDO.` }
+      console.log("[contrato] Image mode");
+      const ext = fn.split(".").pop() || "jpeg";
+      const mt: Record<string, string> = { png: "image/png", jpg: "image/jpeg", jpeg: "image/jpeg", gif: "image/gif", webp: "image/webp" };
+      content.push(
+        { type: "image", source: { type: "base64", media_type: mt[ext] || "image/jpeg", data: archivo_base64 } },
+        { type: "text", text: `Imagen de contrato. Analízalo para TROB TRANSPORTES. Fecha: ${fechaStr}. RESPONDE SOLO JSON VÁLIDO.` }
       );
     } else if (archivo_base64) {
-      // Fallback: try as PDF
-      console.log("[contrato] Unknown type, trying as PDF");
-      contentBlocks.push(
-        { type: "document", source: { type: "base64", media_type: "application/pdf", data: archivo_base64 } },
-        { type: "text", text: `Analiza este contrato para TROB TRANSPORTES. Fecha: ${fechaStr}. RESPONDE SOLO CON JSON VÁLIDO.` }
-      );
+      // Unknown → try as text reference
+      console.log("[contrato] Unknown type, sending base64 snippet as text");
+      content.push({ type: "text", text: `Archivo: "${nombre_archivo}". No se pudo determinar el tipo. Genera análisis con estructura JSON completa indicando que se necesita convertir a PDF. Fecha: ${fechaStr}. RESPONDE SOLO JSON VÁLIDO.` });
     } else {
-      return jsonResponse({ success: false, error: "No se pudo procesar el archivo. Intenta con PDF." });
+      return ok({ success: false, error: "No se pudo procesar el archivo." });
     }
 
-    // System prompt
-    const systemPrompt = `Eres un abogado corporativo especialista en derecho mercantil y de transporte en México.
-
-Analiza el contrato y responde ÚNICAMENTE con JSON válido (sin backticks, sin texto adicional).
+    const systemPrompt = `Eres un abogado corporativo especialista en derecho mercantil y transporte en México.
+Analiza el contrato y responde ÚNICAMENTE con JSON válido (sin backticks, sin texto).
 
 Estructura EXACTA:
 {
   "datos_extraidos": {
     "representante_legal": "nombre o 'No especificado'",
-    "notaria": "info notarial o 'No especificado'",
+    "notaria": "info o 'No especificado'",
     "numero_escritura": "número o 'No especificado'",
     "fecha_contrato": "fecha o 'No especificado'",
     "partes": ["Parte A", "Parte B"],
-    "objeto_contrato": "descripción breve",
+    "objeto_contrato": "descripción",
     "vigencia": "duración o 'No especificado'",
-    "monto_o_tarifa": "condiciones económicas o 'No especificado'"
+    "monto_o_tarifa": "condiciones o 'No especificado'"
   },
   "es_leonino": false,
   "explicacion_leonino": "Explicación",
@@ -118,58 +92,60 @@ Estructura EXACTA:
   "calificacion_riesgo": 7
 }
 
-CRITERIOS TROB TRANSPORTES:
-- Transportista de carga. Proteger contra: responsabilidad excesiva, penalizaciones desproporcionadas, plazos >30 días, sin fuerza mayor, jurisdicción fuera de Aguascalientes
-- Verificar: limitación responsabilidad, seguro mercancía, obligaciones claras, resolución controversias, terminación bilateral
-- Calificación 1-10. Info: Escritura 21,183 Vol 494, Notaría 35, Lic. Fernando Quezada Leos, Ags. Rep. legal: Alejandro López Ramírez. RFC: TTR151216CHA
+TROB TRANSPORTES: transportista de carga. Proteger contra responsabilidad excesiva, penalizaciones desproporcionadas, plazos >30 días, sin fuerza mayor, jurisdicción fuera de Aguascalientes.
+Info: Escritura 21,183 Vol 494, Notaría 35, Lic. Fernando Quezada Leos, Ags. Rep. legal: Alejandro López Ramírez. RFC: TTR151216CHA.
+SOLO JSON.`;
 
-SOLO JSON VÁLIDO.`;
+    // Build headers - CRITICAL: version must be 2023-06-01
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+      "x-api-key": ANTHROPIC_API_KEY,
+      "anthropic-version": "2023-06-01",
+    };
+    if (needsPdfBeta) {
+      headers["anthropic-beta"] = "pdfs-2024-09-25";
+    }
 
-    // Call Anthropic
-    console.log("[contrato] Calling Anthropic...");
-    let anthropicResponse;
+    console.log("[contrato] Calling Anthropic...", needsPdfBeta ? "(with PDF beta)" : "(text only)");
+
+    let res;
     try {
-      anthropicResponse = await fetch("https://api.anthropic.com/v1/messages", {
+      res = await fetch("https://api.anthropic.com/v1/messages", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-api-key": ANTHROPIC_API_KEY,
-          "anthropic-version": "2024-10-22",
-        },
+        headers,
         body: JSON.stringify({
           model: "claude-sonnet-4-20250514",
           max_tokens: 16000,
           system: systemPrompt,
-          messages: [{ role: "user", content: contentBlocks }],
+          messages: [{ role: "user", content: content }],
         }),
       });
-    } catch (fetchErr: any) {
-      console.error("[contrato] Fetch failed:", fetchErr.message);
-      return jsonResponse({ success: false, error: `Error conectando con IA: ${fetchErr.message}` });
+    } catch (e: any) {
+      console.error("[contrato] Fetch error:", e.message);
+      return ok({ success: false, error: `Error de conexión con IA: ${e.message}` });
     }
 
-    console.log(`[contrato] Anthropic status: ${anthropicResponse.status}`);
+    console.log(`[contrato] Status: ${res.status}`);
 
-    if (!anthropicResponse.ok) {
-      const errText = await anthropicResponse.text().catch(() => "");
-      console.error(`[contrato] Anthropic error ${anthropicResponse.status}: ${errText.substring(0, 300)}`);
-      const msgs: Record<number, string> = {
+    if (!res.ok) {
+      const err = await res.text().catch(() => "");
+      console.error(`[contrato] API error ${res.status}: ${err.substring(0, 400)}`);
+      const m: Record<number, string> = {
         401: "API key inválida.",
         429: "Demasiadas solicitudes. Espera 30s.",
-        400: `Error procesando archivo. ${errText.substring(0, 100)}`,
-        529: "IA sobrecargada. Intenta en minutos.",
-        503: "IA no disponible temporalmente.",
+        400: `Error procesando: ${err.substring(0, 120)}`,
+        529: "IA sobrecargada.",
+        503: "IA no disponible.",
       };
-      return jsonResponse({ success: false, error: msgs[anthropicResponse.status] || `Error IA: ${anthropicResponse.status}` });
+      return ok({ success: false, error: m[res.status] || `Error IA: ${res.status}. ${err.substring(0, 100)}` });
     }
 
-    const data = await anthropicResponse.json();
+    const data = await res.json();
     const text = data.content?.map((b: any) => b.type === "text" ? b.text : "").filter(Boolean).join("\n") || "";
     console.log(`[contrato] Response: ${text.length} chars`);
 
-    if (!text) return jsonResponse({ success: false, error: "IA no generó respuesta." });
+    if (!text) return ok({ success: false, error: "IA no generó respuesta." });
 
-    // Parse JSON
     let analisis;
     try {
       const clean = text.replace(/```json\s*/g, "").replace(/```\s*/g, "").trim();
@@ -177,8 +153,8 @@ SOLO JSON VÁLIDO.`;
       if (!match) throw new Error("No JSON");
       analisis = JSON.parse(match[0]);
     } catch (e: any) {
-      console.error("[contrato] Parse error:", e.message, "Preview:", text.substring(0, 200));
-      return jsonResponse({ success: false, error: "Error interpretando respuesta. Intenta de nuevo." });
+      console.error("[contrato] Parse:", e.message, text.substring(0, 200));
+      return ok({ success: false, error: "Error interpretando respuesta." });
     }
 
     // Defaults
@@ -191,11 +167,11 @@ SOLO JSON VÁLIDO.`;
     analisis.resumen_ejecutivo = analisis.resumen_ejecutivo || "Análisis completado.";
     analisis.version_blindada = analisis.version_blindada || "No generada.";
 
-    console.log(`[contrato] ✅ Riesgo: ${analisis.calificacion_riesgo}/10, ${analisis.riesgos.length} riesgos, Leonino: ${analisis.es_leonino}`);
-    return jsonResponse({ success: true, analisis });
+    console.log(`[contrato] ✅ Riesgo:${analisis.calificacion_riesgo}/10 Riesgos:${analisis.riesgos.length} Leonino:${analisis.es_leonino}`);
+    return ok({ success: true, analisis });
 
-  } catch (error: any) {
-    console.error("[contrato] FATAL:", error.message);
-    return jsonResponse({ success: false, error: `Error interno: ${error.message}` });
+  } catch (e: any) {
+    console.error("[contrato] FATAL:", e.message);
+    return ok({ success: false, error: `Error interno: ${e.message}` });
   }
 });
