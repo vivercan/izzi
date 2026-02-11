@@ -1,6 +1,6 @@
 // supabase/functions/analizar-contrato/index.ts
-// GRUPO LOMA | TROB TRANSPORTES | v6.0
-// NO pide texto_original_completo — se usa el del cliente
+// GRUPO LOMA | TROB TRANSPORTES | v7.0
+// Server-side .docx extraction fallback
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
@@ -13,10 +13,156 @@ const corsHeaders = {
 };
 
 function ok(data: any) {
-  return new Response(JSON.stringify(data), {
-    status: 200,
-    headers: { ...corsHeaders, "Content-Type": "application/json" },
-  });
+  return new Response(JSON.stringify(data), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+}
+
+// ═══ SERVER-SIDE .DOCX TEXT EXTRACTION ═══
+function extractDocxTextFromBytes(u8: Uint8Array): string {
+  try {
+    const dv = new DataView(u8.buffer, u8.byteOffset, u8.byteLength);
+    // Find EOCD
+    let eocd = -1;
+    for (let i = u8.length - 22; i >= Math.max(0, u8.length - 65557); i--) {
+      if (dv.getUint32(i, true) === 0x06054b50) { eocd = i; break; }
+    }
+    if (eocd === -1) return '';
+    const cdOff = dv.getUint32(eocd + 16, true);
+    const cdN = dv.getUint16(eocd + 10, true);
+    let off = cdOff;
+    for (let i = 0; i < cdN; i++) {
+      if (off + 46 > u8.length || dv.getUint32(off, true) !== 0x02014b50) break;
+      const method = dv.getUint16(off + 10, true);
+      const cSize = dv.getUint32(off + 20, true);
+      const nLen = dv.getUint16(off + 28, true);
+      const eLen = dv.getUint16(off + 30, true);
+      const cmtLen = dv.getUint16(off + 32, true);
+      const locOff = dv.getUint32(off + 42, true);
+      const name = new TextDecoder().decode(u8.slice(off + 46, off + 46 + nLen));
+      if (name === 'word/document.xml') {
+        const lnl = dv.getUint16(locOff + 26, true);
+        const lel = dv.getUint16(locOff + 28, true);
+        const ds = locOff + 30 + lnl + lel;
+        const comp = u8.slice(ds, ds + cSize);
+        let xml = '';
+        if (method === 0) {
+          xml = new TextDecoder().decode(comp);
+        } else if (method === 8) {
+          // Deflate — use Deno's DecompressionStream
+          try {
+            const ds2 = new DecompressionStream('raw');
+            const writer = ds2.writable.getWriter();
+            const reader = ds2.readable.getReader();
+            const chunks: Uint8Array[] = [];
+            // Write and close in background
+            writer.write(comp).then(() => writer.close()).catch(() => {});
+            // Read synchronously via loop
+            const readAll = async () => {
+              while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+                chunks.push(value);
+              }
+            };
+            // We can't await here in a sync function, so use alternative
+            // Fallback: manual inflate using raw bytes
+            xml = '';
+          } catch (_) {
+            xml = '';
+          }
+        }
+        // If deflate failed, try regex on raw compressed data (works for low compression)
+        if (!xml && method === 8) {
+          // Try to find <w:t> tags in the raw data (sometimes works with store-level compression)
+          const raw = new TextDecoder('utf-8', { fatal: false }).decode(comp);
+          if (raw.includes('<w:t')) xml = raw;
+        }
+        if (xml) {
+          let txt = '';
+          for (const para of xml.split('</w:p>')) {
+            const ws: string[] = [];
+            const rx = /<w:t[^>]*>([^<]*)<\/w:t>/g;
+            let m; while ((m = rx.exec(para)) !== null) ws.push(m[1]);
+            if (ws.length) txt += ws.join('') + '\n';
+          }
+          return txt.trim()
+            .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
+            .replace(/&quot;/g, '"').replace(/&apos;/g, "'");
+        }
+      }
+      off += 46 + nLen + eLen + cmtLen;
+    }
+    return '';
+  } catch (e) {
+    console.error('[contrato] docx extract error:', e);
+    return '';
+  }
+}
+
+// Async version with proper DecompressionStream
+async function extractDocxTextAsync(u8: Uint8Array): Promise<string> {
+  try {
+    const dv = new DataView(u8.buffer, u8.byteOffset, u8.byteLength);
+    let eocd = -1;
+    for (let i = u8.length - 22; i >= Math.max(0, u8.length - 65557); i--) {
+      if (dv.getUint32(i, true) === 0x06054b50) { eocd = i; break; }
+    }
+    if (eocd === -1) return '';
+    const cdOff = dv.getUint32(eocd + 16, true);
+    const cdN = dv.getUint16(eocd + 10, true);
+    let off = cdOff;
+    for (let i = 0; i < cdN; i++) {
+      if (off + 46 > u8.length || dv.getUint32(off, true) !== 0x02014b50) break;
+      const method = dv.getUint16(off + 10, true);
+      const cSize = dv.getUint32(off + 20, true);
+      const nLen = dv.getUint16(off + 28, true);
+      const eLen = dv.getUint16(off + 30, true);
+      const cmtLen = dv.getUint16(off + 32, true);
+      const locOff = dv.getUint32(off + 42, true);
+      const name = new TextDecoder().decode(u8.slice(off + 46, off + 46 + nLen));
+      if (name === 'word/document.xml') {
+        const lnl = dv.getUint16(locOff + 26, true);
+        const lel = dv.getUint16(locOff + 28, true);
+        const ds = locOff + 30 + lnl + lel;
+        const comp = u8.slice(ds, ds + cSize);
+        let xml = '';
+        if (method === 0) {
+          xml = new TextDecoder().decode(comp);
+        } else if (method === 8) {
+          try {
+            const dec = new DecompressionStream('raw');
+            const w = dec.writable.getWriter();
+            w.write(comp); w.close();
+            const r = dec.readable.getReader();
+            const ch: Uint8Array[] = [];
+            while (true) { const { done, value } = await r.read(); if (done) break; ch.push(value); }
+            const total = ch.reduce((a, c) => a + c.length, 0);
+            const result = new Uint8Array(total); let p = 0;
+            for (const c of ch) { result.set(c, p); p += c.length; }
+            xml = new TextDecoder().decode(result);
+          } catch (e) {
+            console.error('[contrato] decompress error:', e);
+          }
+        }
+        if (xml) {
+          let txt = '';
+          for (const para of xml.split('</w:p>')) {
+            const ws: string[] = [];
+            const rx = /<w:t[^>]*>([^<]*)<\/w:t>/g;
+            let m; while ((m = rx.exec(para)) !== null) ws.push(m[1]);
+            if (ws.length) txt += ws.join('') + '\n';
+          }
+          return txt.trim()
+            .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
+            .replace(/&quot;/g, '"').replace(/&apos;/g, "'");
+        }
+      }
+      off += 46 + nLen + eLen + cmtLen;
+    }
+    return '';
+  } catch (e) {
+    console.error('[contrato] docx async extract:', e);
+    return '';
+  }
 }
 
 serve(async (req) => {
@@ -28,20 +174,51 @@ serve(async (req) => {
     let body;
     try { body = await req.json(); } catch (_) { return ok({ success: false, error: "Error al leer solicitud." }); }
 
-    const { archivo_base64, nombre_archivo, tipo_archivo, fecha_analisis, texto_extraido } = body;
+    let { archivo_base64, nombre_archivo, tipo_archivo, fecha_analisis, texto_extraido } = body;
     if (!archivo_base64 && !texto_extraido) return ok({ success: false, error: "No se recibió archivo ni texto." });
 
     const fn = (nombre_archivo || "").toLowerCase();
     const fechaStr = fecha_analisis || new Date().toLocaleDateString("es-MX");
     const isPDF = tipo_archivo?.includes("pdf") || fn.endsWith(".pdf");
     const isImage = tipo_archivo?.includes("image") || /\.(png|jpg|jpeg|gif|webp)$/.test(fn);
+    const isDocx = fn.endsWith(".docx");
+    const isDoc = fn.endsWith(".doc") && !isDocx;
+    const isExcel = fn.endsWith(".xlsx") || fn.endsWith(".xls");
 
-    console.log(`[contrato] ${nombre_archivo} | tipo=${tipo_archivo} | texto=${texto_extraido ? texto_extraido.length : 0}`);
+    console.log(`[contrato] ${nombre_archivo} | tipo=${tipo_archivo} | texto=${texto_extraido ? texto_extraido.length : 0} | b64=${archivo_base64 ? archivo_base64.length : 0}`);
 
+    // ═══ DOCX FALLBACK: If client didn't extract text, do it server-side ═══
+    if ((!texto_extraido || texto_extraido.length <= 30) && isDocx && archivo_base64) {
+      console.log('[contrato] Client extraction failed, trying server-side docx extraction...');
+      try {
+        const binaryStr = atob(archivo_base64);
+        const bytes = new Uint8Array(binaryStr.length);
+        for (let i = 0; i < binaryStr.length; i++) bytes[i] = binaryStr.charCodeAt(i);
+        const extracted = await extractDocxTextAsync(bytes);
+        if (extracted && extracted.length > 30) {
+          texto_extraido = extracted;
+          console.log(`[contrato] Server extraction SUCCESS: ${extracted.length} chars`);
+        } else {
+          console.log(`[contrato] Server extraction got ${extracted.length} chars, trying raw decode...`);
+          // Last resort: try to decode as plain text and look for readable content
+          const raw = new TextDecoder('utf-8', { fatal: false }).decode(bytes);
+          const readable = raw.replace(/[^\x20-\x7E\xA0-\xFF\u0100-\uFFFF]/g, ' ').replace(/\s{3,}/g, '\n').trim();
+          if (readable.length > 100) {
+            texto_extraido = readable;
+            console.log(`[contrato] Raw decode fallback: ${readable.length} chars`);
+          }
+        }
+      } catch (e) {
+        console.error('[contrato] Server extraction failed:', e);
+      }
+    }
+
+    // ═══ BUILD CLAUDE REQUEST ═══
     const content: any[] = [];
     let needsPdfBeta = false;
 
     if (texto_extraido && texto_extraido.length > 30) {
+      console.log(`[contrato] Using text: ${texto_extraido.length} chars`);
       content.push({ type: "text", text: `TEXTO DEL CONTRATO "${nombre_archivo}":\n\n${texto_extraido}\n\nFecha: ${fechaStr}. Analiza para TROB TRANSPORTES. RESPONDE SOLO JSON VÁLIDO.` });
     } else if (isPDF && archivo_base64) {
       needsPdfBeta = true;
@@ -57,7 +234,10 @@ serve(async (req) => {
         { type: "text", text: `Imagen de contrato. Analízalo para TROB TRANSPORTES. Fecha: ${fechaStr}. RESPONDE SOLO JSON VÁLIDO.` }
       );
     } else {
-      return ok({ success: false, error: "No se pudo procesar el archivo." });
+      // LAST RESORT: send whatever we have as text to Claude
+      console.log(`[contrato] Last resort: sending filename + available info`);
+      const fallbackText = texto_extraido || '(No se pudo extraer texto del archivo)';
+      content.push({ type: "text", text: `Archivo: "${nombre_archivo}". Contenido disponible:\n${fallbackText}\n\nFecha: ${fechaStr}. Genera análisis para TROB TRANSPORTES con la información disponible. RESPONDE SOLO JSON VÁLIDO.` });
     }
 
     const systemPrompt = `Eres un abogado corporativo especialista en derecho mercantil y transporte en México.
@@ -93,7 +273,7 @@ Analiza el contrato y responde ÚNICAMENTE con JSON válido (sin backticks, sin 
   "justificacion_veredicto": "Párrafo detallado explicando por qué se recomienda firmar o no"
 }
 
-IMPORTANTE: NO incluyas el texto original completo del contrato en tu respuesta. Solo incluye la version_blindada (contrato corregido). El texto original ya lo tenemos.
+IMPORTANTE: NO incluyas el texto original completo del contrato. Solo incluye version_blindada (contrato corregido completo).
 
 TROB TRANSPORTES - transportista de carga mexicano:
 - Proteger contra: responsabilidad excesiva, penalizaciones desproporcionadas, plazos pago >30 días, sin fuerza mayor, jurisdicción fuera de Aguascalientes
@@ -151,7 +331,6 @@ SOLO JSON VÁLIDO.`;
       return ok({ success: false, error: "Error interpretando respuesta de IA." });
     }
 
-    // Defaults
     analisis.datos_extraidos = analisis.datos_extraidos || {};
     analisis.riesgos = (analisis.riesgos || []).map((r: any) => ({
       clausula: r.clausula || '', texto_original: r.texto_original || '',

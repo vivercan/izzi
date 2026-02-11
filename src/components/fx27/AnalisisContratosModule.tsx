@@ -19,7 +19,7 @@ async function extractDocxText(file: File): Promise<string> {
     const ab = await file.arrayBuffer(); const u8 = new Uint8Array(ab); const dv = new DataView(ab);
     let eocd = -1;
     for (let i = u8.length - 22; i >= Math.max(0, u8.length - 65557); i--) { if (dv.getUint32(i, true) === 0x06054b50) { eocd = i; break; } }
-    if (eocd === -1) return '';
+    if (eocd === -1) { console.warn('DOCX: No EOCD found'); return ''; }
     const cdOff = dv.getUint32(eocd + 16, true), cdN = dv.getUint16(eocd + 10, true);
     let off = cdOff;
     for (let i = 0; i < cdN; i++) {
@@ -34,12 +34,14 @@ async function extractDocxText(file: File): Promise<string> {
         let xml = '';
         if (method === 0) xml = new TextDecoder().decode(comp);
         else if (method === 8) {
-          const dec = new DecompressionStream('raw'); const w = dec.writable.getWriter(); w.write(comp); w.close();
-          const r = dec.readable.getReader(); const ch: Uint8Array[] = [];
-          while (true) { const { done, value } = await r.read(); if (done) break; ch.push(value); }
-          const t = ch.reduce((a, c) => a + c.length, 0); const res = new Uint8Array(t); let p = 0;
-          for (const c of ch) { res.set(c, p); p += c.length; }
-          xml = new TextDecoder().decode(res);
+          try {
+            const dec = new DecompressionStream('raw'); const w = dec.writable.getWriter(); w.write(comp); w.close();
+            const r = dec.readable.getReader(); const ch: Uint8Array[] = [];
+            while (true) { const { done, value } = await r.read(); if (done) break; ch.push(value); }
+            const t = ch.reduce((a, c) => a + c.length, 0); const res = new Uint8Array(t); let p = 0;
+            for (const c of ch) { res.set(c, p); p += c.length; }
+            xml = new TextDecoder().decode(res);
+          } catch (e) { console.warn('DOCX: DecompressionStream failed:', e); }
         }
         if (xml) {
           let txt = '';
@@ -53,8 +55,9 @@ async function extractDocxText(file: File): Promise<string> {
       }
       off += 46 + nLen + eLen + cmtLen;
     }
+    console.warn('DOCX: word/document.xml not found');
     return '';
-  } catch (e) { console.error('DOCX:', e); return ''; }
+  } catch (e) { console.error('DOCX extraction error:', e); return ''; }
 }
 
 // ═══ PDF CSS ═══
@@ -88,7 +91,6 @@ function generarPDF(titulo: string, html: string) {
   w.document.close(); setTimeout(() => w.print(), 800);
 }
 
-// ═══ SHARED PDF HELPERS ═══
 function trobTable() {
   return `<table><tr><th colspan="2" style="text-align:center;font-size:11pt">DATOS DEL TRANSPORTISTA</th></tr>
   <tr><td style="width:30%;font-weight:700">Razón Social</td><td>TROB TRANSPORTES S.A. DE C.V.</td></tr>
@@ -140,20 +142,19 @@ function verdictPage(r: AnalisisContrato, f: string) {
   const subColor = firmar ? '#166534' : '#991b1b';
   const bodyColor = firmar ? '#14532d' : '#7f1d1d';
   const btnBg = firmar ? '#16a34a' : '#dc2626';
-  const btnTxt = firmar ? 'Se recomienda proceder con la firma previa revisión final del equipo legal.' : 'RECOMENDACIÓN: No proceder con la firma hasta que el departamento legal de TROB apruebe la versión corregida.';
+  const btnTxt = firmar ? 'Se recomienda proceder con la firma previa revisión final del equipo legal.' : 'No proceder con la firma hasta que el departamento legal de TROB apruebe la versión corregida.';
   return `<div class="page-break" style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:80vh;text-align:center">
     <div style="border:8px solid ${border};border-radius:20px;padding:60px 80px;background:${bg}">
       <p style="font-family:'Exo 2',sans-serif;font-size:56pt;font-weight:900;color:${txtColor};margin:0;line-height:1.1">${emoji}</p>
       <div style="width:100%;height:4px;background:${border};margin:30px 0"></div>
       <p style="font-family:'Exo 2',sans-serif;font-size:16pt;color:${subColor};margin:10px 0;font-weight:700">${sub}</p>
       ${!firmar && r.es_leonino ? '<p style="font-family:\'Exo 2\',sans-serif;font-size:20pt;color:#dc2626;margin:16px 0;font-weight:900">🚨 CONTRATO LEONINO 🚨</p>' : ''}
-      <p style="font-size:12pt;color:${bodyColor};margin:20px 0;line-height:1.8;max-width:600px">${r.justificacion_veredicto || (firmar ? 'El contrato presenta condiciones equilibradas y razonables para ambas partes.' : 'El contrato presenta condiciones desfavorables que requieren corrección.')}</p>
+      <p style="font-size:12pt;color:${bodyColor};margin:20px 0;line-height:1.8;max-width:600px">${r.justificacion_veredicto || (firmar ? 'Condiciones equilibradas y razonables para ambas partes.' : 'Condiciones desfavorables que requieren corrección.')}</p>
       <div style="margin-top:30px;padding:14px 20px;background:${btnBg};border-radius:10px"><p style="font-family:'Exo 2',sans-serif;font-size:13pt;color:#fff;margin:0;font-weight:700">${btnTxt}</p></div>
       <p style="font-size:9pt;color:#aaa;margin:24px 0 0">Calificación: ${r.calificacion_riesgo}/10 | TROB TRANSPORTES | ${f}</p>
     </div></div>`;
 }
 
-// ═══ PROGRESS ═══
 const PASOS = [
   { texto: 'Preparando documento para análisis', pct: 8 },
   { texto: 'Extrayendo texto y estructura', pct: 20 },
@@ -186,11 +187,17 @@ export default function AnalisisContratosModule({ onBack }: Props) {
     if (!['pdf','docx','doc','xlsx','xls','png','jpg','jpeg'].includes(ext)) { setError('Formatos: PDF, Word, Excel, PNG, JPG'); return; }
     if (file.size > 10 * 1024 * 1024) { setError('Máximo 10MB'); return; }
     setArchivo(file); setError(''); setResultado(null); setTextoExtraido('');
+    // Always read base64
     const reader = new FileReader();
     reader.onload = () => setArchivoBase64((reader.result as string).split(',')[1]);
     reader.readAsDataURL(file);
+    // Try client-side extraction for .docx (server has fallback)
     if (ext === 'docx') {
-      try { const t = await extractDocxText(file); if (t && t.length > 30) setTextoExtraido(t); } catch (e) { console.error(e); }
+      try {
+        const t = await extractDocxText(file);
+        if (t && t.length > 30) { setTextoExtraido(t); console.log(`Client extracted ${t.length} chars`); }
+        else { console.log('Client extraction got < 30 chars, server will handle'); }
+      } catch (e) { console.warn('Client extraction failed, server will handle:', e); }
     }
   };
 
@@ -211,9 +218,14 @@ export default function AnalisisContratosModule({ onBack }: Props) {
 
   const callEdge = async (): Promise<any> => {
     const ctrl = new AbortController(); const tm = setTimeout(() => ctrl.abort(), 180000);
-    const body: any = { nombre_archivo: archivo?.name || '', tipo_archivo: archivo?.type || '', fecha_analisis: new Date().toLocaleDateString('es-MX', { day: '2-digit', month: 'long', year: 'numeric' }) };
-    if (textoExtraido && textoExtraido.length > 30) { body.texto_extraido = textoExtraido; body.archivo_base64 = ''; }
-    else { body.archivo_base64 = archivoBase64; }
+    // ALWAYS send both — server uses texto_extraido first, base64 as fallback
+    const body: any = {
+      nombre_archivo: archivo?.name || '',
+      tipo_archivo: archivo?.type || '',
+      fecha_analisis: new Date().toLocaleDateString('es-MX', { day: '2-digit', month: 'long', year: 'numeric' }),
+      texto_extraido: textoExtraido || '',
+      archivo_base64: archivoBase64 || '',
+    };
     try {
       const r = await fetch(`${supabaseUrl}/functions/v1/analizar-contrato`, {
         method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${supabaseAnonKey}` },
@@ -244,15 +256,11 @@ export default function AnalisisContratosModule({ onBack }: Props) {
   const toggle = (k: string) => setSecciones(p => ({ ...p, [k]: !p[k] }));
   const fecha = () => new Date().toLocaleDateString('es-MX', { day: '2-digit', month: 'long', year: 'numeric' });
 
-  // ═══════════════════════════════════════════════════════════
-  // BTN 1: CONTRATO COMPLETO — texto original del cliente + observaciones + veredicto
-  // ═══════════════════════════════════════════════════════════
+  // BTN 1: CONTRATO COMPLETO
   const descargarContratoCompleto = () => {
     if (!resultado) return;
     const f = fecha();
-    // TEXTO ORIGINAL: del cliente (textoExtraido), NUNCA del API
-    const textoOriginal = textoExtraido || '(El texto original solo está disponible para archivos .docx. Para PDF, consulte el archivo fuente directamente.)';
-
+    const textoOriginal = textoExtraido || '(Texto original disponible en archivo fuente)';
     let h = `<div style="text-align:center;margin-bottom:20px">
       <p style="font-family:'Exo 2',sans-serif;font-size:9pt;color:#666;letter-spacing:3px;text-transform:uppercase;margin:0">TROB TRANSPORTES S.A. DE C.V.</p>
       <h1 style="border-bottom:none;margin:6px 0">CONTRATO</h1>
@@ -261,37 +269,29 @@ export default function AnalisisContratosModule({ onBack }: Props) {
     h += contratoTable(resultado.datos_extraidos);
     h += trobTable();
     h += `<h2>TEXTO DEL CONTRATO</h2><div class="contract">${textoOriginal}</div>`;
-
-    // Observaciones (solo si hay riesgos)
     if (resultado.riesgos.length > 0 || resultado.es_leonino) {
       h += `<div class="page-break"></div><h1 style="color:#b91c1c;border-bottom-color:#dc2626">OBSERVACIONES Y DICTAMEN</h1><div class="meta">Análisis para TROB TRANSPORTES | ${f}</div>`;
       if (resultado.es_leonino) h += `<div class="warn"><strong style="font-size:13pt;color:#dc2626">🚨 CONTRATO LEONINO</strong><p>${resultado.explicacion_leonino}</p></div>`;
       h += `<h2>RIESGOS IDENTIFICADOS (${resultado.riesgos.length})</h2>`;
       h += riskSection(resultado.riesgos, resultado.clausulas_faltantes);
     }
-
     h += verdictPage(resultado, f);
     generarPDF('Contrato Completo - TROB', h);
   };
 
-  // ═══════════════════════════════════════════════════════════
-  // BTN 2: BLINDADA TROB — contrato corregido + log de cambios + apto para firma
-  // ═══════════════════════════════════════════════════════════
+  // BTN 2: BLINDADA TROB
   const descargarBlindada = () => {
     if (!resultado) return;
     const f = fecha();
-
     let h = `<div style="text-align:center;margin-bottom:20px">
       <p style="font-family:'Exo 2',sans-serif;font-size:9pt;color:#059669;letter-spacing:3px;text-transform:uppercase;margin:0">VERSIÓN BLINDADA — PROTECCIÓN TOTAL TROB</p>
       <h1 style="border-bottom-color:#22c55e;margin:6px 0">CONTRATO CORREGIDO</h1>
       <p style="font-size:10pt;color:#666">Basado en: ${archivo?.name || ''} | ${f}</p>
       <div style="width:80px;height:3px;background:#22c55e;margin:10px auto"></div></div>`;
-    h += `<div class="ok-box"><strong>🛡️ DOCUMENTO BLINDADO</strong><p style="margin:4px 0 0">Este contrato ha sido modificado para proteger al 100% los intereses de TROB TRANSPORTES S.A. DE C.V.</p></div>`;
+    h += `<div class="ok-box"><strong>🛡️ DOCUMENTO BLINDADO</strong><p style="margin:4px 0 0">Contrato modificado para proteger al 100% los intereses de TROB TRANSPORTES S.A. DE C.V.</p></div>`;
     h += contratoTable(resultado.datos_extraidos);
     h += trobTable();
     h += `<h2>CONTRATO CON CORRECCIONES APLICADAS</h2><div class="contract">${resultado.version_blindada || '(Versión blindada no disponible)'}</div>`;
-
-    // Log de cambios
     if (resultado.riesgos.length > 0) {
       h += `<div class="page-break"></div><h1 style="color:#0c4a6e">REGISTRO DE CORRECCIONES</h1><div class="meta">Cambios aplicados al contrato original | ${f}</div>`;
       resultado.riesgos.forEach((r, i) => {
@@ -299,31 +299,26 @@ export default function AnalisisContratosModule({ onBack }: Props) {
           <h3>${i+1}. ${r.clausula} <span class="badge b-${r.severidad.toLowerCase()}">${r.severidad}</span></h3>
           ${r.texto_original ? `<div style="padding:8px 12px;background:rgba(239,68,68,0.05);border-left:3px solid #ef4444;border-radius:4px;margin:6px 0"><p style="margin:0;font-size:9pt;color:#dc2626;font-weight:700">ANTES:</p><p style="margin:3px 0 0;font-size:10pt;font-style:italic;text-decoration:line-through;color:#666">"${r.texto_original}"</p></div>` : ''}
           <div style="padding:8px 12px;background:rgba(34,197,94,0.06);border-left:3px solid #22c55e;border-radius:4px;margin:6px 0"><p style="margin:0;font-size:9pt;color:#059669;font-weight:700">DESPUÉS:</p><p style="margin:3px 0 0;font-size:10pt">${r.sugerencia}</p></div>
-          <p style="font-size:9pt;color:#64748b;margin:4px 0 0"><strong>Motivo:</strong> ${r.descripcion}</p>
-        </div>`;
+          <p style="font-size:9pt;color:#64748b;margin:4px 0 0"><strong>Motivo:</strong> ${r.descripcion}</p></div>`;
       });
       if (resultado.clausulas_faltantes.length) {
         h += `<h2>CLÁUSULAS AGREGADAS</h2>`;
         resultado.clausulas_faltantes.forEach((c, i) => { h += `<div style="background:#f0fdf4;border-left:4px solid #22c55e;padding:10px 14px;margin:8px 0;border-radius:0 6px 6px 0;font-size:10pt"><strong>+ ${i+1}.</strong> ${c}</div>`; });
       }
     }
-
-    // Blindada siempre dice APTO (ya tiene correcciones)
     h += `<div class="page-break" style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:80vh;text-align:center">
       <div style="border:8px solid #22c55e;border-radius:20px;padding:60px 80px;background:#f0fdf4">
         <p style="font-family:'Exo 2',sans-serif;font-size:50pt;font-weight:900;color:#16a34a;margin:0;line-height:1.1">✅ APTO PARA FIRMA</p>
         <div style="width:100%;height:4px;background:#22c55e;margin:30px 0"></div>
         <p style="font-family:'Exo 2',sans-serif;font-size:16pt;color:#166534;margin:10px 0;font-weight:700">VERSIÓN BLINDADA — CORRECCIONES APLICADAS</p>
-        <p style="font-size:12pt;color:#14532d;margin:20px 0;line-height:1.8;max-width:600px">Se corrigieron ${resultado.riesgos.length} punto${resultado.riesgos.length!==1?'s':''} de riesgo${resultado.clausulas_faltantes.length ? ` y se agregaron ${resultado.clausulas_faltantes.length} cláusula${resultado.clausulas_faltantes.length!==1?'s':''} faltante${resultado.clausulas_faltantes.length!==1?'s':''}` : ''}. Esta versión protege los intereses de TROB TRANSPORTES.</p>
-        <div style="margin-top:30px;padding:14px 20px;background:#16a34a;border-radius:10px"><p style="font-family:'Exo 2',sans-serif;font-size:13pt;color:#fff;margin:0;font-weight:700">RECOMENDACIÓN: Proceder con la firma de esta versión previa validación final del equipo legal de TROB.</p></div>
+        <p style="font-size:12pt;color:#14532d;margin:20px 0;line-height:1.8;max-width:600px">Se corrigieron ${resultado.riesgos.length} punto${resultado.riesgos.length!==1?'s':''} de riesgo${resultado.clausulas_faltantes.length ? ` y se agregaron ${resultado.clausulas_faltantes.length} cláusula${resultado.clausulas_faltantes.length!==1?'s':''} faltante${resultado.clausulas_faltantes.length!==1?'s':''}` : ''}.</p>
+        <div style="margin-top:30px;padding:14px 20px;background:#16a34a;border-radius:10px"><p style="font-family:'Exo 2',sans-serif;font-size:13pt;color:#fff;margin:0;font-weight:700">Proceder con la firma previa validación del equipo legal de TROB.</p></div>
         <p style="font-size:9pt;color:#aaa;margin:24px 0 0">Riesgo original: ${resultado.calificacion_riesgo}/10 (corregido) | TROB TRANSPORTES | ${f}</p>
       </div></div>`;
     generarPDF('Blindada TROB', h);
   };
 
-  // ═══════════════════════════════════════════════════════════
   // BTN 3: ANÁLISIS RIESGOS
-  // ═══════════════════════════════════════════════════════════
   const descargarRiesgos = () => {
     if (!resultado) return;
     const rg = riskColor(resultado.calificacion_riesgo); const f = fecha();
@@ -339,7 +334,6 @@ export default function AnalisisContratosModule({ onBack }: Props) {
     generarPDF('Análisis Riesgos - TROB', h);
   };
 
-  // ═══ SECTION ═══
   const Sec = ({ id, titulo, icono, children, badge }: { id: string; titulo: string; icono: React.ReactNode; children: React.ReactNode; badge?: React.ReactNode }) => (
     <div className="rounded-xl overflow-hidden" style={{ background: 'linear-gradient(180deg, rgba(15,23,42,0.95) 0%, rgba(15,23,42,0.85) 100%)', border: '1px solid rgba(148,163,184,0.10)', boxShadow: '0 4px 16px rgba(0,0,0,0.20)' }}>
       <button onClick={() => toggle(id)} className="w-full flex items-center justify-between p-4 transition-all hover:bg-white/[0.03]" style={{ borderBottom: secciones[id] ? '1px solid rgba(148,163,184,0.08)' : 'none' }}>
@@ -350,7 +344,6 @@ export default function AnalisisContratosModule({ onBack }: Props) {
     </div>
   );
 
-  // ═══════════════════════════════════════════════════════════
   return (
     <div className="min-h-full relative" style={{ background: 'linear-gradient(160deg, #020617 0%, #0f172a 30%, #1e293b 60%, #0f172a 100%)' }}>
       <div className="sticky top-0 z-20 px-4 py-3 flex items-center gap-4" style={{ background: 'linear-gradient(180deg, rgba(2,6,23,0.95), rgba(15,23,42,0.90))', backdropFilter: 'blur(20px)', borderBottom: '1px solid rgba(148,163,184,0.08)', boxShadow: '0 4px 20px rgba(0,0,0,0.30)' }}>
