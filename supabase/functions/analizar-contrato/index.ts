@@ -1,10 +1,9 @@
 // supabase/functions/analizar-contrato/index.ts
 // Edge Function para análisis de contratos con IA (Anthropic Claude)
 // GRUPO LOMA | TROB TRANSPORTES
-// v3.0 - JSZip for reliable .docx extraction, all file types supported
+// v3.0 - Zero external dependencies, text extraction done client-side
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import JSZip from "https://esm.sh/jszip@3.10.1";
 
 const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY") || "";
 
@@ -21,121 +20,6 @@ function jsonResponse(data: any, status = 200) {
   });
 }
 
-// ═══════════════════════════════════════════════════════════════
-// Extract text from .docx using JSZip (reliable)
-// ═══════════════════════════════════════════════════════════════
-async function extractDocxText(base64Data: string): Promise<string> {
-  try {
-    // Decode base64 to binary
-    const binaryStr = atob(base64Data);
-    const bytes = new Uint8Array(binaryStr.length);
-    for (let i = 0; i < binaryStr.length; i++) {
-      bytes[i] = binaryStr.charCodeAt(i);
-    }
-
-    // Open ZIP with JSZip
-    const zip = await JSZip.loadAsync(bytes);
-
-    // Get word/document.xml
-    const docXml = zip.file("word/document.xml");
-    if (!docXml) {
-      console.log("[docx] word/document.xml not found in ZIP");
-      return "";
-    }
-
-    const xmlContent = await docXml.async("string");
-
-    // Extract text from XML paragraphs
-    let text = "";
-    const paragraphs = xmlContent.split(/<\/w:p>/);
-    for (const part of paragraphs) {
-      const lineTexts: string[] = [];
-      const regex = /<w:t[^>]*>([^<]*)<\/w:t>/g;
-      let m;
-      while ((m = regex.exec(part)) !== null) {
-        lineTexts.push(m[1]);
-      }
-      if (lineTexts.length > 0) {
-        text += lineTexts.join("") + "\n";
-      }
-    }
-
-    // Decode XML entities
-    text = text
-      .replace(/&amp;/g, "&")
-      .replace(/&lt;/g, "<")
-      .replace(/&gt;/g, ">")
-      .replace(/&quot;/g, '"')
-      .replace(/&apos;/g, "'");
-
-    return text.trim();
-  } catch (err) {
-    console.error("[docx] JSZip extraction error:", err);
-    return "";
-  }
-}
-
-// ═══════════════════════════════════════════════════════════════
-// Extract text from .xlsx using JSZip
-// ═══════════════════════════════════════════════════════════════
-async function extractXlsxText(base64Data: string): Promise<string> {
-  try {
-    const binaryStr = atob(base64Data);
-    const bytes = new Uint8Array(binaryStr.length);
-    for (let i = 0; i < binaryStr.length; i++) {
-      bytes[i] = binaryStr.charCodeAt(i);
-    }
-
-    const zip = await JSZip.loadAsync(bytes);
-
-    // Get shared strings
-    const sharedStringsFile = zip.file("xl/sharedStrings.xml");
-    let sharedStrings: string[] = [];
-    if (sharedStringsFile) {
-      const ssXml = await sharedStringsFile.async("string");
-      const ssRegex = /<t[^>]*>([^<]*)<\/t>/g;
-      let m;
-      while ((m = ssRegex.exec(ssXml)) !== null) {
-        sharedStrings.push(m[1]);
-      }
-    }
-
-    // Get sheet1
-    const sheet1 = zip.file("xl/worksheets/sheet1.xml");
-    if (!sheet1) return sharedStrings.join(" | ");
-
-    const sheetXml = await sheet1.async("string");
-    let text = "";
-    const rows = sheetXml.split(/<\/row>/);
-    for (const row of rows) {
-      const cells: string[] = [];
-      const cellRegex = /<c[^>]*(?:t="s"[^>]*)?>.*?<v>(\d+)<\/v>/g;
-      const inlineCellRegex = /<c[^>]*>.*?<v>([^<]*)<\/v>/g;
-      let cm;
-
-      // Shared string references
-      while ((cm = cellRegex.exec(row)) !== null) {
-        const idx = parseInt(cm[1]);
-        if (sharedStrings[idx]) cells.push(sharedStrings[idx]);
-      }
-
-      // If no shared strings found, try inline values
-      if (cells.length === 0) {
-        while ((cm = inlineCellRegex.exec(row)) !== null) {
-          cells.push(cm[1]);
-        }
-      }
-
-      if (cells.length > 0) text += cells.join(" | ") + "\n";
-    }
-
-    return text.trim() || sharedStrings.join(" | ");
-  } catch (err) {
-    console.error("[xlsx] Extraction error:", err);
-    return "";
-  }
-}
-
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -143,8 +27,7 @@ serve(async (req) => {
 
   try {
     if (!ANTHROPIC_API_KEY) {
-      console.error("[analizar-contrato] ANTHROPIC_API_KEY not configured");
-      return jsonResponse({ success: false, error: "Error de configuración: API key de Anthropic no configurada." });
+      return jsonResponse({ success: false, error: "API key de Anthropic no configurada en Supabase Secrets." });
     }
 
     let body;
@@ -154,91 +37,62 @@ serve(async (req) => {
       return jsonResponse({ success: false, error: "Error al leer la solicitud." });
     }
 
-    const { archivo_base64, nombre_archivo, tipo_archivo, fecha_analisis } = body;
+    const {
+      archivo_base64,
+      nombre_archivo,
+      tipo_archivo,
+      fecha_analisis,
+      texto_extraido,  // NEW: pre-extracted text from client for Word/Excel
+    } = body;
 
-    if (!archivo_base64) {
-      return jsonResponse({ success: false, error: "No se recibió el archivo." });
+    if (!archivo_base64 && !texto_extraido) {
+      return jsonResponse({ success: false, error: "No se recibió el archivo ni texto." });
     }
 
     const fileName = (nombre_archivo || "").toLowerCase();
-    console.log(`[analizar-contrato] Archivo: ${nombre_archivo}, Tipo: ${tipo_archivo}, B64 len: ${archivo_base64.length}`);
+    const fechaStr = fecha_analisis || new Date().toLocaleDateString("es-MX");
+    console.log(`[contrato] Archivo: ${nombre_archivo}, Tipo: ${tipo_archivo}, Texto: ${texto_extraido ? texto_extraido.length + ' chars' : 'no'}`);
 
     // Detect file type
     const isPDF = tipo_archivo?.includes("pdf") || fileName.endsWith(".pdf");
     const isImage = tipo_archivo?.includes("image") || /\.(png|jpg|jpeg|gif|webp)$/.test(fileName);
-    const isWord = tipo_archivo?.includes("word") || fileName.endsWith(".docx") || fileName.endsWith(".doc");
-    const isExcel = tipo_archivo?.includes("sheet") || tipo_archivo?.includes("excel") || fileName.endsWith(".xlsx") || fileName.endsWith(".xls");
 
+    // Build content blocks
     const contentBlocks: any[] = [];
-    const fechaStr = fecha_analisis || new Date().toLocaleDateString("es-MX");
 
-    // ═══ BUILD CONTENT BLOCKS BY FILE TYPE ═══
-
-    if (isPDF) {
-      // PDF → send directly to Anthropic document type
-      console.log("[analizar-contrato] Processing as PDF");
+    if (texto_extraido && texto_extraido.length > 30) {
+      // Text was extracted client-side (Word, Excel, etc.)
+      console.log(`[contrato] Using pre-extracted text: ${texto_extraido.length} chars`);
+      contentBlocks.push({
+        type: "text",
+        text: `TEXTO DEL CONTRATO "${nombre_archivo}":\n\n${"═".repeat(50)}\n\n${texto_extraido}\n\n${"═".repeat(50)}\n\nFecha: ${fechaStr}. Analiza este contrato completo para TROB TRANSPORTES. RESPONDE SOLO CON JSON VÁLIDO.`,
+      });
+    } else if (isPDF && archivo_base64) {
+      console.log("[contrato] Sending PDF to Anthropic");
       contentBlocks.push(
         { type: "document", source: { type: "base64", media_type: "application/pdf", data: archivo_base64 } },
         { type: "text", text: `Analiza este contrato PDF para TROB TRANSPORTES. Archivo: "${nombre_archivo}". Fecha: ${fechaStr}. RESPONDE SOLO CON JSON VÁLIDO.` }
       );
-
-    } else if (isImage) {
-      // Image → send as image type
-      console.log("[analizar-contrato] Processing as image");
-      const ext = fileName.split(".").pop() || "";
+    } else if (isImage && archivo_base64) {
+      console.log("[contrato] Sending image to Anthropic");
+      const ext = fileName.split(".").pop() || "jpeg";
       const mediaMap: Record<string, string> = { png: "image/png", jpg: "image/jpeg", jpeg: "image/jpeg", gif: "image/gif", webp: "image/webp" };
-      const mediaType = mediaMap[ext] || "image/jpeg";
       contentBlocks.push(
-        { type: "image", source: { type: "base64", media_type: mediaType, data: archivo_base64 } },
-        { type: "text", text: `Esta es una imagen de un contrato. Analízalo para TROB TRANSPORTES. Archivo: "${nombre_archivo}". Fecha: ${fechaStr}. RESPONDE SOLO CON JSON VÁLIDO.` }
+        { type: "image", source: { type: "base64", media_type: mediaMap[ext] || "image/jpeg", data: archivo_base64 } },
+        { type: "text", text: `Imagen de un contrato. Analízalo para TROB TRANSPORTES. Archivo: "${nombre_archivo}". Fecha: ${fechaStr}. RESPONDE SOLO CON JSON VÁLIDO.` }
       );
-
-    } else if (isWord) {
-      // Word .docx → extract text with JSZip
-      console.log("[analizar-contrato] Processing as Word, extracting text with JSZip...");
-      const extractedText = await extractDocxText(archivo_base64);
-
-      if (extractedText && extractedText.length > 30) {
-        console.log(`[analizar-contrato] Extracted ${extractedText.length} chars from Word`);
-        contentBlocks.push({
-          type: "text",
-          text: `TEXTO EXTRAÍDO DEL CONTRATO WORD "${nombre_archivo}":\n\n═══════════════════════════════════════\n\n${extractedText}\n\n═══════════════════════════════════════\n\nFecha de análisis: ${fechaStr}. Analiza este contrato completo como abogado especialista para TROB TRANSPORTES. RESPONDE SOLO CON JSON VÁLIDO.`
-        });
-      } else {
-        console.log("[analizar-contrato] JSZip extraction got no text, trying alternative...");
-        // Fallback: try sending raw base64 and asking Claude to try to read it
-        // Some .doc files (old format) won't work with ZIP extraction
-        contentBlocks.push({
-          type: "text",
-          text: `Se intentó extraer texto de un archivo Word "${nombre_archivo}" pero la extracción retornó vacío. Esto puede ser un archivo .doc (formato antiguo) o un archivo protegido. Por favor genera un análisis indicando que el archivo necesita ser convertido a PDF para un análisis completo. Aun así, genera la estructura JSON completa con la información disponible. Fecha: ${fechaStr}. RESPONDE SOLO CON JSON VÁLIDO.`
-        });
-      }
-
-    } else if (isExcel) {
-      // Excel .xlsx → extract text with JSZip
-      console.log("[analizar-contrato] Processing as Excel...");
-      const extractedText = await extractXlsxText(archivo_base64);
-
-      if (extractedText && extractedText.length > 20) {
-        console.log(`[analizar-contrato] Extracted ${extractedText.length} chars from Excel`);
-        contentBlocks.push({
-          type: "text",
-          text: `DATOS EXTRAÍDOS DEL EXCEL "${nombre_archivo}":\n\n${extractedText}\n\nFecha de análisis: ${fechaStr}. Analiza este documento como contrato para TROB TRANSPORTES. RESPONDE SOLO CON JSON VÁLIDO.`
-        });
-      } else {
-        return jsonResponse({ success: false, error: "No se pudo extraer datos del archivo Excel. Conviértelo a PDF." });
-      }
-
-    } else {
-      // Unknown → try as PDF first
-      console.log(`[analizar-contrato] Unknown type: ${tipo_archivo}, trying as PDF`);
+    } else if (archivo_base64) {
+      // Fallback: try as PDF
+      console.log("[contrato] Unknown type, trying as PDF");
       contentBlocks.push(
         { type: "document", source: { type: "base64", media_type: "application/pdf", data: archivo_base64 } },
-        { type: "text", text: `Analiza este contrato para TROB TRANSPORTES. Archivo: "${nombre_archivo}". Fecha: ${fechaStr}. RESPONDE SOLO CON JSON VÁLIDO.` }
+        { type: "text", text: `Analiza este contrato para TROB TRANSPORTES. Fecha: ${fechaStr}. RESPONDE SOLO CON JSON VÁLIDO.` }
       );
+    } else {
+      return jsonResponse({ success: false, error: "No se pudo procesar el archivo. Intenta con PDF." });
     }
 
-    // ═══ SYSTEM PROMPT ═══
+    // System prompt
     const systemPrompt = `Eres un abogado corporativo especialista en derecho mercantil y de transporte en México.
 
 Analiza el contrato y responde ÚNICAMENTE con JSON válido (sin backticks, sin texto adicional).
@@ -260,21 +114,19 @@ Estructura EXACTA:
   "riesgos": [{"clausula":"","descripcion":"","severidad":"ALTA","sugerencia":""}],
   "resumen_ejecutivo": "3-5 párrafos",
   "clausulas_faltantes": ["cláusula faltante"],
-  "version_blindada": "Texto COMPLETO con modificaciones para blindar a TROB. NUNCA truncar.",
+  "version_blindada": "Texto COMPLETO con modificaciones. NUNCA truncar.",
   "calificacion_riesgo": 7
 }
 
 CRITERIOS TROB TRANSPORTES:
-- TROB es transportista de carga. Proteger contra: responsabilidad excesiva, penalizaciones desproporcionadas, plazos de pago >30 días, sin fuerza mayor, jurisdicción fuera de Aguascalientes
+- Transportista de carga. Proteger contra: responsabilidad excesiva, penalizaciones desproporcionadas, plazos >30 días, sin fuerza mayor, jurisdicción fuera de Aguascalientes
 - Verificar: limitación responsabilidad, seguro mercancía, obligaciones claras, resolución controversias, terminación bilateral
-- Calificación: 1-10 (1=sin riesgo, 10=máximo)
-- Info legal TROB: Escritura 21,183 Vol 494, Notaría 35, Lic. Fernando Quezada Leos, Aguascalientes. Rep. legal: Alejandro López Ramírez. RFC: TTR151216CHA
+- Calificación 1-10. Info: Escritura 21,183 Vol 494, Notaría 35, Lic. Fernando Quezada Leos, Ags. Rep. legal: Alejandro López Ramírez. RFC: TTR151216CHA
 
 SOLO JSON VÁLIDO.`;
 
-    // ═══ CALL ANTHROPIC API ═══
-    console.log("[analizar-contrato] Calling Anthropic API...");
-
+    // Call Anthropic
+    console.log("[contrato] Calling Anthropic...");
     let anthropicResponse;
     try {
       anthropicResponse = await fetch("https://api.anthropic.com/v1/messages", {
@@ -292,73 +144,58 @@ SOLO JSON VÁLIDO.`;
         }),
       });
     } catch (fetchErr: any) {
-      console.error("[analizar-contrato] Fetch failed:", fetchErr.message);
+      console.error("[contrato] Fetch failed:", fetchErr.message);
       return jsonResponse({ success: false, error: `Error conectando con IA: ${fetchErr.message}` });
     }
 
-    console.log(`[analizar-contrato] Anthropic status: ${anthropicResponse.status}`);
+    console.log(`[contrato] Anthropic status: ${anthropicResponse.status}`);
 
     if (!anthropicResponse.ok) {
-      const errorText = await anthropicResponse.text().catch(() => "");
-      console.error(`[analizar-contrato] Anthropic error ${anthropicResponse.status}: ${errorText.substring(0, 500)}`);
-
-      const errorMap: Record<number, string> = {
-        401: "API key inválida. Verifica ANTHROPIC_API_KEY en Supabase Secrets.",
-        429: "Demasiadas solicitudes. Espera 30 segundos e intenta de nuevo.",
-        400: `Error al procesar el archivo. Detalle: ${errorText.substring(0, 150)}`,
-        529: "Servicio de IA sobrecargado. Intenta en unos minutos.",
-        503: "Servicio de IA no disponible temporalmente.",
+      const errText = await anthropicResponse.text().catch(() => "");
+      console.error(`[contrato] Anthropic error ${anthropicResponse.status}: ${errText.substring(0, 300)}`);
+      const msgs: Record<number, string> = {
+        401: "API key inválida.",
+        429: "Demasiadas solicitudes. Espera 30s.",
+        400: `Error procesando archivo. ${errText.substring(0, 100)}`,
+        529: "IA sobrecargada. Intenta en minutos.",
+        503: "IA no disponible temporalmente.",
       };
-
-      return jsonResponse({
-        success: false,
-        error: errorMap[anthropicResponse.status] || `Error de IA: ${anthropicResponse.status}`
-      });
+      return jsonResponse({ success: false, error: msgs[anthropicResponse.status] || `Error IA: ${anthropicResponse.status}` });
     }
 
-    const anthropicData = await anthropicResponse.json();
-    const responseText = anthropicData.content
-      ?.map((block: any) => (block.type === "text" ? block.text : ""))
-      .filter(Boolean)
-      .join("\n") || "";
+    const data = await anthropicResponse.json();
+    const text = data.content?.map((b: any) => b.type === "text" ? b.text : "").filter(Boolean).join("\n") || "";
+    console.log(`[contrato] Response: ${text.length} chars`);
 
-    console.log(`[analizar-contrato] Response: ${responseText.length} chars`);
+    if (!text) return jsonResponse({ success: false, error: "IA no generó respuesta." });
 
-    if (!responseText) {
-      return jsonResponse({ success: false, error: "La IA no generó respuesta. Intenta de nuevo." });
-    }
-
-    // ═══ PARSE JSON ═══
+    // Parse JSON
     let analisis;
     try {
-      const clean = responseText.replace(/```json\s*/g, "").replace(/```\s*/g, "").trim();
+      const clean = text.replace(/```json\s*/g, "").replace(/```\s*/g, "").trim();
       const match = clean.match(/\{[\s\S]*\}/);
-      if (match) {
-        analisis = JSON.parse(match[0]);
-      } else {
-        throw new Error("No JSON found");
-      }
-    } catch (parseErr: any) {
-      console.error("[analizar-contrato] Parse error:", parseErr.message, "Preview:", responseText.substring(0, 300));
-      return jsonResponse({ success: false, error: "Error interpretando respuesta de la IA. Intenta de nuevo." });
+      if (!match) throw new Error("No JSON");
+      analisis = JSON.parse(match[0]);
+    } catch (e: any) {
+      console.error("[contrato] Parse error:", e.message, "Preview:", text.substring(0, 200));
+      return jsonResponse({ success: false, error: "Error interpretando respuesta. Intenta de nuevo." });
     }
 
-    // Ensure defaults
+    // Defaults
     analisis.datos_extraidos = analisis.datos_extraidos || {};
     analisis.riesgos = analisis.riesgos || [];
     analisis.clausulas_faltantes = analisis.clausulas_faltantes || [];
     analisis.calificacion_riesgo = analisis.calificacion_riesgo || 5;
-    analisis.es_leonino = analisis.es_leonino || false;
+    analisis.es_leonino = analisis.es_leonino ?? false;
     analisis.explicacion_leonino = analisis.explicacion_leonino || "No determinado";
     analisis.resumen_ejecutivo = analisis.resumen_ejecutivo || "Análisis completado.";
-    analisis.version_blindada = analisis.version_blindada || "No se generó versión blindada.";
+    analisis.version_blindada = analisis.version_blindada || "No generada.";
 
-    console.log(`[analizar-contrato] ✅ Riesgo: ${analisis.calificacion_riesgo}/10, Riesgos: ${analisis.riesgos.length}, Leonino: ${analisis.es_leonino}`);
-
+    console.log(`[contrato] ✅ Riesgo: ${analisis.calificacion_riesgo}/10, ${analisis.riesgos.length} riesgos, Leonino: ${analisis.es_leonino}`);
     return jsonResponse({ success: true, analisis });
 
   } catch (error: any) {
-    console.error("[analizar-contrato] FATAL:", error.message, error.stack);
+    console.error("[contrato] FATAL:", error.message);
     return jsonResponse({ success: false, error: `Error interno: ${error.message}` });
   }
 });
