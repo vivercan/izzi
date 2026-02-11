@@ -107,9 +107,9 @@ export default function AnalisisContratosModule({ onBack }: Props) {
 
   const handleFileSelect = async (file: File) => {
     if (!file) return;
-    const allowedTypes = ['application/pdf', 'image/png', 'image/jpeg', 'image/jpg', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
-    if (!allowedTypes.includes(file.type) && !file.name.endsWith('.pdf') && !file.name.endsWith('.docx') && !file.name.endsWith('.doc') && !file.name.endsWith('.png') && !file.name.endsWith('.jpg') && !file.name.endsWith('.jpeg')) {
-      setError('Solo se aceptan archivos PDF, Word (.docx) o imágenes (PNG/JPG)');
+    const allowedTypes = ['application/pdf', 'image/png', 'image/jpeg', 'image/jpg', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'application/vnd.ms-excel'];
+    if (!allowedTypes.includes(file.type) && !file.name.endsWith('.pdf') && !file.name.endsWith('.docx') && !file.name.endsWith('.doc') && !file.name.endsWith('.png') && !file.name.endsWith('.jpg') && !file.name.endsWith('.jpeg') && !file.name.endsWith('.xlsx') && !file.name.endsWith('.xls')) {
+      setError('Solo se aceptan archivos PDF, Word (.docx), Excel (.xlsx) o imágenes (PNG/JPG)');
       return;
     }
     if (file.size > 10 * 1024 * 1024) {
@@ -550,7 +550,7 @@ export default function AnalisisContratosModule({ onBack }: Props) {
                 ref={fileInputRef}
                 type="file"
                 className="hidden"
-                accept=".pdf,.doc,.docx,.png,.jpg,.jpeg"
+                accept=".pdf,.doc,.docx,.xlsx,.xls,.png,.jpg,.jpeg"
                 onChange={(e) => { if (e.target.files?.[0]) handleFileSelect(e.target.files[0]); }}
               />
               {archivoContrato ? (
@@ -572,7 +572,7 @@ export default function AnalisisContratosModule({ onBack }: Props) {
                 <>
                   <Upload className="w-14 h-14 mb-3" style={{ color: 'rgba(255,255,255,0.2)' }} />
                   <p style={{ fontFamily: F, fontSize: '16px', fontWeight: 600, color: 'rgba(255,255,255,0.7)' }}>Arrastra tu contrato aquí</p>
-                  <p style={{ fontFamily: F, fontSize: '12px', color: 'rgba(255,255,255,0.35)', marginTop: '4px' }}>PDF, Word (.docx), o imagen (PNG/JPG) — Máx 10MB</p>
+                  <p style={{ fontFamily: F, fontSize: '12px', color: 'rgba(255,255,255,0.35)', marginTop: '4px' }}>PDF, Word (.docx), Excel (.xlsx), o imagen (PNG/JPG) — Máx 10MB</p>
                 </>
               )}
             </div>
