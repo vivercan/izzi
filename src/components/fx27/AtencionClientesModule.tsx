@@ -17,7 +17,7 @@ const WA_ACCESS_TOKEN = 'EAAVapl2JRGMBQLlCz03w6TsgRFog5PnO91xxLecN56cnqMyh5DHbbU
 
 // ============ TYPES ============
 interface ClienteAsignacion {
-  id: number; numero: number; cliente: string; vendedor: string; ejecutivo_sc: string; status: string; notas: string | null;
+  id: number; numero: number; cliente: string; vendedor: string; ejecutivo_sc: string; status: string; notas: string | null; ejecutivo_cxc?: string;
 }
 interface DataExpo {
   id: number; estado: string; tipo: string; cliente: string; viajes: number; formatos_venta: string;
@@ -764,24 +764,57 @@ FX27 Future Experience 27 — Grupo Loma Transportes © ${new Date().getFullYear
     pendientes: asignacion.filter(c => c.status === 'PENDIENTE').length,
   }), [asignacion]);
 
-  // ═══ CXC KPIs & FILTERED DATA ═══
+  // ═══ CXC: MERGED DATA (237 asignacion + cobranza overlay) ═══
+  const cxcMerged = useMemo(() => {
+    // Build cobranza lookup by client name (uppercase)
+    const cobMap = new Map<string, CxCRecord>();
+    cxcData.forEach(c => {
+      const key = c.cliente.toUpperCase().trim();
+      // If duplicate (same client in multiple empresas), keep the one with higher saldo
+      const existing = cobMap.get(key);
+      if (!existing || c.saldo > existing.saldo) cobMap.set(key, c);
+    });
+    // Merge: every asignacion client gets cobranza data if available
+    return asignacion.map(a => {
+      const key = a.cliente.toUpperCase().trim();
+      const cob = cobMap.get(key);
+      return {
+        ...a,
+        empresa: cob?.empresa || '',
+        saldo: cob?.saldo || 0,
+        vencido: cob?.vencido || 0,
+        vigente: cob?.vigente || 0,
+        vencido_prox: cob?.vencido_prox || 0,
+        dias_credito: cob?.dias_credito || '',
+        dias_vencido: cob?.dias_vencido || '',
+        riesgo: cob?.riesgo || '0 %',
+        agente_cxc: cob?.agente || a.ejecutivo_cxc || '',
+        pagado: cob?.pagado || 0,
+      };
+    });
+  }, [asignacion, cxcData]);
+
   const cxcKPIs = useMemo(() => {
-    const totalSaldo = cxcData.reduce((a, c) => a + c.saldo, 0);
-    const totalVencido = cxcData.reduce((a, c) => a + c.vencido, 0);
-    const totalVigente = cxcData.reduce((a, c) => a + c.vigente, 0);
-    const altoRiesgo = cxcData.filter(c => { const p = parseInt(c.riesgo); return p >= 50; }).length;
-    return { clientes: cxcData.length, totalSaldo, totalVencido, totalVigente, altoRiesgo,
-      trob: cxcData.filter(c => c.empresa === 'TROB').length, we: cxcData.filter(c => c.empresa === 'WE').length, shi: cxcData.filter(c => c.empresa === 'SHI').length };
-  }, [cxcData]);
+    const totalSaldo = cxcMerged.reduce((a, c) => a + c.saldo, 0);
+    const totalVencido = cxcMerged.reduce((a, c) => a + c.vencido, 0);
+    const totalVigente = cxcMerged.reduce((a, c) => a + c.vigente, 0);
+    const conSaldo = cxcMerged.filter(c => c.saldo > 0).length;
+    const altoRiesgo = cxcMerged.filter(c => { const p = parseInt(c.riesgo); return p >= 50; }).length;
+    return { clientes: cxcMerged.length, conSaldo, totalSaldo, totalVencido, totalVigente, altoRiesgo };
+  }, [cxcMerged]);
 
   const filteredCxc = useMemo(() => {
-    let d = [...cxcData];
-    if (cxcSearch) { const s = cxcSearch.toLowerCase(); d = d.filter(c => c.cliente.toLowerCase().includes(s) || c.agente.toLowerCase().includes(s)); }
-    if (cxcFilterEmpresa !== 'TODOS') d = d.filter(c => c.empresa === cxcFilterEmpresa);
-    if (cxcFilterAgente !== 'TODOS') d = d.filter(c => c.agente === cxcFilterAgente);
+    let d = [...cxcMerged];
+    if (cxcSearch) { const s = cxcSearch.toLowerCase(); d = d.filter(c => c.cliente.toLowerCase().includes(s) || (c.agente_cxc || '').toLowerCase().includes(s) || (c.vendedor || '').toLowerCase().includes(s)); }
+    if (cxcFilterEmpresa !== 'TODOS') {
+      if (cxcFilterEmpresa === 'SIN_SALDO') d = d.filter(c => c.saldo === 0);
+      else d = d.filter(c => c.empresa === cxcFilterEmpresa);
+    }
+    if (cxcFilterAgente !== 'TODOS') d = d.filter(c => c.agente_cxc === cxcFilterAgente || c.ejecutivo_cxc === cxcFilterAgente);
     if (cxcFilterEstatus === 'VENCIDO') d = d.filter(c => c.vencido > 0);
-    else if (cxcFilterEstatus === 'AL_CORRIENTE') d = d.filter(c => c.vencido === 0);
+    else if (cxcFilterEstatus === 'AL_CORRIENTE') d = d.filter(c => c.vencido === 0 && c.saldo > 0);
     else if (cxcFilterEstatus === 'ALTO_RIESGO') d = d.filter(c => { const p = parseInt(c.riesgo); return p >= 50; });
+    else if (cxcFilterEstatus === 'SIN_ASIGNAR') d = d.filter(c => !c.agente_cxc && !c.ejecutivo_cxc);
     d.sort((a, b) => {
       let va: any, vb: any;
       if (cxcSortCol === 'saldo') { va = a.saldo; vb = b.saldo; }
@@ -791,9 +824,9 @@ FX27 Future Experience 27 — Grupo Loma Transportes © ${new Date().getFullYear
       return cxcSortDir === 'desc' ? (vb > va ? 1 : -1) : (va > vb ? 1 : -1);
     });
     return d;
-  }, [cxcData, cxcSearch, cxcFilterEmpresa, cxcFilterAgente, cxcFilterEstatus, cxcSortCol, cxcSortDir]);
+  }, [cxcMerged, cxcSearch, cxcFilterEmpresa, cxcFilterAgente, cxcFilterEstatus, cxcSortCol, cxcSortDir]);
 
-  const cxcAgentes = useMemo(() => [...new Set(cxcData.map(c => c.agente))].sort(), [cxcData]);
+  const cxcAgentes = useMemo(() => [...new Set([...cxcData.map(c => c.agente), ...asignacion.filter(a => a.ejecutivo_cxc).map(a => a.ejecutivo_cxc!)])].filter(Boolean).sort(), [cxcData, asignacion]);
   const estadosDisponibles = useMemo(() => {
     const estados = [...new Set(expoData.map(d => d.estado))].sort();
     return estados;
@@ -1804,28 +1837,36 @@ FX27 Future Experience 27 — Grupo Loma Transportes © ${new Date().getFullYear
     const fmt = (n: number) => n >= 1e6 ? `$${(n/1e6).toFixed(2)}M` : n >= 1e3 ? `$${(n/1e3).toFixed(1)}K` : `$${n.toFixed(2)}`;
     const riskPct = (s: string) => { const n = parseInt(s); return isNaN(n) ? 0 : n; };
     const riskColor = (s: string) => { const n = riskPct(s); return n >= 70 ? '#ef4444' : n >= 40 ? '#f59e0b' : n > 0 ? '#3b82f6' : '#22c55e'; };
-    const semaforoColor = (c: CxCRecord) => { const p = riskPct(c.riesgo); const d = parseInt(c.dias_vencido) || 0; if (p >= 70 || d > 90) return '#ef4444'; if (p >= 30 || d > 30 || c.vencido > 0) return '#f59e0b'; return '#22c55e'; };
-    const semaforoLabel = (c: CxCRecord) => { const col = semaforoColor(c); return col === '#ef4444' ? 'CRÍTICO' : col === '#f59e0b' ? 'ATENCIÓN' : 'OK'; };
+    const semaforoColor = (c: any) => { if (!c.saldo && !c.vencido) return '#22c55e'; const p = riskPct(c.riesgo); const d = parseInt(c.dias_vencido) || 0; if (p >= 70 || d > 90) return '#ef4444'; if (p >= 30 || d > 30 || c.vencido > 0) return '#f59e0b'; return '#22c55e'; };
+    const semaforoLabel = (c: any) => { const col = semaforoColor(c); return col === '#ef4444' ? 'CRÍTICO' : col === '#f59e0b' ? 'ATENCIÓN' : 'OK'; };
     const sortIcon = (col: string) => cxcSortCol === col ? (cxcSortDir === 'desc' ? <ChevronDown style={{width:'12px',height:'12px'}} /> : <ChevronUp style={{width:'12px',height:'12px'}} />) : null;
     const toggleSort = (col: 'saldo' | 'vencido' | 'cliente' | 'riesgo') => { if (cxcSortCol === col) setCxcSortDir(d => d === 'desc' ? 'asc' : 'desc'); else { setCxcSortCol(col); setCxcSortDir('desc'); } };
 
     // Ejecutivo cards data
     const ejecCards = cxcAgentes.filter(a => a !== 'DEMANDA').map(a => {
-      const recs = cxcData.filter(c => c.agente === a);
+      const recs = cxcMerged.filter(c => c.agente_cxc === a || c.ejecutivo_cxc === a);
       const info = CXC_AGENT_MAP[a];
       return { agente: a, nombre: info?.nombre || a, tel: info?.tel || '', email: info?.email || '',
         clientes: recs.length, saldo: recs.reduce((s,c) => s + c.saldo, 0), vencido: recs.reduce((s,c) => s + c.vencido, 0) };
     }).sort((a, b) => b.saldo - a.saldo);
 
-    // Vendedor/CSR lookup from asignacion
-    const getVendedor = (cliente: string) => { const c = cliente.toUpperCase().trim(); const m = asignacion.find(a => { const ac = a.cliente.toUpperCase().trim(); return ac === c || c.includes(ac) || ac.includes(c); }); return m?.vendedor || '—'; };
-    const getCSR = (cliente: string) => { const c = cliente.toUpperCase().trim(); const m = asignacion.find(a => { const ac = a.cliente.toUpperCase().trim(); return ac === c || c.includes(ac) || ac.includes(c); }); return m?.ejecutivo_sc || '—'; };
+    const sinAsignar = cxcMerged.filter(c => !c.agente_cxc && !c.ejecutivo_cxc).length;
+
+    // Assign ejecutivo CxC to a client
+    const assignCxC = async (clienteId: number, agente: string) => {
+      const { error } = await supabase.from('sc_clientes_asignacion')
+        .update({ ejecutivo_cxc: agente })
+        .eq('id', clienteId);
+      if (!error) {
+        setAsignacion(prev => prev.map(a => a.id === clienteId ? { ...a, ejecutivo_cxc: agente } : a));
+      }
+    };
 
     return (
     <div style={{ ...S.bg, width: '100vw', height: '100vh', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
       <div style={{ ...S.overlay, position: 'fixed', inset: 0, pointerEvents: 'none' }} />
       <div style={{ position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', height: '100vh' }}>
-        <Header title="Cuentas por Cobrar" subtitle={`Semana 7 · ${cxcKPIs.clientes} clientes`} />
+        <Header title="Cuentas por Cobrar" subtitle={`Semana 7 · ${cxcKPIs.clientes} clientes · ${cxcKPIs.conSaldo} con saldo`} />
 
         <div style={{ padding: '10px 32px', flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
           {/* ROW 1: TOTALS — 3 main KPIs */}
@@ -1875,6 +1916,12 @@ FX27 Future Experience 27 — Grupo Loma Transportes © ${new Date().getFullYear
                 {ec.vencido > 0 && <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: ec.vencido > 50000 ? '#ef4444' : '#f59e0b', flexShrink: 0 }} />}
               </button>
             ))}
+            {sinAsignar > 0 && <button onClick={() => setCxcFilterEstatus(cxcFilterEstatus === 'SIN_ASIGNAR' ? 'TODOS' : 'SIN_ASIGNAR')} style={{
+              padding: '12px 16px', borderRadius: '10px', cursor: 'pointer', fontFamily: "'Exo 2', sans-serif", transition: 'all 0.2s',
+              background: cxcFilterEstatus === 'SIN_ASIGNAR' ? 'rgba(239,68,68,0.15)' : 'rgba(255,255,255,0.03)',
+              border: cxcFilterEstatus === 'SIN_ASIGNAR' ? '1px solid rgba(239,68,68,0.5)' : '1px solid rgba(255,255,255,0.08)',
+              color: cxcFilterEstatus === 'SIN_ASIGNAR' ? '#ef4444' : 'rgba(255,255,255,0.5)', fontSize: '13px', fontWeight: 700,
+            }}>Sin Asignar ({sinAsignar})</button>}
           </div>
 
           {/* FILTERS ROW */}
@@ -1898,7 +1945,7 @@ FX27 Future Experience 27 — Grupo Loma Transportes © ${new Date().getFullYear
             </select>
             <button onClick={() => {
               const headers = ['SEM.', 'EMPRESA', 'CLIENTE', 'EJECUTIVO CXC', 'VENDEDOR', 'CSR', 'SALDO', 'VENCIDO', 'VIGENTE', '% RIESGO', 'DÍAS VENC.', 'CRÉDITO'];
-              const rows = filteredCxc.map(c => ['🔴🟡🟢'[semaforoColor(c)==='#ef4444'?0:semaforoColor(c)==='#f59e0b'?1:2], c.empresa, c.cliente, CXC_AGENT_MAP[c.agente]?.nombre || c.agente, getVendedor(c.cliente), getCSR(c.cliente), c.saldo.toFixed(2), c.vencido.toFixed(2), c.vigente.toFixed(2), c.riesgo, c.dias_vencido, c.dias_credito]);
+              const rows = filteredCxc.map(c => ['', c.empresa, c.cliente, CXC_AGENT_MAP[c.agente_cxc || c.ejecutivo_cxc || '']?.nombre || c.agente_cxc || c.ejecutivo_cxc || '—', c.vendedor || '—', c.ejecutivo_sc || '—', c.saldo.toFixed(2), c.vencido.toFixed(2), c.vigente.toFixed(2), c.riesgo, c.dias_vencido, c.dias_credito]);
               handleExportWithAI(headers, rows, 'CxC_Sem7', `Cartera ${fmt(cxcKPIs.totalSaldo)}, Vencido ${fmt(cxcKPIs.totalVencido)}`);
             }} disabled={exporting} style={{ ...S.btn, display: 'flex', alignItems: 'center', gap: '6px' }}>
               {exporting ? <Loader2 style={{ width: '16px', height: '16px', animation: 'spin 1s linear infinite' }} /> : <FileSpreadsheet style={{ width: '16px', height: '16px' }} />}
@@ -1923,7 +1970,6 @@ FX27 Future Experience 27 — Grupo Loma Transportes © ${new Date().getFullYear
                       <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>Saldo {sortIcon('saldo')}</span></th>
                     <th style={{ ...S.tableHeader, width: '100px', cursor: 'pointer' }} onClick={() => toggleSort('vencido')}>
                       <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>Vencido {sortIcon('vencido')}</span></th>
-                    <th style={{ ...S.tableHeader, width: '90px' }}>Vigente</th>
                     <th style={{ ...S.tableHeader, width: '65px', cursor: 'pointer' }} onClick={() => toggleSort('riesgo')}>
                       <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>Riesgo {sortIcon('riesgo')}</span></th>
                     <th style={{ ...S.tableHeader, width: '55px' }}>Días</th>
@@ -1932,13 +1978,12 @@ FX27 Future Experience 27 — Grupo Loma Transportes © ${new Date().getFullYear
                 </thead>
                 <tbody>
                   {filteredCxc.map((c, i) => {
-                    const agent = CXC_AGENT_MAP[c.agente];
-                    const empColor = c.empresa === 'TROB' ? '#38bdf8' : c.empresa === 'WE' ? '#a78bfa' : '#f472b6';
+                    const cxcAgent = c.agente_cxc || c.ejecutivo_cxc || '';
+                    const agent = CXC_AGENT_MAP[cxcAgent];
+                    const empColor = c.empresa === 'TROB' ? '#38bdf8' : c.empresa === 'WE' ? '#a78bfa' : c.empresa === 'SHI' ? '#f472b6' : 'rgba(255,255,255,0.2)';
                     const semColor = semaforoColor(c);
-                    const vend = getVendedor(c.cliente);
-                    const csr = getCSR(c.cliente);
                     return (
-                      <tr key={i} style={{ transition: 'background 0.2s' }}
+                      <tr key={c.id || i} style={{ transition: 'background 0.2s' }}
                         onMouseEnter={e => e.currentTarget.style.background = 'rgba(240,160,80,0.05)'}
                         onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
                         {/* SEMAFORO */}
@@ -1949,46 +1994,53 @@ FX27 Future Experience 27 — Grupo Loma Transportes © ${new Date().getFullYear
                         </td>
                         {/* EMPRESA */}
                         <td style={S.tableCell}>
-                          <span style={{ padding: '2px 6px', borderRadius: '4px', fontSize: '9px', fontWeight: 700, fontFamily: "'Exo 2', sans-serif",
-                            background: `${empColor}20`, color: empColor }}>{c.empresa}</span>
+                          {c.empresa ? <span style={{ padding: '2px 6px', borderRadius: '4px', fontSize: '9px', fontWeight: 700, fontFamily: "'Exo 2', sans-serif",
+                            background: `${empColor}20`, color: empColor }}>{c.empresa}</span> : <span style={{ color: 'rgba(255,255,255,0.15)', fontSize: '9px' }}>—</span>}
                         </td>
                         {/* CLIENTE */}
                         <td style={{ ...S.tableCell, fontWeight: 600, fontSize: '12px' }}>{c.cliente}</td>
-                        {/* EJECUTIVO CXC */}
+                        {/* EJECUTIVO CXC — ASIGNABLE */}
                         <td style={S.tableCell}>
-                          <div style={{ fontSize: '11px', fontWeight: 600, color: 'rgba(255,255,255,0.85)' }}>{agent?.nombre || c.agente}</div>
+                          <select value={cxcAgent} onChange={e => assignCxC(c.id, e.target.value)}
+                            style={{ ...S.select, padding: '4px 6px', fontSize: '10px', width: '100%', minWidth: '100px',
+                              background: cxcAgent ? 'rgba(59,130,246,0.08)' : 'rgba(239,68,68,0.08)',
+                              border: cxcAgent ? '1px solid rgba(59,130,246,0.2)' : '1px solid rgba(239,68,68,0.2)',
+                              color: cxcAgent ? 'rgba(255,255,255,0.8)' : '#ef4444' }}>
+                            <option value="">Sin asignar</option>
+                            {Object.entries(CXC_AGENT_MAP).filter(([k]) => k !== 'DEMANDA').map(([k, v]) => (
+                              <option key={k} value={k}>{v.nombre}</option>
+                            ))}
+                          </select>
                         </td>
                         {/* VENDEDOR */}
                         <td style={S.tableCell}>
                           <span style={{ padding: '2px 8px', borderRadius: '4px', fontSize: '10px', fontWeight: 700, fontFamily: "'Exo 2', sans-serif",
-                            background: vend === 'ISIS' ? 'rgba(76,175,80,0.15)' : vend === 'LEO' ? 'rgba(41,182,246,0.15)' : 'rgba(120,120,120,0.08)',
-                            color: vend === 'ISIS' ? '#66bb6a' : vend === 'LEO' ? '#42a5f5' : 'rgba(255,255,255,0.25)' }}>{vend}</span>
+                            background: c.vendedor === 'ISIS' ? 'rgba(76,175,80,0.15)' : c.vendedor === 'LEO' ? 'rgba(41,182,246,0.15)' : 'rgba(120,120,120,0.08)',
+                            color: c.vendedor === 'ISIS' ? '#66bb6a' : c.vendedor === 'LEO' ? '#42a5f5' : 'rgba(255,255,255,0.25)' }}>{c.vendedor || '—'}</span>
                         </td>
                         {/* CSR */}
                         <td style={S.tableCell}>
                           <span style={{ fontSize: '10px', fontWeight: 600, fontFamily: "'Exo 2', sans-serif",
-                            color: csr === 'ELI' ? '#ffa726' : csr === 'LIZ' ? '#ba68c8' : 'rgba(255,255,255,0.25)' }}>{csr}</span>
+                            color: c.ejecutivo_sc === 'ELI' ? '#ffa726' : c.ejecutivo_sc === 'LIZ' ? '#ba68c8' : 'rgba(255,255,255,0.25)' }}>{c.ejecutivo_sc || '—'}</span>
                         </td>
                         {/* SALDO */}
-                        <td style={{ ...S.tableCell, fontFamily: "'Exo 2', sans-serif", fontWeight: 700, fontSize: '12px', color: 'rgba(255,255,255,0.9)' }}>{fmt(c.saldo)}</td>
-                        {/* VENCIDO */}
-                        <td style={{ ...S.tableCell, fontFamily: "'Exo 2', sans-serif", fontWeight: 700, fontSize: '12px', color: c.vencido > 0 ? '#ef4444' : 'rgba(255,255,255,0.3)' }}>
-                          {c.vencido > 0 ? fmt(c.vencido) : '—'}
+                        <td style={{ ...S.tableCell, fontFamily: "'Exo 2', sans-serif", fontWeight: 700, fontSize: '12px', color: c.saldo > 0 ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.15)' }}>
+                          {c.saldo > 0 ? fmt(c.saldo) : '—'}
                         </td>
-                        {/* VIGENTE */}
-                        <td style={{ ...S.tableCell, fontFamily: "'Exo 2', sans-serif", fontSize: '11px', color: '#22c55e' }}>
-                          {c.vigente > 0 ? fmt(c.vigente) : '—'}
+                        {/* VENCIDO */}
+                        <td style={{ ...S.tableCell, fontFamily: "'Exo 2', sans-serif", fontWeight: 700, fontSize: '12px', color: c.vencido > 0 ? '#ef4444' : 'rgba(255,255,255,0.15)' }}>
+                          {c.vencido > 0 ? fmt(c.vencido) : '—'}
                         </td>
                         {/* RIESGO */}
                         <td style={S.tableCell}>
-                          {c.riesgo && c.riesgo !== '0 %' && c.riesgo !== '' ? (
+                          {c.riesgo && c.riesgo !== '0 %' && c.riesgo !== '' && parseInt(c.riesgo) > 0 ? (
                             <span style={{ padding: '2px 6px', borderRadius: '5px', fontSize: '10px', fontWeight: 700, fontFamily: "'Exo 2', sans-serif",
                               background: `${riskColor(c.riesgo)}20`, color: riskColor(c.riesgo) }}>{c.riesgo}</span>
-                          ) : <span style={{ color: '#22c55e', fontSize: '10px', fontWeight: 600 }}>OK</span>}
+                          ) : c.saldo > 0 ? <span style={{ color: '#22c55e', fontSize: '10px', fontWeight: 600 }}>OK</span> : <span style={{ color: 'rgba(255,255,255,0.12)', fontSize: '10px' }}>—</span>}
                         </td>
                         {/* DIAS VENCIDO */}
                         <td style={{ ...S.tableCell, fontFamily: "'Exo 2', sans-serif", fontSize: '11px', fontWeight: 600,
-                          color: parseInt(c.dias_vencido) > 90 ? '#ef4444' : parseInt(c.dias_vencido) > 30 ? '#f59e0b' : 'rgba(255,255,255,0.4)' }}>
+                          color: parseInt(c.dias_vencido) > 90 ? '#ef4444' : parseInt(c.dias_vencido) > 30 ? '#f59e0b' : 'rgba(255,255,255,0.2)' }}>
                           {c.dias_vencido || '—'}
                         </td>
                         {/* VER DETALLE */}
@@ -2013,7 +2065,8 @@ FX27 Future Experience 27 — Grupo Loma Transportes © ${new Date().getFullYear
 
       {/* DETALLE MODAL — con comentarios y ejecutivo info */}
       {cxcDetalle && (() => {
-        const agent = CXC_AGENT_MAP[cxcDetalle.agente];
+        const agKey = cxcDetalle.agente_cxc || cxcDetalle.ejecutivo_cxc || '';
+        const agent = CXC_AGENT_MAP[agKey];
         const semColor = semaforoColor(cxcDetalle);
         return (
         <div style={{ position: 'fixed', inset: 0, zIndex: 100, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
@@ -2067,14 +2120,14 @@ FX27 Future Experience 27 — Grupo Loma Transportes © ${new Date().getFullYear
               {/* Team info grid */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '16px' }}>
                 {[
-                  { label: 'Ejecutivo CxC', value: agent?.nombre || cxcDetalle.agente },
+                  { label: 'Ejecutivo CxC', value: agent?.nombre || agKey || 'Sin asignar' },
                   { label: 'Tel. CxC', value: agent?.tel || '—' },
                   { label: 'Email CxC', value: agent?.email || '—' },
                   { label: 'Días crédito', value: cxcDetalle.dias_credito ? `${cxcDetalle.dias_credito} días` : '—' },
                   { label: 'Días vencido', value: cxcDetalle.dias_vencido || '0' },
                   { label: 'Vence próx. semana', value: cxcDetalle.vencido_prox > 0 ? fmt(cxcDetalle.vencido_prox) : '—' },
-                  { label: 'Vendedor', value: getVendedor(cxcDetalle.cliente) },
-                  { label: 'CSR', value: getCSR(cxcDetalle.cliente) },
+                  { label: 'Vendedor', value: cxcDetalle.vendedor || '—' },
+                  { label: 'CSR', value: cxcDetalle.ejecutivo_sc || '—' },
                 ].map((item, i) => (
                   <div key={i} style={{ background: 'rgba(255,255,255,0.02)', borderRadius: '6px', padding: '8px 10px' }}>
                     <div style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '9px', color: 'rgba(255,255,255,0.35)', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: '2px' }}>{item.label}</div>
