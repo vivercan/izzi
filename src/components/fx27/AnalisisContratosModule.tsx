@@ -215,7 +215,7 @@ export default function AnalisisContratosModule({ onBack }: Props) {
       if (err.name === 'AbortError') {
         throw new Error('TIMEOUT: El análisis tardó demasiado. Esto puede pasar con contratos muy largos.');
       }
-      if (err.message?.includes('Failed to fetch') || err.message?.includes('NetworkError') || err.message?.includes('fetch')) {
+      if (err.message?.includes('Failed to fetch') || err.message?.includes('NetworkError') || err.message?.includes('net::ERR_')) {
         throw new Error('CONEXION: No se pudo conectar con el servidor. Verifica tu conexión a internet.');
       }
       throw err;
