@@ -128,19 +128,24 @@ async function extractDocxTextAsync(u8: Uint8Array): Promise<string> {
         if (method === 0) {
           xml = new TextDecoder().decode(comp);
         } else if (method === 8) {
-          try {
-            const dec = new DecompressionStream('raw');
-            const w = dec.writable.getWriter();
-            w.write(comp); w.close();
-            const r = dec.readable.getReader();
-            const ch: Uint8Array[] = [];
-            while (true) { const { done, value } = await r.read(); if (done) break; ch.push(value); }
-            const total = ch.reduce((a, c) => a + c.length, 0);
-            const result = new Uint8Array(total); let p = 0;
-            for (const c of ch) { result.set(c, p); p += c.length; }
-            xml = new TextDecoder().decode(result);
-          } catch (e) {
-            console.error('[contrato] decompress error:', e);
+          // Try deflate-raw first (Deno standard), then raw (browser compat)
+          for (const fmt of ['deflate-raw', 'raw', 'deflate'] as const) {
+            try {
+              const dec = new DecompressionStream(fmt as string);
+              const w = dec.writable.getWriter();
+              w.write(comp).then(() => w.close()).catch(() => {});
+              const r = dec.readable.getReader();
+              const ch: Uint8Array[] = [];
+              while (true) { const { done, value } = await r.read(); if (done) break; ch.push(value); }
+              const total = ch.reduce((a, c) => a + c.length, 0);
+              const result = new Uint8Array(total); let p = 0;
+              for (const c of ch) { result.set(c, p); p += c.length; }
+              xml = new TextDecoder().decode(result);
+              if (xml.includes('<w:t')) { console.log(`[contrato] Decompressed OK with '${fmt}'`); break; }
+              xml = '';
+            } catch (e) {
+              console.log(`[contrato] Decompress '${fmt}' failed:`, e.message || e);
+            }
           }
         }
         if (xml) {
@@ -199,14 +204,7 @@ serve(async (req) => {
           texto_extraido = extracted;
           console.log(`[contrato] Server extraction SUCCESS: ${extracted.length} chars`);
         } else {
-          console.log(`[contrato] Server extraction got ${extracted.length} chars, trying raw decode...`);
-          // Last resort: try to decode as plain text and look for readable content
-          const raw = new TextDecoder('utf-8', { fatal: false }).decode(bytes);
-          const readable = raw.replace(/[^\x20-\x7E\xA0-\xFF\u0100-\uFFFF]/g, ' ').replace(/\s{3,}/g, '\n').trim();
-          if (readable.length > 100) {
-            texto_extraido = readable;
-            console.log(`[contrato] Raw decode fallback: ${readable.length} chars`);
-          }
+          console.log(`[contrato] Server extraction got ${extracted.length} chars, no usable text`);
         }
       } catch (e) {
         console.error('[contrato] Server extraction failed:', e);
@@ -346,7 +344,10 @@ SOLO JSON VÁLIDO.`;
     analisis.justificacion_veredicto = analisis.justificacion_veredicto || "";
 
     console.log(`[contrato] ✅ ${analisis.veredicto} | Riesgo:${analisis.calificacion_riesgo}/10 | ${analisis.riesgos.length} riesgos | Blindada:${analisis.version_blindada.length} chars`);
-    return ok({ success: true, analisis, texto_usado: texto_extraido || '' });
+    // Sanitize: only return clean text, never binary
+    const cleanText = (texto_extraido || '').replace(/[^\x20-\x7E\xA0-\xFF\u0100-\uFFFF\n\r\t]/g, '').trim();
+    const textoParaCliente = cleanText.length > 50 ? cleanText : '';
+    return ok({ success: true, analisis, texto_usado: textoParaCliente });
 
   } catch (e: any) {
     console.error("[contrato] FATAL:", e.message);

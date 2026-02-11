@@ -33,14 +33,17 @@ async function getDocxXml(file: File): Promise<string> {
       const ds = locOff + 30 + lnl + lel, comp = u8.slice(ds, ds + cSize);
       if (method === 0) return new TextDecoder().decode(comp);
       if (method === 8) {
-        try {
-          const dec = new DecompressionStream('raw'); const w = dec.writable.getWriter(); w.write(comp); w.close();
-          const r = dec.readable.getReader(); const ch: Uint8Array[] = [];
-          while (true) { const { done, value } = await r.read(); if (done) break; ch.push(value); }
-          const t = ch.reduce((a, c) => a + c.length, 0); const res = new Uint8Array(t); let p = 0;
-          for (const c of ch) { res.set(c, p); p += c.length; }
-          return new TextDecoder().decode(res);
-        } catch (e) { console.warn('Decompression failed:', e); }
+        for (const fmt of ['deflate-raw', 'raw'] as const) {
+          try {
+            const dec = new DecompressionStream(fmt as string); const w = dec.writable.getWriter(); w.write(comp); w.close();
+            const r = dec.readable.getReader(); const ch: Uint8Array[] = [];
+            while (true) { const { done, value } = await r.read(); if (done) break; ch.push(value); }
+            const t = ch.reduce((a, c) => a + c.length, 0); const res = new Uint8Array(t); let p = 0;
+            for (const c of ch) { res.set(c, p); p += c.length; }
+            const decoded = new TextDecoder().decode(res);
+            if (decoded.includes('<w:t')) return decoded;
+          } catch (e) { console.warn(`Decompress '${fmt}' failed:`, e); }
+        }
       }
     }
     off += 46 + nLen + eLen + cmtLen;
@@ -261,7 +264,7 @@ export default function AnalisisContratosModule({ onBack }: Props) {
       try {
         const data = await callEdge();
         if (data.success && data.analisis) { stopProgress(true); await new Promise(r => setTimeout(r, 500)); setResultado(data.analisis);
-          if (!textoExtraido && data.texto_usado && data.texto_usado.length > 30) { setTextoExtraido(data.texto_usado); setTextoHtml(formatPlainTextAsLegalHtml(data.texto_usado)); console.log('Using server text: ' + data.texto_usado.length + ' chars'); }
+          if (!textoExtraido && data.texto_usado && data.texto_usado.length > 50 && !data.texto_usado.includes('PK')) { setTextoExtraido(data.texto_usado); setTextoHtml(formatPlainTextAsLegalHtml(data.texto_usado)); console.log('Using server text: ' + data.texto_usado.length + ' chars'); }
           setAnalizando(false); return; }
         throw new Error(data.error || 'Respuesta inválida');
       } catch (err: any) {
