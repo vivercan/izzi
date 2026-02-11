@@ -372,6 +372,127 @@ export default function AnalisisContratosModule({ onBack }: Props) {
     generarPDF('Reporte de Riesgos - TROB', html, 'riesgos_contrato');
   };
 
+  const descargarContratoLlenado = () => {
+    if (!resultado) return;
+    const fecha = new Date().toLocaleDateString('es-MX', { day: '2-digit', month: 'long', year: 'numeric' });
+    const datos = resultado.datos_extraidos;
+
+    // Page 1+: El contrato llenado con datos de TROB tal cual
+    let html = `
+    <div style="text-align:center;margin-bottom:30px;">
+      <h1 style="font-size:20pt;border-bottom:none;margin-bottom:5px;">CONTRATO DE PRESTACIÓN DE SERVICIOS DE TRANSPORTE</h1>
+      <p style="font-size:11pt;color:#555;">Archivo original: ${archivoContrato?.name || 'N/A'}</p>
+    </div>
+
+    <table style="margin-bottom:30px;">
+      <tr><th colspan="2" style="text-align:center;font-size:13pt;">DATOS DEL CONTRATO</th></tr>
+      <tr><td style="width:35%;font-weight:700;">Fecha del contrato</td><td>${datos.fecha_contrato || 'No especificado'}</td></tr>
+      <tr><td style="font-weight:700;">Partes</td><td>${Array.isArray(datos.partes) ? datos.partes.join(' — ') : datos.partes || 'No especificado'}</td></tr>
+      <tr><td style="font-weight:700;">Objeto del contrato</td><td>${datos.objeto_contrato || 'No especificado'}</td></tr>
+      <tr><td style="font-weight:700;">Vigencia</td><td>${datos.vigencia || 'No especificado'}</td></tr>
+      <tr><td style="font-weight:700;">Monto / Tarifa</td><td>${datos.monto_o_tarifa || 'No especificado'}</td></tr>
+      <tr><td style="font-weight:700;">Representante legal</td><td>${datos.representante_legal || 'No especificado'}</td></tr>
+      <tr><td style="font-weight:700;">Notaría</td><td>${datos.notaria || 'No especificado'}</td></tr>
+      <tr><td style="font-weight:700;">Escritura</td><td>${datos.numero_escritura || 'No especificado'}</td></tr>
+    </table>
+
+    <h2>Datos de TROB TRANSPORTES (Parte Transportista)</h2>
+    <table>
+      <tr><td style="width:35%;font-weight:700;">Razón Social</td><td>TROB TRANSPORTES S.A. DE C.V.</td></tr>
+      <tr><td style="font-weight:700;">RFC</td><td>TTR151216CHA</td></tr>
+      <tr><td style="font-weight:700;">Representante Legal</td><td>Alejandro López Ramírez</td></tr>
+      <tr><td style="font-weight:700;">Escritura</td><td>21,183 Vol. 494</td></tr>
+      <tr><td style="font-weight:700;">Notaría</td><td>Notaría 35, Lic. Fernando Quezada Leos, Aguascalientes</td></tr>
+    </table>
+
+    <h2>Resumen Ejecutivo</h2>
+    <p>${resultado.resumen_ejecutivo}</p>
+
+    <h2>Versión del Contrato con Datos Llenados</h2>
+    <div style="white-space:pre-wrap;text-align:justify;line-height:2;">${resultado.version_blindada}</div>`;
+
+    // ═══ HOJA EXTRA: Puntos Leoninos / Riesgos con Corrección ═══
+    const riesgosAltos = resultado.riesgos.filter(r => r.severidad === 'ALTA');
+    const riesgosMedios = resultado.riesgos.filter(r => r.severidad === 'MEDIA');
+    const riesgosBajos = resultado.riesgos.filter(r => r.severidad === 'BAJA');
+    const todosRiesgos = [...riesgosAltos, ...riesgosMedios, ...riesgosBajos];
+
+    html += `
+    <div style="page-break-before:always;"></div>
+    <h1 style="color:#dc2626;border-bottom-color:#dc2626;">⚠️ OBSERVACIONES LEGALES — PUNTOS DE RIESGO</h1>
+    <div class="header-meta">Contrato: ${archivoContrato?.name || 'N/A'} | Análisis: ${fecha}</div>`;
+
+    if (resultado.es_leonino) {
+      html += `<div class="warning-box" style="margin:20px 0;">
+        <strong style="font-size:14pt;color:#dc2626;">🚨 CONTRATO LEONINO DETECTADO</strong>
+        <p style="margin-top:8px;">${resultado.explicacion_leonino}</p>
+      </div>`;
+    }
+
+    html += `<p style="font-style:italic;color:#666;margin-bottom:20px;">Los siguientes puntos representan riesgos para TROB TRANSPORTES. Para cada uno se indica lo que dice actualmente y lo que DEBERÍA decir para proteger a TROB.</p>`;
+
+    todosRiesgos.forEach((r, i) => {
+      const sc = r.severidad === 'ALTA' ? { bg: '#fef2f2', border: '#ef4444', badge: 'risk-alta' } :
+                 r.severidad === 'MEDIA' ? { bg: '#fffbeb', border: '#f59e0b', badge: 'risk-media' } :
+                 { bg: '#f0fdf4', border: '#22c55e', badge: 'risk-baja' };
+      html += `
+      <div style="background:${sc.bg};border-left:5px solid ${sc.border};padding:16px 20px;margin:16px 0;border-radius:0 10px 10px 0;">
+        <h3 style="margin:0 0 8px 0;font-size:13pt;">
+          ${i + 1}. ${r.clausula}
+          <span class="risk-badge ${sc.badge}" style="margin-left:10px;">${r.severidad}</span>
+        </h3>
+        <div style="margin:10px 0;padding:10px 14px;background:rgba(0,0,0,0.04);border-radius:6px;">
+          <p style="margin:0;font-size:10pt;color:#888;font-weight:700;">❌ RIESGO ACTUAL:</p>
+          <p style="margin:4px 0 0 0;">${r.descripcion}</p>
+        </div>
+        <div style="margin:10px 0;padding:10px 14px;background:rgba(34,197,94,0.08);border-radius:6px;border-left:3px solid #22c55e;">
+          <p style="margin:0;font-size:10pt;color:#059669;font-weight:700;">✅ DEBERÍA DECIR / CORRECCIÓN:</p>
+          <p style="margin:4px 0 0 0;">${r.sugerencia}</p>
+        </div>
+      </div>`;
+    });
+
+    if (resultado.clausulas_faltantes.length > 0) {
+      html += `<h2 style="color:#dc2626;">Cláusulas que DEBEN Agregarse</h2>`;
+      resultado.clausulas_faltantes.forEach((c, i) => {
+        html += `<div style="background:#fff7ed;border-left:4px solid #f97316;padding:12px 16px;margin:10px 0;border-radius:0 8px 8px 0;">
+          <p style="margin:0;"><strong>${i + 1}.</strong> ${c}</p>
+        </div>`;
+      });
+    }
+
+    // ═══ ÚLTIMA HOJA: NO FIRMAR en grande rojo ═══
+    html += `
+    <div style="page-break-before:always;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:85vh;text-align:center;">
+      <div style="border:8px solid #dc2626;border-radius:20px;padding:60px 80px;background:#fef2f2;">
+        <p style="font-family:'Exo 2',sans-serif;font-size:72pt;font-weight:900;color:#dc2626;margin:0;line-height:1.1;letter-spacing:4px;">
+          ⛔ NO FIRMAR
+        </p>
+        <div style="width:100%;height:4px;background:#dc2626;margin:30px 0;"></div>
+        <p style="font-family:'Exo 2',sans-serif;font-size:18pt;color:#991b1b;margin:10px 0 0 0;font-weight:700;">
+          ESTE CONTRATO CONTIENE ${todosRiesgos.length} PUNTO${todosRiesgos.length !== 1 ? 'S' : ''} DE RIESGO
+          ${riesgosAltos.length > 0 ? `<br>(${riesgosAltos.length} DE SEVERIDAD ALTA)` : ''}
+        </p>
+        ${resultado.es_leonino ? '<p style="font-family:\'Exo 2\',sans-serif;font-size:22pt;color:#dc2626;margin:20px 0 0 0;font-weight:900;">🚨 CONTRATO LEONINO DETECTADO 🚨</p>' : ''}
+        <p style="font-size:13pt;color:#7f1d1d;margin:30px 0 0 0;line-height:1.6;">
+          Se requiere corrección de las cláusulas señaladas antes de proceder con la firma.<br>
+          Consulte las observaciones en las páginas anteriores.
+        </p>
+        <div style="margin-top:40px;padding:16px 24px;background:#dc2626;border-radius:10px;">
+          <p style="font-family:'Exo 2',sans-serif;font-size:14pt;color:#fff;margin:0;font-weight:700;">
+            RECOMENDACIÓN: Solicitar modificaciones al contrato conforme a las correcciones sugeridas.<br>
+            No firmar hasta que el equipo legal de TROB apruebe la versión corregida.
+          </p>
+        </div>
+        <p style="font-size:10pt;color:#999;margin:30px 0 0 0;">
+          Calificación de riesgo: ${resultado.calificacion_riesgo}/10 | Análisis generado por IA para TROB TRANSPORTES | ${fecha}
+        </p>
+      </div>
+    </div>`;
+
+    generarPDF('Contrato Llenado - TROB', html, 'contrato_llenado');
+  };
+
   // ═══════════════════════════════════════════════════════════
   // COLLAPSIBLE SECTION COMPONENT
   // ═══════════════════════════════════════════════════════════
@@ -599,6 +720,9 @@ export default function AnalisisContratosModule({ onBack }: Props) {
                       </button>
                       <button onClick={descargarRiesgosPDF} className="flex items-center gap-2 px-4 py-2.5 rounded-lg hover:brightness-110 transition-all" style={{ background: 'linear-gradient(135deg, #dc2626, #991b1b)', fontFamily: F, fontSize: '13px', fontWeight: 600, color: '#fff' }}>
                         <AlertTriangle className="w-4 h-4" /> Riesgos PDF
+                      </button>
+                      <button onClick={descargarContratoLlenado} className="flex items-center gap-2 px-4 py-2.5 rounded-lg hover:brightness-110 transition-all" style={{ background: 'linear-gradient(135deg, #0891b2, #065985)', fontFamily: F, fontSize: '13px', fontWeight: 600, color: '#fff' }}>
+                        <FileText className="w-4 h-4" /> Contrato Llenado
                       </button>
                     </div>
                   </div>
