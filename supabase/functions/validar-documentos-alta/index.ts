@@ -1,97 +1,104 @@
 // supabase/functions/validar-documentos-alta/index.ts
-// Deploy: supabase functions deploy validar-documentos-alta
+// ACTUALIZADO: Rango de 30 días para Constancia Fiscal y Opinión de Cumplimiento
+// CORREGIDO: Formato fechas mexicano DD/MM/YYYY
 
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+}
 
-const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
-const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
-const SUPABASE_SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+const ANTHROPIC_API_KEY = Deno.env.get('ANTHROPIC_API_KEY') || ''
+const SUPABASE_URL = Deno.env.get('SUPABASE_URL') || ''
+const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || ''
 
 serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders });
+  if (req.method === 'OPTIONS') {
+    return new Response('ok', { headers: corsHeaders })
   }
 
   try {
-    const { solicitudId, documentos, tipoEmpresa, idioma } = await req.json();
-    
+    const { solicitudId, documentos, tipoEmpresa } = await req.json()
+
     if (!solicitudId || !documentos) {
-      return new Response(JSON.stringify({ success: false, error: "Faltan datos" }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-        status: 400,
-      });
+      return new Response(JSON.stringify({ success: false, error: 'Faltan parámetros' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
     }
 
-    const supabase = createClient(SUPABASE_URL!, SUPABASE_SERVICE_KEY!);
-    const errores: any[] = [];
-    const datosExtraidos: any = {};
+    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
 
-    // ═══════════════════════════════════════════════════════════════════════════
-    // DESCARGAR Y PROCESAR CADA DOCUMENTO
-    // ═══════════════════════════════════════════════════════════════════════════
-    const docsToValidate = tipoEmpresa === "USA_CANADA" 
-      ? ["w9", "bank_statement", "mc_number", "void_check", "id_document"]
-      : ["constancia_fiscal", "opinion_cumplimiento", "comprobante_domicilio", "ine_representante", "acta_constitutiva", "caratula_bancaria"];
+    // Calcular fecha de hoy para pasar al prompt
+    const now = new Date()
+    const dia = now.getDate()
+    const mes = now.getMonth() + 1
+    const anio = now.getFullYear()
+    const fechaHoy = `${dia} de ${['', 'enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'][mes]} de ${anio}`
 
-    // Construir contenido para Anthropic
-    const documentContents: any[] = [];
-    
-    for (const docKey of docsToValidate) {
-      const filePath = documentos[docKey];
-      if (!filePath) continue;
+    // Fecha hace 30 días
+    const hace30 = new Date(now)
+    hace30.setDate(hace30.getDate() - 30)
+    const diaH30 = hace30.getDate()
+    const mesH30 = hace30.getMonth() + 1
+    const anioH30 = hace30.getFullYear()
+    const fechaHace30 = `${diaH30} de ${['', 'enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'][mesH30]} de ${anioH30}`
 
+    // Fecha hace 3 meses
+    const hace3M = new Date(now)
+    hace3M.setMonth(hace3M.getMonth() - 3)
+    const diaH3M = hace3M.getDate()
+    const mesH3M = hace3M.getMonth() + 1
+    const anioH3M = hace3M.getFullYear()
+    const fechaHace3Meses = `${diaH3M} de ${['', 'enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'][mesH3M]} de ${anioH3M}`
+
+    const docsParaIA: Array<{ key: string; base64: string; mediaType: string }> = []
+
+    // Recolectar todos los documentos subidos
+    const allDocKeys = Object.keys(documentos).filter(k => documentos[k])
+
+    for (const docKey of allDocKeys) {
       try {
-        // Descargar archivo de Storage
         const { data: fileData, error: downloadError } = await supabase.storage
-          .from("alta-documentos")
-          .download(filePath);
-        
-        if (downloadError) {
-          console.error(`Error descargando ${docKey}:`, downloadError);
-          continue;
+          .from('alta-documentos')
+          .download(documentos[docKey])
+
+        if (downloadError || !fileData) {
+          console.error(`Error descargando ${docKey}:`, downloadError)
+          continue
         }
 
-        // Convertir a base64 (chunked para archivos grandes)
-        const arrayBuffer = await fileData.arrayBuffer();
-        const bytes = new Uint8Array(arrayBuffer);
-        let binary = '';
-        const chunkSize = 8192;
-        for (let i = 0; i < bytes.length; i += chunkSize) {
-          binary += String.fromCharCode(...bytes.subarray(i, i + chunkSize));
-        }
-        const base64 = btoa(binary);
+        const arrayBuffer = await fileData.arrayBuffer()
+        const uint8Array = new Uint8Array(arrayBuffer)
         
-        // Detectar tipo de archivo
-        const extension = filePath.split(".").pop()?.toLowerCase();
-        let mediaType = "application/pdf";
-        if (["jpg", "jpeg"].includes(extension || "")) mediaType = "image/jpeg";
-        if (extension === "png") mediaType = "image/png";
+        // Convertir a base64 en chunks para evitar stack overflow
+        let base64 = ''
+        const chunkSize = 32768
+        for (let i = 0; i < uint8Array.length; i += chunkSize) {
+          const chunk = uint8Array.subarray(i, i + chunkSize)
+          base64 += String.fromCharCode(...chunk)
+        }
+        base64 = btoa(base64)
 
-        documentContents.push({
-          type: mediaType.startsWith("image") ? "image" : "document",
-          source: {
-            type: "base64",
-            media_type: mediaType,
-            data: base64,
-          },
-          docKey,
-        });
+        const fileName = documentos[docKey].toLowerCase()
+        let mediaType = 'application/pdf'
+        if (fileName.endsWith('.jpg') || fileName.endsWith('.jpeg')) mediaType = 'image/jpeg'
+        else if (fileName.endsWith('.png')) mediaType = 'image/png'
+
+        docsParaIA.push({ key: docKey, base64, mediaType })
       } catch (err) {
-        console.error(`Error procesando ${docKey}:`, err);
+        console.error(`Error procesando ${docKey}:`, err)
       }
     }
 
-    // ═══════════════════════════════════════════════════════════════════════════
-    // LLAMAR A ANTHROPIC API PARA VALIDAR Y EXTRAER
-    // ═══════════════════════════════════════════════════════════════════════════
-    const systemPrompt = tipoEmpresa === "USA_CANADA" 
-      ? `You are a document validation assistant for a logistics company. Analyze the uploaded documents and:
+    let resultado = { valid: false, errors: [] as any[], datosExtraidos: {} }
+
+    if (docsParaIA.length > 0 && ANTHROPIC_API_KEY) {
+      // Construir prompt según tipo de empresa
+      const isUSA = tipoEmpresa === 'USA' || tipoEmpresa === 'USA/CANADA'
+
+      const systemPrompt = isUSA
+        ? `You are a document validation assistant for a logistics company. Analyze the uploaded documents and:
 1. Verify each document is valid and not expired
 2. Extract the following information:
    - From W-9: Tax ID (EIN/SSN), Company Name, Address
@@ -120,22 +127,36 @@ Return a JSON object with:
     "dot_number": ""
   }
 }`
-      : `Eres un asistente de validación de documentos para una empresa de logística. Analiza los documentos subidos y:
+        : `Eres un asistente de validación de documentos para una empresa de logística mexicana.
+
+FECHA DE HOY: ${fechaHoy}
+
+Analiza los documentos subidos y:
 1. Verifica que cada documento sea válido y esté vigente
 2. Extrae la siguiente información:
-   - De Constancia Fiscal: RFC, Razón Social, Dirección completa (calle, número, colonia, CP, ciudad, estado)
-   - De Opinión de Cumplimiento: Verifica que sea del mes actual y esté en positivo
-   - De Comprobante de Domicilio: Verifica que sea de los últimos 3 meses
-   - De INE: Nombre del Representante Legal, verifica vigencia
-   - De Acta Constitutiva: Objeto social/giro
-   - De Carátula Bancaria: Banco, CLABE (18 dígitos), Titular de la cuenta
+   - De Constancia Fiscal: RFC, Razón Social, Régimen Fiscal, Dirección completa (calle, número exterior, número interior, colonia, CP, ciudad, estado)
+   - De Opinión de Cumplimiento: Verifica que sea POSITIVA y que esté vigente
+   - De Comprobante de Domicilio: Verifica que no sea mayor a 3 meses
+   - De INE: Nombre del Representante Legal, verifica que no esté vencida
+   - De Acta Constitutiva: Objeto social/giro de la empresa
+   - De Carátula Bancaria: Banco, CLABE interbancaria (debe tener exactamente 18 dígitos), Titular de la cuenta
+   - De Poder Notarial: Notaría, número de escritura (si aplica)
 
-Reglas de validación:
-- Constancia Fiscal: Debe ser del mes actual
-- Opinión de Cumplimiento: Debe decir "POSITIVO" o "EN SENTIDO POSITIVO" y ser del mes actual
-- Comprobante de Domicilio: Fecha no mayor a 3 meses
-- INE: No debe estar vencida
-- Carátula Bancaria: Debe mostrar CLABE de 18 dígitos
+REGLAS DE VALIDACIÓN DE FECHAS:
+- IMPORTANTE: En México las fechas se escriben DD/MM/YYYY o "día de mes de año". Ejemplo: 03/01/2026 = 3 de enero de 2026, NO 1 de marzo.
+- Constancia de Situación Fiscal: La fecha de emisión debe ser de los ÚLTIMOS 30 DÍAS. Cualquier fecha entre ${fechaHace30} y ${fechaHoy} es VÁLIDA.
+- Opinión de Cumplimiento: La fecha de emisión debe ser de los ÚLTIMOS 30 DÍAS. Cualquier fecha entre ${fechaHace30} y ${fechaHoy} es VÁLIDA.
+- Comprobante de Domicilio: La fecha debe ser de los últimos 3 meses (desde ${fechaHace3Meses}).
+- INE/Credencial para votar: La vigencia no debe estar vencida respecto a la fecha actual.
+- Acta Constitutiva: No tiene restricción de vigencia.
+- Carátula Bancaria: No tiene restricción de vigencia, pero la CLABE debe tener EXACTAMENTE 18 dígitos numéricos.
+- Poder Notarial: No tiene restricción de vigencia.
+
+REGLAS DE VALIDACIÓN DE CLABE:
+- La CLABE interbancaria debe tener EXACTAMENTE 18 dígitos numéricos consecutivos.
+- No debe tener espacios, guiones ni separadores.
+- Si tiene menos o más de 18 dígitos, reportar como error.
+- Al contar dígitos, cuenta SOLO los caracteres numéricos (0-9), ignora cualquier espacio o separador.
 
 Devuelve un JSON con:
 {
@@ -144,6 +165,7 @@ Devuelve un JSON con:
   "datosExtraidos": {
     "rfc": "",
     "razon_social": "",
+    "regimen_fiscal": "",
     "calle": "",
     "no_ext": "",
     "no_int": "",
@@ -156,131 +178,129 @@ Devuelve un JSON con:
     "banco": "",
     "clabe": "",
     "titular_cuenta": "",
-    "giro": ""
+    "giro": "",
+    "notaria": "",
+    "escritura": ""
   }
-}`;
+}
 
-    // Construir messages para Anthropic
-    const userContent: any[] = [
-      { type: "text", text: "Analiza los siguientes documentos y extrae la información:" }
-    ];
+IMPORTANTE: 
+- Si un documento está dentro del rango de fechas válido, márquelo como VÁLIDO. No seas más estricto que las reglas indicadas.
+- Solo reporta errores cuando el documento CLARAMENTE viola las reglas.
+- Si la CLABE tiene 18 dígitos numéricos (ignorando espacios), es VÁLIDA.
+- Devuelve ÚNICAMENTE el JSON, sin texto adicional, sin backticks, sin markdown.`
 
-    for (const doc of documentContents) {
+      // Construir contenido para la API
+      const userContent: any[] = []
+
+      for (const doc of docsParaIA) {
+        if (doc.mediaType === 'application/pdf') {
+          userContent.push({
+            type: 'document',
+            source: { type: 'base64', media_type: doc.mediaType, data: doc.base64 }
+          })
+        } else {
+          userContent.push({
+            type: 'image',
+            source: { type: 'base64', media_type: doc.mediaType, data: doc.base64 }
+          })
+        }
+        userContent.push({
+          type: 'text',
+          text: `[Este es el documento: ${doc.key}]`
+        })
+      }
+
       userContent.push({
-        type: doc.type,
-        source: doc.source,
-      });
-      userContent.push({
-        type: "text",
-        text: `[Este es el documento: ${doc.docKey}]`,
-      });
-    }
+        type: 'text',
+        text: 'Analiza todos los documentos anteriores y devuelve SOLO el JSON con los resultados de validación. Sin explicaciones adicionales, sin backticks.'
+      })
 
-    userContent.push({
-      type: "text",
-      text: "Devuelve SOLO el JSON con los resultados, sin explicaciones adicionales.",
-    });
+      // Llamar API Anthropic
+      const anthropicResponse = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': ANTHROPIC_API_KEY,
+          'anthropic-version': '2023-06-01',
+        },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-20250514',
+          max_tokens: 64000,
+          system: systemPrompt,
+          messages: [{ role: 'user', content: userContent }]
+        })
+      })
 
-    const anthropicResponse = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": ANTHROPIC_API_KEY!,
-        "anthropic-version": "2023-06-01",
-      },
-      body: JSON.stringify({
-        model: "claude-sonnet-4-20250514",
-        max_tokens: 4096,
-        system: systemPrompt,
-        messages: [{ role: "user", content: userContent }],
-      }),
-    });
+      if (anthropicResponse.ok) {
+        const aiData = await anthropicResponse.json()
+        const aiText = aiData.content
+          ?.map((c: any) => c.type === 'text' ? c.text : '')
+          .join('')
+          .trim()
 
-    if (!anthropicResponse.ok) {
-      const errorText = await anthropicResponse.text();
-      console.error("Anthropic API error:", errorText);
-      throw new Error(`Anthropic API error: ${anthropicResponse.status}`);
-    }
-
-    const anthropicResult = await anthropicResponse.json();
-    const responseText = anthropicResult.content[0]?.text || "";
-
-    // Extraer JSON del response
-    let validationResult;
-    try {
-      // Buscar JSON en el response
-      const jsonMatch = responseText.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        validationResult = JSON.parse(jsonMatch[0]);
+        if (aiText) {
+          try {
+            // Limpiar posibles backticks o markdown
+            const cleaned = aiText
+              .replace(/```json\s*/gi, '')
+              .replace(/```\s*/gi, '')
+              .trim()
+            resultado = JSON.parse(cleaned)
+          } catch (parseErr) {
+            console.error('Error parseando respuesta IA:', parseErr)
+            console.error('Texto recibido:', aiText.substring(0, 500))
+            resultado = {
+              valid: false,
+              errors: [{ documento: 'Sistema', error: 'Error procesando la respuesta de validación', solucion: 'Intente nuevamente' }],
+              datosExtraidos: {}
+            }
+          }
+        }
       } else {
-        throw new Error("No JSON found in response");
+        const errText = await anthropicResponse.text()
+        console.error('Error Anthropic API:', anthropicResponse.status, errText)
+        resultado = {
+          valid: false,
+          errors: [{ documento: 'Sistema', error: 'Error de comunicación con el servicio de validación', solucion: 'Intente nuevamente en unos minutos' }],
+          datosExtraidos: {}
+        }
       }
-    } catch (parseErr) {
-      console.error("Error parsing Anthropic response:", parseErr);
-      // Si falla el parsing, permitir continuar sin validación
-      validationResult = { valid: true, errors: [], datosExtraidos: {} };
-    }
-
-    // ═══════════════════════════════════════════════════════════════════════════
-    // GUARDAR RESULTADOS EN BD
-    // ═══════════════════════════════════════════════════════════════════════════
-    const updateData: any = {
-      datos_extraidos: validationResult.datosExtraidos || {},
-      documentos_validados: validationResult.valid,
-      errores_validacion: validationResult.errors || [],
-      validacion_fecha: new Date().toISOString(),
-    };
-
-    // Si extrajo datos, también guardarlos en campos individuales
-    if (validationResult.datosExtraidos) {
-      const de = validationResult.datosExtraidos;
-      if (de.rfc) updateData.rfc_mc = de.rfc;
-      if (de.tax_id) updateData.rfc_mc = de.tax_id;
-      if (de.razon_social) updateData.razon_social = de.razon_social;
-      if (de.calle) {
-        updateData.direccion_completa = `${de.calle} ${de.no_ext || ""} ${de.no_int ? "Int. " + de.no_int : ""}, ${de.colonia || ""}, ${de.ciudad || ""}, ${de.estado || ""} CP ${de.cp || ""}`.trim();
-        updateData.calle = de.calle;
-        if (de.no_ext) updateData.no_ext = de.no_ext;
-        if (de.no_int) updateData.no_int = de.no_int;
-        if (de.colonia) updateData.colonia = de.colonia;
-        if (de.cp) updateData.cp = de.cp;
-        if (de.ciudad) updateData.ciudad = de.ciudad;
-        if (de.estado) updateData.estado = de.estado;
-        if (de.pais) updateData.pais = de.pais;
+    } else if (!ANTHROPIC_API_KEY) {
+      resultado = {
+        valid: false,
+        errors: [{ documento: 'Sistema', error: 'Servicio de validación no configurado', solucion: 'Contacte al administrador' }],
+        datosExtraidos: {}
       }
-      if (de.banco) updateData.contacto_admin_banco = de.banco;
-      if (de.clabe) updateData.contacto_admin_clabe = de.clabe;
-      if (de.routing_number) updateData.contacto_admin_clabe = de.routing_number;
-      if (de.representante_legal) updateData.nombre_rep_legal = de.representante_legal;
-      if (de.giro) updateData.giro = de.giro;
     }
 
-    const { error: updateError } = await supabase.from("alta_clientes").update(updateData).eq("id", solicitudId);
-    if (updateError) {
-      console.error("Error guardando datos extraidos:", updateError);
+    // Guardar resultado en la base de datos
+    if (solicitudId) {
+      await supabase
+        .from('alta_clientes')
+        .update({
+          datos_extraidos: resultado.datosExtraidos,
+          validacion_resultado: resultado,
+          validacion_fecha: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', solicitudId)
     }
 
-    // ═══════════════════════════════════════════════════════════════════════════
-    // RESPUESTA
-    // ═══════════════════════════════════════════════════════════════════════════
-    return new Response(
-      JSON.stringify({
-        success: validationResult.valid,
-        errores: validationResult.errors || [],
-        datosExtraidos: validationResult.datosExtraidos || {},
-      }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
-  } catch (error) {
-    console.error("Error en validación:", error);
-    return new Response(
-      JSON.stringify({ 
-        success: true, // Permitir continuar aunque falle
-        errores: [],
-        datosExtraidos: {},
-        warning: "Validación automática no disponible"
-      }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    return new Response(JSON.stringify({ success: true, ...resultado }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    })
+
+  } catch (err) {
+    console.error('Error general:', err)
+    return new Response(JSON.stringify({
+      success: false,
+      valid: false,
+      errors: [{ documento: 'Sistema', error: `Error interno: ${err.message}`, solucion: 'Intente nuevamente' }],
+      datosExtraidos: {}
+    }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      status: 500
+    })
   }
-});
+})
