@@ -2,6 +2,7 @@
 // Edge Function: enviar-correo-alta (COMPLETA)
 // 5 casos de correo para el flujo de Alta de Clientes
 // Ubicación: supabase/functions/enviar-correo-alta/index.ts
+// ACTUALIZADO 11-FEB-2026: Links públicos para asignar CxC
 // ═══════════════════════════════════════════════════════════════════════════
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
@@ -52,7 +53,7 @@ const detectarGenero = (nombre: string): 'M' | 'F' => {
   const primerNombre = nombre.trim().split(' ')[0].toLowerCase();
   const nombresFemeninos = ['carmen', 'dolores', 'mercedes', 'pilar', 'rocio', 'beatriz', 'raquel', 'isabel', 'ines', 'marisol', 'elizabeth', 'lizeth', 'jennifer', 'nancy', 'isis', 'paloma', 'claudia', 'martha', 'fernanda', 'karla', 'diana', 'norma'];
   const excepcionesMasculinas = ['josema', 'garcia', 'borja', 'nikita'];
-  
+
   if (nombresFemeninos.includes(primerNombre)) return 'F';
   if (excepcionesMasculinas.includes(primerNombre)) return 'M';
   if (primerNombre.endsWith('a')) return 'F';
@@ -68,7 +69,7 @@ const getSaludo = (nombre: string) => {
 // Template base HTML
 const templateBase = (content: string, titulo: string, empresa?: string) => {
   const logoEmpresa = empresa ? (LOGOS_EMPRESA[empresa] || LOGOS_EMPRESA['TROB']) : LOGOS_EMPRESA['TROB'];
-  
+
   return `
 <!DOCTYPE html>
 <html lang="es">
@@ -81,7 +82,7 @@ const templateBase = (content: string, titulo: string, empresa?: string) => {
     <tr>
       <td align="center">
         <table width="700" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 12px rgba(0,0,0,0.1);">
-          
+
           <!-- Header -->
           <tr>
             <td style="background: linear-gradient(135deg, ${COLORS.azulCorporativo} 0%, #003366 100%); padding: 20px 30px;">
@@ -97,14 +98,14 @@ const templateBase = (content: string, titulo: string, empresa?: string) => {
               </table>
             </td>
           </tr>
-          
+
           <!-- Contenido -->
           <tr>
             <td style="padding: 25px 30px;">
               ${content}
             </td>
           </tr>
-          
+
           <!-- Footer -->
           <tr>
             <td style="background: #f8fafc; padding: 15px 30px; border-top: 1px solid #e2e8f0;">
@@ -121,7 +122,7 @@ const templateBase = (content: string, titulo: string, empresa?: string) => {
               </table>
             </td>
           </tr>
-          
+
         </table>
       </td>
     </tr>
@@ -145,7 +146,7 @@ const enviarCorreo = async (to: string[], subject: string, html: string) => {
       html
     })
   });
-  
+
   const result = await response.json();
   if (!response.ok) {
     throw new Error(result.message || 'Error enviando correo');
@@ -162,26 +163,26 @@ const enviarCorreo = async (to: string[], subject: string, html: string) => {
 const emailSolicitudCliente = (data: any) => {
   const saludo = getSaludo(data.nombreContacto);
   const logoEmpresa = LOGOS_EMPRESA[data.empresaFacturadora] || LOGOS_EMPRESA['TROB'];
-  
+
   const content = `
     ${saludo ? `<p style="color: ${COLORS.textoGris}; font-size: 13px; margin: 0 0 10px 0;">${saludo}</p>` : ''}
-    
+
     <h1 style="color: ${COLORS.azulCorporativo}; font-size: 22px; font-weight: 700; margin: 0 0 15px 0;">
       Bienvenido a Grupo Loma
     </h1>
-    
+
     <p style="color: ${COLORS.textoOscuro}; font-size: 14px; line-height: 1.6; margin: 0 0 20px 0;">
-      Hemos recibido su solicitud para iniciar relación comercial. Para continuar con el proceso de alta, 
+      Hemos recibido su solicitud para iniciar relación comercial. Para continuar con el proceso de alta,
       por favor complete el siguiente formulario con la documentación requerida.
     </p>
-    
+
     <div style="text-align: center; margin: 25px 0;">
-      <a href="${data.linkFormulario}" 
+      <a href="${data.linkFormulario}"
          style="display: inline-block; background: linear-gradient(135deg, ${COLORS.naranja} 0%, #cc4000 100%); color: #ffffff; text-decoration: none; padding: 14px 40px; border-radius: 6px; font-size: 14px; font-weight: 700;">
         COMPLETAR FORMULARIO →
       </a>
     </div>
-    
+
     <div style="background: #fffbeb; border: 1px solid #fcd34d; border-radius: 6px; padding: 15px; margin-top: 20px;">
       <p style="color: #92400e; font-size: 12px; font-weight: 700; margin: 0 0 10px 0;">📋 DOCUMENTACIÓN REQUERIDA:</p>
       <ul style="color: ${COLORS.textoOscuro}; font-size: 12px; line-height: 1.8; margin: 0; padding-left: 20px;">
@@ -193,12 +194,12 @@ const emailSolicitudCliente = (data: any) => {
         <li>Carátula bancaria</li>
       </ul>
     </div>
-    
+
     <p style="color: ${COLORS.textoGris}; font-size: 11px; margin: 20px 0 0 0; text-align: center;">
       🔒 Sus datos serán tratados con absoluta confidencialidad
     </p>
   `;
-  
+
   return templateBase(content, 'ALTA COMERCIAL', data.empresaFacturadora);
 };
 
@@ -218,7 +219,7 @@ const emailClienteCompleto = (data: any) => {
         Un cliente ha completado el formulario de alta comercial
       </p>
     </div>
-    
+
     <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 20px;">
       <tr>
         <td style="padding: 10px 0; border-bottom: 1px solid #e2e8f0;">
@@ -257,38 +258,40 @@ const emailClienteCompleto = (data: any) => {
         </td>
       </tr>
     </table>
-    
+
     <div style="text-align: center;">
-      <a href="https://www.jjcrm27.com/servicio-clientes" 
+      <a href="https://www.jjcrm27.com/servicio-clientes"
          style="display: inline-block; background: linear-gradient(135deg, ${COLORS.naranja} 0%, #cc4000 100%); color: #ffffff; text-decoration: none; padding: 12px 30px; border-radius: 6px; font-size: 13px; font-weight: 700;">
         REVISAR Y ASIGNAR CSR →
       </a>
     </div>
-    
+
     <p style="color: ${COLORS.textoGris}; font-size: 11px; margin: 15px 0 0 0; text-align: center;">
       Siguiente paso: Validar información y asignar ejecutivo de Servicio a Clientes
     </p>
   `;
-  
+
   return templateBase(content, 'SOLICITUD RECIBIDA', data.empresaFacturadora);
 };
 
 // ═══════════════════════════════════════════════════════════════════════════
-// CASO 1B: EN_REVISION (en_revision) — NUEVO FLUJO PARALELO
+// CASO 1B: EN_REVISION (en_revision) — FLUJO PARALELO
 // Trigger: Cliente completó formulario público
 // Destino: Juan Viveros (CSR + Pago) + Claudia Priana (CxC) — SIMULTÁNEO
+// ACTUALIZADO: Link de Claudia ahora es PÚBLICO con solicitudId
 // ═══════════════════════════════════════════════════════════════════════════
 
 const emailEnRevision = (data: any, destinatario: 'juan' | 'claudia') => {
-  const accion = destinatario === 'juan' 
-    ? 'Asignar CSR y Tipo de Pago' 
+  const accion = destinatario === 'juan'
+    ? 'Asignar CSR y Tipo de Pago'
     : 'Asignar Ejecutivo de Cobranza (CxC)';
-  const botonTexto = destinatario === 'juan' 
-    ? 'REVISAR Y ASIGNAR CSR →' 
-    : 'ASIGNAR COBRANZA →';
+  const botonTexto = destinatario === 'juan'
+    ? 'REVISAR Y ASIGNAR CSR →'
+    : 'ASIGNAR EJECUTIVO CXC →';
+  // CAMBIO CLAVE: Link público con solicitudId para Claudia
   const linkDestino = destinatario === 'juan'
     ? 'https://www.jjcrm27.com/servicio-clientes'
-    : 'https://www.jjcrm27.com/asignar-cxc';
+    : `https://www.jjcrm27.com/asignar-cxc/${data.solicitudId}`;
 
   const content = `
     <div style="background: linear-gradient(135deg, #dbeafe 0%, #e0f2fe 100%); border-radius: 8px; padding: 20px; margin-bottom: 20px;">
@@ -299,7 +302,7 @@ const emailEnRevision = (data: any, destinatario: 'juan' | 'claudia') => {
         Un cliente ha completado el formulario. Tu acción: <strong>${accion}</strong>
       </p>
     </div>
-    
+
     <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 20px;">
       <tr>
         <td style="padding: 10px 0; border-bottom: 1px solid #e2e8f0;">
@@ -321,15 +324,15 @@ const emailEnRevision = (data: any, destinatario: 'juan' | 'claudia') => {
         Cuando ambos completen su parte, Nancy será notificada para confirmar.
       </p>
     </div>
-    
+
     <div style="text-align: center;">
-      <a href="${linkDestino}" 
+      <a href="${linkDestino}"
          style="display: inline-block; background: linear-gradient(135deg, ${COLORS.naranja} 0%, #cc4000 100%); color: #ffffff; text-decoration: none; padding: 12px 30px; border-radius: 6px; font-size: 13px; font-weight: 700;">
         ${botonTexto}
       </a>
     </div>
   `;
-  
+
   return templateBase(content, 'EN REVISIÓN', data.empresaFacturadora);
 };
 
@@ -337,21 +340,22 @@ const emailEnRevision = (data: any, destinatario: 'juan' | 'claudia') => {
 // CASO 2: PENDIENTE_CXC (asignar_cobranza)
 // Trigger: Juan Viveros asigna CSR + tipo pago
 // Destino: CSR asignado + Claudia Priana + Martha Velasco
+// ACTUALIZADO: Link de gerencia ahora es PÚBLICO con solicitudId
 // ═══════════════════════════════════════════════════════════════════════════
 
 const emailPendienteCxC = (data: any, destinatario: 'csr' | 'gerencia') => {
-  const tipoPagoLabel = data.tipoPago === 'CREDITO' 
-    ? `Crédito a ${data.diasCredito || 30} días` 
+  const tipoPagoLabel = data.tipoPago === 'CREDITO'
+    ? `Crédito a ${data.diasCredito || 30} días`
     : 'Prepago';
-  
+
   const tipoPagoColor = data.tipoPago === 'CREDITO' ? COLORS.verde : '#3b82f6';
-  
+
   if (destinatario === 'csr') {
     // Correo al CSR asignado
     const saludo = getSaludo(data.csrNombre);
     const content = `
       ${saludo ? `<p style="color: ${COLORS.textoGris}; font-size: 13px; margin: 0 0 10px 0;">${saludo}</p>` : ''}
-      
+
       <div style="background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); border-radius: 8px; padding: 20px; margin-bottom: 20px;">
         <h2 style="color: #166534; font-size: 18px; margin: 0 0 5px 0;">
           ✅ Se te ha asignado un nuevo cliente
@@ -360,7 +364,7 @@ const emailPendienteCxC = (data: any, destinatario: 'csr' | 'gerencia') => {
           Juan Viveros te asignó como ejecutivo de Servicio a Clientes
         </p>
       </div>
-      
+
       <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 20px;">
         <tr>
           <td style="padding: 10px 0; border-bottom: 1px solid #e2e8f0;">
@@ -387,15 +391,15 @@ const emailPendienteCxC = (data: any, destinatario: 'csr' | 'gerencia') => {
           </td>
         </tr>
       </table>
-      
+
       <p style="color: ${COLORS.textoGris}; font-size: 12px; margin: 0;">
         El equipo de Cobranza asignará próximamente al ejecutivo CxC para completar el alta.
       </p>
     `;
     return templateBase(content, 'CLIENTE ASIGNADO', data.empresaFacturadora);
-    
+
   } else {
-    // Correo a Claudia y Martha (gerencia CxC)
+    // Correo a Claudia y Martha (gerencia CxC) — LINK PÚBLICO
     const content = `
       <div style="background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); border-radius: 8px; padding: 20px; margin-bottom: 20px;">
         <h2 style="color: #92400e; font-size: 18px; margin: 0 0 5px 0;">
@@ -405,7 +409,7 @@ const emailPendienteCxC = (data: any, destinatario: 'csr' | 'gerencia') => {
           Juan Viveros asignó CSR. Falta asignar ejecutivo de Cobranza.
         </p>
       </div>
-      
+
       <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 20px;">
         <tr>
           <td style="padding: 10px 0; border-bottom: 1px solid #e2e8f0;">
@@ -432,9 +436,9 @@ const emailPendienteCxC = (data: any, destinatario: 'csr' | 'gerencia') => {
           </td>
         </tr>
       </table>
-      
+
       <div style="text-align: center;">
-        <a href="https://www.jjcrm27.com/servicio-clientes" 
+        <a href="https://www.jjcrm27.com/asignar-cxc/${data.solicitudId}"
            style="display: inline-block; background: linear-gradient(135deg, ${COLORS.naranja} 0%, #cc4000 100%); color: #ffffff; text-decoration: none; padding: 12px 30px; border-radius: 6px; font-size: 13px; font-weight: 700;">
           ASIGNAR EJECUTIVO CXC →
         </a>
@@ -451,13 +455,13 @@ const emailPendienteCxC = (data: any, destinatario: 'csr' | 'gerencia') => {
 // ═══════════════════════════════════════════════════════════════════════════
 
 const emailPendienteConfirmacion = (data: any) => {
-  const tipoPagoLabel = data.tipoPago === 'CREDITO' 
-    ? `Crédito a ${data.diasCredito || 30} días` 
+  const tipoPagoLabel = data.tipoPago === 'CREDITO'
+    ? `Crédito a ${data.diasCredito || 30} días`
     : 'Prepago';
-  
+
   const content = `
     <p style="color: ${COLORS.textoGris}; font-size: 13px; margin: 0 0 10px 0;">Estimada Nancy,</p>
-    
+
     <div style="background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); border-radius: 8px; padding: 20px; margin-bottom: 20px;">
       <h2 style="color: #92400e; font-size: 18px; margin: 0 0 5px 0;">
         🔔 Alta Lista para Confirmación
@@ -466,7 +470,7 @@ const emailPendienteConfirmacion = (data: any) => {
         El cliente ya tiene CSR y CxC asignados. Falta tu confirmación final.
       </p>
     </div>
-    
+
     <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 20px;">
       <tr>
         <td style="padding: 10px 0; border-bottom: 1px solid #e2e8f0;">
@@ -499,19 +503,19 @@ const emailPendienteConfirmacion = (data: any) => {
         </td>
       </tr>
     </table>
-    
+
     <div style="text-align: center;">
-      <a href="https://www.jjcrm27.com/servicio-clientes" 
+      <a href="https://www.jjcrm27.com/servicio-clientes"
          style="display: inline-block; background: linear-gradient(135deg, ${COLORS.verde} 0%, #16a34a 100%); color: #ffffff; text-decoration: none; padding: 14px 35px; border-radius: 6px; font-size: 14px; font-weight: 700;">
         CONFIRMAR ALTA →
       </a>
     </div>
-    
+
     <p style="color: ${COLORS.textoGris}; font-size: 11px; margin: 15px 0 0 0; text-align: center;">
       Al confirmar, se enviará correo de bienvenida al cliente con el directorio de contactos.
     </p>
   `;
-  
+
   return templateBase(content, 'CONFIRMAR ALTA', data.empresaFacturadora);
 };
 
@@ -522,17 +526,16 @@ const emailPendienteConfirmacion = (data: any) => {
 // ═══════════════════════════════════════════════════════════════════════════
 
 const emailAltaCompletada = (data: any, destinatario: 'cliente' | 'interno') => {
-  const tipoPagoLabel = data.tipoPago === 'CREDITO' 
-    ? `Crédito a ${data.diasCredito || 30} días` 
+  const tipoPagoLabel = data.tipoPago === 'CREDITO'
+    ? `Crédito a ${data.diasCredito || 30} días`
     : 'Prepago';
-  
+
   if (destinatario === 'cliente') {
-    // Correo de bienvenida al cliente
     const saludo = getSaludo(data.nombreContacto);
-    
+
     const content = `
       ${saludo ? `<p style="color: ${COLORS.textoGris}; font-size: 13px; margin: 0 0 10px 0;">${saludo}</p>` : ''}
-      
+
       <div style="background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%); border-radius: 8px; padding: 20px; margin-bottom: 20px; text-align: center;">
         <h1 style="color: #166534; font-size: 24px; margin: 0 0 5px 0;">
           🎉 ¡Bienvenido a Grupo Loma!
@@ -541,16 +544,15 @@ const emailAltaCompletada = (data: any, destinatario: 'cliente' | 'interno') => 
           Su alta comercial ha sido completada exitosamente
         </p>
       </div>
-      
+
       <p style="color: ${COLORS.textoOscuro}; font-size: 14px; line-height: 1.6; margin: 0 0 20px 0;">
-        Nos complace informarle que su proceso de alta comercial con <strong>${data.empresaFacturadora || 'Grupo Loma'}</strong> 
+        Nos complace informarle que su proceso de alta comercial con <strong>${data.empresaFacturadora || 'Grupo Loma'}</strong>
         ha sido completado. A continuación encontrará su directorio de contactos para cualquier necesidad.
       </p>
-      
-      <!-- Ejecutivos Asignados -->
+
       <div style="background: #f8fafc; border-radius: 8px; padding: 15px; margin-bottom: 20px;">
         <h3 style="color: ${COLORS.azulCorporativo}; font-size: 14px; margin: 0 0 15px 0;">👤 Sus Ejecutivos Asignados</h3>
-        
+
         <table width="100%" cellpadding="0" cellspacing="0">
           <tr>
             <td width="50%" style="padding: 10px; vertical-align: top;">
@@ -572,11 +574,10 @@ const emailAltaCompletada = (data: any, destinatario: 'cliente' | 'interno') => 
           </tr>
         </table>
       </div>
-      
-      <!-- Directorio de Escalación -->
+
       <div style="background: #f0f9ff; border-radius: 8px; padding: 15px; margin-bottom: 20px;">
         <h3 style="color: ${COLORS.azulCorporativo}; font-size: 14px; margin: 0 0 15px 0;">📞 Directorio de Escalación</h3>
-        
+
         <table width="100%" cellpadding="5" cellspacing="0" style="font-size: 12px;">
           ${DIRECTORIO_ESCALACION.map(d => `
             <tr>
@@ -587,22 +588,20 @@ const emailAltaCompletada = (data: any, destinatario: 'cliente' | 'interno') => 
           `).join('')}
         </table>
       </div>
-      
-      <!-- Condiciones -->
+
       <div style="text-align: center; padding: 15px; background: ${data.tipoPago === 'CREDITO' ? '#dcfce7' : '#dbeafe'}; border-radius: 8px;">
         <span style="color: ${COLORS.textoGris}; font-size: 12px;">Condiciones de Pago:</span><br>
         <span style="color: ${data.tipoPago === 'CREDITO' ? '#166534' : '#1d4ed8'}; font-size: 18px; font-weight: 700;">${tipoPagoLabel}</span>
       </div>
-      
+
       <p style="color: ${COLORS.textoOscuro}; font-size: 13px; line-height: 1.6; margin: 20px 0 0 0; text-align: center;">
         Gracias por su confianza. Estamos listos para servirle.
       </p>
     `;
-    
+
     return templateBase(content, '¡BIENVENIDO!', data.empresaFacturadora);
-    
+
   } else {
-    // Correo interno de confirmación
     const content = `
       <div style="background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%); border-radius: 8px; padding: 20px; margin-bottom: 20px;">
         <h2 style="color: #166534; font-size: 18px; margin: 0 0 5px 0;">
@@ -612,7 +611,7 @@ const emailAltaCompletada = (data: any, destinatario: 'cliente' | 'interno') => 
           Nancy Alonso ha confirmado el alta del cliente
         </p>
       </div>
-      
+
       <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 15px;">
         <tr>
           <td style="padding: 8px 0; border-bottom: 1px solid #e2e8f0;">
@@ -645,12 +644,12 @@ const emailAltaCompletada = (data: any, destinatario: 'cliente' | 'interno') => 
           </td>
         </tr>
       </table>
-      
+
       <p style="color: ${COLORS.textoGris}; font-size: 11px; margin: 0; text-align: center;">
         Se envió correo de bienvenida al cliente con el directorio de contactos.
       </p>
     `;
-    
+
     return templateBase(content, 'ALTA CONFIRMADA', data.empresaFacturadora);
   }
 };
@@ -667,7 +666,7 @@ serve(async (req) => {
   try {
     const body = await req.json();
     const { tipo } = body;
-    
+
     console.log('📧 Tipo de correo:', tipo);
     console.log('📦 Datos recibidos:', JSON.stringify(body, null, 2));
 
@@ -687,7 +686,7 @@ serve(async (req) => {
         results.push({ to: body.destinatarios, result });
         break;
       }
-      
+
       // ─────────────────────────────────────────────────────────────────────
       // CASO 1: Cliente completó formulario → Notificar a Juan
       // ─────────────────────────────────────────────────────────────────────
@@ -702,7 +701,7 @@ serve(async (req) => {
         results.push({ to: 'juan.viveros@trob.com.mx', result });
         break;
       }
-      
+
       // ─────────────────────────────────────────────────────────────────────
       // CASO 1B: Cliente completó → Notificar a Juan Y Claudia (PARALELO)
       // ─────────────────────────────────────────────────────────────────────
@@ -716,7 +715,7 @@ serve(async (req) => {
         );
         results.push({ to: 'juan.viveros@trob.com.mx', result: resultJuan });
 
-        // Correo a Claudia (CxC)
+        // Correo a Claudia (CxC) — ahora con link público
         const htmlClaudia = emailEnRevision(body, 'claudia');
         const resultClaudia = await enviarCorreo(
           ['claudia.priana@trob.com.mx'],
@@ -726,7 +725,7 @@ serve(async (req) => {
         results.push({ to: 'claudia.priana@trob.com.mx', result: resultClaudia });
         break;
       }
-      
+
       // ─────────────────────────────────────────────────────────────────────
       // CASO 2: Juan asignó CSR → Notificar a CSR + Claudia/Martha
       // ─────────────────────────────────────────────────────────────────────
@@ -742,8 +741,8 @@ serve(async (req) => {
           );
           results.push({ to: body.csrEmail, result: resultCsr });
         }
-        
-        // Correo a Claudia y Martha
+
+        // Correo a Claudia y Martha — ahora con link público
         const htmlGerencia = emailPendienteCxC(body, 'gerencia');
         const resultGerencia = await enviarCorreo(
           ['claudia.priana@trob.com.mx', 'martha.velasco@trob.com.mx'],
@@ -753,7 +752,7 @@ serve(async (req) => {
         results.push({ to: ['claudia.priana@trob.com.mx', 'martha.velasco@trob.com.mx'], result: resultGerencia });
         break;
       }
-      
+
       // ─────────────────────────────────────────────────────────────────────
       // CASO 3: Claudia/Martha asignó CxC → Notificar a Nancy
       // ─────────────────────────────────────────────────────────────────────
@@ -767,7 +766,7 @@ serve(async (req) => {
         results.push({ to: 'nancy.alonso@trob.com.mx', result });
         break;
       }
-      
+
       // ─────────────────────────────────────────────────────────────────────
       // CASO 4: Nancy confirmó → Notificar a cliente + internos
       // ─────────────────────────────────────────────────────────────────────
@@ -783,7 +782,7 @@ serve(async (req) => {
           );
           results.push({ to: body.emailCliente, result: resultCliente });
         }
-        
+
         // Correo interno a todos los involucrados
         const internosEmails = [
           'juan.viveros@trob.com.mx',
@@ -792,8 +791,8 @@ serve(async (req) => {
           body.csrEmail,
           body.cxcEmail,
           body.creadoPorEmail
-        ].filter(Boolean).filter((v, i, a) => a.indexOf(v) === i); // Únicos
-        
+        ].filter(Boolean).filter((v, i, a) => a.indexOf(v) === i);
+
         if (internosEmails.length > 0) {
           const htmlInterno = emailAltaCompletada(body, 'interno');
           const resultInterno = await enviarCorreo(
@@ -805,7 +804,7 @@ serve(async (req) => {
         }
         break;
       }
-      
+
       default:
         throw new Error(`Tipo de correo no reconocido: ${tipo}`);
     }
@@ -823,4 +822,3 @@ serve(async (req) => {
     );
   }
 });
-

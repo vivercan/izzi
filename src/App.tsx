@@ -22,6 +22,7 @@ import { VistaClientesCarroll } from './components/fx27/VistaClientesCarroll';
 import { MapaClimaticoCarroll } from './components/fx27/MapaClimaticoCarroll';
 import { AltaClientePublico } from './components/fx27/AltaClientePublico';
 import { AsignarCxC } from './components/fx27/AsignarCxC';
+import { AsignarCxCPublico } from './components/fx27/AsignarCxCPublico';
 import SalesHorizonModule from './components/fx27/SalesHorizonModule';
 import { AtencionClientesModule } from './components/fx27/AtencionClientesModule';
 import { MODULE_IMAGES } from './assets/module-images';
@@ -223,14 +224,17 @@ export default function App() {
     // Detectar rutas públicas (sin login requerido)
   useEffect(() => {
     const path = window.location.pathname;
+    // Ruta pública: Alta de cliente
     const altaMatch = path.match(/^\/alta\/([a-f0-9-]{36})$/i);
     if (altaMatch) {
       setRutaPublica({ tipo: 'alta-cliente', id: altaMatch[1] });
     }
-    // Rutas internas de alta (requieren login pero se detectan para navegación directa)
-    if (path === '/alta-clientes/asignar-cxc' || path === '/asignar-cxc') {
-      setCurrentModule('asignar-cxc');
+    // Ruta pública: Asignar CxC sin login
+    const cxcMatch = path.match(/^\/asignar-cxc\/([a-f0-9-]{36})$/i);
+    if (cxcMatch) {
+      setRutaPublica({ tipo: 'asignar-cxc', id: cxcMatch[1] });
     }
+    // Rutas internas
     if (path === '/servicio-clientes') {
       setCurrentModule('servicio-clientes');
     }
@@ -461,6 +465,9 @@ export default function App() {
   if (rutaPublica) {
     if (rutaPublica.tipo === 'alta-cliente') {
       return <AltaClientePublico solicitudId={rutaPublica.id} />;
+    }
+    if (rutaPublica.tipo === 'asignar-cxc') {
+      return <AsignarCxCPublico solicitudId={rutaPublica.id} />;
     }
   }
 
