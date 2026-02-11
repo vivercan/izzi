@@ -260,7 +260,9 @@ export default function AnalisisContratosModule({ onBack }: Props) {
       setIntentoActual(i);
       try {
         const data = await callEdge();
-        if (data.success && data.analisis) { stopProgress(true); await new Promise(r => setTimeout(r, 500)); setResultado(data.analisis); setAnalizando(false); return; }
+        if (data.success && data.analisis) { stopProgress(true); await new Promise(r => setTimeout(r, 500)); setResultado(data.analisis);
+          if (!textoExtraido && data.texto_usado && data.texto_usado.length > 30) { setTextoExtraido(data.texto_usado); setTextoHtml(formatPlainTextAsLegalHtml(data.texto_usado)); console.log('Using server text: ' + data.texto_usado.length + ' chars'); }
+          setAnalizando(false); return; }
         throw new Error(data.error || 'Respuesta inválida');
       } catch (err: any) {
         if (i < 3) { setProgreso(3); setPasoActual(0); await new Promise(r => setTimeout(r, i * 3000)); startProgress(); }

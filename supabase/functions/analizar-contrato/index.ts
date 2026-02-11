@@ -346,7 +346,7 @@ SOLO JSON VÁLIDO.`;
     analisis.justificacion_veredicto = analisis.justificacion_veredicto || "";
 
     console.log(`[contrato] ✅ ${analisis.veredicto} | Riesgo:${analisis.calificacion_riesgo}/10 | ${analisis.riesgos.length} riesgos | Blindada:${analisis.version_blindada.length} chars`);
-    return ok({ success: true, analisis });
+    return ok({ success: true, analisis, texto_usado: texto_extraido || '' });
 
   } catch (e: any) {
     console.error("[contrato] FATAL:", e.message);
