@@ -1,6 +1,6 @@
 // supabase/functions/analizar-contrato/index.ts
-// GRUPO LOMA | TROB TRANSPORTES | v4.0
-// FIXED: anthropic-version 2023-06-01 + pdfs-2024-09-25 beta
+// GRUPO LOMA | TROB TRANSPORTES | v6.0
+// NO pide texto_original_completo — se usa el del cliente
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
@@ -36,42 +36,33 @@ serve(async (req) => {
     const isPDF = tipo_archivo?.includes("pdf") || fn.endsWith(".pdf");
     const isImage = tipo_archivo?.includes("image") || /\.(png|jpg|jpeg|gif|webp)$/.test(fn);
 
-    console.log(`[contrato] ${nombre_archivo} | tipo=${tipo_archivo} | texto=${texto_extraido ? texto_extraido.length : 0} | b64=${archivo_base64 ? archivo_base64.length : 0}`);
+    console.log(`[contrato] ${nombre_archivo} | tipo=${tipo_archivo} | texto=${texto_extraido ? texto_extraido.length : 0}`);
 
     const content: any[] = [];
     let needsPdfBeta = false;
 
     if (texto_extraido && texto_extraido.length > 30) {
-      // Pre-extracted text from client (Word, Excel)
-      console.log(`[contrato] Using pre-extracted text: ${texto_extraido.length} chars`);
       content.push({ type: "text", text: `TEXTO DEL CONTRATO "${nombre_archivo}":\n\n${texto_extraido}\n\nFecha: ${fechaStr}. Analiza para TROB TRANSPORTES. RESPONDE SOLO JSON VÁLIDO.` });
     } else if (isPDF && archivo_base64) {
-      console.log("[contrato] PDF mode with beta header");
       needsPdfBeta = true;
       content.push(
         { type: "document", source: { type: "base64", media_type: "application/pdf", data: archivo_base64 } },
-        { type: "text", text: `Analiza este contrato PDF para TROB TRANSPORTES. Archivo: "${nombre_archivo}". Fecha: ${fechaStr}. RESPONDE SOLO JSON VÁLIDO.` }
+        { type: "text", text: `Analiza este contrato PDF para TROB TRANSPORTES. "${nombre_archivo}". Fecha: ${fechaStr}. RESPONDE SOLO JSON VÁLIDO.` }
       );
     } else if (isImage && archivo_base64) {
-      console.log("[contrato] Image mode");
       const ext = fn.split(".").pop() || "jpeg";
       const mt: Record<string, string> = { png: "image/png", jpg: "image/jpeg", jpeg: "image/jpeg", gif: "image/gif", webp: "image/webp" };
       content.push(
         { type: "image", source: { type: "base64", media_type: mt[ext] || "image/jpeg", data: archivo_base64 } },
         { type: "text", text: `Imagen de contrato. Analízalo para TROB TRANSPORTES. Fecha: ${fechaStr}. RESPONDE SOLO JSON VÁLIDO.` }
       );
-    } else if (archivo_base64) {
-      // Unknown → try as text reference
-      console.log("[contrato] Unknown type, sending base64 snippet as text");
-      content.push({ type: "text", text: `Archivo: "${nombre_archivo}". No se pudo determinar el tipo. Genera análisis con estructura JSON completa indicando que se necesita convertir a PDF. Fecha: ${fechaStr}. RESPONDE SOLO JSON VÁLIDO.` });
     } else {
       return ok({ success: false, error: "No se pudo procesar el archivo." });
     }
 
     const systemPrompt = `Eres un abogado corporativo especialista en derecho mercantil y transporte en México.
-Analiza el contrato y responde ÚNICAMENTE con JSON válido (sin backticks, sin texto).
+Analiza el contrato y responde ÚNICAMENTE con JSON válido (sin backticks, sin texto adicional).
 
-Estructura EXACTA:
 {
   "datos_extraidos": {
     "representante_legal": "nombre o 'No especificado'",
@@ -79,34 +70,48 @@ Estructura EXACTA:
     "numero_escritura": "número o 'No especificado'",
     "fecha_contrato": "fecha o 'No especificado'",
     "partes": ["Parte A", "Parte B"],
-    "objeto_contrato": "descripción",
+    "objeto_contrato": "descripción breve",
     "vigencia": "duración o 'No especificado'",
-    "monto_o_tarifa": "condiciones o 'No especificado'"
+    "monto_o_tarifa": "condiciones económicas o 'No especificado'"
   },
   "es_leonino": false,
-  "explicacion_leonino": "Explicación",
-  "riesgos": [{"clausula":"","descripcion":"","severidad":"ALTA","sugerencia":""}],
-  "resumen_ejecutivo": "3-5 párrafos",
-  "clausulas_faltantes": ["cláusula faltante"],
-  "version_blindada": "Texto COMPLETO con modificaciones. NUNCA truncar.",
-  "calificacion_riesgo": 7
+  "explicacion_leonino": "Explicación detallada de por qué es o no es leonino",
+  "riesgos": [
+    {
+      "clausula": "Nombre/número de la cláusula",
+      "texto_original": "COPIA TEXTUAL de la parte problemática tal como aparece en el contrato",
+      "descripcion": "Por qué es riesgoso para TROB",
+      "severidad": "ALTA|MEDIA|BAJA",
+      "sugerencia": "Texto COMPLETO corregido que debería reemplazar al original"
+    }
+  ],
+  "resumen_ejecutivo": "3-5 párrafos de análisis completo",
+  "clausulas_faltantes": ["descripción de cada cláusula que debería existir pero no está"],
+  "version_blindada": "CONTRATO COMPLETO reescrito con TODAS las correcciones aplicadas para proteger 100% a TROB. Debe ser el texto final completo listo para firma. NUNCA truncar. NUNCA resumir. Incluir TODAS las cláusulas.",
+  "calificacion_riesgo": 7,
+  "veredicto": "FIRMAR o NO FIRMAR",
+  "justificacion_veredicto": "Párrafo detallado explicando por qué se recomienda firmar o no"
 }
 
-TROB TRANSPORTES: transportista de carga. Proteger contra responsabilidad excesiva, penalizaciones desproporcionadas, plazos >30 días, sin fuerza mayor, jurisdicción fuera de Aguascalientes.
-Info: Escritura 21,183 Vol 494, Notaría 35, Lic. Fernando Quezada Leos, Ags. Rep. legal: Alejandro López Ramírez. RFC: TTR151216CHA.
-SOLO JSON.`;
+IMPORTANTE: NO incluyas el texto original completo del contrato en tu respuesta. Solo incluye la version_blindada (contrato corregido). El texto original ya lo tenemos.
 
-    // Build headers - CRITICAL: version must be 2023-06-01
+TROB TRANSPORTES - transportista de carga mexicano:
+- Proteger contra: responsabilidad excesiva, penalizaciones desproporcionadas, plazos pago >30 días, sin fuerza mayor, jurisdicción fuera de Aguascalientes
+- Verificar: limitación responsabilidad, seguro mercancía, obligaciones recíprocas, resolución controversias, terminación bilateral
+- Calificación 1-10 (1=seguro, 10=peligroso)
+- veredicto "FIRMAR" si calificación <= 4, "NO FIRMAR" si > 4
+- version_blindada: contrato COMPLETO con correcciones, NUNCA truncar
+- Cada riesgo DEBE incluir texto_original (fragmento del contrato) y sugerencia (texto corregido)
+
+Info TROB: Escritura 21,183 Vol 494, Notaría 35, Lic. Fernando Quezada Leos, Ags. Rep. legal: Alejandro López Ramírez. RFC: TTR151216CHA. BBVA.
+SOLO JSON VÁLIDO.`;
+
     const headers: Record<string, string> = {
       "Content-Type": "application/json",
       "x-api-key": ANTHROPIC_API_KEY,
       "anthropic-version": "2023-06-01",
     };
-    if (needsPdfBeta) {
-      headers["anthropic-beta"] = "pdfs-2024-09-25";
-    }
-
-    console.log("[contrato] Calling Anthropic...", needsPdfBeta ? "(with PDF beta)" : "(text only)");
+    if (needsPdfBeta) headers["anthropic-beta"] = "pdfs-2024-09-25";
 
     let res;
     try {
@@ -115,59 +120,53 @@ SOLO JSON.`;
         headers,
         body: JSON.stringify({
           model: "claude-sonnet-4-20250514",
-          max_tokens: 16000,
+          max_tokens: 32000,
           system: systemPrompt,
           messages: [{ role: "user", content: content }],
         }),
       });
     } catch (e: any) {
-      console.error("[contrato] Fetch error:", e.message);
-      return ok({ success: false, error: `Error de conexión con IA: ${e.message}` });
+      return ok({ success: false, error: `Error conexión IA: ${e.message}` });
     }
-
-    console.log(`[contrato] Status: ${res.status}`);
 
     if (!res.ok) {
       const err = await res.text().catch(() => "");
-      console.error(`[contrato] API error ${res.status}: ${err.substring(0, 400)}`);
-      const m: Record<number, string> = {
-        401: "API key inválida.",
-        429: "Demasiadas solicitudes. Espera 30s.",
-        400: `Error procesando: ${err.substring(0, 120)}`,
-        529: "IA sobrecargada.",
-        503: "IA no disponible.",
-      };
-      return ok({ success: false, error: m[res.status] || `Error IA: ${res.status}. ${err.substring(0, 100)}` });
+      console.error(`[contrato] ${res.status}: ${err.substring(0, 400)}`);
+      const m: Record<number, string> = { 401: "API key inválida.", 429: "Demasiadas solicitudes. Espera 30s.", 400: `Error: ${err.substring(0, 120)}`, 529: "IA sobrecargada.", 503: "IA no disponible." };
+      return ok({ success: false, error: m[res.status] || `Error IA: ${res.status}` });
     }
 
     const data = await res.json();
     const text = data.content?.map((b: any) => b.type === "text" ? b.text : "").filter(Boolean).join("\n") || "";
-    console.log(`[contrato] Response: ${text.length} chars`);
-
     if (!text) return ok({ success: false, error: "IA no generó respuesta." });
 
     let analisis;
     try {
       const clean = text.replace(/```json\s*/g, "").replace(/```\s*/g, "").trim();
       const match = clean.match(/\{[\s\S]*\}/);
-      if (!match) throw new Error("No JSON");
+      if (!match) throw new Error("No JSON found");
       analisis = JSON.parse(match[0]);
     } catch (e: any) {
-      console.error("[contrato] Parse:", e.message, text.substring(0, 200));
-      return ok({ success: false, error: "Error interpretando respuesta." });
+      console.error("[contrato] Parse:", e.message, text.substring(0, 300));
+      return ok({ success: false, error: "Error interpretando respuesta de IA." });
     }
 
     // Defaults
     analisis.datos_extraidos = analisis.datos_extraidos || {};
-    analisis.riesgos = analisis.riesgos || [];
+    analisis.riesgos = (analisis.riesgos || []).map((r: any) => ({
+      clausula: r.clausula || '', texto_original: r.texto_original || '',
+      descripcion: r.descripcion || '', severidad: r.severidad || 'MEDIA', sugerencia: r.sugerencia || '',
+    }));
     analisis.clausulas_faltantes = analisis.clausulas_faltantes || [];
     analisis.calificacion_riesgo = analisis.calificacion_riesgo || 5;
     analisis.es_leonino = analisis.es_leonino ?? false;
-    analisis.explicacion_leonino = analisis.explicacion_leonino || "No determinado";
-    analisis.resumen_ejecutivo = analisis.resumen_ejecutivo || "Análisis completado.";
-    analisis.version_blindada = analisis.version_blindada || "No generada.";
+    analisis.explicacion_leonino = analisis.explicacion_leonino || "";
+    analisis.resumen_ejecutivo = analisis.resumen_ejecutivo || "";
+    analisis.version_blindada = analisis.version_blindada || "";
+    analisis.veredicto = analisis.veredicto || (analisis.calificacion_riesgo <= 4 ? "FIRMAR" : "NO FIRMAR");
+    analisis.justificacion_veredicto = analisis.justificacion_veredicto || "";
 
-    console.log(`[contrato] ✅ Riesgo:${analisis.calificacion_riesgo}/10 Riesgos:${analisis.riesgos.length} Leonino:${analisis.es_leonino}`);
+    console.log(`[contrato] ✅ ${analisis.veredicto} | Riesgo:${analisis.calificacion_riesgo}/10 | ${analisis.riesgos.length} riesgos | Blindada:${analisis.version_blindada.length} chars`);
     return ok({ success: true, analisis });
 
   } catch (e: any) {
