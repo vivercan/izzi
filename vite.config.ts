@@ -54,6 +54,10 @@
     build: {
       target: 'esnext',
       outDir: 'build',
+      sourcemap: false,
+    },
+    esbuild: {
+      drop: ['console', 'debugger'],
     },
     server: {
       port: 3000,
