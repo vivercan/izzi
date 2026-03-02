@@ -13,7 +13,7 @@ const ALLOWED_DOMAINS = ['trob.com.mx', 'wexpress.com.mx', 'speedyhaul.com.mx'];
 
 // ============ WHATSAPP API CONFIG ============
 const WA_PHONE_ID = '963627606824867';
-const WA_ACCESS_TOKEN = 'EAAVapl2JRGMBQLlCz03w6TsgRFog5PnO91xxLecN56cnqMyh5DHbbUcYHqHrHJJzHvZAlag710qZBzuuVDUwlhU55mbwweEY45Kfl5SYDPZAV22haOl7j1uEEmG4pe8qhTvwnpmfXbauthZB84BlJ7oXdK398zuZBXr9bSzLAxk2U5L4XnezLBFyyjSZAZC0A5s1AZDZD';
+const WA_ACCESS_TOKEN = ''; // MOVED TO EDGE FUNCTION - C02
 
 // ============ TYPES ============
 interface ClienteAsignacion {
