@@ -36,19 +36,7 @@ const GOOGLE_SCOPES = 'https://www.googleapis.com/auth/gmail.send https://www.go
 const TOKEN_REFRESH_MS = 55 * 60 * 1000; // 55 minutos
 
 // ═══════════════════════════════════════════════════════════════════════════════════════════════════
-// 📋 MATRIZ COMPLETA DE USUARIOS FX27 - ACTUALIZADA 17/DIC/2025
-// ═══════════════════════════════════════════════════════════════════════════════════════════════════
-// # | Usuario            | Correo                          | Password    | Header      | Módulos      | Ventas/Oport
-// --|--------------------|---------------------------------|-------------|-------------|--------------|-------------
-// 1 | Juan Viveros       | juan.viveros@trob.com.mx        | Mexico86    | ADMIN       | TODOS        | Ver TODO
-// 2 | Jennifer Sánchez   | jennifer.sanchez@trob.com.mx    | jsanchez    | ADMIN       | TODOS        | Ver TODO
-// 3 | Lizeth Rodríguez   | customer.service3@trob.com.mx   | lrodriguez  | CSR         | Todo -Config | Ver TODO
-// 4 | Elizabeth Rodríguez| customer.service1@trob.com.mx   | erodriguez  | CSR         | Todo -Config | Ver TODO
-// 5 | Isis Estrada       | isis.estrada@wexpress.com.mx    | iestrada    | VENTAS      | Todo -Config | Solo ISIS
-// 6 | Paloma Oliva       | paloma.oliva@speedyhaul.com.mx  | poliva      | VENTAS      | Todo -Config | Solo PALOMA
-// 7 | Jaime Soto         | jaime.soto@trob.com.mx          | jsoto       | OPERACIONES | Solo Dedicado| Sin acceso
-// 8 | José Rodríguez     | jose.rodriguez@trob.com.mx      | jrodriguez  | OPERACIONES | Solo Dedicado| Sin acceso
-// 9 | Marcos Pineda      | marcos.pineda@trob.com.mx       | mpineda     | OPERACIONES | Solo Dedicado| Sin acceso
+// 📋 USUARIOS FX27 - Ver tabla usuarios_fx27 en Supabase (C10 pendiente)
 // ═══════════════════════════════════════════════════════════════════════════════════════════════════
 
 type UserRole = 'admin' | 'ventas' | 'operaciones' | 'csr' | 'custom';
@@ -79,7 +67,7 @@ const USUARIOS_AUTORIZADOS: Usuario[] = [
     id: '1',
     nombre: 'Juan Viveros',
     correo: 'juan.viveros@trob.com.mx',
-    password: 'Mexico86',
+    password: '',
     rol: 'admin',
     rolDisplay: 'ADMIN',
     ultimoAcceso: '',
@@ -90,7 +78,7 @@ const USUARIOS_AUTORIZADOS: Usuario[] = [
     id: '9',
     nombre: 'Jennifer Sánchez',
     correo: 'jennifer.sanchez@trob.com.mx',
-    password: 'jsanchez',
+    password: '',
     rol: 'admin',
     rolDisplay: 'ADMIN',
     ultimoAcceso: '',
@@ -129,7 +117,7 @@ const USUARIOS_AUTORIZADOS: Usuario[] = [
     id: '4',
     nombre: 'Isis Estrada',
     correo: 'isis.estrada@wexpress.com.mx',
-    password: 'iestrada',
+    password: '',
     rol: 'ventas',
     rolDisplay: 'VENTAS',
     vendedorVentas: 'ISIS',        // Valor en ventas_maestro.ejecutivo_ventas
@@ -142,7 +130,7 @@ const USUARIOS_AUTORIZADOS: Usuario[] = [
     id: '5',
     nombre: 'Paloma Oliva',
     correo: 'paloma.oliva@speedyhaul.com.mx',
-    password: 'poliva',
+    password: '',
     rol: 'ventas',
     rolDisplay: 'VENTAS',
     vendedorVentas: 'PALOMA',      // Valor en ventas_maestro.ejecutivo_ventas
@@ -173,7 +161,7 @@ const USUARIOS_AUTORIZADOS: Usuario[] = [
     id: '2',
     nombre: 'José Rodríguez',
     correo: 'jose.rodriguez@trob.com.mx',
-    password: 'jrodriguez',
+    password: '',
     rol: 'operaciones',
     rolDisplay: 'OPERACIONES',
     ultimoAcceso: '',
@@ -184,7 +172,7 @@ const USUARIOS_AUTORIZADOS: Usuario[] = [
     id: '3',
     nombre: 'Marcos Pineda',
     correo: 'marcos.pineda@trob.com.mx',
-    password: 'mpineda',
+    password: '',
     rol: 'operaciones',
     rolDisplay: 'OPERACIONES',
     ultimoAcceso: '',
@@ -195,7 +183,7 @@ const USUARIOS_AUTORIZADOS: Usuario[] = [
     id: '6',
     nombre: 'Jaime Soto',
     correo: 'jaime.soto@trob.com.mx',
-    password: 'jsoto',
+    password: '',
     rol: 'operaciones',
     rolDisplay: 'OPERACIONES',
     ultimoAcceso: '',
