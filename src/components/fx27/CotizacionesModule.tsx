@@ -57,7 +57,7 @@ export const CotizacionesModule = ({ onBack }: CotizacionesModuleProps) => {
 
   const [calculando, setCalculando] = useState(false);
   const [cotizaciones, setCotizaciones] = useState<FormCotizacion[]>([]);
-  const [googleMapsApiKey, setGoogleMapsApiKey] = useState<string>('AIzaSyD72DQyQqozE6lLySRnYCc5KSk9y-YiBno'); // API Key por defecto
+  const [googleMapsApiKey, setGoogleMapsApiKey] = useState<string>(''); // API Key por defecto
 
   // Función para calcular distancia usando Google Maps Distance Matrix API
   const calcularDistancia = async (origen: string, destino: string): Promise<{distancia: number; tiempo: number} | null> => {
