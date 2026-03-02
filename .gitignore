@@ -39,3 +39,5 @@ Vercel
 .vercel
 # FX27 local backups
 *.bak_*
+
+supabase/.temp/
