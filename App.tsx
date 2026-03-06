@@ -334,7 +334,7 @@ export default function App() {
         <>
           {currentModule === 'agregar-lead' && <AgregarLeadModule onBack={handleBack} />}
           {currentModule === 'panel-oportunidades' && <PanelOportunidadesModule onBack={handleBack} />}
-          {currentModule === 'operaciones' && <ModuleTemplate title="Operaciones" onBack={handleBack} headerImage={MODULE_IMAGES.OPERACIONES} />}
+          {currentModule === 'operaciones' && <OperacionesModule onBack={handleBack} userRole={userRole} userEmail={currentUserEmail} />}
           {currentModule === 'despacho-inteligente' && <DespachoInteligenteModule onBack={handleBack} />}
           {currentModule === 'control-equipo' && <ControlEquipoModule onBack={handleBack} />}
           {currentModule === 'kpis' && <KPIsModule onBack={handleBack} />}
