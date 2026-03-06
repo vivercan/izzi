@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { OperacionesModule } from './components/fx27/OperacionesModule';
 import { LoginScreen } from './components/fx27/LoginScreen';
 import { DashboardScreen } from './components/fx27/DashboardScreen';
 import { AgregarLeadModule } from './components/fx27/AgregarLeadModule';
