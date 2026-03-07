@@ -1713,3 +1713,4 @@ export const PanelOportunidadesModule = ({ onBack, userVendedorLeads }: PanelOpo
     </ModuleTemplate>
   );
 };
+
